@@ -48,6 +48,7 @@ class Tiger_Service_Authentication
         // whether the email is registered.
         if (!$user || $user->status !== 'active') {
             password_verify($password, $this->_dummyHash());
+            $this->_recordLogin(Tiger_Model_Login::RESULT_FAILURE, $identifier, null);
             return false;
         }
 
@@ -55,23 +56,46 @@ class Tiger_Service_Authentication
         $cred      = $credModel->passwordCredential($user->user_id);
         if (!$cred || $cred->secret === null) {
             password_verify($password, $this->_dummyHash());
+            $this->_recordLogin(Tiger_Model_Login::RESULT_FAILURE, $identifier, $user->user_id);
             return false;
         }
 
         // Brute-force lockout: too many recent failures -> refuse without checking.
         if ($credModel->isLockedOut($cred)) {
+            $this->_recordLogin(Tiger_Model_Login::RESULT_LOCKED, $identifier, $user->user_id);
             return false;
         }
 
         if (!password_verify($password, (string) $cred->secret)) {
             $credModel->recordFailure($cred->credential_id);
+            $this->_recordLogin(Tiger_Model_Login::RESULT_FAILURE, $identifier, $user->user_id);
             return false;
         }
 
         $credModel->recordSuccess($cred->credential_id);
         $identity = $this->_buildIdentity($user);
         $this->_establish($identity, $user->user_id);
+        $this->_recordLogin(Tiger_Model_Login::RESULT_SUCCESS, $identifier, $user->user_id, $identity->org_id);
         return $identity;
+    }
+
+    /** Append a row to the login audit log. Never lets logging break a login. */
+    protected function _recordLogin($result, $identifier, $userId = null, $orgId = null)
+    {
+        try {
+            (new Tiger_Model_Login())->record(array(
+                'user_id'    => $userId,
+                'org_id'     => $orgId,
+                'identifier' => $identifier,
+                'method'     => 'password',
+                'result'     => $result,
+                'ip_address' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : null,
+                'user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : null,
+                // fingerprint: TBD — the client would supply a device hash.
+            ));
+        } catch (Throwable $e) {
+            error_log('Tiger login audit failed: ' . $e->getMessage());
+        }
     }
 
     /** A valid bcrypt hash to verify against for timing-equalization (computed once). */
