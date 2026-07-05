@@ -6,13 +6,24 @@
  * Asset base `$this->themeAssets` (default: /_theme) is the docroot symlink to this
  * theme's assets/ dir. Theme + skin are chosen by the app Bootstrap (config now,
  * per-org later).
+ *
+ * Theme mode: honors the `tiger_theme` cookie (browser|light|dark) server-side so
+ * the first paint is correct; theme-init.js finishes 'browser' via matchMedia
+ * before CSS applies (same mechanism as the admin shell).
  */
+$_pref = $_COOKIE['tiger_theme'] ?? 'browser';
+if (!in_array($_pref, ['browser', 'light', 'dark'], true)) { $_pref = 'browser'; }
+$_mode = ($_pref === 'dark') ? 'dark' : 'light';
+$_lang = defined('LANG') ? LANG : 'en';
 ?><!doctype html>
-<html lang="en" data-bs-theme="light">
+<html lang="<?= $this->escape($_lang) ?>" data-bs-theme="<?= $_mode ?>">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= $this->escape($this->title ?? 'Tiger') ?></title>
+
+    <!-- No-FOUC theme resolver: MUST run before the stylesheets below paint. -->
+    <script src="<?= $this->themeAssets ?>/js/theme-init.js"></script>
 
     <link rel="stylesheet" href="<?= $this->themeAssets ?>/css/bootstrap.min.css">
     <link rel="stylesheet" href="<?= $this->themeAssets ?>/default.css">
