@@ -22,11 +22,32 @@ class Tiger_Application
 
     public function run()
     {
-        $this->normalizeProxy();
+        try {
+            $this->boot()->run();
+        } catch (\Throwable $e) {
+            $this->fail($e);
+        }
+    }
+
+    /**
+     * Prepare the environment and bootstrap the app **without dispatching**.
+     *
+     * Shared by run() (web) and the console (bin/tiger), so CLI commands get the
+     * identical constants, config cascade, and DB adapter as a web request — no
+     * second, drifting bootstrap path. Returns the bootstrapped Zend_Application;
+     * call ->run() on it to dispatch (web only).
+     *
+     * @return Zend_Application
+     */
+    public function boot()
+    {
+        $this->normalizeProxy();   // no-op under CLI (no X-Forwarded-* headers present)
         $this->defineConstants();
         $this->setIncludePath();
         $this->loadCustomHook();
-        $this->dispatch($this->buildConfig());
+
+        $application = new Zend_Application(APPLICATION_ENV, $this->buildConfig());
+        return $application->bootstrap();   // runs _init* (incl. _initDb); does NOT dispatch
     }
 
     /**
@@ -118,21 +139,17 @@ class Tiger_Application
         return $config;
     }
 
-    protected function dispatch(Zend_Config $config)
+    /** Last-resort handler for a boot/dispatch failure: log + HTTP 500. */
+    protected function fail(\Throwable $e)
     {
-        try {
-            $application = new Zend_Application(APPLICATION_ENV, $config);
-            $application->bootstrap()->run();
-        } catch (\Throwable $e) {
-            error_log('Tiger fatal: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
-            http_response_code(500);
-            if (APPLICATION_ENV !== 'production') {
-                echo '<pre style="padding:2em;font-family:monospace">'
-                    . htmlspecialchars((string) $e) . '</pre>';
-            } else {
-                echo '<h1>An error occurred.</h1><p>Please try again later.</p>';
-            }
-            exit(1);
+        error_log('Tiger fatal: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+        http_response_code(500);
+        if (APPLICATION_ENV !== 'production') {
+            echo '<pre style="padding:2em;font-family:monospace">'
+                . htmlspecialchars((string) $e) . '</pre>';
+        } else {
+            echo '<h1>An error occurred.</h1><p>Please try again later.</p>';
         }
+        exit(1);
     }
 }

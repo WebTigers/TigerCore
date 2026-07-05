@@ -1,23 +1,90 @@
 #!/usr/bin/env php
 <?php
 /**
- * The `tiger` console. Stub for now — real subcommands (migrate, install:admin,
- * make:module) land as Core grows.
+ * The `tiger` console.
+ *
+ * Installed as vendor/bin/tiger in a Tiger app (composer "bin"). Run it from the
+ * app root: `vendor/bin/tiger migrate`.
+ *
+ * It boots the app through Tiger_Application::boot() — the SAME path a web request
+ * takes, minus dispatch — so every command sees the identical constants, config
+ * cascade, and DB adapter. No separate CLI bootstrap to drift out of sync.
  */
-$cmd = $argv[1] ?? 'help';
+
+// --- 1) Locate the app root: nearest ancestor of CWD holding application/configs ---
+$root  = getenv('TIGER_APP_ROOT') ?: getcwd();
+$probe = $root;
+while ($probe !== '' && $probe !== '/' && !is_dir($probe . '/application/configs')) {
+    $probe = dirname($probe);
+}
+if (is_dir($probe . '/application/configs')) {
+    $root = $probe;
+}
+if (!is_file($root . '/vendor/autoload.php')) {
+    fwrite(STDERR, "tiger: run this from a Tiger app root (no vendor/autoload.php found)\n");
+    exit(1);
+}
+
+define('APPLICATION_ROOT', $root);
+require $root . '/vendor/autoload.php';
+
+// --- 2) Boot WITHOUT dispatching (constants + config + DB adapter) ---
+(new Tiger_Application($root))->boot();
+
+$log = function ($message) { fwrite(STDOUT, $message . "\n"); };
+
+/** The default DB adapter, or a clear error if none is configured. */
+function tiger_db()
+{
+    $db = Zend_Db_Table_Abstract::getDefaultAdapter();
+    if (!$db) {
+        fwrite(STDERR, "tiger: no database configured — set tiger.db.* in application/configs/local.ini\n");
+        exit(1);
+    }
+    return $db;
+}
+
+/** Migration dirs, in precedence order: core (package) -> app -> each module. */
+function tiger_migration_paths()
+{
+    $paths = array(TIGER_CORE_PATH . '/migrations', APPLICATION_PATH . '/migrations');
+    foreach (glob(MODULES_PATH . '/*/migrations') ?: array() as $modMigrations) {
+        $paths[] = $modMigrations;
+    }
+    return $paths;
+}
+
+// --- 3) Dispatch the subcommand ---
+$cmd = isset($argv[1]) ? $argv[1] : 'help';
 
 switch ($cmd) {
-    case 'version':
-        // Best-effort: the Tiger_ autoloader may not be wired when run standalone.
-        echo 'tiger-core (bin/tiger) — stub console' . PHP_EOL;
+    case 'migrate':
+        (new Tiger_Db_Migrator(tiger_db(), tiger_migration_paths()))->migrate($log);
         break;
+
+    case 'migrate:status':
+        foreach ((new Tiger_Db_Migrator(tiger_db(), tiger_migration_paths()))->status() as $version => $s) {
+            printf("  [%s] %s_%s\n", $s['applied'] ? 'x' : ' ', $version, $s['name']);
+        }
+        break;
+
+    case 'migrate:rollback':
+        $steps = isset($argv[2]) ? (int) $argv[2] : 1;
+        (new Tiger_Db_Migrator(tiger_db(), tiger_migration_paths()))->rollback($steps, $log);
+        break;
+
+    case 'version':
+        echo 'Tiger Core ' . Tiger_Version::VERSION . "\n";
+        break;
+
     case 'help':
     default:
-        echo "tiger — Tiger platform console (stub)\n";
-        echo "\nUsage: bin/tiger <command>\n\n";
-        echo "Planned commands:\n";
-        echo "  migrate         Run additive core + module migrations\n";
-        echo "  install:admin   Create the first org + owner account\n";
-        echo "  make:module     Scaffold a new self-registering module\n";
+        echo "tiger — Tiger platform console\n\n";
+        echo "Usage: vendor/bin/tiger <command>\n\n";
+        echo "  migrate                Apply pending migrations (core + app + modules)\n";
+        echo "  migrate:status         Show applied [x] / pending [ ] migrations\n";
+        echo "  migrate:rollback [n]   Reverse the last n migrations (default 1)\n";
+        echo "  version                Show the Tiger Core version\n";
+        echo "\nPlanned: install:admin, make:module\n";
         break;
 }
