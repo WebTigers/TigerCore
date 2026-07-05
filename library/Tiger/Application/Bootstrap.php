@@ -209,9 +209,48 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
      * override layer folds in here once the substrate (org + config table)
      * exists — à la AskLevi Core_Bootstrap::_initConfigs layer 3.
      */
+    /**
+     * Start the session, using the DB save handler when a DB + `session` table are
+     * present (a shared store — required behind an ALB with >1 instance), else PHP's
+     * default file handler (fine on a single box, and on a fresh install before
+     * migrations run). Override with `tiger.session.handler = files|db`. MUST run
+     * before anything reads Zend_Auth (setSaveHandler must precede session start).
+     */
+    protected function _initSession()
+    {
+        $this->bootstrap('db');
+
+        $opts    = $this->getOption('tiger') ?: array();
+        $adapter = Zend_Db_Table_Abstract::getDefaultAdapter();
+        $prefer  = isset($opts['session']['handler']) ? $opts['session']['handler'] : ($adapter ? 'db' : 'files');
+
+        $useDb = false;
+        if ($prefer === 'db' && $adapter) {
+            try { $adapter->describeTable('session'); $useDb = true; } catch (Throwable $e) {}  // table must exist
+        }
+        if ($useDb) {
+            try {
+                Zend_Session::setSaveHandler(new Tiger_Session_SaveHandler_DbTable(array(
+                    'name'           => 'session',
+                    'primary'        => 'session_id',
+                    'modifiedColumn' => 'modified',
+                    'dataColumn'     => 'data',
+                    'lifetimeColumn' => 'lifetime',
+                )));
+            } catch (Throwable $e) {
+                error_log('Tiger session: DB handler failed, using files — ' . $e->getMessage());
+            }
+        }
+
+        if (!Zend_Session::isStarted()) {
+            Zend_Session::start();
+        }
+    }
+
     protected function _initConfigs()
     {
         $this->bootstrap('db');
+        $this->bootstrap('session');   // start the session (DB handler) BEFORE reading the identity
 
         $config = new Zend_Config($this->getOptions(), true);   // ini cascade base (modifiable)
 
