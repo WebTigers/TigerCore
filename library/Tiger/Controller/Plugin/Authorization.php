@@ -25,6 +25,15 @@ class Tiger_Controller_Plugin_Authorization extends Zend_Controller_Plugin_Abstr
 
     public function preDispatch(Zend_Controller_Request_Abstract $request)
     {
+        // Don't gate a request with no dispatchable controller — let ZF's
+        // ErrorHandler render a clean 404 for everyone, instead of bouncing a
+        // guest to login for a URL that doesn't even exist. Real controllers
+        // (dispatchable) are still gated deny-by-default below.
+        $dispatcher = Zend_Controller_Front::getInstance()->getDispatcher();
+        if (!$dispatcher->isDispatchable($request)) {
+            return;
+        }
+
         $role     = $this->_resolveRole();
         $resource = $this->_resourceFor($request);
         if ($resource === null) {
@@ -96,18 +105,23 @@ class Tiger_Controller_Plugin_Authorization extends Zend_Controller_Plugin_Abstr
         return $class;
     }
 
-    /** Denied: guests go to login (302); authenticated-but-forbidden get a 403. */
+    /** Denied: guests go to login (302); authenticated-but-forbidden get a themed 403. */
     protected function _deny($role)
     {
         if ($role === self::ROLE_GUEST) {
             Zend_Controller_Action_HelperBroker::getStaticHelper('redirector')
                 ->gotoUrlAndExit('/auth/login');
         }
-        $this->getResponse()
-            ->setHttpResponseCode(403)
-            ->setBody('<h1>403 Forbidden</h1><p>You do not have access to this resource.</p>')
-            ->sendResponse();
-        exit;
+
+        // Authenticated but forbidden: re-dispatch to the themed 403 page instead of
+        // emitting a bare string. ErrorController is public in acl.ini, so the
+        // re-dispatch passes this same gate cleanly (no deny loop).
+        $request = $this->getRequest();
+        $request->setModuleName('default')
+                ->setControllerName('error')
+                ->setActionName('forbidden')
+                ->setDispatched(false);
+        $this->getResponse()->setHttpResponseCode(403);
     }
 
     /** hyphen/dot/underscore-slug -> StudlyCase (user-admin -> UserAdmin). */

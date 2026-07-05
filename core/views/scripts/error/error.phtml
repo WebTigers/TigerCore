@@ -1,0 +1,87 @@
+<?php
+/**
+ * Error page — 403 / 404 / 500. Rendered in the public layout. Mode-aware: it uses
+ * Bootstrap --bs-* tokens, so it looks right under light or dark automatically.
+ * Error CODES are for developers; the headline speaks to humans.
+ */
+$code = (int) ($this->statusCode ?? 500);
+$msg  = $this->escape($this->message ?? 'Something went wrong.');
+$sub  = array(
+    403 => "You're signed in, but this area isn't available to your account.",
+    404 => "The page may have moved, or never existed. Let's get you back on track.",
+    500 => "Something broke on our end. We've been notified and are looking into it — please try again shortly.",
+);
+$sub  = $sub[$code] ?? $sub[500];
+$icon = array(403 => 'fa-lock', 404 => 'fa-compass', 500 => 'fa-triangle-exclamation');
+$icon = $icon[$code] ?? 'fa-triangle-exclamation';
+?>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<section class="d-flex align-items-center justify-content-center text-center"
+         style="min-height: 82vh; padding: 3rem 1rem;">
+    <div style="max-width: 560px;">
+        <i class="fa-solid <?= $icon ?>" style="font-size: 4rem; color: var(--bs-primary); opacity: .9;"></i>
+        <div class="text-secondary fw-semibold mt-4" style="letter-spacing:.2em; font-size:.8rem;">ERROR <?= $code ?></div>
+        <h1 class="fw-bold mt-2 mb-3" style="font-size: 1.9rem;"><?= $msg ?></h1>
+        <p class="text-secondary mb-4"><?= $this->escape($sub) ?></p>
+        <div class="d-flex gap-2 justify-content-center">
+            <a href="/" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-house me-2"></i>Back to home</a>
+<?php if ($code === 403): ?>
+            <a href="/auth/logout" class="btn btn-outline-secondary btn-lg px-4">Switch account</a>
+<?php endif; ?>
+        </div>
+    </div>
+</section>
+
+<?php if (!empty($this->debug)): $d = $this->debug; $ex = $d['exception']; $req = $d['request']; $srv = $d['server']; ?>
+<section class="border-top" style="background: var(--bs-tertiary-bg);">
+    <div class="container py-4">
+        <p class="text-danger text-uppercase fw-bold small mb-3"><i class="fa-solid fa-bug me-1"></i> Debug — non-production only</p>
+
+        <div class="card border-danger mb-3">
+            <div class="card-header bg-danger-subtle fw-semibold"><?= $this->escape($ex['type']) ?></div>
+            <div class="card-body">
+                <p class="text-danger fw-semibold mb-2"><?= $this->escape($ex['message']) ?></p>
+                <p class="mb-1"><strong>At:</strong> <code><?= $this->escape($ex['file']) ?>:<?= (int) $ex['line'] ?></code></p>
+<?php if (!empty($ex['previous'])): ?>
+                <p class="mb-0"><strong>Caused by:</strong> <?= $this->escape($ex['previous']) ?></p>
+<?php endif; ?>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header fw-semibold">Request</div>
+                    <table class="table table-sm mb-0">
+                        <tr><th style="width:38%">Module</th><td><?= $this->escape($req['module']) ?></td></tr>
+                        <tr><th>Controller</th><td><?= $this->escape($req['controller']) ?></td></tr>
+                        <tr><th>Action</th><td><?= $this->escape($req['action']) ?></td></tr>
+                        <tr><th>Method</th><td><?= $this->escape($req['method']) ?></td></tr>
+                        <tr><th>URI</th><td class="text-break"><?= $this->escape($srv['uri']) ?></td></tr>
+                    </table>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header fw-semibold">Environment</div>
+                    <table class="table table-sm mb-0">
+                        <tr><th style="width:38%">Host</th><td><?= $this->escape($srv['host']) ?></td></tr>
+                        <tr><th>IP</th><td><?= $this->escape($srv['ip']) ?></td></tr>
+                        <tr><th>PHP</th><td><?= $this->escape($srv['php']) ?></td></tr>
+                        <tr><th>App Env</th><td><?= $this->escape($srv['env']) ?></td></tr>
+                        <tr><th>User Agent</th><td class="text-break small"><?= $this->escape($srv['user_agent']) ?></td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header fw-semibold">Stack Trace</div>
+            <div class="card-body p-0">
+                <pre class="mb-0 p-3" style="font-size:12px; white-space:pre-wrap; overflow-x:auto;"><?= $this->escape($ex['trace']) ?></pre>
+            </div>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
