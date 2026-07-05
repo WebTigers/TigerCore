@@ -2,21 +2,19 @@
 /**
  * User — a person / identity. Deliberately THIN.
  *
- * A User row is the bare minimum to authenticate and be referenced: id, email,
- * optional username, a password hash, and status. That's it. NO profile fields,
- * NO org, NO role — those don't belong on the user:
+ * A User row is PURE IDENTITY: id, email, optional username, and status. That's it.
+ * NO credentials, NO profile, NO org, NO role — none of those belong on the user:
  *
- *   - Profile/richness (name, avatar, phone, preferences) belongs to an Account
- *     MODULE that extends User via its own FK-linked table. Keeping it out of core
- *     means the platform can be updated without colliding with app-specific
- *     profile shapes.
+ *   - CREDENTIALS (password, SMS/phone, TOTP, passkeys, SSO) live in
+ *     `user_credential` (Tiger_Model_UserCredential), 1-to-many, because auth is
+ *     multi-factor and a credential is not identity.
+ *   - Profile/richness (name, avatar, phone-as-contact, preferences) belongs to an
+ *     Account MODULE that extends User via its own FK-linked table, so the platform
+ *     updates without colliding with app-specific profile shapes.
  *   - A user's relationship to a tenant — and their ROLE — lives on org_user
- *     (Tiger_Model_OrgUser), because a user can belong to many orgs with a
- *     different role in each. Putting a role on the user would force a single
- *     global role and break multi-tenancy.
- *
- * password_hash is nullable: SSO-only / invited-but-not-yet-activated users have
- * no local password.
+ *     (Tiger_Model_OrgUser), because a user can belong to many orgs with a different
+ *     role in each. A role on the user would force one global role and break
+ *     multi-tenancy.
  *
  * @api
  */
@@ -34,18 +32,5 @@ class Tiger_Model_User extends Tiger_Model_Table
     public function findByEmail($email)
     {
         return $this->fetchRow($this->activeSelect()->where('email = ?', $email)) ?: null;
-    }
-
-    /**
-     * Hash a plaintext password for storage. Uses PASSWORD_DEFAULT (bcrypt today,
-     * upgraded by PHP over time) — verification lives in the auth service, not here,
-     * so the model stays a pure data gateway.
-     *
-     * @param  string $plain
-     * @return string
-     */
-    public static function hashPassword($plain)
-    {
-        return password_hash($plain, PASSWORD_DEFAULT);
     }
 }

@@ -6,11 +6,13 @@
  * keep the name unprefixed (matching AskLevi's convention) for readability; the
  * models quote identifiers automatically.
  *
- * Deliberately minimal — just what's needed to authenticate and be referenced.
- * Profile data lives in an Account module's own table, not here (see
- * Tiger_Model_User for the rationale). `username` is UNIQUE but NULLable: MySQL
- * permits many NULLs in a unique index (NULL != NULL), so username-less users are
- * fine. `password_hash` is NULLable for SSO-only / not-yet-activated accounts.
+ * Deliberately minimal — PURE IDENTITY: who someone is + lifecycle state. There is
+ * NO password here — credentials (password, SMS, TOTP, passkeys, SSO) live in
+ * `user_credential` (1-to-many; migration 0004), because auth is multi-factor by
+ * nature and a credential is not identity. Profile data (name, avatar, phone as
+ * contact, prefs) lives in an Account module's own table. `username` is UNIQUE but
+ * NULLable: MySQL permits many NULLs in a unique index (NULL != NULL), so
+ * username-less users are fine.
  */
 return array(
     'up' => array(
@@ -18,7 +20,6 @@ return array(
             `user_id`       CHAR(36)     NOT NULL,
             `email`         VARCHAR(191) NOT NULL,   -- canonical login id
             `username`      VARCHAR(64)      NULL,
-            `password_hash` VARCHAR(255)     NULL,   -- NULL = SSO-only / not activated
             `status`        VARCHAR(32)  NOT NULL DEFAULT 'active',
             `deleted`       TINYINT(1)   NOT NULL DEFAULT 0,   -- soft-delete flag (1 = deleted)
             `created_by`    CHAR(36)         NULL,             -- user_id who created (NULL = system/genesis)

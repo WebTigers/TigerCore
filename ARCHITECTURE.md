@@ -246,6 +246,27 @@ are deliberately an app concern** — core ships the stamp columns, not a histor
 table. (Soft-delete + a UNIQUE column: a deleted row still holds its unique value,
 e.g. `org.slug`; reuse policy is the app's call, not core's.)
 
+### 7b. Authentication storage
+
+Auth is separated from identity, and durable *factors* are separated from transient
+*challenges*:
+
+| Table | What | Cardinality | Notes |
+|---|---|---|---|
+| `user` | identity (who you are) | — | pure — no password, no credentials |
+| `user_credential` | durable factors (how you prove it) | **1-to-many** | `password` / `sms` / `totp` / `webauthn` / `oauth` — each a row; new types = new rows, no schema change |
+| `auth_challenge` | one-time proofs in flight | many | SMS OTP / reset / verify / magic-link; **v4** id (opaque), hashed code, TTL + single-use + attempt-limited |
+
+Why 1-to-many and not a 1-to-1 auth row: modern auth is multi-factor/multi-method
+(password **and** SMS **and** TOTP **and** several passkeys **and** SSO), each with
+its own verification state — that's a collection. **Phone lives here as an `sms`
+factor** (identity authentication only; phone-as-*contact* would be an Account-module
+field). Passwords moved *off* `user` into a `password` credential, so `user` is pure
+identity. `secret` holds a one-way hash (password), an app-encrypted secret
+(TOTP/OAuth), or a public key (passkey) — semantics are per-type, enforced by the
+model, not the schema. Login *orchestration* (resolve identity → check factor → issue
+session) belongs in an auth **service**; the models are factor-aware gateways.
+
 ## 8. ACL
 
 - **Subject-agnostic:** `can(Subject, permission, context)` — the engine doesn't care whether
