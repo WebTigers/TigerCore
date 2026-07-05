@@ -1,0 +1,23 @@
+#!/usr/bin/env php
+<?php
+/**
+ * The `tiger` console. Stub for now — real subcommands (migrate, install:admin,
+ * make:module) land as Core grows.
+ */
+$cmd = $argv[1] ?? 'help';
+
+switch ($cmd) {
+    case 'version':
+        // Best-effort: the Tiger_ autoloader may not be wired when run standalone.
+        echo 'tiger-core (bin/tiger) — stub console' . PHP_EOL;
+        break;
+    case 'help':
+    default:
+        echo "tiger — Tiger platform console (stub)\n";
+        echo "\nUsage: bin/tiger <command>\n\n";
+        echo "Planned commands:\n";
+        echo "  migrate         Run additive core + module migrations\n";
+        echo "  install:admin   Create the first org + owner account\n";
+        echo "  make:module     Scaffold a new self-registering module\n";
+        break;
+}

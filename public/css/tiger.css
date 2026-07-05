@@ -1,0 +1,7 @@
+/* Tiger Core asset.
+ * Ships in vendor/webtigers/tiger-core/public and is served through the app's
+ * public/_tiger symlink — proving core assets reach the docroot without a copy. */
+:root {
+    --tiger-orange: #c8641e;
+}
+body { font-family: system-ui, sans-serif; }

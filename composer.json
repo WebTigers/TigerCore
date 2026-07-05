@@ -1,0 +1,26 @@
+{
+    "name": "webtigers/tiger-core",
+    "description": "Tiger platform Core — kernel + multi-tenant substrate (org/user/org_user/ACL) on TigerZF",
+    "type": "library",
+    "keywords": ["tiger", "saas", "multi-tenant", "zf1", "tigerzf"],
+    "homepage": "https://github.com/WebTigers/tiger-core/",
+    "license": "(MIT AND BSD-3-Clause)",
+    "require": {
+        "php": ">=8.1",
+        "webtigers/tigerzf": "^1.30"
+    },
+    "autoload": {
+        "psr-0": {
+            "Tiger_": "library/"
+        }
+    },
+    "include-path": [
+        "library/"
+    ],
+    "bin": [
+        "bin/tiger"
+    ],
+    "config": {
+        "sort-packages": true
+    }
+}
