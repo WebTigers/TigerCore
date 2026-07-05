@@ -79,10 +79,15 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
     protected function _initTheme()
     {
         $this->bootstrap('tigerPaths');
+        $this->bootstrap('configs');   // resolve config (incl. per-org overrides) FIRST
 
-        $opts  = $this->getOption('tiger') ?: array();
-        $theme = isset($opts['theme']) && $opts['theme'] !== '' ? $opts['theme'] : 'puma';
-        $skin  = isset($opts['skin'])  ? $opts['skin']  : '';
+        // Read theme/skin from the RESOLVED config (registry) so a per-org DB
+        // override actually reskins that org. Falls back to the ini defaults.
+        $tiger = Zend_Registry::isRegistered('Zend_Config')
+            ? Zend_Registry::get('Zend_Config')->get('tiger')
+            : null;
+        $theme = ($tiger && $tiger->get('theme')) ? (string) $tiger->theme : 'puma';
+        $skin  = ($tiger && $tiger->get('skin'))  ? (string) $tiger->skin  : '';
 
         // Prefer an app-provided theme dir, else the package's:
         $themeDir = APPLICATION_PATH . '/themes/' . $theme;
@@ -206,11 +211,54 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
      */
     protected function _initConfigs()
     {
-        $config = new Zend_Config($this->getOptions(), true);
+        $this->bootstrap('db');
 
-        // TODO(substrate): merge DB config rows scoped 'global' + current org here.
+        $config = new Zend_Config($this->getOptions(), true);   // ini cascade base (modifiable)
 
+        // DB override layer (the runtime tier of the cascade): global config first,
+        // then the CURRENT ORG's config on top (org wins). Dot-notation keys fold
+        // into the nested tree. This is also the per-org resolver — an org row
+        // `tiger.skin = ...` reskins that org (see _initTheme). Graceful: no DB / no
+        // `config` table yet -> ini-only config.
+        try {
+            $model = new Tiger_Model_Config();
+            foreach ($model->getForScope(Tiger_Model_Config::SCOPE_GLOBAL) as $row) {
+                $this->_setNestedConfig($config, $row->config_key, $row->config_value);
+            }
+            $orgId = $this->_currentOrgId();
+            if ($orgId !== null) {
+                foreach ($model->getForScope(Tiger_Model_Config::SCOPE_ORG, $orgId) as $row) {
+                    $this->_setNestedConfig($config, $row->config_key, $row->config_value);
+                }
+            }
+        } catch (Throwable $e) {
+            // ini-only config (no DB / no config table yet)
+        }
+
+        $config->setReadOnly();
         Zend_Registry::set('Zend_Config', $config);
         return $config;
+    }
+
+    /** The active org id from the authenticated identity (session), or null. */
+    protected function _currentOrgId()
+    {
+        $identity = Zend_Auth::getInstance()->getIdentity();
+        return ($identity && !empty($identity->org_id)) ? $identity->org_id : null;
+    }
+
+    /** Fold a dot-notation key ('tiger.skin') + value into a modifiable Zend_Config tree. */
+    protected function _setNestedConfig(Zend_Config $config, $key, $value)
+    {
+        $parts = explode('.', (string) $key);
+        $node  = $config;
+        while (count($parts) > 1) {
+            $part = array_shift($parts);
+            if (!isset($node->{$part}) || !($node->{$part} instanceof Zend_Config)) {
+                $node->{$part} = array();   // Zend_Config wraps to a nested modifiable node
+            }
+            $node = $node->{$part};
+        }
+        $node->{$parts[0]} = $value;
     }
 }
