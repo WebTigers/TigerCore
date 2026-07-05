@@ -128,6 +128,28 @@ switch ($cmd) {
         }
         break;
 
+    case 'make:module':
+        // Scaffold a new application module (positional name, --name=, or prompt).
+        $flags = tiger_flags($argv);
+        $name  = isset($flags['name']) ? $flags['name']
+               : ((isset($argv[2]) && strpos($argv[2], '--') !== 0) ? $argv[2] : tiger_prompt('Module name (lowercase, e.g. billing)'));
+        try {
+            $created = Tiger_Generator_Module::generate($name, APPLICATION_PATH . '/modules');
+            $n = strtolower(trim($name));
+            echo "\n  \xE2\x9C\x93 Module '{$n}' created:\n";
+            foreach ($created as $file) {
+                echo "    " . str_replace(APPLICATION_ROOT . '/', '', $file) . "\n";
+            }
+            echo "\n  It auto-registers (module scanning) — no wiring needed.\n";
+            echo "    - visit  /{$n}/   (allowed to authenticated users; edit configs/acl.ini)\n";
+            echo "    - call   POST /api  {\"module\":\"{$n}\",\"service\":\"example\",\"method\":\"ping\"}\n";
+            echo "    - migrations go in application/modules/{$n}/migrations (run: vendor/bin/tiger migrate)\n\n";
+        } catch (Throwable $e) {
+            fwrite(STDERR, "  make:module failed: " . $e->getMessage() . "\n");
+            exit(1);
+        }
+        break;
+
     case 'version':
         echo 'Tiger Core ' . Tiger_Version::VERSION . "\n";
         break;
@@ -141,7 +163,7 @@ switch ($cmd) {
         echo "  migrate:rollback [n]   Reverse the last n migrations (default 1)\n";
         echo "  install:admin          Create the founding org + owner (flags or prompts:\n";
         echo "                         --email= --password= --org= [--slug=] [--role=developer])\n";
+        echo "  make:module <name>     Scaffold a new application module (controller + /api service + acl)\n";
         echo "  version                Show the Tiger Core version\n";
-        echo "\nPlanned: make:module\n";
         break;
 }
