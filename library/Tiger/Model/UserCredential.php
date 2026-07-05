@@ -23,6 +23,11 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
     const TYPE_WEBAUTHN = 'webauthn';
     const TYPE_OAUTH    = 'oauth';
 
+    /** Login lockout: lock the password credential after this many consecutive failures. */
+    const MAX_FAILURES = 5;
+    /** How long a lockout lasts, in minutes. */
+    const LOCK_MINUTES = 15;
+
     /**
      * Hash a plaintext password. PASSWORD_DEFAULT = bcrypt today, upgraded by PHP
      * over time. A password hash is one-way, so it's stored as-is (not encrypted).
@@ -147,6 +152,46 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
     {
         return $this->update(
             array('last_used_at' => $this->_now()),
+            $this->getAdapter()->quoteInto('credential_id = ?', $credentialId)
+        );
+    }
+
+    // ----- login lockout (brute-force guard) ---------------------------------
+
+    /** The user's password credential row, or null. */
+    public function passwordCredential($userId)
+    {
+        return $this->factor($userId, self::TYPE_PASSWORD);
+    }
+
+    /** Is this credential currently locked out (too many recent failures)? */
+    public function isLockedOut($credential)
+    {
+        return $credential
+            && $credential->locked_until !== null
+            && strtotime($credential->locked_until) > time();
+    }
+
+    /** Record a failed authentication; lock the credential after MAX_FAILURES. */
+    public function recordFailure($credentialId)
+    {
+        $cred = $this->findById($credentialId);
+        if (!$cred) {
+            return;
+        }
+        $count = (int) $cred->failed_count + 1;
+        $data  = array('failed_count' => $count);
+        if ($count >= self::MAX_FAILURES) {
+            $data['locked_until'] = date('Y-m-d H:i:s', time() + self::LOCK_MINUTES * 60);
+        }
+        $this->update($data, $this->getAdapter()->quoteInto('credential_id = ?', $credentialId));
+    }
+
+    /** Record a successful authentication: clear the failure counter + lockout, touch. */
+    public function recordSuccess($credentialId)
+    {
+        $this->update(
+            array('failed_count' => 0, 'locked_until' => null, 'last_used_at' => $this->_now()),
             $this->getAdapter()->quoteInto('credential_id = ?', $credentialId)
         );
     }

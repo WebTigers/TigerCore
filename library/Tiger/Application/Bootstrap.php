@@ -55,6 +55,22 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
     }
 
     /**
+     * AUTHORIZATION: build the ACL (Tiger_Acl_Acl loads roles/resources/rules from
+     * ini + DB) and register the unbypassable gate (Tiger_Controller_Plugin_
+     * Authorization) on the front controller. Runs after frontController so the
+     * plugin can attach; the ACL's DB layer is graceful if the acl_* tables aren't
+     * migrated yet (the core acl.ini policy still applies).
+     */
+    protected function _initAuthorization()
+    {
+        $this->bootstrap('frontController');
+
+        Zend_Registry::set('Zend_Acl', new Tiger_Acl_Acl());
+        $this->getResource('frontController')
+             ->registerPlugin(new Tiger_Controller_Plugin_Authorization());
+    }
+
+    /**
      * Theme as a path (AskLevi-style, generalized). Active theme + skin resolve
      * from config now; per-org via the DB layer later. Layout comes from the
      * active theme; view script paths cascade Core -> theme -> app. No

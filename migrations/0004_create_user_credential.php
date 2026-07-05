@@ -39,6 +39,8 @@ return array(
             `secret`        VARBINARY(1024)     NULL,             -- hash / encrypted secret / pubkey (per type)
             `verified_at`   DATETIME            NULL,             -- NULL = pending confirmation
             `last_used_at`  DATETIME            NULL,
+            `failed_count`  INT             NOT NULL DEFAULT 0,  -- consecutive failures (login lockout)
+            `locked_until`  DATETIME            NULL,            -- lockout expiry (brute-force guard)
             `status`        VARCHAR(32)     NOT NULL DEFAULT 'active',
             `deleted`       TINYINT(1)      NOT NULL DEFAULT 0,
             `created_by`    CHAR(36)            NULL,
