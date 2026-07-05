@@ -4,7 +4,7 @@
  * The `tiger` console.
  *
  * Installed as vendor/bin/tiger in a Tiger app (composer "bin"). Run it from the
- * app root: `vendor/bin/tiger migrate`.
+ * app root: `vendor/bin/tiger <command>`.
  *
  * It boots the app through Tiger_Application::boot() — the SAME path a web request
  * takes, minus dispatch — so every command sees the identical constants, config
@@ -54,6 +54,36 @@ function tiger_migration_paths()
     return $paths;
 }
 
+/** Parse `--key=value` flags from argv into an assoc array. */
+function tiger_flags($argv)
+{
+    $out = array();
+    foreach ($argv as $arg) {
+        if (preg_match('/^--([a-zA-Z_]+)=(.*)$/', $arg, $m)) {
+            $out[$m[1]] = $m[2];
+        }
+    }
+    return $out;
+}
+
+/** Prompt for a line of input. */
+function tiger_prompt($label)
+{
+    fwrite(STDOUT, "  $label: ");
+    return trim((string) fgets(STDIN));
+}
+
+/** Prompt for a secret with terminal echo off (falls back to visible if no TTY). */
+function tiger_prompt_secret($label)
+{
+    fwrite(STDOUT, "  $label: ");
+    $canHide = strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN' && function_exists('shell_exec');
+    if ($canHide) { shell_exec('stty -echo 2>/dev/null'); }
+    $value = trim((string) fgets(STDIN));
+    if ($canHide) { shell_exec('stty echo 2>/dev/null'); fwrite(STDOUT, "\n"); }
+    return $value;
+}
+
 // --- 3) Dispatch the subcommand ---
 $cmd = isset($argv[1]) ? $argv[1] : 'help';
 
@@ -73,6 +103,31 @@ switch ($cmd) {
         (new Tiger_Db_Migrator(tiger_db(), tiger_migration_paths()))->rollback($steps, $log);
         break;
 
+    case 'install:admin':
+        // Create the founding org + owner. Non-interactive via flags
+        // (--email= --password= --org= [--slug=] [--role=]); prompts for anything missing.
+        tiger_db();
+        $flags = tiger_flags($argv);
+        $email = isset($flags['email']) ? $flags['email'] : tiger_prompt('Admin email');
+        $org   = isset($flags['org'])   ? $flags['org']   : tiger_prompt('Organization name');
+        $slug  = isset($flags['slug'])  ? $flags['slug']  : null;
+        $role  = isset($flags['role'])  ? $flags['role']  : 'developer';   // god by default: a fresh install needs full access
+        $pass  = isset($flags['password']) ? $flags['password'] : tiger_prompt_secret('Password (min 8)');
+        try {
+            $r = Tiger_Install::createOwner($email, $pass, $org, $slug, $role);
+            echo "\n  \xE2\x9C\x93 Admin created.\n";
+            echo "    email   : {$r['email']}\n";
+            echo "    org     : {$r['org']}  ({$r['slug']})\n";
+            echo "    role    : {$r['role']}\n";
+            echo "    user_id : {$r['user_id']}\n";
+            echo "    org_id  : {$r['org_id']}\n";
+            echo "\n  Sign in at /auth/login\n\n";
+        } catch (Throwable $e) {
+            fwrite(STDERR, "  install:admin failed: " . $e->getMessage() . "\n");
+            exit(1);
+        }
+        break;
+
     case 'version':
         echo 'Tiger Core ' . Tiger_Version::VERSION . "\n";
         break;
@@ -84,7 +139,9 @@ switch ($cmd) {
         echo "  migrate                Apply pending migrations (core + app + modules)\n";
         echo "  migrate:status         Show applied [x] / pending [ ] migrations\n";
         echo "  migrate:rollback [n]   Reverse the last n migrations (default 1)\n";
+        echo "  install:admin          Create the founding org + owner (flags or prompts:\n";
+        echo "                         --email= --password= --org= [--slug=] [--role=developer])\n";
         echo "  version                Show the Tiger Core version\n";
-        echo "\nPlanned: install:admin, make:module\n";
+        echo "\nPlanned: make:module\n";
         break;
 }
