@@ -95,6 +95,19 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
     }
 
     /**
+     * CMS: register the page-dispatch plugin. It routes URLs that match no real
+     * controller to CMS `page` content (or a 301 via page_redirect), and leaves
+     * everything else to the normal 404 path. Runs at routeShutdown; graceful when
+     * there's no DB / no page table yet.
+     */
+    protected function _initCms()
+    {
+        $this->bootstrap('frontController');
+        $this->getResource('frontController')
+             ->registerPlugin(new Tiger_Controller_Plugin_PageDispatch());
+    }
+
+    /**
      * I18N (translations): build the shared Zend_Translate (AN_ARRAY — human-readable
      * PHP array files of owner-prefixed semantic keys: core.*, app.*, <module>.*).
      * Message files CASCADE (last wins): core (package) -> package modules -> app

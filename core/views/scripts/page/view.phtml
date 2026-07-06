@@ -1,0 +1,9 @@
+<?php
+/**
+ * CMS page body, rendered inside the active theme's public layout.
+ *
+ * $this->cmsContent is already-rendered HTML from Tiger_Cms_Renderer (a trusted,
+ * server-side render) — output it raw. Only reached for pages with no layout_key
+ * (a page that supplies its own layout is output self-contained by PageController).
+ */
+echo $this->cmsContent;
