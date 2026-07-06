@@ -14,9 +14,11 @@ working to-do, not a changelog (git history is the changelog).
   - **`page` table** holds **layouts, partials, and pages** (a `type` column) — plus slug/route,
     title, body/template, a layout reference, status, and the standard columns. Multi-tenant
     (per-org) and i18n-aware where it fits; live-editable via the DB-override pattern.
-  - **Non-file rendering** — `Zend_View::render()` takes a script *file*; DB-stored templates
-    need string / non-file rendering. Add that capability (likely a `Tiger_View` extension, or a
-    `Zend_View` enhancement in TigerZF since it's generic engine behavior). Cache compiled output.
+  - **Non-file rendering — goes in `Zend_View` (TigerZF).** DECIDED: `Zend_View::render()` takes
+    a script *file* only, which is a severe limitation; add string / non-file (DB-template)
+    rendering directly to `Zend_View` in the engine — it's generic behavior that benefits any ZF1
+    app, not a Tiger-only subclass. Cache compiled output. (Own feature branch + minor version
+    bump, like the log writers.)
   - **Security (the WordPress footgun)** — DB templates are code. Restrict authoring to trusted
     admins and/or use a safe, limited template syntax (never raw `eval` of arbitrary PHP). Design
     this in from the start, not after.
