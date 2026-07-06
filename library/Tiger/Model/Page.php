@@ -129,9 +129,10 @@ class Tiger_Model_Page extends Tiger_Model_Table
 
     /**
      * Restore a page to a prior version — copies that version's content back onto the
-     * page (which snapshots as a new version). Returns the page_id.
+     * page (which snapshots as a new version). Returns the page_id. (Named
+     * restoreVersion to avoid Tiger_Model_Table::restore(), the soft-delete undelete.)
      */
-    public function restore($pageId, $version)
+    public function restoreVersion($pageId, $version)
     {
         $ver = (new Tiger_Model_PageVersion())->get($pageId, $version);
         if (!$ver) {
