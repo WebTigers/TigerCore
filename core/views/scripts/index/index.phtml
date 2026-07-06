@@ -1,44 +1,89 @@
-<?php $this->title = 'Tiger — PUMA'; ?>
-<nav class="navbar bg-primary" data-bs-theme="dark">
-    <div class="container">
-        <span class="navbar-brand mb-0 h1">🐯 Tiger</span>
-        <span class="navbar-text">
-            theme: <strong><?= $this->escape($this->theme) ?></strong>
-            &middot; skin: <strong><?= $this->escape($this->skin) ?></strong>
+<?php
+/**
+ * Public landing page. Rendered inside the PUMA public layout (header + footer).
+ * Bootstrap + --bs-* tokens, so it restyles live with the theme (light/dark) and the
+ * active skin — the switchers in the header change this page with no reload.
+ */
+$this->title = 'Tiger — a 1-click SaaS platform on TigerZF';
+
+$features = [
+    ['fa-layer-group',    'Front-end agnostic',       'Server-rendered .phtml or any SPA (React, Vue, …) against one JSON /api. The core ships no UI framework — build the front end however you like.'],
+    ['fa-building',       'Multi-tenant by default',  'Orgs, users, and memberships out of the box. A user can be admin in one org and viewer in another — roles live on the membership.'],
+    ['fa-bolt',           'Zero build toolchain',     'No npm, no webpack, no Sass. composer install and the UI renders. Assets are vendored; a build tool only appears if a theme opts in.'],
+    ['fa-language',       'i18n with live overrides', 'Semantic keys, language-only locales, /es/ URLs. Change any string in production with no deploy — same for config.'],
+    ['fa-shield-halved',  'Auth & ACL included',      'Password policy, lockout, DB sessions, an audit log, and a deny-by-default ACL with live, per-tenant roles.'],
+    ['fa-cloud',          'Pluggable logging',        'Structured JSON logs to error_log, stderr, syslog — or straight to CloudWatch / GCP / Azure. Switch with one config line.'],
+    ['fa-palette',        'Live theming & skins',     'Light/dark and swappable skins that hot-swap with no reload — per user and per org. Try the switchers above ↑'],
+    ['fa-terminal',       'Batteries-included CLI',   'bin/tiger migrate, install:admin, make:module — scaffold a live module (controller + /api service + ACL) in seconds.'],
+];
+?>
+<!-- Hero -->
+<section class="py-5">
+    <div class="container text-center py-lg-5">
+        <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+            Built on TigerZF · ZendFramework 1 for modern PHP
         </span>
+        <h1 class="display-4 fw-bold mb-3">Build the SaaS, not the plumbing.</h1>
+        <p class="lead text-secondary mx-auto mb-4" style="max-width: 700px;">
+            Tiger is a 1-click, multi-tenant SaaS foundation for PHP — auth, orgs, roles, theming,
+            i18n, and a clean <code>/api</code> — so you ship product from day one. Front-end
+            agnostic, zero build step.
+        </p>
+        <div class="d-flex flex-wrap gap-2 justify-content-center">
+            <a href="https://github.com/WebTigers/Tiger" class="btn btn-primary btn-lg px-4" target="_blank" rel="noopener">
+                <i class="fa-brands fa-github me-2"></i>Get started
+            </a>
+            <a href="#features" class="btn btn-outline-secondary btn-lg px-4">See features</a>
+        </div>
+        <p class="small text-secondary mt-3 mb-0">
+            <i class="fa-solid fa-wand-magic-sparkles me-1"></i>
+            Flip <strong>light/dark</strong> or the <strong>skin</strong> in the header — this page restyles live, no reload.
+        </p>
     </div>
-</nav>
+</section>
 
-<main class="container tiger-hero">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow-sm">
-                <div class="card-body p-4">
-                    <h1 class="card-title h3 mb-3">Hello from Tiger Core.</h1>
-                    <p class="text-secondary">
-                        Server-rendered by Core, wrapped in the <strong>PUMA</strong> theme,
-                        painted by the <strong><?= $this->escape($this->skin) ?></strong> skin —
-                        no build step, every asset vendored.
-                    </p>
-
-                    <dl class="row small mb-4">
-                        <dt class="col-sm-3">Served by</dt>
-                        <dd class="col-sm-9"><code><?= $this->escape($this->servedBy) ?></code></dd>
-                        <dt class="col-sm-3">Tiger Core</dt>
-                        <dd class="col-sm-9"><?= $this->escape($this->tigerVersion) ?></dd>
-                        <dt class="col-sm-3">ZF engine</dt>
-                        <dd class="col-sm-9"><?= $this->escape($this->zendVersion) ?></dd>
-                        <dt class="col-sm-3">PHP</dt>
-                        <dd class="col-sm-9"><?= $this->escape(PHP_VERSION) ?></dd>
-                    </dl>
-
-                    <button class="btn btn-primary">Primary button</button>
-                    <a href="#" class="btn btn-link">A themed link</a>
+<!-- Features -->
+<section id="features" class="py-5" style="background: var(--bs-tertiary-bg);">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">Everything a SaaS needs, none of the busywork</h2>
+            <p class="text-secondary mb-0">The boring-but-essential substrate, done right.</p>
+        </div>
+        <div class="row g-4">
+<?php foreach ($features as $f): ?>
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary-emphasis mb-3" style="width:48px;height:48px;">
+                            <i class="fa-solid <?= $f[0] ?> fs-5"></i>
+                        </div>
+                        <h3 class="h6 fw-semibold"><?= $this->escape($f[1]) ?></h3>
+                        <p class="small text-secondary mb-0"><?= $this->escape($f[2]) ?></p>
+                    </div>
                 </div>
             </div>
-            <p class="text-center mt-4 text-secondary small">
-                Flip <code>tiger.skin</code> in <code>application.ini</code> to reskin — zero rebuild.
-            </p>
+<?php endforeach; ?>
         </div>
     </div>
-</main>
+</section>
+
+<!-- CTA -->
+<section class="py-5">
+    <div class="container">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="fw-bold mb-3">Spin up your app in minutes</h2>
+                <p class="text-secondary mb-4">One command scaffolds a running, themed, multi-tenant app.</p>
+                <div class="bg-body-tertiary border rounded-3 d-inline-block px-4 py-3 mb-4 text-start font-monospace small">
+                    <span class="text-secondary">$</span> composer create-project webtigers/tiger my-app<br>
+                    <span class="text-secondary">$</span> cd my-app &amp;&amp; vendor/bin/tiger install:admin
+                </div>
+                <div>
+                    <a href="https://github.com/WebTigers/Tiger" class="btn btn-primary btn-lg px-4" target="_blank" rel="noopener">
+                        <i class="fa-brands fa-github me-2"></i>View on GitHub
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

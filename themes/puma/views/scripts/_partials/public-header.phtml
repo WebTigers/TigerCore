@@ -1,0 +1,43 @@
+<?php
+/**
+ * PUMA public header — the marketing/site navbar (MIT, Tiger-original).
+ *
+ * Brand + nav links, the language / theme / skin switchers (shared partials), and a
+ * Sign-in (or Dashboard, when authenticated) CTA. Rendered in the public layout via
+ * render(), so $this->skins/escape flow in. Behavior lives in tiger.prefs.js.
+ */
+$identity = Zend_Auth::getInstance()->hasIdentity() ? Zend_Auth::getInstance()->getIdentity() : null;
+?>
+<nav class="navbar navbar-expand-lg border-bottom sticky-top" style="background: var(--bs-body-bg);">
+    <div class="container">
+        <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="/">
+            <i class="fa-solid fa-paw text-primary"></i> Tiger
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#tigerNav"
+                aria-controls="tigerNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="tigerNav">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item"><a class="nav-link" href="/#features">Features</a></li>
+                <li class="nav-item"><a class="nav-link" href="https://github.com/WebTigers/Tiger" target="_blank" rel="noopener">Docs</a></li>
+                <li class="nav-item"><a class="nav-link" href="https://github.com/WebTigers/Tiger" target="_blank" rel="noopener">GitHub</a></li>
+            </ul>
+
+            <div class="d-flex align-items-center gap-1">
+                <?= $this->render('_partials/lang-switcher.phtml') ?>
+                <?= $this->render('_partials/theme-switcher.phtml') ?>
+<?php if (!empty($this->skins)): ?>
+                <?= $this->render('_partials/skin-switcher.phtml') ?>
+<?php endif; ?>
+<?php if ($identity): ?>
+                <a class="btn btn-primary ms-2" href="/admin"><i class="fa-solid fa-gauge-high me-1"></i>Dashboard</a>
+<?php else: ?>
+                <a class="btn btn-outline-secondary ms-2" href="/auth/login">Sign in</a>
+<?php endif; ?>
+            </div>
+        </div>
+    </div>
+</nav>

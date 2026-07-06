@@ -25,6 +25,12 @@ $_lang = defined('LANG') ? LANG : 'en';
     <!-- No-FOUC theme resolver: MUST run before the stylesheets below paint. -->
     <script src="<?= $this->themeAssets ?>/js/theme-init.js"></script>
 
+    <!-- Google Fonts (Inter) + Font Awesome Free. CDN for dev; vendor for production. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
     <link rel="stylesheet" href="<?= $this->themeAssets ?>/css/bootstrap.min.css">
     <link rel="stylesheet" href="<?= $this->themeAssets ?>/default.css">
 <?php if (!empty($this->skin)): ?>
@@ -32,16 +38,13 @@ $_lang = defined('LANG') ? LANG : 'en';
 <?php endif; ?>
 </head>
 <body>
-<?= $this->layout()->content ?>
+<?= $this->render('_partials/public-header.phtml') ?>
 
-<?php if (APPLICATION_ENV !== 'production' && !empty($this->skins)): ?>
-<!-- Floating skin switcher — a prototyping affordance so devs can preview skins on
-     any page (public pages have no header). Non-production only; the admin header
-     carries the same control. -->
-<div class="position-fixed bottom-0 end-0 m-3 bg-body border rounded-pill shadow-sm" style="z-index:1050;">
-    <?= $this->render('_partials/skin-switcher.phtml') ?>
-</div>
-<?php endif; ?>
+<main>
+<?= $this->layout()->content ?>
+</main>
+
+<?= $this->render('_partials/public-footer.phtml') ?>
 
 <script src="<?= $this->themeAssets ?>/js/bootstrap.bundle.min.js"></script>
 <script src="<?= $this->themeAssets ?>/js/tiger.prefs.js"></script>

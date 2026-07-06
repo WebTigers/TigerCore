@@ -1,0 +1,21 @@
+<?php
+/**
+ * PUMA theme (light/dark) switcher — reusable dropdown, used by the admin header and
+ * the public header. Behavior: assets/js/tiger.prefs.js (flips data-bs-theme, sets
+ * the `tiger_theme` cookie). Uses Font Awesome icons — the layout including it must
+ * load FA. MIT, Tiger-original.
+ */
+$pref = $_COOKIE['tiger_theme'] ?? 'browser';
+if (!in_array($pref, ['browser', 'light', 'dark'], true)) { $pref = 'browser'; }
+$icons = ['browser' => 'fa-solid fa-display', 'light' => 'fa-solid fa-sun', 'dark' => 'fa-solid fa-moon'];
+?>
+<div class="dropdown">
+    <a href="#" class="btn btn-link text-body px-2 text-decoration-none" data-bs-toggle="dropdown" aria-label="Theme" title="Theme">
+        <i id="tiger-theme-icon" class="<?= $this->escape($icons[$pref]) ?>"></i>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end shadow">
+        <li><a class="dropdown-item tiger-theme-switch<?= $pref === 'browser' ? ' active' : '' ?>" href="#" data-theme="browser"><i class="fa-solid fa-display me-2 fa-fw"></i>Browser</a></li>
+        <li><a class="dropdown-item tiger-theme-switch<?= $pref === 'light' ? ' active' : '' ?>" href="#" data-theme="light"><i class="fa-solid fa-sun me-2 fa-fw"></i>Light</a></li>
+        <li><a class="dropdown-item tiger-theme-switch<?= $pref === 'dark' ? ' active' : '' ?>" href="#" data-theme="dark"><i class="fa-solid fa-moon me-2 fa-fw"></i>Dark</a></li>
+    </ul>
+</div>

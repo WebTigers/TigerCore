@@ -12,17 +12,6 @@ $identity = $auth->hasIdentity() ? $auth->getIdentity() : null;
 $userName = $identity->email    ?? 'Guest';
 $userRole = $identity->role     ?? 'guest';
 $orgName  = $identity->org_name ?? '';
-
-// Language: active locale + the options offered (flag + label). Wire real
-// enabled-locale config later; two shown as the pattern.
-$lang  = defined('LANG') ? LANG : 'en';
-$langs = ['en' => ['🇺🇸', 'English'], 'es' => ['🇲🇽', 'Español']];
-$flag  = $langs[$lang][0] ?? '🇺🇸';
-
-// Theme: the current preference drives the top-bar icon (browser/light/dark).
-$pref = $_COOKIE['tiger_theme'] ?? 'browser';
-if (!in_array($pref, ['browser', 'light', 'dark'], true)) { $pref = 'browser'; }
-$themeIcons = ['browser' => 'fa-solid fa-display', 'light' => 'fa-solid fa-sun', 'dark' => 'fa-solid fa-moon'];
 ?>
 <header class="tiger-header">
 
@@ -58,25 +47,9 @@ $themeIcons = ['browser' => 'fa-solid fa-display', 'light' => 'fa-solid fa-sun',
         </div>
     </div>
 
-    <!-- LANGUAGE switcher: sets `locale` cookie, persists, reloads in-locale. -->
-    <div class="dropdown">
-        <a href="#" class="btn btn-link text-body fs-5 px-2 lh-1" data-bs-toggle="dropdown" aria-label="Language"><?= $flag ?></a>
-        <ul class="dropdown-menu dropdown-menu-end shadow">
-<?php foreach ($langs as $code => $l): ?>
-            <li><a class="dropdown-item tiger-lang-switch<?= $code === $lang ? ' active' : '' ?>" href="#" data-lang="<?= $this->escape($code) ?>"><span class="me-2"><?= $l[0] ?></span><?= $this->escape($l[1]) ?></a></li>
-<?php endforeach; ?>
-        </ul>
-    </div>
-
-    <!-- THEME switcher: sets `tiger_theme` cookie, flips data-bs-theme, persists. -->
-    <div class="dropdown">
-        <a href="#" class="btn btn-link text-body px-2" data-bs-toggle="dropdown" aria-label="Theme"><i id="tiger-theme-icon" class="<?= $this->escape($themeIcons[$pref]) ?>"></i></a>
-        <ul class="dropdown-menu dropdown-menu-end shadow">
-            <li><a class="dropdown-item tiger-theme-switch<?= $pref === 'browser' ? ' active' : '' ?>" href="#" data-theme="browser"><i class="fa-solid fa-display me-2 fa-fw"></i>Browser</a></li>
-            <li><a class="dropdown-item tiger-theme-switch<?= $pref === 'light' ? ' active' : '' ?>" href="#" data-theme="light"><i class="fa-solid fa-sun me-2 fa-fw"></i>Light</a></li>
-            <li><a class="dropdown-item tiger-theme-switch<?= $pref === 'dark' ? ' active' : '' ?>" href="#" data-theme="dark"><i class="fa-solid fa-moon me-2 fa-fw"></i>Dark</a></li>
-        </ul>
-    </div>
+    <!-- Language + theme switchers (shared partials, also used by the public header) -->
+    <?= $this->render('_partials/lang-switcher.phtml') ?>
+    <?= $this->render('_partials/theme-switcher.phtml') ?>
 
     <!-- Skin switcher (prototyping: live skin preview) -->
     <?= $this->render('_partials/skin-switcher.phtml') ?>

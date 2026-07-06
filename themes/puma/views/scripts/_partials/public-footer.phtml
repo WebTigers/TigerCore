@@ -1,0 +1,18 @@
+<?php
+/**
+ * PUMA public footer (MIT, Tiger-original). Rendered in the public layout scope.
+ */
+$tigerVersion = $this->tigerVersion ?? (class_exists('Tiger_Version') ? Tiger_Version::VERSION : '');
+?>
+<footer class="border-top mt-5 py-4" style="background: var(--bs-tertiary-bg);">
+    <div class="container d-flex flex-wrap justify-content-between align-items-center gap-2 small text-secondary">
+        <span><i class="fa-solid fa-paw text-primary me-1"></i> <strong>Tiger</strong> — a 1-click SaaS platform on TigerZF.</span>
+        <span class="d-flex align-items-center gap-3">
+            <a href="https://github.com/WebTigers/Tiger" class="link-secondary text-decoration-none" target="_blank" rel="noopener">GitHub</a>
+            <a href="/" class="link-secondary text-decoration-none">Home</a>
+<?php if ($tigerVersion): ?>
+            <span class="opacity-75">v<?= $this->escape($tigerVersion) ?></span>
+<?php endif; ?>
+        </span>
+    </div>
+</footer>

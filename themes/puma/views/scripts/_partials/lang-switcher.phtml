@@ -1,0 +1,23 @@
+<?php
+/**
+ * PUMA language switcher — reusable dropdown, used by the admin + public headers.
+ * Options come from SUPPORTED_LANGS (defined by the LocalePrefix plugin; falls back
+ * to en/es), mapped to a flag + label. Behavior: assets/js/tiger.prefs.js (sets the
+ * `locale` cookie + localStorage and reloads in-locale). MIT, Tiger-original.
+ */
+$lang  = defined('LANG') ? LANG : 'en';
+$codes = defined('SUPPORTED_LANGS') ? SUPPORTED_LANGS : ['en', 'es'];
+$meta  = [
+    'en' => ['🇺🇸', 'English'], 'es' => ['🇲🇽', 'Español'], 'fr' => ['🇫🇷', 'Français'],
+    'de' => ['🇩🇪', 'Deutsch'], 'pt' => ['🇧🇷', 'Português'], 'it' => ['🇮🇹', 'Italiano'],
+];
+$flag = $meta[$lang][0] ?? '🌐';
+?>
+<div class="dropdown">
+    <a href="#" class="btn btn-link text-body fs-5 px-2 lh-1 text-decoration-none" data-bs-toggle="dropdown" aria-label="Language" title="Language"><?= $flag ?></a>
+    <ul class="dropdown-menu dropdown-menu-end shadow">
+<?php foreach ($codes as $code): $m = $meta[$code] ?? ['🌐', strtoupper($code)]; ?>
+        <li><a class="dropdown-item tiger-lang-switch<?= $code === $lang ? ' active' : '' ?>" href="#" data-lang="<?= $this->escape($code) ?>"><span class="me-2"><?= $m[0] ?></span><?= $this->escape($m[1]) ?></a></li>
+<?php endforeach; ?>
+    </ul>
+</div>
