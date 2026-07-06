@@ -17,9 +17,11 @@ working to-do, not a changelog (git history is the changelog).
     (phtml = trusted-only), versioning from day 1, future `published_at` = scheduled, theme-agnostic.
   - **✅ Renderer built** — `Tiger_Cms_Renderer` (html/markdown[Parsedown]/phtml[renderString] +
     `[shortcode]` registry + layout wrap). Needs `Zend_View` string rendering (done: TigerZF 1.32.0).
-  - **Page dispatcher** — a default-namespace controller: resolve slug → render (org + locale
-    cascade), 301 via `page_redirect` on a miss. Plus **version-on-save** (→ `page_version`) and the
-    **admin UI** to author pages/layouts/partials.
+  - **✅ Page dispatcher built** — `PageDispatch` plugin (routeShutdown, non-greedy) + `PageController`
+    (both layout modes) + `page_redirect` 301s. The CMS is end-to-end (insert a row, hit its URL).
+  - **Version-on-save** — snapshot to `page_version` on each save + a restore path.
+  - **Admin UI** — author pages / layouts / partials (list, edit, publish, schedule, redirects).
+  - **Package as the first site-theme module** (per the theme-as-module model).
   - **Non-file rendering — goes in `Zend_View` (TigerZF).** DECIDED: `Zend_View::render()` takes
     a script *file* only, which is a severe limitation; add string / non-file (DB-template)
     rendering directly to `Zend_View` in the engine — it's generic behavior that benefits any ZF1
