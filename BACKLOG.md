@@ -22,11 +22,6 @@ working to-do, not a changelog (git history is the changelog).
   - **✅ Version-on-save built** — `Page::save()` snapshots to `page_version` (+ slug-change 301 redirect); `restoreVersion()` reverts. Wired for the admin UI to call.
   - **Admin UI** — author pages / layouts / partials (list, edit, publish, schedule, redirects).
   - **Package as the first site-theme module** (per the theme-as-module model).
-  - **Non-file rendering — goes in `Zend_View` (TigerZF).** DECIDED: `Zend_View::render()` takes
-    a script *file* only, which is a severe limitation; add string / non-file (DB-template)
-    rendering directly to `Zend_View` in the engine — it's generic behavior that benefits any ZF1
-    app, not a Tiger-only subclass. Cache compiled output. (Own feature branch + minor version
-    bump, like the log writers.)
   - **Security (the WordPress footgun)** — DB templates are code. Restrict authoring to trusted
     admins and/or use a safe, limited template syntax (never raw `eval` of arbitrary PHP). Design
     this in from the start, not after.
