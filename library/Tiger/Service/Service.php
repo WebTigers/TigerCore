@@ -13,7 +13,7 @@
  *   {
  *       public function create(array $params): void
  *       {
- *           if (!$this->_isAdmin()) { $this->_error('api.error.not_allowed'); return; }
+ *           if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
  *           // ... do work with $params ...
  *           $this->_success($invoice);
  *       }
@@ -97,20 +97,20 @@ abstract class Tiger_Service_Service
         // message from reaching protected/internal helpers named like actions.)
         if ($action === '' || $action[0] === '_'
             || !method_exists($this, $action) || !is_callable([$this, $action])) {
-            $this->_error('api.error.invalid_action');
+            $this->_error('core.api.error.invalid_action');
             return;
         }
 
         try {
             $this->{$action}($params);
         } catch (Throwable $e) {
-            $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'api.error.general');
+            $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
         }
     }
 
     // ----- response helpers --------------------------------------------------
 
-    protected function _success($data = null, $message = 'api.success', $redirect = null)
+    protected function _success($data = null, $message = 'core.api.success', $redirect = null)
     {
         $this->_response->result     = 1;
         $this->_response->data       = $data;
@@ -118,7 +118,7 @@ abstract class Tiger_Service_Service
         $this->_response->messages[] = new Tiger_Model_MessageObject($message, 'success');
     }
 
-    protected function _error($message = 'api.error.general', $data = null)
+    protected function _error($message = 'core.api.error.general', $data = null)
     {
         $this->_response->result     = 0;
         $this->_response->data       = $data;
@@ -129,7 +129,7 @@ abstract class Tiger_Service_Service
     {
         $this->_response->result     = 0;
         $this->_response->form       = $form->getMessages();
-        $this->_response->messages[] = new Tiger_Model_MessageObject('api.error.form', 'error');
+        $this->_response->messages[] = new Tiger_Model_MessageObject('core.api.error.form', 'error');
     }
 
     // ----- authorization -----------------------------------------------------
@@ -191,7 +191,7 @@ abstract class Tiger_Service_Service
      *           });
      *           $this->_success(['id' => $id], 'some.success');
      *       } catch (Throwable $e) {
-     *           $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'api.error.general');
+     *           $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
      *       }
      *   }
      *

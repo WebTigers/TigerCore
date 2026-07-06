@@ -95,6 +95,73 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
     }
 
     /**
+     * I18N (translations): build the shared Zend_Translate (AN_ARRAY — human-readable
+     * PHP array files of owner-prefixed semantic keys: core.*, app.*, <module>.*).
+     * Message files CASCADE (last wins): core (package) -> package modules -> app
+     * modules -> app global. Then LIVE DB overrides (the `translation` table) layer
+     * on top — change a string with no deploy, exactly like the config table does for
+     * config. All supported locales are loaded; the LocalePrefix plugin points the
+     * active locale at LANG per request (routeStartup).
+     */
+    protected function _initTranslate()
+    {
+        $this->bootstrap('db');   // for the DB override layer (graceful if none)
+
+        $tiger     = (array) $this->getOption('tiger');
+        $i18n      = (array) ($tiger['i18n'] ?? []);
+        $supported = !empty($i18n['locales'])
+            ? array_values(array_filter(array_map('trim', explode(',', (string) $i18n['locales']))))
+            : ['en'];
+        $default   = !empty($i18n['default']) ? (string) $i18n['default'] : $supported[0];
+
+        $translate = new Zend_Translate([
+            'adapter'        => Zend_Translate::AN_ARRAY,
+            'content'        => [],
+            'locale'         => $default,
+            'disableNotices' => true,
+        ]);
+
+        foreach ($supported as $lang) {
+            foreach ($this->_languageFiles($lang) as $file) {
+                $data = include $file;   // each file returns [key => string]
+                if (is_array($data) && $data) {
+                    $translate->addTranslation(['content' => $data, 'locale' => $lang]);
+                }
+            }
+            // Live DB overrides on top (global scope). Per-org is reserved for later.
+            try {
+                $overrides = (new Tiger_Model_Translation())->getForLocale($lang, Tiger_Model_Translation::SCOPE_GLOBAL);
+                if ($overrides) {
+                    $translate->addTranslation(['content' => $overrides, 'locale' => $lang]);
+                }
+            } catch (Throwable $e) {
+                // no DB / no `translation` table yet — files only
+            }
+        }
+
+        Zend_Registry::set('Zend_Translate', $translate);
+        return $translate;
+    }
+
+    /**
+     * Language files for a locale, in cascade order (last wins): core (package) ->
+     * package first-party modules -> app modules -> app global. Each is a PHP file
+     * returning [key => string]; missing files are skipped.
+     *
+     * @return string[]
+     */
+    protected function _languageFiles($lang)
+    {
+        $files   = [];
+        $files[] = TIGER_CORE_PATH . '/core/languages/' . $lang . '/core.php';
+        foreach (glob(TIGER_CORE_PATH . '/modules/*/languages/' . $lang . '/*.php') ?: [] as $f) { $files[] = $f; }
+        foreach (glob(APPLICATION_PATH . '/modules/*/languages/' . $lang . '/*.php') ?: [] as $f) { $files[] = $f; }
+        $files[] = APPLICATION_PATH . '/languages/' . $lang . '/app.php';
+
+        return array_values(array_filter($files, 'is_file'));
+    }
+
+    /**
      * Theme as a path (AskLevi-style, generalized). Active theme + skin resolve
      * from config now; per-org via the DB layer later. Layout comes from the
      * active theme; view script paths cascade Core -> theme -> app. No

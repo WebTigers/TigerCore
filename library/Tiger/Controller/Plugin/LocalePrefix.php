@@ -81,6 +81,12 @@ class Tiger_Controller_Plugin_LocalePrefix extends Zend_Controller_Plugin_Abstra
         // (Tiger_Service_Service checks SUPPORTED_LANGS).
         defined('SUPPORTED_LANGS') || define('SUPPORTED_LANGS', $this->_supported);
         try { Zend_Registry::set('Zend_Locale', new Zend_Locale($lang)); } catch (Throwable $e) {}
+
+        // Point the shared translator (built in _initTranslate with all locales
+        // loaded) at the resolved language for this request.
+        if (Zend_Registry::isRegistered('Zend_Translate')) {
+            try { Zend_Registry::get('Zend_Translate')->setLocale($lang); } catch (Throwable $e) {}
+        }
     }
 
     /** First supported language from the browser's Accept-Language header, or null. */

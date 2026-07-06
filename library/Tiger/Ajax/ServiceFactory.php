@@ -97,7 +97,7 @@ class Tiger_Ajax_ServiceFactory
             // Reserved-module guard: framework namespaces are invisible to /api.
             // Return a generic failure — do NOT reveal that the name is special.
             if (self::isReserved($module)) {
-                $this->_fail('api.error.general');
+                $this->_fail('core.api.error.general');
                 return;
             }
 
@@ -109,7 +109,7 @@ class Tiger_Ajax_ServiceFactory
                 }
                 if (!class_exists($className, true)
                     || !is_subclass_of($className, 'Tiger_Service_Service')) {
-                    $this->_fail('api.error.general');
+                    $this->_fail('core.api.error.general');
                     return;
                 }
                 $this->_response = (new $className($params))->getResponse();
@@ -123,7 +123,7 @@ class Tiger_Ajax_ServiceFactory
                     return;
                 }
                 if (!class_exists($className, true) || !method_exists($className, $action . 'Action')) {
-                    $this->_fail('api.error.general');
+                    $this->_fail('core.api.error.general');
                     return;
                 }
                 $this->_forward = [
@@ -136,12 +136,12 @@ class Tiger_Ajax_ServiceFactory
             }
 
             // Neither named.
-            $this->_fail('api.error.missing_service');
+            $this->_fail('core.api.error.missing_service');
 
         } catch (Throwable $e) {
             $this->_response->result     = 0;
             $this->_response->messages[] = new Tiger_Model_MessageObject(
-                APPLICATION_ENV !== 'production' ? $e->getMessage() : 'api.error.general',
+                APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general',
                 'error'
             );
         }
@@ -170,7 +170,7 @@ class Tiger_Ajax_ServiceFactory
 
         $this->_response->result     = 0;
         $this->_response->messages[]  = new Tiger_Model_MessageObject(
-            $role === 'guest' ? 'api.error.login_required' : 'api.error.not_allowed',
+            $role === 'guest' ? 'core.api.error.login_required' : 'core.api.error.not_allowed',
             'error'
         );
         if ($role === 'guest') {
@@ -210,10 +210,10 @@ class Tiger_Ajax_ServiceFactory
         $action     = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $action);
 
         if ($action === '') {
-            throw new RuntimeException('api.error.missing_action');
+            throw new RuntimeException('core.api.error.missing_action');
         }
         if (($service !== '' || $controller !== '') && $module === '') {
-            throw new RuntimeException('api.error.missing_module');
+            throw new RuntimeException('core.api.error.missing_module');
         }
 
         return array_merge($r->getParams(), [

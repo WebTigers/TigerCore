@@ -22,7 +22,7 @@ class AuthController extends Tiger_Controller_Action
             if ($identity) {
                 $this->_json(['result' => 1, 'data' => $identity]);
             } else {
-                $this->_json(['result' => 0, 'message' => 'api.error.login_failed'], 401);
+                $this->_json(['result' => 0, 'message' => 'core.api.error.login_failed'], 401);
             }
             return;
         }
