@@ -81,6 +81,71 @@ class Tiger_Model_Page extends Tiger_Model_Table
         );
     }
 
+    /**
+     * Save a page (insert or update) AND snapshot the result to page_version. When an
+     * existing page's slug changes, a page_redirect (old -> new) is recorded so the old
+     * URL 301s. Wrapped in a transaction. Returns the page_id.
+     *
+     * @param array       $data   page columns to write
+     * @param string|null $pageId update this page, or null to insert a new one
+     * @return string
+     */
+    public function save(array $data, $pageId = null)
+    {
+        $db = $this->getAdapter();
+        $db->beginTransaction();
+        try {
+            if ($pageId) {
+                $current = $this->findById($pageId);
+                // Slug change on an existing page -> leave a 301 behind (and clear any
+                // stale redirect FROM the new slug so reclaiming a slug can't loop).
+                if ($current && !empty($data['slug']) && $data['slug'] !== $current->slug && !empty($current->slug)) {
+                    $redirect = new Tiger_Model_PageRedirect();
+                    $redirect->clearFrom($data['slug'], $current->locale, $current->org_id);
+                    $redirect->add($current->slug, $data['slug'], $current->locale, $current->org_id);
+                }
+                unset($data['page_id']);
+                $this->update($data, $db->quoteInto('page_id = ?', $pageId));
+            } else {
+                $pageId = $this->insert($data);
+            }
+
+            $row = $this->findById($pageId);
+            (new Tiger_Model_PageVersion())->snapshot($pageId, [
+                'title'  => $row->title,
+                'body'   => $row->body,
+                'format' => $row->format,
+                'meta'   => $row->meta,
+                'status' => $row->status,
+            ]);
+
+            $db->commit();
+            return $pageId;
+        } catch (Throwable $e) {
+            $db->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Restore a page to a prior version — copies that version's content back onto the
+     * page (which snapshots as a new version). Returns the page_id.
+     */
+    public function restore($pageId, $version)
+    {
+        $ver = (new Tiger_Model_PageVersion())->get($pageId, $version);
+        if (!$ver) {
+            throw new RuntimeException("page_version {$version} not found for page {$pageId}.");
+        }
+        return $this->save([
+            'title'  => $ver->title,
+            'body'   => $ver->body,
+            'format' => $ver->format,
+            'meta'   => $ver->meta,
+            'status' => $ver->status,
+        ], $pageId);
+    }
+
     /** The org scope for a cascade lookup: [<org>, ''] (deduped; '' = global). */
     protected function _orgScope($orgId)
     {

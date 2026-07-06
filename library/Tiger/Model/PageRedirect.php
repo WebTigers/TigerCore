@@ -37,4 +37,14 @@ class Tiger_Model_PageRedirect extends Tiger_Model_Table
             'code'      => (int) $code,
         ]);
     }
+
+    /** Remove any redirect pointing FROM a slug (e.g. a live page reclaims it). */
+    public function clearFrom($fromSlug, $locale, $orgId = '')
+    {
+        return $this->delete([
+            'from_slug = ?' => (string) $fromSlug,
+            'locale = ?'    => (string) $locale,
+            'org_id = ?'    => (string) $orgId,
+        ]);
+    }
 }
