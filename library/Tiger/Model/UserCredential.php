@@ -60,17 +60,17 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
                 $history->prune($userId, self::HISTORY_KEEP);
             }
             $this->update(
-                array('secret' => $hash, 'verified_at' => $this->_now()),
+                ['secret' => $hash, 'verified_at' => $this->_now()],
                 $this->getAdapter()->quoteInto('credential_id = ?', $existing->credential_id)
             );
             return $existing->credential_id;
         }
-        return $this->insert(array(
+        return $this->insert([
             'user_id'     => $userId,
             'type'        => self::TYPE_PASSWORD,
             'secret'      => $hash,
             'verified_at' => $this->_now(),
-        ));
+        ]);
     }
 
     /**
@@ -102,11 +102,11 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
      */
     public function addSms($userId, $e164)
     {
-        return $this->insert(array(
+        return $this->insert([
             'user_id'    => $userId,
             'type'       => self::TYPE_SMS,
             'identifier' => $e164,
-        ));
+        ]);
     }
 
     /**
@@ -152,7 +152,7 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
     public function markVerified($credentialId)
     {
         return $this->update(
-            array('verified_at' => $this->_now()),
+            ['verified_at' => $this->_now()],
             $this->getAdapter()->quoteInto('credential_id = ?', $credentialId)
         );
     }
@@ -161,7 +161,7 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
     public function touch($credentialId)
     {
         return $this->update(
-            array('last_used_at' => $this->_now()),
+            ['last_used_at' => $this->_now()],
             $this->getAdapter()->quoteInto('credential_id = ?', $credentialId)
         );
     }
@@ -190,7 +190,7 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
             return;
         }
         $count = (int) $cred->failed_count + 1;
-        $data  = array('failed_count' => $count);
+        $data  = ['failed_count' => $count];
         if ($count >= self::MAX_FAILURES) {
             $data['locked_until'] = date('Y-m-d H:i:s', time() + self::LOCK_MINUTES * 60);
         }
@@ -201,7 +201,7 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
     public function recordSuccess($credentialId)
     {
         $this->update(
-            array('failed_count' => 0, 'locked_until' => null, 'last_used_at' => $this->_now()),
+            ['failed_count' => 0, 'locked_until' => null, 'last_used_at' => $this->_now()],
             $this->getAdapter()->quoteInto('credential_id = ?', $credentialId)
         );
     }

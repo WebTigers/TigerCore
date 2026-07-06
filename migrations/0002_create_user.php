@@ -14,8 +14,8 @@
  * NULLable: MySQL permits many NULLs in a unique index (NULL != NULL), so
  * username-less users are fine.
  */
-return array(
-    'up' => array(
+return [
+    'up' => [
         "CREATE TABLE `user` (
             `user_id`       CHAR(36)     NOT NULL,
             `email`         VARCHAR(191) NOT NULL,   -- canonical login id
@@ -30,8 +30,8 @@ return array(
             UNIQUE KEY `uq_user_email`    (`email`),
             UNIQUE KEY `uq_user_username` (`username`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-    ),
-    'down' => array(
+    ],
+    'down' => [
         "DROP TABLE IF EXISTS `user`",
-    ),
-);
+    ],
+];

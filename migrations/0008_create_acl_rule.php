@@ -10,8 +10,8 @@
  * The deny-all baseline itself is just data (`role=* resource=* privilege=* deny`),
  * shipped in core `acl.ini` — the engine hard-codes no policy.
  */
-return array(
-    'up' => array(
+return [
+    'up' => [
         "CREATE TABLE `acl_rule` (
             `acl_rule_id` CHAR(36)     NOT NULL,
             `role`        VARCHAR(64)      NULL,   -- role name, or '*' = all
@@ -27,8 +27,8 @@ return array(
             PRIMARY KEY (`acl_rule_id`),
             KEY `ix_acl_rule` (`role`, `resource`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-    ),
-    'down' => array(
+    ],
+    'down' => [
         "DROP TABLE IF EXISTS `acl_rule`",
-    ),
-);
+    ],
+];

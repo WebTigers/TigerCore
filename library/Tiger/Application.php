@@ -95,13 +95,13 @@ class Tiger_Application
 
     protected function setIncludePath()
     {
-        set_include_path(implode(PATH_SEPARATOR, array(
+        set_include_path(implode(PATH_SEPARATOR, [
             PROJECT_LIBRARY_PATH,
             TIGER_CORE_PATH . '/library',
             LIBRARY_PATH,
             MODULES_PATH,
             get_include_path(),
-        )));
+        ]));
     }
 
     /** Optional app entry hook: app constants, helper functions, pre-bootstrap tweaks. */
@@ -123,13 +123,13 @@ class Tiger_Application
         $config = new Zend_Config_Ini(
             TIGER_CORE_PATH . '/configs/core.ini',
             APPLICATION_ENV,
-            array('allowModifications' => true)
+            ['allowModifications' => true]
         );
 
-        foreach (array(
+        foreach ([
             APPLICATION_PATH . '/configs/application.ini',
             APPLICATION_PATH . '/configs/local.ini',
-        ) as $file) {
+        ] as $file) {
             if (is_file($file)) {
                 $config->merge(new Zend_Config_Ini($file, APPLICATION_ENV));
             }

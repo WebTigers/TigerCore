@@ -23,12 +23,12 @@ class Tiger_Policy_Password
     /** Effective policy (defaults <- tiger.password.* in the resolved, per-org config). */
     public function config()
     {
-        $defaults = array(
+        $defaults = [
             'min_length'         => 8,
             'history'            => 5,   // disallow reusing the last N passwords (0 = off)
             'require_complexity' => 0,   // off (length beats composition)
             'max_age_days'       => 0,   // off (no forced rotation)
-        );
+        ];
 
         $node = null;
         if (Zend_Registry::isRegistered('Zend_Config')) {
@@ -60,7 +60,7 @@ class Tiger_Policy_Password
     {
         $cfg   = $this->config();
         $plain = (string) $plain;
-        $out   = array();
+        $out   = [];
 
         if (strlen($plain) < $cfg['min_length']) {
             $out[] = 'password.too_short';
@@ -77,7 +77,7 @@ class Tiger_Policy_Password
     /** Convenience boolean. */
     public function isValid($plain, $userId = null)
     {
-        return $this->validate($plain, $userId) === array();
+        return $this->validate($plain, $userId) === [];
     }
 
     /** Has the user's password exceeded max_age_days? (Always false when expiry is off.) */

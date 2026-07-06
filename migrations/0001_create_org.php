@@ -32,8 +32,8 @@
  * (e.g. org.slug). If an app needs to reuse a slug/email after soft-delete, it
  * handles that policy (e.g. rename-on-delete) — core doesn't force one.
  */
-return array(
-    'up' => array(
+return [
+    'up' => [
         "CREATE TABLE `org` (
             `org_id`        CHAR(36)     NOT NULL,
             `parent_org_id` CHAR(36)         NULL,   -- self-ref hierarchy; NULL = root org
@@ -52,8 +52,8 @@ return array(
             CONSTRAINT `fk_org_parent`
                 FOREIGN KEY (`parent_org_id`) REFERENCES `org` (`org_id`) ON DELETE SET NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-    ),
-    'down' => array(
+    ],
+    'down' => [
         "DROP TABLE IF EXISTS `org`",
-    ),
-);
+    ],
+];

@@ -19,8 +19,8 @@
  * per (scope, scope_id, key) even for global (a NULL would let MySQL store dupes).
  * `key`/`value` are reserved words, hence `config_key`/`config_value`.
  */
-return array(
-    'up' => array(
+return [
+    'up' => [
         "CREATE TABLE `config` (
             `config_id`    CHAR(36)     NOT NULL,
             `scope`        VARCHAR(16)  NOT NULL DEFAULT 'global',  -- global | org | user
@@ -37,8 +37,8 @@ return array(
             UNIQUE KEY `uq_config`       (`scope`, `scope_id`, `config_key`),
             KEY        `ix_config_scope` (`scope`, `scope_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-    ),
-    'down' => array(
+    ],
+    'down' => [
         "DROP TABLE IF EXISTS `config`",
-    ),
-);
+    ],
+];

@@ -15,7 +15,7 @@ class Tiger_Model_PasswordHistory extends Tiger_Model_Table
     /** Archive a retired password hash for a user. */
     public function archive($userId, $hash)
     {
-        return $this->insert(array('user_id' => $userId, 'secret' => $hash));
+        return $this->insert(['user_id' => $userId, 'secret' => $hash]);
     }
 
     /** The user's last N retired hashes, newest first. */
@@ -32,7 +32,7 @@ class Tiger_Model_PasswordHistory extends Tiger_Model_Table
     {
         $keep = max(0, (int) $keep);
         $ids  = $this->getAdapter()->fetchCol(
-            $this->select()->from($this->_name, array('password_history_id'))
+            $this->select()->from($this->_name, ['password_history_id'])
                 ->where('user_id = ?', $userId)
                 ->order('created_at DESC')
                 ->limit(1000, $keep)   // everything past the first $keep

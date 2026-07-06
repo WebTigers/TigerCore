@@ -127,6 +127,6 @@ class Tiger_Controller_Plugin_Authorization extends Zend_Controller_Plugin_Abstr
     /** hyphen/dot/underscore-slug -> StudlyCase (user-admin -> UserAdmin). */
     private function _studly($name)
     {
-        return str_replace(' ', '', ucwords(str_replace(array('-', '.', '_'), ' ', strtolower($name))));
+        return str_replace(' ', '', ucwords(str_replace(['-', '.', '_'], ' ', strtolower($name))));
     }
 }

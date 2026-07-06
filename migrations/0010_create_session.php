@@ -14,8 +14,8 @@
  * auditing + admin "your sessions" / force-logout. `data` is MEDIUMTEXT (sessions
  * can be large). GC reaps rows where (now - modified) > lifetime.
  */
-return array(
-    'up' => array(
+return [
+    'up' => [
         "CREATE TABLE `session` (
             `session_id`    VARCHAR(128) NOT NULL,
             `modified`      INT              NULL,
@@ -31,8 +31,8 @@ return array(
             KEY `idx_session_user` (`user_id`),
             KEY `idx_session_role` (`role`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-    ),
-    'down' => array(
+    ],
+    'down' => [
         "DROP TABLE IF EXISTS `session`",
-    ),
-);
+    ],
+];

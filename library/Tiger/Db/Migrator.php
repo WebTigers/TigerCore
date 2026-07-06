@@ -52,7 +52,7 @@ class Tiger_Db_Migrator
     {
         $this->ensureTrackingTable();
         $applied = $this->appliedVersions();
-        $ran     = array();
+        $ran     = [];
 
         foreach ($this->discover() as $version => $m) {
             if (isset($applied[$version])) {
@@ -63,11 +63,11 @@ class Tiger_Db_Migrator
                 $this->db->query($sql);
             }
             // Record only after every statement succeeded (see class caveat).
-            $this->db->insert('tiger_migration', array(
+            $this->db->insert('tiger_migration', [
                 'version'    => $version,
                 'name'       => $m['name'],
                 'applied_at' => date('Y-m-d H:i:s'),
-            ));
+            ]);
             $ran[$version] = $m['name'];
         }
 
@@ -89,7 +89,7 @@ class Tiger_Db_Migrator
         $applied = array_keys($this->appliedVersions());
         rsort($applied);                    // newest first
         $target  = array_slice($applied, 0, max(0, (int) $steps));
-        $done    = array();
+        $done    = [];
 
         foreach ($target as $version) {
             if (!isset($all[$version])) {
@@ -116,9 +116,9 @@ class Tiger_Db_Migrator
     {
         $this->ensureTrackingTable();
         $applied = $this->appliedVersions();
-        $out     = array();
+        $out     = [];
         foreach ($this->discover() as $version => $m) {
-            $out[$version] = array('name' => $m['name'], 'applied' => isset($applied[$version]));
+            $out[$version] = ['name' => $m['name'], 'applied' => isset($applied[$version])];
         }
         return $out;
     }
@@ -132,20 +132,20 @@ class Tiger_Db_Migrator
      */
     private function discover()
     {
-        $found = array();
+        $found = [];
         foreach ($this->paths as $dir) {
-            foreach (glob($dir . '/*.php') ?: array() as $file) {
+            foreach (glob($dir . '/*.php') ?: [] as $file) {
                 $base = basename($file, '.php');           // e.g. "0001_create_org"
                 if (!preg_match('/^(\d+)_(.+)$/', $base, $mm)) {
                     continue;                              // ignore non-conforming files
                 }
                 list(, $version, $name) = $mm;
                 $spec = include $file;
-                $found[$version] = array(
+                $found[$version] = [
                     'name' => $name,
-                    'up'   => isset($spec['up'])   ? (array) $spec['up']   : array(),
-                    'down' => isset($spec['down']) ? (array) $spec['down'] : array(),
-                );
+                    'up'   => isset($spec['up'])   ? (array) $spec['up']   : [],
+                    'down' => isset($spec['down']) ? (array) $spec['down'] : [],
+                ];
             }
         }
         ksort($found, SORT_STRING);   // zero-padded versions sort correctly as strings

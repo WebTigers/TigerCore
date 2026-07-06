@@ -30,5 +30,5 @@ class Tiger_Model_ResponseObject
     public $form = null;
 
     /** @var Tiger_Model_MessageObject[] */
-    public $messages = array();
+    public $messages = [];
 }

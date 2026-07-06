@@ -60,18 +60,18 @@ class Tiger_Install
         }
 
         // Genesis rows (no actor -> created_by NULL).
-        $orgId    = $orgModel->insert(array('name' => $orgName, 'slug' => $slug));
-        $userData = array('email' => $email);
+        $orgId    = $orgModel->insert(['name' => $orgName, 'slug' => $slug]);
+        $userData = ['email' => $email];
         if ($username !== '') { $userData['username'] = $username; }
         $userId   = $userModel->insert($userData);
         (new Tiger_Model_UserCredential())->setPassword($userId, (string) $password);
-        $ouId = (new Tiger_Model_OrgUser())->insert(array(
+        $ouId = (new Tiger_Model_OrgUser())->insert([
             'org_id'  => $orgId,
             'user_id' => $userId,
             'role'    => $role,
-        ));
+        ]);
 
-        return array(
+        return [
             'org_id'      => $orgId,
             'user_id'     => $userId,
             'org_user_id' => $ouId,
@@ -80,7 +80,7 @@ class Tiger_Install
             'username'    => $username !== '' ? $username : null,
             'org'         => $orgName,
             'slug'        => $slug,
-        );
+        ];
     }
 
     /** URL-safe slug from a name. */

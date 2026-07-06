@@ -136,13 +136,13 @@ abstract class Tiger_Model_Table extends Zend_Db_Table_Abstract
         if (!$this->_hasColumn('deleted')) {
             return $this->delete($where);
         }
-        return $this->update(array('deleted' => 1), $where);
+        return $this->update(['deleted' => 1], $where);
     }
 
     /** Reverse a soft delete: set `deleted` back to 0. */
     public function restore($where)
     {
-        return $this->update(array('deleted' => 0), $where);
+        return $this->update(['deleted' => 0], $where);
     }
 
     /**

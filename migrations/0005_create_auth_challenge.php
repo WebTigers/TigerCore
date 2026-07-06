@@ -23,8 +23,8 @@
  *
  * Index on `expires_at` supports a periodic cleanup sweep of dead challenges.
  */
-return array(
-    'up' => array(
+return [
+    'up' => [
         "CREATE TABLE `auth_challenge` (
             `challenge_id` CHAR(36)     NOT NULL,   -- v4 (opaque)
             `user_id`      CHAR(36)         NULL,   -- NULL during pre-login flows
@@ -45,8 +45,8 @@ return array(
             CONSTRAINT `fk_auth_challenge_user`
                 FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-    ),
-    'down' => array(
+    ],
+    'down' => [
         "DROP TABLE IF EXISTS `auth_challenge`",
-    ),
-);
+    ],
+];

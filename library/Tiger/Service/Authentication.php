@@ -83,7 +83,7 @@ class Tiger_Service_Authentication
     protected function _recordLogin($result, $identifier, $userId = null, $orgId = null)
     {
         try {
-            (new Tiger_Model_Login())->record(array(
+            (new Tiger_Model_Login())->record([
                 'user_id'    => $userId,
                 'org_id'     => $orgId,
                 'identifier' => $identifier,
@@ -92,7 +92,7 @@ class Tiger_Service_Authentication
                 'ip_address' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : null,
                 'user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : null,
                 // fingerprint: TBD — the client would supply a device hash.
-            ));
+            ]);
         } catch (Throwable $e) {
             error_log('Tiger login audit failed: ' . $e->getMessage());
         }
@@ -194,14 +194,14 @@ class Tiger_Service_Authentication
             $orgName = $org ? $org->name : null;
         }
 
-        return (object) array(
+        return (object) [
             'user_id'  => $user->user_id,
             'email'    => $user->email,
             'username' => $user->username,
             'org_id'   => $activeOrgId,
             'org_name' => $orgName,
             'role'     => $role,   // the role IN the active org (or the base role)
-        );
+        ];
     }
 
     /** Write the identity to session with fixation protection, and set the actor. */

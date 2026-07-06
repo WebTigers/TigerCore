@@ -79,8 +79,8 @@ class ErrorController extends Tiger_Controller_Action
 
         if (APPLICATION_ENV !== 'production' && $exception instanceof Throwable) {
             $req = $this->getRequest();
-            $this->view->debug = array(
-                'exception' => array(
+            $this->view->debug = [
+                'exception' => [
                     'type'     => get_class($exception),
                     'message'  => $exception->getMessage(),
                     'code'     => $exception->getCode(),
@@ -90,35 +90,35 @@ class ErrorController extends Tiger_Controller_Action
                     'previous' => $exception->getPrevious()
                         ? get_class($exception->getPrevious()) . ': ' . $exception->getPrevious()->getMessage()
                         : null,
-                ),
-                'request' => array(
+                ],
+                'request' => [
                     'module'     => $req->getModuleName(),
                     'controller' => $req->getControllerName(),
                     'action'     => $req->getActionName(),
                     'method'     => $req->getMethod(),
-                ),
-                'server' => array(
+                ],
+                'server' => [
                     'uri'        => isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '',
                     'host'       => isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '',
                     'ip'         => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '',
                     'user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '',
                     'php'        => phpversion(),
                     'env'        => APPLICATION_ENV,
-                ),
-            );
+                ],
+            ];
         }
     }
 
     protected function _logException(Throwable $ex, $code, $type)
     {
         $req = $this->getRequest();
-        Tiger_Log::error('Unhandled error rendered as ' . $code, array(
+        Tiger_Log::error('Unhandled error rendered as ' . $code, [
             'type'  => $type,
             'exc'   => get_class($ex),
             'err'   => $ex->getMessage(),
             'where' => $ex->getFile() . ':' . $ex->getLine(),
             'uri'   => isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '',
             'route' => $req ? $req->getModuleName() . '/' . $req->getControllerName() . '/' . $req->getActionName() : '',
-        ));
+        ]);
     }
 }

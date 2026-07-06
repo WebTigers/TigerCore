@@ -29,8 +29,8 @@
  *     it needs a modern InnoDB large-prefix (default on MySQL 5.7+/MariaDB 10.2+).
  *   - (type, identifier): reverse lookup for "log in by phone / by oauth subject".
  */
-return array(
-    'up' => array(
+return [
+    'up' => [
         "CREATE TABLE `user_credential` (
             `credential_id` CHAR(36)        NOT NULL,
             `user_id`       CHAR(36)        NOT NULL,
@@ -53,8 +53,8 @@ return array(
             CONSTRAINT `fk_user_credential_user`
                 FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-    ),
-    'down' => array(
+    ],
+    'down' => [
         "DROP TABLE IF EXISTS `user_credential`",
-    ),
-);
+    ],
+];

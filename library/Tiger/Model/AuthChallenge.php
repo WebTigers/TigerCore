@@ -32,12 +32,12 @@ class Tiger_Model_AuthChallenge extends Tiger_Model_Table
      */
     public function issue($userId, $type, $plainCode, $ttlSeconds = 600)
     {
-        return $this->insert(array(
+        return $this->insert([
             'user_id'    => $userId,
             'type'       => $type,
             'code_hash'  => $this->hashCode($plainCode),
             'expires_at' => date('Y-m-d H:i:s', time() + $ttlSeconds),
-        ));
+        ]);
     }
 
     /**
@@ -60,14 +60,14 @@ class Tiger_Model_AuthChallenge extends Tiger_Model_Table
         // Timing-safe comparison; a mismatch costs an attempt.
         if (!hash_equals((string) $row->code_hash, $this->hashCode($plainCode))) {
             $this->update(
-                array('attempts' => (int) $row->attempts + 1),
+                ['attempts' => (int) $row->attempts + 1],
                 $this->getAdapter()->quoteInto('challenge_id = ?', $challengeId)
             );
             return null;
         }
 
         $this->update(
-            array('consumed_at' => $this->_now()),
+            ['consumed_at' => $this->_now()],
             $this->getAdapter()->quoteInto('challenge_id = ?', $challengeId)
         );
         return $row;

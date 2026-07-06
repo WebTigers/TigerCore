@@ -11,8 +11,8 @@
  *     automatically — a membership can't outlive either side.
  *   - `role` defaults to 'member'; it's the per-tenant role the ACL engine reads.
  */
-return array(
-    'up' => array(
+return [
+    'up' => [
         "CREATE TABLE `org_user` (
             `org_user_id` CHAR(36)    NOT NULL,
             `org_id`      CHAR(36)    NOT NULL,
@@ -32,8 +32,8 @@ return array(
             CONSTRAINT `fk_org_user_user`
                 FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-    ),
-    'down' => array(
+    ],
+    'down' => [
         "DROP TABLE IF EXISTS `org_user`",
-    ),
-);
+    ],
+];

@@ -39,7 +39,7 @@ class Tiger_Ajax_ServiceFactory
      *
      * @var string[]
      */
-    protected static $_reserved = array('tiger', 'zend', 'core', 'default', 'library', 'application');
+    protected static $_reserved = ['tiger', 'zend', 'core', 'default', 'library', 'application'];
 
     /** @var Zend_Controller_Request_Http */
     protected $_request;
@@ -126,12 +126,12 @@ class Tiger_Ajax_ServiceFactory
                     $this->_fail('api.error.general');
                     return;
                 }
-                $this->_forward = array(
+                $this->_forward = [
                     'module'     => $module,
                     'controller' => $controller,
                     'action'     => $action,
                     'params'     => $params,
-                );
+                ];
                 return;
             }
 
@@ -174,7 +174,7 @@ class Tiger_Ajax_ServiceFactory
             'error'
         );
         if ($role === 'guest') {
-            $this->_response->data = (object) array('login' => 1);
+            $this->_response->data = (object) ['login' => 1];
         }
         return false;
     }
@@ -216,12 +216,12 @@ class Tiger_Ajax_ServiceFactory
             throw new RuntimeException('api.error.missing_module');
         }
 
-        return array_merge($r->getParams(), array(
+        return array_merge($r->getParams(), [
             'module'     => $module,
             'service'    => $service,
             'controller' => $controller,
             'action'     => $action,
-        ));
+        ]);
     }
 
     /** Small nested-config reader against the registry Zend_Config. */

@@ -6,8 +6,8 @@
  * (`Admin_IndexController`) or a service class (`Billing_Service_Invoice`). The
  * canonical set ships in `configs/acl.ini`; this table layers runtime additions.
  */
-return array(
-    'up' => array(
+return [
+    'up' => [
         "CREATE TABLE `acl_resource` (
             `acl_resource_id` CHAR(36)     NOT NULL,
             `resource`        VARCHAR(191) NOT NULL,   -- class name (controller/service)
@@ -21,8 +21,8 @@ return array(
             PRIMARY KEY (`acl_resource_id`),
             UNIQUE KEY `uq_acl_resource` (`resource`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-    ),
-    'down' => array(
+    ],
+    'down' => [
         "DROP TABLE IF EXISTS `acl_resource`",
-    ),
-);
+    ],
+];

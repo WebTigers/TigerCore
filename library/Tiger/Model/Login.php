@@ -27,7 +27,7 @@ class Tiger_Model_Login extends Tiger_Model_Table
      */
     public function record(array $data)
     {
-        return $this->insert(array(
+        return $this->insert([
             'user_id'     => isset($data['user_id'])     ? $data['user_id']     : null,
             'org_id'      => isset($data['org_id'])      ? $data['org_id']      : null,
             'identifier'  => isset($data['identifier'])  ? $data['identifier']  : null,
@@ -36,7 +36,7 @@ class Tiger_Model_Login extends Tiger_Model_Table
             'ip_address'  => isset($data['ip_address'])  ? $data['ip_address']  : null,
             'user_agent'  => isset($data['user_agent'])  ? substr((string) $data['user_agent'], 0, 255) : null,
             'fingerprint' => isset($data['fingerprint']) ? $data['fingerprint'] : null,
-        ));
+        ]);
     }
 
     /** A user's login history, newest first (for a "recent sign-in activity" view). */
@@ -71,7 +71,7 @@ class Tiger_Model_Login extends Tiger_Model_Table
     {
         $since = date('Y-m-d H:i:s', time() - (int) $sinceSeconds);
         $row = $this->fetchRow(
-            $this->select()->from($this->_name, array('c' => 'COUNT(*)'))
+            $this->select()->from($this->_name, ['c' => 'COUNT(*)'])
                 ->where($whereCol, $value)
                 ->where('result <> ?', self::RESULT_SUCCESS)
                 ->where('created_at >= ?', $since)

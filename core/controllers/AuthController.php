@@ -20,9 +20,9 @@ class AuthController extends Tiger_Controller_Action
                 (string) $request->getPost('password')
             );
             if ($identity) {
-                $this->_json(array('result' => 1, 'data' => $identity));
+                $this->_json(['result' => 1, 'data' => $identity]);
             } else {
-                $this->_json(array('result' => 0, 'message' => 'api.error.login_failed'), 401);
+                $this->_json(['result' => 0, 'message' => 'api.error.login_failed'], 401);
             }
             return;
         }
@@ -51,6 +51,6 @@ class AuthController extends Tiger_Controller_Action
     public function meAction()
     {
         $identity = (new Tiger_Service_Authentication())->getIdentity();
-        $this->_json(array('result' => $identity ? 1 : 0, 'data' => $identity));
+        $this->_json(['result' => $identity ? 1 : 0, 'data' => $identity]);
     }
 }

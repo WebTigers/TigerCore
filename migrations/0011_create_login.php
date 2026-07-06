@@ -23,8 +23,8 @@
  * Retention: grows forever; purge old rows on a schedule (Tiger_Model_Login::
  * purgeOlderThan) per your GDPR/retention policy — don't keep IPs indefinitely.
  */
-return array(
-    'up' => array(
+return [
+    'up' => [
         "CREATE TABLE `login` (
             `login_id`    CHAR(36)     NOT NULL,   -- v7 (time-ordered)
             `user_id`     CHAR(36)         NULL,   -- NULL if identifier matched no user
@@ -41,8 +41,8 @@ return array(
             KEY `ix_login_ip`         (`ip_address`, `created_at`),
             KEY `ix_login_identifier` (`identifier`, `created_at`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-    ),
-    'down' => array(
+    ],
+    'down' => [
         "DROP TABLE IF EXISTS `login`",
-    ),
-);
+    ],
+];

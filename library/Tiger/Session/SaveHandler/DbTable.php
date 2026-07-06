@@ -12,7 +12,7 @@
 class Tiger_Session_SaveHandler_DbTable extends Zend_Session_SaveHandler_DbTable
 {
     /** Roles that get the short (sensitive) session TTL. */
-    private static $_privileged = array('admin', 'superadmin', 'developer');
+    private static $_privileged = ['admin', 'superadmin', 'developer'];
 
     /**
      * Write the session row, stamping identity context + a role-based lifetime.
@@ -66,13 +66,13 @@ class Tiger_Session_SaveHandler_DbTable extends Zend_Session_SaveHandler_DbTable
     /** user/username/role/org/ip from the current identity (guest defaults). */
     protected function _identityContext()
     {
-        $ctx = array(
+        $ctx = [
             'user_id'    => null,
             'username'   => null,
             'role'       => 'guest',
             'org_id'     => null,
             'ip_address' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : null,
-        );
+        ];
 
         $auth = Zend_Auth::getInstance();
         if ($auth->hasIdentity()) {
@@ -114,10 +114,10 @@ class Tiger_Session_SaveHandler_DbTable extends Zend_Session_SaveHandler_DbTable
             $v = $node ? $node->get($key) : null;
             return ($v !== null && (int) $v > 0) ? (int) $v : $default;
         };
-        return array(
+        return [
             'privileged' => $get('privileged', 28800),   // 8h
             'authed'     => $get('authed', 604800),      // 7d
             'guest'      => $get('guest', 86400),        // 1d
-        );
+        ];
     }
 }

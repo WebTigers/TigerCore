@@ -37,27 +37,27 @@ class Tiger_Log
 
     // -- severity helpers (thin wrappers over Zend_Log priorities) -------------
 
-    public static function critical($message, array $context = array())
+    public static function critical($message, array $context = [])
     {
         self::_emit(Zend_Log::CRIT, $message, $context);
     }
 
-    public static function error($message, array $context = array())
+    public static function error($message, array $context = [])
     {
         self::_emit(Zend_Log::ERR, $message, $context);
     }
 
-    public static function warn($message, array $context = array())
+    public static function warn($message, array $context = [])
     {
         self::_emit(Zend_Log::WARN, $message, $context);
     }
 
-    public static function info($message, array $context = array())
+    public static function info($message, array $context = [])
     {
         self::_emit(Zend_Log::INFO, $message, $context);
     }
 
-    public static function debug($message, array $context = array())
+    public static function debug($message, array $context = [])
     {
         self::_emit(Zend_Log::DEBUG, $message, $context);
     }
@@ -74,10 +74,10 @@ class Tiger_Log
     private static function _emit($priority, $message, array $context)
     {
         try {
-            self::_logger()->log((string) $message, $priority, array(
+            self::_logger()->log((string) $message, $priority, [
                 'context' => self::_enrich($context),
                 'channel' => 'app',
-            ));
+            ]);
         } catch (Throwable $e) {
             // Logging must never throw into the caller. Keep the line, lose the frills.
             error_log('[tiger_log_fallback] ' . $message . ' :: ' . $e->getMessage());
@@ -109,7 +109,7 @@ class Tiger_Log
         $cfg  = self::_config();
         $spec = ($cfg && $cfg->get('writer')) ? (string) $cfg->writer : 'errorlog';
 
-        $writers = array();
+        $writers = [];
         foreach (array_filter(array_map('trim', explode(',', $spec))) as $name) {
             try {
                 $writers[] = self::_writer($name, $cfg);
@@ -146,7 +146,7 @@ class Tiger_Log
                 return self::_stream($path);
 
             case 'syslog':
-                $w = new Zend_Log_Writer_Syslog(array('application' => 'tiger'));
+                $w = new Zend_Log_Writer_Syslog(['application' => 'tiger']);
                 return $w;
 
             case 'cloudwatch':
@@ -199,13 +199,13 @@ class Tiger_Log
      */
     private static function _minPriority()
     {
-        static $map = array(
+        static $map = [
             'debug'  => Zend_Log::DEBUG,  'info'    => Zend_Log::INFO,
             'notice' => Zend_Log::NOTICE, 'warn'    => Zend_Log::WARN,
             'warning'=> Zend_Log::WARN,   'error'   => Zend_Log::ERR,
             'err'    => Zend_Log::ERR,    'crit'    => Zend_Log::CRIT,
             'critical' => Zend_Log::CRIT,
-        );
+        ];
 
         $name = 'info';
         $cfg  = self::_config();
@@ -218,7 +218,7 @@ class Tiger_Log
     /** Merge caller context over the auto base (request_id + identity). Caller wins. */
     private static function _enrich(array $context)
     {
-        $base = array('request_id' => self::_requestId());
+        $base = ['request_id' => self::_requestId()];
 
         try {
             if (class_exists('Zend_Auth', false) && Zend_Auth::getInstance()->hasIdentity()) {

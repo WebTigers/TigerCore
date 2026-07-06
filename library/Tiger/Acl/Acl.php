@@ -57,14 +57,14 @@ class Tiger_Acl_Acl extends Zend_Acl
      */
     protected function _aclIniPaths()
     {
-        $paths = array();
+        $paths = [];
 
         $core = TIGER_CORE_PATH . '/core/configs/acl.ini';
         if (is_file($core)) {
             $paths[] = $core;
         }
-        foreach (array(APPLICATION_PATH . '/modules', TIGER_CORE_PATH . '/modules') as $modsDir) {
-            foreach (glob($modsDir . '/*', GLOB_ONLYDIR) ?: array() as $moduleDir) {
+        foreach ([APPLICATION_PATH . '/modules', TIGER_CORE_PATH . '/modules'] as $modsDir) {
+            foreach (glob($modsDir . '/*', GLOB_ONLYDIR) ?: [] as $moduleDir) {
                 $ini = $moduleDir . '/configs/acl.ini';
                 if (is_file($ini)) {
                     $paths[] = $ini;
@@ -78,7 +78,7 @@ class Tiger_Acl_Acl extends Zend_Acl
 
     protected function _loadRolesFromIni()
     {
-        $parents = array();
+        $parents = [];
         foreach ($this->_aclIniPaths() as $iniPath) {
             try {
                 $acl = (new Zend_Config_Ini($iniPath, APPLICATION_ENV))->get('acl');
@@ -88,7 +88,7 @@ class Tiger_Acl_Acl extends Zend_Acl
                     if (empty($name)) { continue; }
                     $parents[$name] = !empty($role->parent)
                         ? array_filter(array_map('trim', explode(',', (string) $role->parent)))
-                        : array();
+                        : [];
                 }
             } catch (Throwable $e) {}
         }
@@ -98,11 +98,11 @@ class Tiger_Acl_Acl extends Zend_Acl
     protected function _loadRolesFromDb()
     {
         try {
-            $parents = array();
+            $parents = [];
             foreach ((new Tiger_Model_AclRole())->getRoleList() as $row) {
                 $parents[$row->role] = !empty($row->parent_role)
                     ? array_filter(array_map('trim', explode(',', (string) $row->parent_role)))
-                    : array();
+                    : [];
             }
             $this->_addRolesTopologically($parents);
         } catch (Throwable $e) {}
@@ -125,7 +125,7 @@ class Tiger_Acl_Acl extends Zend_Acl
         $pending = array_keys($parents);
 
         while ($pending) {
-            $next = array();
+            $next = [];
             $progress = false;
             foreach ($pending as $name) {
                 $unmet = array_filter($parents[$name], function ($p) use ($added) {

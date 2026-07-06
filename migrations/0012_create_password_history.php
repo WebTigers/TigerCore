@@ -13,8 +13,8 @@
  * policy's `history` count by Tiger_Model_PasswordHistory::prune so it can't grow
  * unbounded.
  */
-return array(
-    'up' => array(
+return [
+    'up' => [
         "CREATE TABLE `password_history` (
             `password_history_id` CHAR(36)        NOT NULL,   -- v7
             `user_id`             CHAR(36)        NOT NULL,
@@ -25,8 +25,8 @@ return array(
             CONSTRAINT `fk_pwhist_user`
                 FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-    ),
-    'down' => array(
+    ],
+    'down' => [
         "DROP TABLE IF EXISTS `password_history`",
-    ),
-);
+    ],
+];

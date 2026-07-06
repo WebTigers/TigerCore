@@ -47,8 +47,8 @@ function tiger_db()
 /** Migration dirs, in precedence order: core (package) -> app -> each module. */
 function tiger_migration_paths()
 {
-    $paths = array(TIGER_CORE_PATH . '/migrations', APPLICATION_PATH . '/migrations');
-    foreach (glob(MODULES_PATH . '/*/migrations') ?: array() as $modMigrations) {
+    $paths = [TIGER_CORE_PATH . '/migrations', APPLICATION_PATH . '/migrations'];
+    foreach (glob(MODULES_PATH . '/*/migrations') ?: [] as $modMigrations) {
         $paths[] = $modMigrations;
     }
     return $paths;
@@ -57,7 +57,7 @@ function tiger_migration_paths()
 /** Parse `--key=value` flags from argv into an assoc array. */
 function tiger_flags($argv)
 {
-    $out = array();
+    $out = [];
     foreach ($argv as $arg) {
         if (preg_match('/^--([a-zA-Z_]+)=(.*)$/', $arg, $m)) {
             $out[$m[1]] = $m[2];

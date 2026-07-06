@@ -59,16 +59,16 @@ class Tiger_Model_Config extends Tiger_Model_Table
         );
         if ($existing) {
             $this->update(
-                array('config_value' => $value),
+                ['config_value' => $value],
                 $this->getAdapter()->quoteInto('config_id = ?', $existing->config_id)
             );
             return $existing->config_id;
         }
-        return $this->insert(array(
+        return $this->insert([
             'scope'        => $scope,
             'scope_id'     => (string) $scopeId,
             'config_key'   => $key,
             'config_value' => $value,
-        ));
+        ]);
     }
 }

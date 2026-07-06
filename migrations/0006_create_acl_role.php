@@ -10,8 +10,8 @@
  * `parent_role` is a comma-separated list of parent role names (Zend_Acl supports
  * multiple inheritance). `role` matches the value stored in `org_user.role`.
  */
-return array(
-    'up' => array(
+return [
+    'up' => [
         "CREATE TABLE `acl_role` (
             `acl_role_id` CHAR(36)     NOT NULL,
             `role`        VARCHAR(64)  NOT NULL,   -- role name (matches org_user.role)
@@ -26,8 +26,8 @@ return array(
             PRIMARY KEY (`acl_role_id`),
             UNIQUE KEY `uq_acl_role` (`role`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-    ),
-    'down' => array(
+    ],
+    'down' => [
         "DROP TABLE IF EXISTS `acl_role`",
-    ),
-);
+    ],
+];

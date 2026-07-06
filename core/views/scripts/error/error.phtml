@@ -6,13 +6,13 @@
  */
 $code = (int) ($this->statusCode ?? 500);
 $msg  = $this->escape($this->message ?? 'Something went wrong.');
-$sub  = array(
+$sub  = [
     403 => "You're signed in, but this area isn't available to your account.",
     404 => "The page may have moved, or never existed. Let's get you back on track.",
     500 => "Something broke on our end. We've been notified and are looking into it — please try again shortly.",
-);
+];
 $sub  = $sub[$code] ?? $sub[500];
-$icon = array(403 => 'fa-lock', 404 => 'fa-compass', 500 => 'fa-triangle-exclamation');
+$icon = [403 => 'fa-lock', 404 => 'fa-compass', 500 => 'fa-triangle-exclamation'];
 $icon = $icon[$code] ?? 'fa-triangle-exclamation';
 ?>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
