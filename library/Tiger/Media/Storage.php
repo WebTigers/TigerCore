@@ -54,10 +54,11 @@ class Tiger_Media_Storage
             case 'local':
                 return new Tiger_Media_Storage_Filesystem($settings);
             case 's3':
-                // return new Tiger_Media_Storage_S3($settings);   // P5 (needs aws-sdk-php)
+                return new Tiger_Media_Storage_S3($settings);
             case 'gcs':
+                return new Tiger_Media_Storage_Gcs($settings);
             case 'azure':
-                throw new RuntimeException("Tiger_Media_Storage: adapter '{$adapter}' not built yet (see MEDIA.md phasing).");
+                return new Tiger_Media_Storage_Azure($settings);
             default:
                 throw new RuntimeException("Tiger_Media_Storage: unknown adapter '{$adapter}' for disk '{$name}'.");
         }

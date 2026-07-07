@@ -9,6 +9,11 @@
         "php": ">=8.1",
         "webtigers/tigerzf": "^1.30"
     },
+    "suggest": {
+        "aws/aws-sdk-php": "S3 media storage (Tiger_Media_Storage_S3) + Rekognition moderation + CloudWatch logging",
+        "google/cloud-storage": "GCS media storage adapter (planned)",
+        "microsoft/azure-storage-blob": "Azure Blob media storage adapter (planned)"
+    },
     "autoload": {
         "psr-0": {
             "Tiger_": "library/"

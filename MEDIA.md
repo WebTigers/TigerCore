@@ -31,7 +31,7 @@ One row per stored file. Tenant- and locale-scoped like `page`.
 | `org_id` | tenant scope (`''` = global; tenant wins), same axis as `page`/`config` |
 | `locale` | language tag (`en`), for localized assets / captions; `''` = language-neutral |
 | `disk` | which configured storage disk holds it (`local`, `s3`, …) |
-| `storage_key` | the adapter-relative key/path (e.g. `2026/07/uuid.jpg`) |
+| `storage_key` | adapter-relative, tenant-namespaced key: `<org_id>/<kind-folder>/<rand>.<ext>` (e.g. `3f2504e0-…/images/ab12….jpg`); the adapter adds the `public/`\|`private/` root. Keyed by the **immutable** org_id (a slug can be renamed → orphaned files); `_shared` for no-org uploads |
 | `visibility` | `public` \| `private` |
 | `kind` | derived category: `image` \| `document` \| `pdf` \| `video` \| `audio` \| `archive` \| `other` (drives filtering + which variant pipeline runs) |
 | `mime_type`, `extension`, `file_size` | as uploaded (bytes) |
@@ -81,9 +81,16 @@ settings. `Tiger_Media_Storage::disk($name)` is the factory.
 Drag-drop posts one multipart file per request (per-file XHR **progress**); the service:
 
 1. **Validate** — size cap + MIME allowlist (`media.max_upload`, `media.allow.*`), derive `kind`.
-2. **Virus scan** *(optional, `media.scan.clamav`)* — `Tiger_Media_Scanner_ClamAv` (clamd
-   socket). Infected → reject with a message, nothing stored. *(ClamAV is memory-heavy — off
-   on small instances; boost the box to test.)*
+2. **Virus scan** *(optional, `media.scan.clamav`)* — `Tiger_Media_Scanner_ClamAv`. Infected →
+   reject with a message, nothing stored. **Use the clamd *daemon* (`clamdscan`), not standalone
+   `clamscan`** — the scanner tries `clamdscan --fdpass` first and only falls back to `clamscan`.
+   Measured on the dev box: cold `clamscan` reloads the ~108 MB signature DB every call (**~17 s**,
+   ~1 GB transient — unusable for uploads); with clamd resident the same scan through the real
+   scanner class is **~13–22 ms**. clamd holds the DB resident (~960 MB RSS), so **daemon scanning
+   needs a ≥4 GB host** (t3.medium+), not a 2 GB box. Ops: the php-fpm user (`apache`) must be in
+   clamd's socket group (`virusgroup` on AL2023) to traverse `/run/clamd.scan` and reach the
+   socket, and `--fdpass` hands clamd the open fd so it can read the upload tmp file regardless of
+   owner. Off by default; enable only where clamd is provisioned.
 3. **AI image review** *(optional, `media.scan.image`)* — `Tiger_Media_Scanner_Rekognition`
    (`DetectModerationLabels`); below threshold → store, else reject with a message.
 4. **Store** via the disk adapter → compute checksum → **insert the `media` row**.
@@ -126,6 +133,18 @@ webhook approves it.
 3. **Portfolio UI** — Portfolio grid (vanilla CSS grid, MIT-clean), size selector, fullsize modal, pdf.js preview, the picker.
 4. **Scanning** — `Tiger_Media_Scanner_*`: ClamAV, Rekognition image, then async video +
    the SNS webhook + the moderation queue.
-5. **Cloud storage** — the S3 adapter (SDK), then GCS/Azure.
+5. **Cloud storage** — ✅ **S3 adapter** (`Tiger_Media_Storage_S3`): one bucket, `visibility`
+   selects a key prefix (`public_prefix`/`private_prefix`) so a bucket policy exposes only the
+   public prefix; public → direct CDN/S3 URL, private → short-lived **presigned** GET (or stream
+   via the app when `presign_ttl=0`). Creds via the default AWS chain (IAM role) or `key`+`secret`;
+   `endpoint`+`use_path_style` for S3-compatible (MinIO/Spaces/R2). Needs `aws/aws-sdk-php`
+   (composer *suggest*; adapter guards on absence). Verified end-to-end against live S3.
+   ✅ **GCS** (`Tiger_Media_Storage_Gcs`, `google/cloud-storage`) — same public/private-prefix
+   model; private = V4 signed URLs (needs a service-account `key_file`). ✅ **Azure**
+   (`Tiger_Media_Storage_Azure`, `microsoft/azure-storage-blob`) — Azure's public access is
+   *container*-level, so either two containers (`public_container`+`private_container`) or one
+   `container` + prefixes; private = short-lived SAS URLs. All three share the interface + the
+   SDK-optional guard. GCS/Azure verified offline (URL/key mapping, traversal guard, and real
+   V4/SAS signing); live round-trips pending cloud accounts.
 
 Progress lives in the task list; this doc is the map.

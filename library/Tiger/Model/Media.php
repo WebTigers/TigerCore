@@ -22,6 +22,17 @@ class Tiger_Model_Media extends Tiger_Model_Table
     const KIND_ARCHIVE  = 'archive';
     const KIND_OTHER    = 'other';
 
+    /** Storage sub-folder per kind (tenant path grouping) — see kindFolder(). */
+    const KIND_FOLDERS = [
+        self::KIND_IMAGE    => 'images',
+        self::KIND_VIDEO    => 'videos',
+        self::KIND_AUDIO    => 'audio',
+        self::KIND_PDF      => 'docs',
+        self::KIND_DOCUMENT => 'docs',
+        self::KIND_ARCHIVE  => 'files',
+        self::KIND_OTHER    => 'files',
+    ];
+
     const VISIBILITY_PUBLIC  = 'public';
     const VISIBILITY_PRIVATE = 'private';
 
@@ -61,6 +72,17 @@ class Tiger_Model_Media extends Tiger_Model_Table
             return ['kind' => self::KIND_DOCUMENT, 'allowed' => true];
         }
         return ['kind' => self::KIND_OTHER, 'allowed' => false];
+    }
+
+    /**
+     * The storage sub-folder for a kind — groups a tenant's files by type under its org path
+     * (`<org>/images/…`, `/videos/…`, `/docs/…`, `/files/…`): pdf+document → docs, archive+other
+     * → files. Used to build the storage key; the adapter adds the visibility root (public/ |
+     * private/) on top.
+     */
+    public static function kindFolder($kind)
+    {
+        return self::KIND_FOLDERS[$kind] ?? 'files';
     }
 
     /** Is $ext in the `media.allow.<group>` list? */

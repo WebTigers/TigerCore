@@ -5,9 +5,12 @@
  * Prefers the daemon client `clamdscan` (the signature DB stays resident in clamd → fast;
  * `--fdpass` hands clamd the open descriptor so it can read the PHP upload tmp file
  * regardless of its user). If the daemon isn't reachable (clamdscan errors) or isn't
- * installed, it falls back to standalone `clamscan`, which loads the DB per scan — slower
- * (~10-15s) and ~1 GB transient, but it works without a resident daemon (fine on a small
- * box; enable `media.scan.clamav` accordingly — see MEDIA.md).
+ * installed, it falls back to standalone `clamscan`, which reloads the ~108 MB signature DB on
+ * every call — measured ~17s per scan and ~1 GB transient. That fallback is a degraded
+ * last-resort (a scan that slow blocks the upload request); production should always run the
+ * clamd daemon on a ≥4 GB host (it holds the DB resident → ~10-20 ms scans). The php-fpm user
+ * needs membership in clamd's socket group and `--fdpass` reads the upload tmp file regardless
+ * of owner — see MEDIA.md §4 for the daemon requirement + ops notes.
  *
  * @api
  */

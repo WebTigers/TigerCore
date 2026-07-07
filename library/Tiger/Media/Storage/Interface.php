@@ -6,8 +6,10 @@
  * (filesystem / S3 / GCS / Azure), selected per-file by the row's `disk`. `visibility`
  * (public|private) is passed to every locating call because it can change WHERE/HOW a
  * backend stores or serves an object (a filesystem adapter keeps public files under the
- * docroot and private files outside it; S3 sets the object ACL). Keys are
- * adapter-relative paths like `2026/07/<uuid>.jpg`.
+ * docroot and private files outside it; S3 sets the object ACL). Keys are adapter-relative,
+ * tenant-namespaced paths built by the upload service — `<org_id>/<kind-folder>/<rand>.<ext>`
+ * (e.g. `3f2504e0-…/images/ab12….jpg`); the adapter prepends the visibility root
+ * (`public/` | `private/`). The immutable `<org_id>` segment keeps tenants' bytes separated.
  *
  * @api
  */

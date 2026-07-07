@@ -49,9 +49,14 @@ class Media_Service_Media extends Tiger_Service_Service
             $scanStatus = Tiger_Model_Media::SCAN_IN_REVIEW;
         }
 
-        // Opaque, collision-free storage key sharded by month: 2026/07/<random>.<ext>
-        $key  = date('Y/m') . '/' . bin2hex(random_bytes(16)) . ($ext !== '' ? '.' . $ext : '');
-        $disk = Tiger_Media_Storage::defaultDisk();
+        // Tenant-namespaced, collision-free storage key: <org>/<kind>/<random>.<ext>
+        // (adapter prepends the visibility root -> public/<org>/images/<rand>.jpg).
+        // Keyed by the IMMUTABLE org_id — a slug can be renamed, which would orphan stored files.
+        $org    = preg_replace('/[^a-zA-Z0-9-]/', '', $this->_orgId()) ?: '_shared';
+        $folder = Tiger_Model_Media::kindFolder($class['kind']);
+        $key    = $org . '/' . $folder . '/'
+                . bin2hex(random_bytes(16)) . ($ext !== '' ? '.' . $ext : '');
+        $disk   = Tiger_Media_Storage::defaultDisk();
 
         try {
             Tiger_Media_Storage::disk($disk)->put($key, $tmp, $visibility, $mime);
