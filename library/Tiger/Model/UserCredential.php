@@ -39,7 +39,9 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
      */
     public static function hashPassword($plain)
     {
-        return password_hash($plain, PASSWORD_DEFAULT);
+        // Pepper (HMAC with the install secret) before bcrypt — see Tiger_Security. With
+        // no pepper configured this is byte-identical to password_hash($plain).
+        return password_hash(Tiger_Security::prehashPassword($plain), PASSWORD_DEFAULT);
     }
 
     /**
@@ -87,11 +89,34 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
         if (!$row || $row->secret === null) {
             return false;
         }
-        if (password_verify($plain, $row->secret)) {
+
+        // Current scheme (peppered when a pepper is configured).
+        if (password_verify(Tiger_Security::prehashPassword($plain), (string) $row->secret)) {
+            if (password_needs_rehash((string) $row->secret, PASSWORD_DEFAULT)) {
+                $this->_rehash($row->credential_id, $plain);   // bcrypt cost bumped
+            }
+            $this->touch($row->credential_id);
+            return true;
+        }
+
+        // Legacy migration: a hash minted BEFORE the pepper was provisioned verifies raw;
+        // on success, transparently re-hash into the peppered scheme. (No-op when there's
+        // no pepper — then the branch above already covered the only scheme.)
+        if (Tiger_Security::hasPepper() && password_verify((string) $plain, (string) $row->secret)) {
+            $this->_rehash($row->credential_id, $plain);
             $this->touch($row->credential_id);
             return true;
         }
         return false;
+    }
+
+    /** Replace a password credential's stored hash with a freshly (re-)computed one. */
+    protected function _rehash($credentialId, $plain)
+    {
+        $this->update(
+            ['secret' => self::hashPassword($plain)],
+            $this->getAdapter()->quoteInto('credential_id = ?', $credentialId)
+        );
     }
 
     /**
@@ -287,7 +312,7 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
         if ($norm === '') {
             return false;
         }
-        $hash = hash('sha256', $norm);
+        $hash = Tiger_Security::hashCode($norm, 'recovery');
         $rows = $this->fetchAll(
             $this->activeSelect()->where('user_id = ?', $userId)->where('type = ?', self::TYPE_RECOVERY)
         );

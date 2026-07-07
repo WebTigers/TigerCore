@@ -83,7 +83,10 @@ class Tiger_Service_Authentication
             return false;
         }
 
-        if (!password_verify($password, (string) $cred->secret)) {
+        // Delegate the actual check to the model so it applies the PEPPER (and
+        // transparently upgrades a pre-pepper hash on success) — never a raw
+        // password_verify here, which would ignore the pepper.
+        if (!$credModel->verifyPassword($user->user_id, $password)) {
             $credModel->recordFailure($cred->credential_id);
             $this->_recordLogin(Tiger_Model_Login::RESULT_FAILURE, $identifier, $user->user_id);
             return false;
@@ -539,7 +542,8 @@ class Tiger_Service_Authentication
     /** Normalize (strip separators, lowercase) then hash a recovery code for storage/compare. */
     protected function _hashRecovery($code)
     {
-        return hash('sha256', strtolower(preg_replace('/[^a-z0-9]/i', '', (string) $code)));
+        // Keyed the same way redeemRecoveryCode() checks it (peppered when configured).
+        return Tiger_Security::hashCode(strtolower(preg_replace('/[^a-z0-9]/i', '', (string) $code)), 'recovery');
     }
 
     /** The issuer label authenticator apps display — config override, else the site name. */

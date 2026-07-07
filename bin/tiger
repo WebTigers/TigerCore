@@ -103,10 +103,31 @@ switch ($cmd) {
         (new Tiger_Db_Migrator(tiger_db(), tiger_migration_paths()))->rollback($steps, $log);
         break;
 
+    case 'install:secrets':
+        // Generate the install's random secrets (app encryption key + password pepper)
+        // into local.ini if missing. Idempotent; never rotates an existing secret.
+        try {
+            $made = Tiger_Install::provisionSecrets(APPLICATION_PATH . '/configs/local.ini');
+            if ($made) {
+                echo "  \xE2\x9C\x93 Provisioned into application/configs/local.ini:\n";
+                foreach ($made as $k) { echo "    - {$k}\n"; }
+            } else {
+                echo "  All secrets already set — nothing to do.\n";
+            }
+        } catch (Throwable $e) {
+            fwrite(STDERR, "  install:secrets failed: " . $e->getMessage() . "\n");
+            exit(1);
+        }
+        break;
+
     case 'install:admin':
         // Create the founding org + owner. Non-interactive via flags
         // (--email= --password= --org= [--username=] [--slug=] [--role=]); prompts for anything missing.
         tiger_db();
+        // Mint the install secrets (crypto key + pepper) into local.ini. The founding
+        // password is hashed before this process reloads config, so it starts unpeppered
+        // and upgrades to the peppered scheme on first login (verifyPassword migration).
+        try { Tiger_Install::provisionSecrets(APPLICATION_PATH . '/configs/local.ini'); } catch (Throwable $e) {}
         $flags = tiger_flags($argv);
         $email = isset($flags['email']) ? $flags['email'] : tiger_prompt('Admin email');
         $org   = isset($flags['org'])   ? $flags['org']   : tiger_prompt('Organization name');
@@ -163,7 +184,9 @@ switch ($cmd) {
         echo "  migrate                Apply pending migrations (core + app + modules)\n";
         echo "  migrate:status         Show applied [x] / pending [ ] migrations\n";
         echo "  migrate:rollback [n]   Reverse the last n migrations (default 1)\n";
-        echo "  install:admin          Create the founding org + owner (flags or prompts:\n";
+        echo "  install:secrets        Generate the install's random secrets (app encryption key +\n";
+        echo "                         password/code pepper) into local.ini if missing (idempotent)\n";
+        echo "  install:admin          Create the founding org + owner (also provisions secrets;\n";
         echo "                         --email= --password= --org= [--username=] [--slug=] [--role=developer])\n";
         echo "  make:module <name>     Scaffold a new application module (controller + /api service + acl)\n";
         echo "  version                Show the Tiger Core version\n";

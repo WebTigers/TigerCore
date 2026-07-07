@@ -46,9 +46,15 @@ framework.
 - **Identity separated from credentials.** `user` holds no password; `user_credential` is a
   one-to-many factor table (`password`, `sms`, `totp`, `webauthn`, `oauth`) — new factor
   types are new rows, not schema changes.
-- **Password security.** Bcrypt; configurable policy (min length, history/reuse prevention,
-  optional complexity/expiry — NIST 800-63B-informed defaults); brute-force lockout;
-  constant-time verification (no user enumeration); password history retained on change.
+- **Password security.** Bcrypt with a **per-password salt** (built into `password_hash`) plus an
+  optional install-wide **pepper** — a secret HMAC'd into the hash (`Tiger_Security`), kept out of
+  the DB in `local.ini`, so a stolen credential table can't be cracked without it. The pepper is
+  **random at install** (the installer / cPanel setup form + `tiger install:secrets` mint it
+  alongside the DB creds, never committed); adding one to a live install migrates each password
+  transparently on next login. Configurable policy (min length, history/reuse prevention, optional
+  complexity/expiry — NIST 800-63B-informed defaults); brute-force lockout; constant-time
+  verification (no user enumeration); password history retained on change. The same pepper keys the
+  short one-time codes (OTP / reset / recovery), lifting them out of offline brute-force range.
 - **One-time challenges.** `auth_challenge` backs OTP / password-reset / magic-link flows —
   hashed codes, single-use, TTL, attempt-limited.
 - **Self-service password reset.** A themed forgot/reset flow: an emailed tokenized link
@@ -216,7 +222,11 @@ framework.
 ## Console (`bin/tiger`)
 
 - `migrate` / `migrate:status` / `migrate:rollback` — schema migrations.
-- `install:admin` — create the founding org + owner (flags or prompts; `--username`, `--role`, …).
+- `install:secrets` — mint the install's random secrets (app encryption key + password/code
+  pepper) into `local.ini` if missing (idempotent; the same `Tiger_Install::provisionSecrets()`
+  a web/cPanel setup form calls when it writes the DB creds).
+- `install:admin` — create the founding org + owner (also provisions secrets; flags or prompts;
+  `--username`, `--role`, …).
 - `make:module` — scaffold a live module (controller + `/api` service + ACL + views + config).
 - `version`.
 

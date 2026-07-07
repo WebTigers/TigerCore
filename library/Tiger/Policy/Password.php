@@ -108,14 +108,25 @@ class Tiger_Policy_Password
     protected function _isReused($userId, $plain, $count)
     {
         $cred = (new Tiger_Model_UserCredential())->passwordCredential($userId);
-        if ($cred && $cred->secret !== null && password_verify($plain, (string) $cred->secret)) {
+        if ($cred && $cred->secret !== null && $this->_match($plain, $cred->secret)) {
             return true;
         }
         foreach ((new Tiger_Model_PasswordHistory())->recentForUser($userId, $count) as $row) {
-            if (password_verify($plain, (string) $row->secret)) {
+            if ($this->_match($plain, $row->secret)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /** Match a candidate against a stored hash under the current (peppered) scheme, and —
+     *  when a pepper is set — also the legacy raw scheme, so reuse is caught across the
+     *  pepper migration boundary. */
+    protected function _match($plain, $hash)
+    {
+        if (password_verify(Tiger_Security::prehashPassword($plain), (string) $hash)) {
+            return true;
+        }
+        return Tiger_Security::hasPepper() && password_verify((string) $plain, (string) $hash);
     }
 }

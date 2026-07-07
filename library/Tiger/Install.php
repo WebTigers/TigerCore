@@ -83,6 +83,69 @@ class Tiger_Install
         ];
     }
 
+    /**
+     * Ensure the install's random secrets exist in local.ini — the app encryption key
+     * (tiger.crypto.key) and the password/code pepper (tiger.security.pepper). Generates
+     * and writes any that are missing/empty; leaves existing values untouched (never
+     * rotates a live secret). Idempotent.
+     *
+     * This is the ONE place secrets are minted at install time: the CLI (`tiger
+     * install:secrets`, and install:admin) and a web/cPanel setup form both call it right
+     * after writing the DB creds, so the founding password is peppered from the very first
+     * hash. Secrets live ONLY in local.ini (gitignored), never in the repo or the DB.
+     *
+     * @param  string|null $localIniPath  defaults to APPLICATION_PATH/configs/local.ini
+     * @return string[] the config keys that were newly generated (empty = all already set)
+     */
+    public static function provisionSecrets($localIniPath = null)
+    {
+        $path = $localIniPath ?: (defined('APPLICATION_PATH') ? APPLICATION_PATH . '/configs/local.ini' : null);
+        if (!$path) {
+            throw new RuntimeException('provisionSecrets: no local.ini path (APPLICATION_PATH undefined).');
+        }
+        if (!is_file($path)) {
+            file_put_contents($path, "[production]\n");   // a base section so Zend_Config_Ini can load it
+        }
+        $text      = (string) file_get_contents($path);
+        $generated = [];
+        $secrets   = [
+            'tiger.crypto.key'      => ['Tiger_Crypto', 'generateKey'],
+            'tiger.security.pepper' => ['Tiger_Security', 'generatePepper'],
+        ];
+        foreach ($secrets as $key => $generator) {
+            if (self::_localKeyIsSet($text, $key)) {
+                continue;
+            }
+            $text = self::_writeLocalKey($text, $key, (string) call_user_func($generator));
+            $generated[] = $key;
+        }
+        if ($generated) {
+            file_put_contents($path, $text);
+        }
+        return $generated;
+    }
+
+    /** Is an ini key present with a NON-empty value in the raw text? */
+    protected static function _localKeyIsSet($text, $key)
+    {
+        return (bool) preg_match('/^\s*' . preg_quote($key, '/') . '\s*=\s*["\']?\S/m', $text);
+    }
+
+    /** Write `key = "value"`: replace an empty declaration, else insert under [production]. */
+    protected static function _writeLocalKey($text, $key, $value)
+    {
+        $line = $key . ' = "' . $value . '"';
+        $q    = preg_quote($key, '/');
+        if (preg_match('/^\s*' . $q . '\s*=.*$/m', $text)) {                       // present but empty -> replace
+            return preg_replace('/^\s*' . $q . '\s*=.*$/m', $line, $text, 1);
+        }
+        if (preg_match('/^\[production\][^\n]*\n/m', $text, $m, PREG_OFFSET_CAPTURE)) {  // insert after [production]
+            $pos = $m[0][1] + strlen($m[0][0]);
+            return substr($text, 0, $pos) . $line . "\n" . substr($text, $pos);
+        }
+        return rtrim($text) . "\n" . $line . "\n";                                  // no section -> append
+    }
+
     /** URL-safe slug from a name. */
     public static function slugify($value)
     {

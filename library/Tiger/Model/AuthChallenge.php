@@ -135,9 +135,14 @@ class Tiger_Model_AuthChallenge extends Tiger_Model_Table
         );
     }
 
-    /** SHA-256 of the code. Fine for short-lived, attempt-limited, single-use codes. */
+    /**
+     * Keyed hash of the code (peppered via Tiger_Security when a pepper is configured,
+     * else plain SHA-256). Peppering matters here: a 6-digit code hash is otherwise
+     * trivially brute-forced from a DB leak within the code's TTL — the pepper puts it
+     * out of offline reach. (Existing pre-pepper codes are transient; they just expire.)
+     */
     private function hashCode($plainCode)
     {
-        return hash('sha256', $plainCode);
+        return Tiger_Security::hashCode($plainCode, 'challenge');
     }
 }
