@@ -11,34 +11,38 @@
  * extension to install. Output is authenticated (tamper-evident) and carries a random
  * per-message nonce, base64-wrapped as `nonce . ciphertext` for text-column storage.
  *
- * The KEY lives in config (`tiger.crypto.key`, base64 of 32 bytes) — set in local.ini
- * or a secrets manager, NEVER committed, and NEVER in the DB (that's where the
- * ciphertext is; co-locating the key would defeat the purpose). Rotating the key
- * invalidates stored secrets — users re-enroll TOTP; that's the intended blast radius.
+ * KEY ROTATION (see also Tiger_Security for the pepper): the CURRENT key is
+ * `tiger.crypto.key`; during a rotation you keep the old key(s) in
+ * `tiger.crypto.key_retired` (comma-separated). Encryption always uses the current key;
+ * decryption tries the current key then each retired key, so nothing breaks mid-rotation.
+ * `tiger crypto:rekey` then re-encrypts every stored secret under the current key
+ * (reencrypt()), after which the retired key can be removed. Because this data is
+ * REVERSIBLE, rotation is lossless — unlike the pepper, which migrates lazily on login.
+ *
+ * Keys live ONLY in local.ini / a secrets manager, NEVER the DB (that's where the
+ * ciphertext is) and NEVER the repo.
  *
  * @api
  */
 class Tiger_Crypto
 {
-    /** Encrypt a plaintext string; returns a base64 blob safe for a text/VARBINARY column. */
+    /** Encrypt a plaintext string under the CURRENT key; base64 blob safe for a text column. */
     public static function encrypt($plaintext)
     {
-        $key    = self::key();
         $nonce  = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
-        $cipher = sodium_crypto_secretbox((string) $plaintext, $nonce, $key);
+        $cipher = sodium_crypto_secretbox((string) $plaintext, $nonce, self::primaryKey());
         return base64_encode($nonce . $cipher);
     }
 
     /**
-     * Decrypt a blob produced by encrypt(). Throws on a missing key, malformed input,
-     * or a failed authentication tag (tampered/rotated key) — callers treat any throw
-     * as "secret unusable" (e.g. TOTP verification fails closed).
+     * Decrypt a blob from encrypt(), trying the current key then any retired keys (so a
+     * rotation window Just Works). Throws on a missing key, malformed input, or when no
+     * configured key authenticates — callers treat any throw as "secret unusable".
      *
      * @throws RuntimeException
      */
     public static function decrypt($blob)
     {
-        $key = self::key();
         $raw = base64_decode((string) $blob, true);
         $min = SODIUM_CRYPTO_SECRETBOX_NONCEBYTES + SODIUM_CRYPTO_SECRETBOX_MACBYTES;
         if ($raw === false || strlen($raw) < $min) {
@@ -46,50 +50,82 @@ class Tiger_Crypto
         }
         $nonce  = substr($raw, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
         $cipher = substr($raw, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
-        $plain  = sodium_crypto_secretbox_open($cipher, $nonce, $key);
-        if ($plain === false) {
-            throw new RuntimeException('Tiger_Crypto: decryption failed (bad key or tampered data)');
+        foreach (self::keys() as $key) {
+            $plain = sodium_crypto_secretbox_open($cipher, $nonce, $key);
+            if ($plain !== false) {
+                return $plain;
+            }
         }
-        return $plain;
+        throw new RuntimeException('Tiger_Crypto: decryption failed (no configured key matched)');
     }
 
-    /** True when a usable key is configured — lets callers gate features (e.g. TOTP enrollment). */
+    /** Re-encrypt a blob under the CURRENT key (decrypting via current-or-retired). For rekey. */
+    public static function reencrypt($blob)
+    {
+        return self::encrypt(self::decrypt($blob));
+    }
+
+    /** True when a usable current key is configured — lets callers gate features (TOTP enrollment). */
     public static function isConfigured()
     {
         try {
-            self::key();
+            self::primaryKey();
             return true;
         } catch (Throwable $e) {
             return false;
         }
     }
 
-    /** Mint a fresh base64 key for local.ini / a secrets manager. Handy for install/CLI. */
+    /** Mint a fresh base64 key for local.ini / a secrets manager. Handy for install/rotate. */
     public static function generateKey()
     {
         return base64_encode(random_bytes(SODIUM_CRYPTO_SECRETBOX_KEYBYTES));
     }
 
-    /**
-     * The raw 32-byte key, decoded from `tiger.crypto.key`.
-     *
-     * @throws RuntimeException when unset or malformed — encryption must fail loudly,
-     *         never silently store plaintext.
-     */
-    protected static function key()
+    /** The current key (used for encryption). @throws RuntimeException when unset/malformed. */
+    protected static function primaryKey()
     {
-        $cfg = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
-        $b64 = '';
-        if ($cfg && $cfg->get('tiger') && $cfg->tiger->get('crypto')) {
-            $b64 = (string) $cfg->tiger->crypto->get('key');
+        return self::keys()[0];
+    }
+
+    /**
+     * All usable raw keys in try-order: current first, then retired. Malformed entries are
+     * skipped; an empty set is a hard error (encryption must never silently no-op).
+     *
+     * @throws RuntimeException
+     */
+    protected static function keys()
+    {
+        $out = [];
+        foreach (array_merge([self::_cfg('key')], self::_cfgList('key_retired')) as $b64) {
+            if ($b64 === '') {
+                continue;
+            }
+            $key = base64_decode($b64, true);
+            if ($key !== false && strlen($key) === SODIUM_CRYPTO_SECRETBOX_KEYBYTES) {
+                $out[] = $key;
+            }
         }
-        if ($b64 === '') {
+        if (!$out) {
             throw new RuntimeException('tiger.crypto.key is not configured (set a base64 32-byte key in local.ini)');
         }
-        $key = base64_decode($b64, true);
-        if ($key === false || strlen($key) !== SODIUM_CRYPTO_SECRETBOX_KEYBYTES) {
-            throw new RuntimeException('tiger.crypto.key must be base64 of exactly ' . SODIUM_CRYPTO_SECRETBOX_KEYBYTES . ' bytes');
+        return $out;
+    }
+
+    /** A single tiger.crypto.* value ('' if unset). */
+    protected static function _cfg($name)
+    {
+        $cfg = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
+        if ($cfg && $cfg->get('tiger') && $cfg->tiger->get('crypto')) {
+            return (string) $cfg->tiger->crypto->get($name);
         }
-        return $key;
+        return '';
+    }
+
+    /** A comma-separated tiger.crypto.* value as a trimmed, non-empty list. */
+    protected static function _cfgList($name)
+    {
+        $val = self::_cfg($name);
+        return $val === '' ? [] : array_values(array_filter(array_map('trim', explode(',', $val))));
     }
 }

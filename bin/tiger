@@ -151,6 +151,63 @@ switch ($cmd) {
         }
         break;
 
+    case 'crypto:rotate-key':
+        // New encryption key; the old one is retained (tiger.crypto.key_retired) so
+        // existing ciphertext still decrypts until crypto:rekey re-encrypts it.
+        try {
+            Tiger_Install::rotateSecret('tiger.crypto.key', 'tiger.crypto.key_retired',
+                Tiger_Crypto::generateKey(), APPLICATION_PATH . '/configs/local.ini');
+            echo "  \xE2\x9C\x93 Crypto key rotated (old key kept in tiger.crypto.key_retired).\n";
+            echo "    Next: vendor/bin/tiger crypto:rekey            (re-encrypt stored secrets)\n";
+            echo "    Then: vendor/bin/tiger secrets:drop-retired crypto\n";
+        } catch (Throwable $e) {
+            fwrite(STDERR, "  crypto:rotate-key failed: " . $e->getMessage() . "\n");
+            exit(1);
+        }
+        break;
+
+    case 'crypto:rekey':
+        // Re-encrypt every stored reversible secret under the CURRENT key (lossless).
+        tiger_db();
+        try {
+            $r = (new Tiger_Model_UserCredential())->rekeyTotpSecrets();
+            echo "  Re-encrypted {$r['rekeyed']} secret(s) under the current key"
+               . ($r['failed'] ? ", {$r['failed']} could not be decrypted" : "") . ".\n";
+            echo "    You may now remove the old key: vendor/bin/tiger secrets:drop-retired crypto\n";
+        } catch (Throwable $e) {
+            fwrite(STDERR, "  crypto:rekey failed: " . $e->getMessage() . "\n");
+            exit(1);
+        }
+        break;
+
+    case 'security:rotate-pepper':
+        // New pepper; the old one is retained (tiger.security.pepper_retired). One-way
+        // hashes can't be rekeyed, so passwords re-pepper lazily on each next login.
+        try {
+            Tiger_Install::rotateSecret('tiger.security.pepper', 'tiger.security.pepper_retired',
+                Tiger_Security::generatePepper(), APPLICATION_PATH . '/configs/local.ini');
+            echo "  \xE2\x9C\x93 Pepper rotated (old pepper kept in tiger.security.pepper_retired).\n";
+            echo "    Passwords re-pepper on each user's NEXT login (one-way hashes can't be rekeyed).\n";
+            echo "    Once everyone has turned over (force-reset stragglers):\n";
+            echo "      vendor/bin/tiger secrets:drop-retired pepper\n";
+        } catch (Throwable $e) {
+            fwrite(STDERR, "  security:rotate-pepper failed: " . $e->getMessage() . "\n");
+            exit(1);
+        }
+        break;
+
+    case 'secrets:drop-retired':
+        // Remove retired secret(s) after a rotation has fully migrated (crypto|pepper|all).
+        $which = (isset($argv[2]) && in_array($argv[2], ['crypto', 'pepper', 'all'], true)) ? $argv[2] : 'all';
+        try {
+            $dropped = Tiger_Install::dropRetired($which, APPLICATION_PATH . '/configs/local.ini');
+            echo "  Cleared: " . implode(', ', $dropped) . "\n";
+        } catch (Throwable $e) {
+            fwrite(STDERR, "  secrets:drop-retired failed: " . $e->getMessage() . "\n");
+            exit(1);
+        }
+        break;
+
     case 'make:module':
         // Scaffold a new application module (positional name, --name=, or prompt).
         $flags = tiger_flags($argv);
@@ -188,6 +245,10 @@ switch ($cmd) {
         echo "                         password/code pepper) into local.ini if missing (idempotent)\n";
         echo "  install:admin          Create the founding org + owner (also provisions secrets;\n";
         echo "                         --email= --password= --org= [--username=] [--slug=] [--role=developer])\n";
+        echo "  crypto:rotate-key      Rotate the app encryption key (old kept as retired)\n";
+        echo "  crypto:rekey           Re-encrypt stored secrets under the current key (lossless)\n";
+        echo "  security:rotate-pepper Rotate the password/code pepper (re-peppers on next login)\n";
+        echo "  secrets:drop-retired [crypto|pepper|all]  Remove retired secrets after migration\n";
         echo "  make:module <name>     Scaffold a new application module (controller + /api service + acl)\n";
         echo "  version                Show the Tiger Core version\n";
         break;

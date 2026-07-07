@@ -90,22 +90,18 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
             return false;
         }
 
-        // Current scheme (peppered when a pepper is configured).
-        if (password_verify(Tiger_Security::prehashPassword($plain), (string) $row->secret)) {
-            if (password_needs_rehash((string) $row->secret, PASSWORD_DEFAULT)) {
-                $this->_rehash($row->credential_id, $plain);   // bcrypt cost bumped
+        // Try the current pepper, then any retired peppers, then legacy raw
+        // (Tiger_Security::passwordVerifiers). A match on anything but the CURRENT scheme
+        // (index 0) — or a bumped bcrypt cost — transparently re-hashes, so adding OR
+        // rotating the pepper migrates each password on the owner's next login.
+        foreach (Tiger_Security::passwordVerifiers((string) $plain) as $i => $candidate) {
+            if (password_verify($candidate, (string) $row->secret)) {
+                if ($i !== 0 || password_needs_rehash((string) $row->secret, PASSWORD_DEFAULT)) {
+                    $this->_rehash($row->credential_id, $plain);
+                }
+                $this->touch($row->credential_id);
+                return true;
             }
-            $this->touch($row->credential_id);
-            return true;
-        }
-
-        // Legacy migration: a hash minted BEFORE the pepper was provisioned verifies raw;
-        // on success, transparently re-hash into the peppered scheme. (No-op when there's
-        // no pepper — then the branch above already covered the only scheme.)
-        if (Tiger_Security::hasPepper() && password_verify((string) $plain, (string) $row->secret)) {
-            $this->_rehash($row->credential_id, $plain);
-            $this->touch($row->credential_id);
-            return true;
         }
         return false;
     }
@@ -312,18 +308,49 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
         if ($norm === '') {
             return false;
         }
-        $hash = Tiger_Security::hashCode($norm, 'recovery');
         $rows = $this->fetchAll(
             $this->activeSelect()->where('user_id = ?', $userId)->where('type = ?', self::TYPE_RECOVERY)
         );
         foreach ($rows as $row) {
-            if (hash_equals((string) $row->secret, $hash)) {
+            // Matches under the current pepper, a retired pepper, or legacy (rotation-safe).
+            if (Tiger_Security::codeMatches($norm, 'recovery', (string) $row->secret)) {
                 $db = $this->getAdapter();
                 $db->delete($this->_name, $db->quoteInto('credential_id = ?', $row->credential_id));
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Re-encrypt every stored TOTP secret under the CURRENT crypto key (decrypting via
+     * current-or-retired). The eager half of key rotation: run after `crypto:rotate-key`,
+     * then the retired key can be dropped. Skips rows that fail to decrypt (already
+     * unrecoverable) and reports the counts.
+     *
+     * @return array{rekeyed:int,failed:int}
+     */
+    public function rekeyTotpSecrets()
+    {
+        $rekeyed = 0;
+        $failed  = 0;
+        $rows = $this->fetchAll(
+            $this->activeSelect()->where('type = ?', self::TYPE_TOTP)->where('secret IS NOT NULL')
+        );
+        foreach ($rows as $row) {
+            try {
+                $fresh = Tiger_Crypto::reencrypt((string) $row->secret);
+            } catch (Throwable $e) {
+                $failed++;
+                continue;
+            }
+            $this->update(
+                ['secret' => $fresh],
+                $this->getAdapter()->quoteInto('credential_id = ?', $row->credential_id)
+            );
+            $rekeyed++;
+        }
+        return ['rekeyed' => $rekeyed, 'failed' => $failed];
     }
 
     /** How many unused recovery codes the user has left (for the security screen). */

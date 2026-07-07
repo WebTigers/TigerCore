@@ -55,6 +55,14 @@ framework.
   complexity/expiry — NIST 800-63B-informed defaults); brute-force lockout; constant-time
   verification (no user enumeration); password history retained on change. The same pepper keys the
   short one-time codes (OTP / reset / recovery), lifting them out of offline brute-force range.
+- **Zero-downtime secret rotation.** Both the encryption key and the pepper rotate with **no
+  maintenance window and no forced resets** — the compliance-friendly answer to "rotate secrets every
+  90 days." Reversible data (TOTP secrets) is **re-encrypted eagerly and losslessly** (`crypto:rotate-key`
+  → `crypto:rekey`); the one-way pepper migrates **lazily**, re-hashing each password on its owner's
+  next login (`security:rotate-pepper`). Both keep the old secret as a *retired* verify/decrypt
+  fallback so nothing breaks mid-rotation, and it's **fail-safe** — the old secret is only removed
+  (`secrets:drop-retired`) once you've confirmed the migration, so a botched rotation can't lock anyone
+  out. Multiple retired secrets are supported (overlapping rotations).
 - **One-time challenges.** `auth_challenge` backs OTP / password-reset / magic-link flows —
   hashed codes, single-use, TTL, attempt-limited.
 - **Self-service password reset.** A themed forgot/reset flow: an emailed tokenized link
@@ -227,6 +235,11 @@ framework.
   a web/cPanel setup form calls when it writes the DB creds).
 - `install:admin` — create the founding org + owner (also provisions secrets; flags or prompts;
   `--username`, `--role`, …).
+- **Secret rotation** — `crypto:rotate-key` + `crypto:rekey` re-encrypt reversible data (TOTP
+  secrets) under a new key **losslessly** (old key retired during the pass, then dropped);
+  `security:rotate-pepper` rotates the one-way password/code pepper, which **re-peppers each
+  password on its owner's next login** (old pepper retired as a verify fallback); `secrets:drop-retired
+  [crypto|pepper|all]` removes a retired secret once migration is done.
 - `make:module` — scaffold a live module (controller + `/api` service + ACL + views + config).
 - `version`.
 

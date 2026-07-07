@@ -57,8 +57,9 @@ class Tiger_Model_AuthChallenge extends Tiger_Model_Table
             return null;
         }
 
-        // Timing-safe comparison; a mismatch costs an attempt.
-        if (!hash_equals((string) $row->code_hash, $this->hashCode($plainCode))) {
+        // Timing-safe comparison (current pepper, retired peppers, or legacy — rotation-safe);
+        // a mismatch costs an attempt.
+        if (!Tiger_Security::codeMatches($plainCode, 'challenge', (string) $row->code_hash)) {
             $this->update(
                 ['attempts' => (int) $row->attempts + 1],
                 $this->getAdapter()->quoteInto('challenge_id = ?', $challengeId)

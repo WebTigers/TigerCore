@@ -124,9 +124,11 @@ class Tiger_Policy_Password
      *  pepper migration boundary. */
     protected function _match($plain, $hash)
     {
-        if (password_verify(Tiger_Security::prehashPassword($plain), (string) $hash)) {
-            return true;
+        foreach (Tiger_Security::passwordVerifiers((string) $plain) as $candidate) {
+            if (password_verify($candidate, (string) $hash)) {
+                return true;
+            }
         }
-        return Tiger_Security::hasPepper() && password_verify((string) $plain, (string) $hash);
+        return false;
     }
 }

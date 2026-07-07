@@ -125,6 +125,70 @@ class Tiger_Install
         return $generated;
     }
 
+    /**
+     * Rotate a local.ini secret: move the CURRENT value into the retired list (deduped,
+     * newest first) and set the current key to $newValue. Nothing is destroyed — the old
+     * value stays available (retired) so in-flight verification/decryption keeps working
+     * until the migration completes. Returns the previous value ('' if there was none).
+     *
+     * @return string the retired (previous) value
+     */
+    public static function rotateSecret($currentKey, $retiredKey, $newValue, $localIniPath = null)
+    {
+        $path = self::_localIniPath($localIniPath);
+        if (!is_file($path)) {
+            throw new RuntimeException('rotateSecret: local.ini not found at ' . $path);
+        }
+        $text = (string) file_get_contents($path);
+        $old  = self::_readLocalValue($text, $currentKey);
+
+        if ($old !== '') {
+            $list = self::_readLocalValue($text, $retiredKey);
+            $list = ($list === '') ? [] : array_map('trim', explode(',', $list));
+            if (!in_array($old, $list, true)) {
+                array_unshift($list, $old);           // newest retired first
+            }
+            $text = self::_writeLocalKey($text, $retiredKey, implode(',', $list));
+        }
+        $text = self::_writeLocalKey($text, $currentKey, (string) $newValue);
+        file_put_contents($path, $text);
+        return $old;
+    }
+
+    /** Clear a retired-secret list once migration is done (crypto | pepper | all). */
+    public static function dropRetired($which = 'all', $localIniPath = null)
+    {
+        $path = self::_localIniPath($localIniPath);
+        $text = (string) file_get_contents($path);
+        $keys = [];
+        if ($which === 'all' || $which === 'crypto') { $keys[] = 'tiger.crypto.key_retired'; }
+        if ($which === 'all' || $which === 'pepper') { $keys[] = 'tiger.security.pepper_retired'; }
+        foreach ($keys as $k) {
+            $text = self::_writeLocalKey($text, $k, '');
+        }
+        file_put_contents($path, $text);
+        return $keys;
+    }
+
+    /** Resolve the local.ini path (explicit arg, else APPLICATION_PATH default). */
+    protected static function _localIniPath($localIniPath)
+    {
+        $path = $localIniPath ?: (defined('APPLICATION_PATH') ? APPLICATION_PATH . '/configs/local.ini' : null);
+        if (!$path) {
+            throw new RuntimeException('no local.ini path (APPLICATION_PATH undefined).');
+        }
+        return $path;
+    }
+
+    /** Read an ini key's value (unquoted) from raw text, or '' if absent/empty. */
+    protected static function _readLocalValue($text, $key)
+    {
+        if (preg_match('/^\s*' . preg_quote($key, '/') . '\s*=\s*"?([^"\r\n]*?)"?\s*$/m', $text, $m)) {
+            return trim($m[1]);
+        }
+        return '';
+    }
+
     /** Is an ini key present with a NON-empty value in the raw text? */
     protected static function _localKeyIsSet($text, $key)
     {
