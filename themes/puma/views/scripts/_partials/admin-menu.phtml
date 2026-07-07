@@ -19,6 +19,7 @@
 $nav = $this->nav ?? [
     ['label' => 'Dashboard',     'href' => '/admin',        'icon' => 'fa-gauge-high', 'match' => '/admin'],
     ['label' => 'Content',       'href' => '/cms/page',     'icon' => 'fa-file-lines', 'match' => '/cms/page', 'resource' => 'Cms_PageController'],
+    ['label' => 'Articles',      'href' => '/blog/post',    'icon' => 'fa-feather-pointed', 'match' => '/blog/post', 'resource' => 'Blog_PostController'],
     ['label' => 'Menus',         'href' => '/cms/menu',     'icon' => 'fa-bars',       'match' => '/cms/menu', 'resource' => 'Cms_MenuController'],
     ['label' => 'Media',         'href' => '/media',        'icon' => 'fa-photo-film', 'match' => '/media', 'resource' => 'Media_IndexController'],
     ['label' => 'Users',         'href' => '/access/user',  'icon' => 'fa-users',      'match' => '/access/user', 'resource' => 'Access_UserController'],

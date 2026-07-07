@@ -1,0 +1,323 @@
+<?php
+/**
+ * Medium-style article editor. A distraction-free writing canvas (Kicker · Title ·
+ * Subtitle · Preamble · Body) plus a "Post settings" offcanvas for the metadata. The
+ * canvas fields are plain named inputs (styled borderless); the body is a contentEditable
+ * surface mirrored into a hidden <textarea name="body"> on save. Everything posts to the
+ * /api service Blog_Service_Post (no controller post-back) — one row in `page`
+ * (type=article) with its scalars in page.meta, per the posts-on-page design.
+ */
+$form     = $this->form;
+$post     = $this->post;
+$versions = $this->versions ?? [];
+$isEdit   = (bool) $post;
+$el  = function ($name) use ($form) { return $form->getElement($name); };
+$val = function ($name) use ($form) { $e = $form->getElement($name); return $this->escape((string) ($e ? $e->getValue() : '')); };
+$body = $form->getElement('body')->getValue();   // raw HTML into the contentEditable
+?>
+<style>
+  .ed-topbar{position:sticky;top:0;z-index:5;background:var(--bs-body-bg);border-bottom:1px solid var(--bs-border-color);
+    display:flex;align-items:center;gap:.5rem;padding:.6rem 0;margin-bottom:1.5rem}
+  .ed-canvas{max-width:720px;margin:0 auto}
+  .ed-canvas .ed-field{width:100%;border:0;outline:0;background:transparent;padding:.15rem 0;
+    font-family:Georgia,"Times New Roman",serif;color:var(--bs-body-color);resize:none}
+  .ed-canvas .ed-field::placeholder{color:var(--bs-secondary-color);opacity:.6}
+  .ed-kicker{font-family:system-ui,sans-serif !important;text-transform:uppercase;letter-spacing:.12em;
+    font-size:.8rem;font-weight:650;color:var(--bs-secondary-color) !important}
+  .ed-title{font-size:2.6rem;line-height:1.12;font-weight:700;letter-spacing:-.02em;margin:.2rem 0}
+  .ed-subtitle{font-size:1.5rem;line-height:1.25;color:var(--bs-secondary-color);font-weight:400}
+  .ed-preamble{font-size:1.22rem;line-height:1.6;color:var(--bs-body-color)}
+  .ed-hr{border:0;border-top:1px solid var(--bs-border-color);margin:1.25rem 0}
+  .ed-toolbar{position:sticky;top:56px;z-index:4;background:var(--bs-body-bg);display:flex;flex-wrap:wrap;gap:.15rem;
+    padding:.4rem 0;border-bottom:1px solid var(--bs-border-color);margin-bottom:1rem}
+  .ed-toolbar .btn{--bs-btn-padding-y:.15rem;--bs-btn-padding-x:.5rem;--bs-btn-font-size:.85rem}
+  .ed-body{min-height:40vh;outline:0;font-family:Georgia,"Times New Roman",serif;font-size:1.19rem;line-height:1.75;
+    color:var(--bs-body-color)}
+  .ed-body:empty::before{content:attr(data-placeholder);color:var(--bs-secondary-color);opacity:.55}
+  .ed-body h2{font-size:1.7rem;font-weight:700;margin:1.6rem 0 .6rem;font-family:Georgia,serif}
+  .ed-body h3{font-size:1.35rem;font-weight:700;margin:1.3rem 0 .5rem;font-family:Georgia,serif}
+  .ed-body blockquote{border-left:3px solid var(--bs-border-color);margin:1.2rem 0;padding:.2rem 0 .2rem 1.1rem;
+    color:var(--bs-secondary-color);font-style:italic}
+  .ed-body img{max-width:100%;height:auto;border-radius:.4rem;margin:1rem 0}
+  .ed-body p{margin:0 0 1.1rem}
+  .ed-feature{position:relative;margin-bottom:1.25rem}
+  .ed-feature img{width:100%;max-height:340px;object-fit:cover;border-radius:.5rem}
+  .ed-feature .ed-feature-empty{border:1px dashed var(--bs-border-color);border-radius:.5rem;padding:2rem;
+    text-align:center;color:var(--bs-secondary-color)}
+</style>
+
+<div class="ed-topbar">
+    <a href="/blog/post" class="btn btn-sm btn-outline-secondary" title="Back to articles"><i class="fa-solid fa-angle-left"></i></a>
+    <div class="me-auto">
+        <span class="fw-semibold"><?= $isEdit ? 'Edit article' : 'New article' ?></span>
+        <span id="ed-savestate" class="small text-body-secondary ms-2"></span>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="offcanvas" data-bs-target="#ed-settings">
+        <i class="fa-solid fa-sliders me-1"></i>Post settings
+    </button>
+    <button type="button" id="ed-save" class="btn btn-sm btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
+</div>
+
+<div id="ed-feedback" class="ed-canvas"></div>
+
+<form id="ed-form" onsubmit="return false;" novalidate>
+    <?= $el('_csrf') ?>
+    <?= $el('post_id') ?>
+    <!-- these live in the offcanvas but must submit with the form -->
+    <?= $el('feature_media_id') ?>
+    <?= $el('author_id') ?>
+    <?= $el('og_image_id') ?>
+
+    <div class="ed-canvas">
+        <!-- feature image -->
+        <div class="ed-feature" id="ed-feature">
+            <?php $fid = $val('feature_media_id'); ?>
+            <div id="ed-feature-slot">
+                <div class="ed-feature-empty" id="ed-feature-empty" style="<?= $fid ? 'display:none;' : '' ?>">
+                    <i class="fa-regular fa-image fa-2x mb-2 d-block"></i>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-ed-feature>Set feature image</button>
+                </div>
+                <div id="ed-feature-has" style="<?= $fid ? '' : 'display:none;' ?>">
+                    <img id="ed-feature-img" alt="Feature image" src="<?= $fid ? '/media/file/serve/id/' . $fid : '' ?>">
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-ed-feature>Replace</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" data-ed-feature-clear>Remove</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <input type="text" name="kicker" class="ed-field ed-kicker" value="<?= $val('kicker') ?>"
+               placeholder="<?= $this->escape($this->translate('blog.ph.kicker')) ?>" maxlength="120" autocomplete="off">
+        <input type="text" name="title" class="ed-field ed-title" value="<?= $val('title') ?>"
+               placeholder="<?= $this->escape($this->translate('blog.ph.title')) ?>" maxlength="255" autocomplete="off">
+        <input type="text" name="subtitle" class="ed-field ed-subtitle" value="<?= $val('subtitle') ?>"
+               placeholder="<?= $this->escape($this->translate('blog.ph.subtitle')) ?>" maxlength="255" autocomplete="off">
+        <textarea name="preamble" class="ed-field ed-preamble" rows="2"
+               placeholder="<?= $this->escape($this->translate('blog.ph.preamble')) ?>"><?= $val('preamble') ?></textarea>
+
+        <hr class="ed-hr">
+
+        <div class="ed-toolbar" role="toolbar" aria-label="Formatting">
+            <button type="button" class="btn btn-sm btn-light" data-cmd="formatBlock" data-val="h2" title="Heading">H2</button>
+            <button type="button" class="btn btn-sm btn-light" data-cmd="formatBlock" data-val="h3" title="Subheading">H3</button>
+            <button type="button" class="btn btn-sm btn-light" data-cmd="formatBlock" data-val="p" title="Body text"><i class="fa-solid fa-paragraph"></i></button>
+            <span class="vr mx-1"></span>
+            <button type="button" class="btn btn-sm btn-light" data-cmd="bold" title="Bold"><i class="fa-solid fa-bold"></i></button>
+            <button type="button" class="btn btn-sm btn-light" data-cmd="italic" title="Italic"><i class="fa-solid fa-italic"></i></button>
+            <button type="button" class="btn btn-sm btn-light" data-cmd="formatBlock" data-val="blockquote" title="Quote"><i class="fa-solid fa-quote-right"></i></button>
+            <button type="button" class="btn btn-sm btn-light" data-cmd="insertUnorderedList" title="Bullet list"><i class="fa-solid fa-list-ul"></i></button>
+            <button type="button" class="btn btn-sm btn-light" data-cmd="insertOrderedList" title="Numbered list"><i class="fa-solid fa-list-ol"></i></button>
+            <span class="vr mx-1"></span>
+            <button type="button" class="btn btn-sm btn-light" data-ed-link title="Link"><i class="fa-solid fa-link"></i></button>
+            <button type="button" class="btn btn-sm btn-light" data-ed-image title="Insert image"><i class="fa-solid fa-image"></i></button>
+        </div>
+
+        <div id="ed-body" class="ed-body" contenteditable="true"
+             data-placeholder="<?= $this->escape($this->translate('blog.ph.body')) ?>"><?= $body ?></div>
+        <textarea name="body" id="ed-body-src" class="d-none"><?= $this->escape($body) ?></textarea>
+    </div>
+</form>
+
+<!-- Post settings -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="ed-settings" aria-labelledby="ed-settings-label" style="width:380px;">
+    <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title" id="ed-settings-label">Post settings</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body" form="ed-form">
+        <div class="mb-3">
+            <label class="form-label" for="post-status">Status</label>
+            <?= $el('status') ?>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="post-published-at">Publish date</label>
+            <?= $el('published_at') ?>
+            <div class="form-text">Blank = live now. A future time schedules it.</div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="post-locale">Language</label>
+            <?= $el('locale') ?>
+        </div>
+        <hr>
+        <div class="mb-3">
+            <label class="form-label" for="post-categories">Categories</label>
+            <?= $el('categories') ?>
+            <div class="form-text">Comma-separated. New ones are created on save.</div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="post-tags">Tags</label>
+            <?= $el('tags') ?>
+            <div class="form-text">Comma-separated.</div>
+        </div>
+        <hr>
+        <div class="mb-3">
+            <label class="form-label" for="post-excerpt">Excerpt</label>
+            <?= $el('excerpt') ?>
+            <div class="form-text">Shown in listings and social cards. Falls back to the subtitle.</div>
+        </div>
+        <div class="form-check form-switch mb-3">
+            <?= $el('allow_comments') ?>
+            <label class="form-check-label" for="post-allow-comments">Allow comments</label>
+        </div>
+        <div class="accordion accordion-flush" id="ed-seo-acc">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed px-0" type="button" data-bs-toggle="collapse" data-bs-target="#ed-seo-body">
+                        SEO &amp; social
+                    </button>
+                </h2>
+                <div id="ed-seo-body" class="accordion-collapse collapse" data-bs-parent="#ed-seo-acc">
+                    <div class="accordion-body px-0">
+                        <div class="mb-3">
+                            <label class="form-label" for="post-seo-title">Meta title</label>
+                            <?= $el('seo_title') ?>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="post-seo-desc">Meta description</label>
+                            <?= $el('seo_description') ?>
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label" for="post-canonical">Canonical URL</label>
+                            <?= $el('canonical') ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <hr>
+        <div class="mb-0">
+            <label class="form-label" for="post-slug">Slug</label>
+            <?= $el('slug') ?>
+            <div class="form-text">Auto from the title if blank. Changing it leaves a 301.</div>
+        </div>
+    </div>
+</div>
+
+<?php if ($isEdit && count($versions)): ?>
+<div class="ed-canvas mt-5">
+    <div class="card">
+        <div class="card-header fw-semibold"><i class="fa-solid fa-clock-rotate-left me-2"></i>Version history</div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0 align-middle">
+                <thead><tr><th>Version</th><th>Title</th><th>Status</th><th>Saved</th><th class="text-end">&nbsp;</th></tr></thead>
+                <tbody>
+                <?php foreach ($versions as $v): ?>
+                    <tr>
+                        <td class="fw-semibold">#<?= $this->escape($v->version) ?></td>
+                        <td><?= $this->escape($v->title ?: '(untitled)') ?></td>
+                        <td><span class="badge text-bg-light"><?= $this->escape(ucfirst($v->status)) ?></span></td>
+                        <td class="text-body-secondary"><?= $this->escape(substr((string) $v->created_at, 0, 16)) ?></td>
+                        <td class="text-end">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-ed-restore="<?= $this->escape($v->version) ?>">Restore</button>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var form  = document.getElementById('ed-form');
+    var fb    = document.getElementById('ed-feedback');
+    var bodyEl = document.getElementById('ed-body');
+    var bodySrc = document.getElementById('ed-body-src');
+    var featInput = document.getElementById('post-feature');
+
+    function alertHtml(msg, cls) {
+        var ctx = (cls === 'error') ? 'danger' : (cls || 'info');
+        return '<div class="alert alert-' + ctx + ' alert-dismissible" role="alert">' + String(msg) +
+               '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
+    }
+    function clearErrors() {
+        fb.innerHTML = '';
+        form.querySelectorAll('.is-invalid').forEach(function (e) { e.classList.remove('is-invalid'); });
+    }
+
+    // Formatting toolbar (contentEditable). execCommand is deprecated but universal + zero-dep.
+    document.querySelectorAll('.ed-toolbar [data-cmd]').forEach(function (btn) {
+        btn.addEventListener('mousedown', function (e) { e.preventDefault(); }); // keep selection
+        btn.addEventListener('click', function () {
+            var cmd = btn.getAttribute('data-cmd'), val = btn.getAttribute('data-val') || null;
+            bodyEl.focus();
+            if (cmd === 'formatBlock' && val) { document.execCommand('formatBlock', false, val); }
+            else { document.execCommand(cmd, false, val); }
+        });
+    });
+    var linkBtn = document.querySelector('[data-ed-link]');
+    if (linkBtn) { linkBtn.addEventListener('mousedown', function (e){ e.preventDefault(); });
+        linkBtn.addEventListener('click', function () {
+            var url = prompt('Link URL:'); if (url) { bodyEl.focus(); document.execCommand('createLink', false, url); }
+        });
+    }
+
+    // Media picker: feature image + inline image insert (uses the platform TigerMediaPicker).
+    function pickImage(cb) {
+        if (typeof TigerMediaPicker === 'undefined') { alert('Media picker unavailable.'); return; }
+        TigerMediaPicker.open({ kind: 'image', multiple: false, onSelect: function (items) {
+            var m = items && items[0]; if (m) { cb(m); }
+        }});
+    }
+    function mediaUrl(m) { return m.url || m.thumb || ('/media/file/serve/id/' + m.media_id); }
+
+    document.querySelectorAll('[data-ed-feature]').forEach(function (b) {
+        b.addEventListener('click', function () { pickImage(function (m) {
+            featInput.value = m.media_id;
+            document.getElementById('ed-feature-img').src = mediaUrl(m);
+            document.getElementById('ed-feature-empty').style.display = 'none';
+            document.getElementById('ed-feature-has').style.display = '';
+        }); });
+    });
+    var clearFeat = document.querySelector('[data-ed-feature-clear]');
+    if (clearFeat) { clearFeat.addEventListener('click', function () {
+        featInput.value = '';
+        document.getElementById('ed-feature-empty').style.display = '';
+        document.getElementById('ed-feature-has').style.display = 'none';
+    }); }
+    var imgBtn = document.querySelector('[data-ed-image]');
+    if (imgBtn) { imgBtn.addEventListener('mousedown', function (e){ e.preventDefault(); });
+        imgBtn.addEventListener('click', function () {
+            bodyEl.focus();
+            pickImage(function (m) { document.execCommand('insertHTML', false, '<img src="' + mediaUrl(m) + '" alt="">'); });
+        });
+    }
+
+    function post(extra, onOk) {
+        bodySrc.value = bodyEl.innerHTML.trim();   // mirror the canvas into the form field
+        var fd = new URLSearchParams(new FormData(form));
+        fd.set('module', 'blog'); fd.set('service', 'post');
+        Object.keys(extra).forEach(function (k) { fd.set(k, extra[k]); });
+        return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (res.result === 1) { onOk(res); return; }
+                clearErrors();
+                if (res.form) { Object.keys(res.form).forEach(function (f) {
+                    var i = form.querySelector('[name="' + f + '"]'); if (i) { i.classList.add('is-invalid'); }
+                }); }
+                (res.messages || []).forEach(function (m) { fb.innerHTML += alertHtml(m.message, m.class); });
+                if (!res.messages || !res.messages.length) { fb.innerHTML = alertHtml('Please fix the highlighted fields.', 'error'); }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            })
+            .catch(function () { fb.innerHTML = alertHtml('Network error — please try again.', 'error'); });
+    }
+
+    document.getElementById('ed-save').addEventListener('click', function () {
+        clearErrors();
+        document.getElementById('ed-savestate').textContent = 'Saving…';
+        post({ method: 'save' }, function (res) { window.location = res.redirect || '/blog/post'; });
+    });
+
+    document.querySelectorAll('[data-ed-restore]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var ver = btn.getAttribute('data-ed-restore');
+            if (!confirm('Restore version #' + ver + '? Current content is saved as a new version first.')) { return; }
+            post({ method: 'restore', version: ver }, function (res) { window.location = res.redirect || window.location.href; });
+        });
+    });
+});
+</script>
