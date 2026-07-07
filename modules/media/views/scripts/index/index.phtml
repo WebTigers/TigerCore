@@ -1,0 +1,153 @@
+<?php
+/**
+ * Media Library (admin shell). A drag-drop uploader (one XHR per file for real progress)
+ * over a DataTables grid whose rows load from /api (Media_Service_Media::datatable). The
+ * server renders only this shell; thumbnails/URLs + ACL flags come from the service. The
+ * richer Isotope portfolio view + pdf.js previews + the picker are P3 (see MEDIA.md).
+ */
+?>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1">Media Library</h1>
+        <p class="text-body-secondary mb-0">Images, documents, PDFs, video, and archives — drag &amp; drop to upload.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <select id="media-vis" class="form-select form-select-sm" style="width:auto;" title="Visibility for new uploads">
+            <option value="public">Public</option>
+            <option value="private">Private</option>
+        </select>
+        <button type="button" id="media-browse" class="btn btn-primary"><i class="fa-solid fa-arrow-up-from-bracket me-2"></i>Upload</button>
+        <input type="file" id="media-input" multiple hidden>
+    </div>
+</div>
+
+<div id="media-drop" class="border border-2 border-dashed rounded p-4 text-center text-body-secondary mb-3" style="transition:background .1s;">
+    <i class="fa-solid fa-cloud-arrow-up fa-2x mb-2 d-block"></i>
+    Drop files here to upload
+</div>
+<div id="media-queue" class="mb-3"></div>
+
+<div class="card">
+    <div class="card-header bg-transparent">
+        <div class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label small text-body-secondary mb-1" for="media-filter-kind">Type</label>
+                <select id="media-filter-kind" class="form-select form-select-sm">
+                    <option value="">All types</option>
+                    <option value="image">Images</option>
+                    <option value="pdf">PDFs</option>
+                    <option value="document">Documents</option>
+                    <option value="video">Video</option>
+                    <option value="audio">Audio</option>
+                    <option value="archive">Archives</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table id="media-table" class="table table-hover align-middle" style="width:100%;">
+                <thead><tr>
+                    <th style="width:64px;" data-orderable="false"></th>
+                    <th>File</th>
+                    <th>Type</th>
+                    <th>Size</th>
+                    <th>Visibility</th>
+                    <th class="text-end" data-orderable="false">Actions</th>
+                </tr></thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var $ = jQuery, esc = tigerDataTable.esc;
+    var KIND_ICON = { image:'fa-image', pdf:'fa-file-pdf', document:'fa-file-lines', video:'fa-film', audio:'fa-music', archive:'fa-file-zipper', other:'fa-file' };
+    function human(n){ n=+n||0; var u=['B','KB','MB','GB']; var i=0; while(n>=1024&&i<u.length-1){n/=1024;i++;} return (i?n.toFixed(1):n)+' '+u[i]; }
+    function icon(k){ return '<i class="fa-solid '+(KIND_ICON[k]||'fa-file')+'"></i>'; }
+    function preview(row){
+        if (row.kind === 'image' && row.thumb) {
+            return '<img src="'+esc(row.thumb)+'" alt="'+esc(row.alt_text||row.filename||'')+'" class="rounded" style="width:48px;height:48px;object-fit:cover;">';
+        }
+        return '<span class="d-inline-flex align-items-center justify-content-center rounded bg-body-secondary text-body-secondary" style="width:48px;height:48px;">'+icon(row.kind)+'</span>';
+    }
+
+    var fKind = document.getElementById('media-filter-kind');
+    var table = tigerDataTable('#media-table', {
+        service: { module:'media', service:'media', action:'datatable' },
+        order: [[1,'desc']],
+        language: { search:'', searchPlaceholder:'Search media…' },
+        extraData: function(){ return { kind: fKind.value }; },
+        columns: [
+            { data:null, orderable:false, className:'text-center', render:function(t,type,row){ return preview(row); } },
+            { data:'filename', render:function(t,type,row){ if(type!=='display')return t;
+                var name = esc(row.filename||row.title||'(file)');
+                return '<div class="fw-semibold text-truncate" style="max-width:340px;">'+name+'</div>'
+                     + (row.title && row.title!==row.filename ? '<div class="small text-body-secondary text-truncate" style="max-width:340px;">'+esc(row.title)+'</div>' : ''); } },
+            { data:'kind', render:function(t,type){ return type!=='display'?t:'<span class="badge text-bg-light">'+icon(t)+' '+esc(t)+'</span>'; } },
+            { data:'file_size', render:function(t,type){ return type!=='display'?t:human(t); } },
+            { data:'visibility', render:function(t,type){ return type!=='display'?t:'<span class="badge text-bg-'+(t==='public'?'success':'secondary')+'">'+esc(t)+'</span>'; } },
+            { data:null, orderable:false, searchable:false, className:'text-end text-nowrap', render:function(t,type,row){
+                var h = '<a href="'+esc(row.url)+'" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Open"><i class="fa-solid fa-up-right-from-square"></i></a> ';
+                h += row.can_delete
+                    ? '<button type="button" class="btn btn-sm btn-outline-danger" data-media-delete="'+esc(row.media_id)+'" title="Delete"><i class="fa-solid fa-trash"></i></button>'
+                    : '<button type="button" class="btn btn-sm btn-outline-danger" disabled><i class="fa-solid fa-trash"></i></button>';
+                return h; } }
+        ]
+    });
+
+    fKind.addEventListener('change', function(){ table.ajax.reload(); });
+    $('#media-table tbody').on('click', '[data-media-delete]', function(){
+        if (!confirm('Delete this file? The stored bytes are removed.')) { return; }
+        fetch('/api', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'},
+            body:new URLSearchParams({ module:'media', service:'media', method:'delete', media_id:this.getAttribute('data-media-delete') }) })
+            .then(function(){ table.ajax.reload(null,false); }).catch(function(){ table.ajax.reload(null,false); });
+    });
+
+    // --- drag-drop upload (one XHR per file, real progress) ---
+    var drop = document.getElementById('media-drop'), queue = document.getElementById('media-queue'), input = document.getElementById('media-input');
+    document.getElementById('media-browse').addEventListener('click', function(){ input.click(); });
+    input.addEventListener('change', function(){ upload(this.files); this.value=''; });
+    ['dragenter','dragover'].forEach(function(e){ drop.addEventListener(e, function(ev){ ev.preventDefault(); drop.classList.add('bg-body-secondary'); }); });
+    ['dragleave','drop'].forEach(function(e){ drop.addEventListener(e, function(ev){ ev.preventDefault(); drop.classList.remove('bg-body-secondary'); }); });
+    drop.addEventListener('drop', function(ev){ if(ev.dataTransfer&&ev.dataTransfer.files) upload(ev.dataTransfer.files); });
+
+    function upload(files){
+        Array.prototype.forEach.call(files, function(file){
+            var row = document.createElement('div');
+            row.className = 'd-flex align-items-center gap-2 border rounded px-3 py-2 mb-1';
+            row.innerHTML = '<span class="text-truncate" style="max-width:280px;">'+esc(file.name)+'</span>'
+                + '<div class="progress flex-grow-1" style="height:6px;"><div class="progress-bar" style="width:0%"></div></div>'
+                + '<span class="small text-body-secondary" style="width:44px;text-align:right;">0%</span>';
+            queue.appendChild(row);
+            var bar = row.querySelector('.progress-bar'), pct = row.querySelector('.small');
+
+            var fd = new FormData();
+            fd.append('module','media'); fd.append('service','media'); fd.append('method','upload');
+            fd.append('visibility', document.getElementById('media-vis').value);
+            fd.append('file', file);
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST','/api');
+            xhr.setRequestHeader('X-Requested-With','XMLHttpRequest');
+            xhr.upload.onprogress = function(e){ if(e.lengthComputable){ var p=Math.round(e.loaded/e.total*100); bar.style.width=p+'%'; pct.textContent=p+'%'; } };
+            xhr.onload = function(){
+                var res = {}; try { res = JSON.parse(xhr.responseText); } catch(e){}
+                if (res.result === 1) {
+                    row.querySelector('.progress').classList.add('d-none'); pct.className='small text-success'; pct.textContent='Done';
+                    bar.classList.add('bg-success'); setTimeout(function(){ row.remove(); }, 1500);
+                    table.ajax.reload(null,false);
+                } else {
+                    bar.classList.add('bg-danger'); pct.className='small text-danger';
+                    pct.textContent = (res.messages && res.messages[0]) ? '' : 'Error';
+                    var msg = (res.messages && res.messages[0]) ? res.messages[0].message : 'Upload failed';
+                    row.insertAdjacentHTML('beforeend','<span class="small text-danger ms-2">'+esc(msg)+'</span>');
+                }
+            };
+            xhr.onerror = function(){ bar.classList.add('bg-danger'); pct.className='small text-danger'; pct.textContent='Error'; };
+            xhr.send(fd);
+        });
+    }
+});
+</script>
