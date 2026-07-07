@@ -61,6 +61,8 @@
 </div>
 
 <script>
+var MEDIA_CLIENT_THUMB = <?= !empty($this->clientThumb) ? 'true' : 'false' ?>;   // server has no GD -> browser makes the thumb
+var MEDIA_THUMB_PX     = <?= (int) ($this->thumbPx ?? 200) ?>;
 document.addEventListener('DOMContentLoaded', function () {
     var $ = jQuery, esc = tigerDataTable.esc;
     var KIND_ICON = { image:'fa-image', pdf:'fa-file-pdf', document:'fa-file-lines', video:'fa-film', audio:'fa-music', archive:'fa-file-zipper', other:'fa-file' };
@@ -113,6 +115,51 @@ document.addEventListener('DOMContentLoaded', function () {
     ['dragleave','drop'].forEach(function(e){ drop.addEventListener(e, function(ev){ ev.preventDefault(); drop.classList.remove('bg-body-secondary'); }); });
     drop.addEventListener('drop', function(ev){ if(ev.dataTransfer&&ev.dataTransfer.files) upload(ev.dataTransfer.files); });
 
+    // Client-side thumbnail (canvas): only when the server can't (no GD). Contain, no crop.
+    function makeThumb(file, maxEdge){
+        return new Promise(function(resolve){
+            if (!/^image\//.test(file.type) || /svg/.test(file.type)) { resolve(null); return; }
+            var img = new Image(), url = URL.createObjectURL(file);
+            img.onload = function(){
+                var s = Math.min(1, maxEdge / Math.max(img.width, img.height));   // never upscale
+                var w = Math.max(1, Math.round(img.width * s)), h = Math.max(1, Math.round(img.height * s));
+                var c = document.createElement('canvas'); c.width = w; c.height = h;
+                c.getContext('2d').drawImage(img, 0, 0, w, h);
+                URL.revokeObjectURL(url);
+                c.toBlob(function(b){ resolve(b); }, 'image/jpeg', 0.9);
+            };
+            img.onerror = function(){ URL.revokeObjectURL(url); resolve(null); };
+            img.src = url;
+        });
+    }
+
+    function send(file, thumbBlob, row, bar, pct){
+        var fd = new FormData();
+        fd.append('module','media'); fd.append('service','media'); fd.append('method','upload');
+        fd.append('visibility', document.getElementById('media-vis').value);
+        fd.append('file', file);
+        if (thumbBlob) { fd.append('thumbnail', thumbBlob, 'thumb.jpg'); }
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST','/api');
+        xhr.setRequestHeader('X-Requested-With','XMLHttpRequest');
+        xhr.upload.onprogress = function(e){ if(e.lengthComputable){ var p=Math.round(e.loaded/e.total*100); bar.style.width=p+'%'; pct.textContent=p+'%'; } };
+        xhr.onload = function(){
+            var res = {}; try { res = JSON.parse(xhr.responseText); } catch(e){}
+            if (res.result === 1) {
+                row.querySelector('.progress').classList.add('d-none'); pct.className='small text-success'; pct.textContent='Done';
+                bar.classList.add('bg-success'); setTimeout(function(){ row.remove(); }, 1500);
+                table.ajax.reload(null,false);
+            } else {
+                bar.classList.add('bg-danger'); pct.className='small text-danger'; pct.textContent='';
+                var msg = (res.messages && res.messages[0]) ? res.messages[0].message : 'Upload failed';
+                row.insertAdjacentHTML('beforeend','<span class="small text-danger ms-2">'+esc(msg)+'</span>');
+            }
+        };
+        xhr.onerror = function(){ bar.classList.add('bg-danger'); pct.className='small text-danger'; pct.textContent='Error'; };
+        xhr.send(fd);
+    }
+
     function upload(files){
         Array.prototype.forEach.call(files, function(file){
             var row = document.createElement('div');
@@ -123,30 +170,11 @@ document.addEventListener('DOMContentLoaded', function () {
             queue.appendChild(row);
             var bar = row.querySelector('.progress-bar'), pct = row.querySelector('.small');
 
-            var fd = new FormData();
-            fd.append('module','media'); fd.append('service','media'); fd.append('method','upload');
-            fd.append('visibility', document.getElementById('media-vis').value);
-            fd.append('file', file);
-
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST','/api');
-            xhr.setRequestHeader('X-Requested-With','XMLHttpRequest');
-            xhr.upload.onprogress = function(e){ if(e.lengthComputable){ var p=Math.round(e.loaded/e.total*100); bar.style.width=p+'%'; pct.textContent=p+'%'; } };
-            xhr.onload = function(){
-                var res = {}; try { res = JSON.parse(xhr.responseText); } catch(e){}
-                if (res.result === 1) {
-                    row.querySelector('.progress').classList.add('d-none'); pct.className='small text-success'; pct.textContent='Done';
-                    bar.classList.add('bg-success'); setTimeout(function(){ row.remove(); }, 1500);
-                    table.ajax.reload(null,false);
-                } else {
-                    bar.classList.add('bg-danger'); pct.className='small text-danger';
-                    pct.textContent = (res.messages && res.messages[0]) ? '' : 'Error';
-                    var msg = (res.messages && res.messages[0]) ? res.messages[0].message : 'Upload failed';
-                    row.insertAdjacentHTML('beforeend','<span class="small text-danger ms-2">'+esc(msg)+'</span>');
-                }
-            };
-            xhr.onerror = function(){ bar.classList.add('bg-danger'); pct.className='small text-danger'; pct.textContent='Error'; };
-            xhr.send(fd);
+            if (MEDIA_CLIENT_THUMB) {
+                makeThumb(file, MEDIA_THUMB_PX).then(function(blob){ send(file, blob, row, bar, pct); });
+            } else {
+                send(file, null, row, bar, pct);
+            }
         });
     }
 });

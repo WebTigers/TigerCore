@@ -74,7 +74,18 @@ class Media_Service_Media extends Tiger_Service_Service
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general'); return;
         }
 
-        // TODO(P2): generate image variants (Tiger_Media_Image) and write the variants JSON.
+        // Variants: server-side (GD) when available + enabled, else a browser-made thumbnail
+        // (posted as $_FILES['thumbnail']). Failure here is non-fatal — the original is safe.
+        try {
+            $media = $model->findById($id)->toArray();
+            if (Tiger_Media_Image::supports($mime) && $this->_serverEnabled()) {
+                $this->_makeServerVariants($model, $id, $media, $tmp, $mime);
+            } elseif (isset($_FILES['thumbnail']) && is_uploaded_file((string) $_FILES['thumbnail']['tmp_name'])) {
+                $this->_storeThumbnail($model, $id, $media, (string) $_FILES['thumbnail']['tmp_name']);
+            }
+        } catch (Throwable $e) {
+            // keep the upload; variants are best-effort
+        }
 
         $this->_success(['media' => $this->_present($model->findById($id))], 'media.uploaded');
     }
@@ -151,6 +162,85 @@ class Media_Service_Media extends Tiger_Service_Service
         }
         $model->softDelete($model->getAdapter()->quoteInto('media_id = ?', $id));
         $this->_success(['media_id' => $id], 'media.deleted');
+    }
+
+    /** Generate + store the configured image variants (GD) and record the variants JSON. */
+    protected function _makeServerVariants(Tiger_Model_Media $model, $id, array $media, $sourcePath, $mime)
+    {
+        $variants = Tiger_Media_Image::variants($sourcePath, $mime, $this->_presets(), $this->_quality());
+        if (!$variants) {
+            return;
+        }
+        $adapter = Tiger_Media_Storage::disk($media['disk']);
+        $stored  = [];
+        foreach ($variants as $name => $v) {
+            $key = $this->_variantKey($media['storage_key'], $name, (string) $media['extension']);
+            try {
+                $adapter->put($key, $v['path'], $media['visibility'], $v['mime']);
+                $stored[$name] = ['key' => $key, 'w' => $v['width'], 'h' => $v['height']];
+            } catch (Throwable $e) {
+                // skip this variant
+            }
+            @unlink($v['path']);
+        }
+        if ($stored) {
+            $model->update(['variants' => json_encode($stored)], $model->getAdapter()->quoteInto('media_id = ?', $id));
+        }
+    }
+
+    /** Store a browser-generated thumbnail as the single 'thumbnail' variant (no-GD fallback). */
+    protected function _storeThumbnail(Tiger_Model_Media $model, $id, array $media, $thumbPath)
+    {
+        $info = @getimagesize($thumbPath);
+        $key  = $this->_variantKey($media['storage_key'], 'thumbnail', 'jpg');
+        Tiger_Media_Storage::disk($media['disk'])->put($key, $thumbPath, $media['visibility'], 'image/jpeg');
+        $entry = ['key' => $key, 'w' => $info ? (int) $info[0] : null, 'h' => $info ? (int) $info[1] : null];
+        $model->update(
+            ['variants' => json_encode(['thumbnail' => $entry])],
+            $model->getAdapter()->quoteInto('media_id = ?', $id)
+        );
+    }
+
+    /** Variant storage key: `<base>.<preset>.<ext>` alongside the original. */
+    protected function _variantKey($storageKey, $preset, $ext)
+    {
+        $base = preg_replace('/\.[^.\/]+$/', '', (string) $storageKey);
+        return $base . '.' . $preset . '.' . ($ext !== '' ? strtolower($ext) : 'img');
+    }
+
+    /** Configured presets as [name => longest-edge px], only the positive ones. */
+    protected function _presets()
+    {
+        $node = $this->_variantsCfg();
+        $out  = [];
+        foreach (['thumbnail', 'small', 'medium', 'large'] as $p) {
+            $v = $node ? (int) $node->get($p) : 0;
+            if ($v > 0) { $out[$p] = $v; }
+        }
+        return $out;
+    }
+
+    /** JPEG/WebP quality (default 90). */
+    protected function _quality()
+    {
+        $node = $this->_variantsCfg();
+        $q = $node ? (int) $node->get('quality') : 0;
+        return $q > 0 ? $q : 90;
+    }
+
+    /** Use GD server-side when available? (media.variants.server; default on.) */
+    protected function _serverEnabled()
+    {
+        $node = $this->_variantsCfg();
+        if (!$node) { return true; }
+        $s = $node->get('server');
+        return ($s === null) ? true : ((int) $s !== 0);
+    }
+
+    protected function _variantsCfg()
+    {
+        $cfg = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
+        return ($cfg && $cfg->get('media') && $cfg->media->get('variants')) ? $cfg->media->variants : null;
     }
 
     /** Shape a media row for the client (adds URLs; hides storage internals). */
