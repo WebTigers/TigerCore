@@ -98,6 +98,8 @@
 <script>
 var MEDIA_CLIENT_THUMB = <?= !empty($this->clientThumb) ? 'true' : 'false' ?>;
 var MEDIA_THUMB_PX     = <?= (int) ($this->thumbPx ?? 200) ?>;
+var PDFJS_URL          = '<?= $this->asset($this->themeAssets . '/vendor/pdfjs/pdf.js') ?>';
+var PDFJS_WORKER       = '<?= $this->asset($this->themeAssets . '/vendor/pdfjs/pdf.worker.js') ?>';
 document.addEventListener('DOMContentLoaded', function () {
     var $ = jQuery, esc = tigerDataTable.esc;
     var KIND_ICON = { image:'fa-image', pdf:'fa-file-pdf', document:'fa-file-lines', video:'fa-film', audio:'fa-music', archive:'fa-file-zipper', other:'fa-file' };
@@ -147,6 +149,11 @@ document.addEventListener('DOMContentLoaded', function () {
                  + '<a href="'+esc(row.large||row.url)+'" data-tiger-lightbox="media" data-type="image" data-caption="'+esc(row.title||row.filename||'')+'">'
                  + '<img src="'+esc(variantSrc(row))+'" loading="lazy" alt="'+esc(row.alt_text||row.filename||'')+'"></a>'+del+name+'</div>';
         }
+        if (row.kind==='pdf'){
+            // Icon now; pdf.js paints the first page into this anchor after render (opens in the lightbox).
+            return '<div class="media-tile" data-media-id="'+esc(row.media_id)+'">'
+                 + '<a href="'+esc(row.url)+'" data-tiger-lightbox="media" data-type="pdf" data-caption="'+esc(row.title||row.filename||'')+'" class="media-tile-icon" data-pdf-src="'+esc(row.url)+'">'+icon('pdf')+'<span class="small text-uppercase">pdf</span></a>'+del+name+'</div>';
+        }
         return '<div class="media-tile" data-media-id="'+esc(row.media_id)+'">'
              + '<a href="'+esc(row.url)+'" target="_blank" rel="noopener" class="media-tile-icon">'+icon(row.kind)+'<span class="small text-uppercase">'+esc(row.extension||row.kind)+'</span></a>'+del+name+'</div>';
     }
@@ -155,6 +162,36 @@ document.addEventListener('DOMContentLoaded', function () {
         grid.innerHTML = gRows.map(tile).join('');
         document.getElementById('media-grid-empty').hidden = gRows.length > 0;
         document.getElementById('media-more').hidden = gRows.length >= gTotal;
+        renderPdfPreviews();
+    }
+
+    // Lazy pdf.js: load once (only when a PDF needs a preview), render each PDF's first
+    // page into its tile (the icon stays until the canvas paints).
+    var _pdfjs = null;
+    function loadPdfjs(){
+        if (!_pdfjs) {
+            _pdfjs = import(PDFJS_URL).then(function(lib){ lib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER; return lib; });
+        }
+        return _pdfjs;
+    }
+    function renderPdfPreviews(){
+        grid.querySelectorAll('[data-pdf-src]:not([data-pdf-done])').forEach(function(el){
+            el.setAttribute('data-pdf-done', '1');
+            var url = el.getAttribute('data-pdf-src');
+            loadPdfjs()
+                .then(function(lib){ return lib.getDocument(url).promise; })
+                .then(function(pdf){ return pdf.getPage(1); })
+                .then(function(page){
+                    var box = el.clientWidth || (TILE_PX[sizeEl.value] || 168);
+                    var vp  = page.getViewport({ scale: box / page.getViewport({ scale: 1 }).width });
+                    var canvas = document.createElement('canvas');
+                    canvas.width = Math.ceil(vp.width); canvas.height = Math.ceil(vp.height);
+                    canvas.style.width = '100%'; canvas.style.height = '100%'; canvas.style.objectFit = 'cover'; canvas.style.background = '#fff';
+                    return page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise
+                        .then(function(){ el.innerHTML = ''; el.appendChild(canvas); });
+                })
+                .catch(function(){ /* keep the icon on any failure */ });
+        });
     }
     function gridFetch(reset){
         if (gBusy) { return; }
