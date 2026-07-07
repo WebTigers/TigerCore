@@ -31,12 +31,23 @@ class Media_Service_Media extends Tiger_Service_Service
         $class = Tiger_Model_Media::classify($ext);
         if (!$class['allowed']) { $this->_error('media.error.type'); return; }
 
-        // TODO(P4): virus scan (media.scan.clamav) + AI image review (media.scan.image) here,
-        // before store; reject with a message on infected / over-threshold.
-
         $mime = $this->_mime($tmp, $ext);
+
+        // Optional pre-store scanning (ClamAV virus + AI image review) — config-gated, off
+        // by default. Infected / over-threshold rejects the upload; nothing is stored.
+        $scan       = (new Tiger_Media_Scan())->preStore($tmp, $mime, $class['kind']);
+        if (!$scan['ok']) { $this->_error($scan['message']); return; }
+        $scanStatus = $scan['status'];
+        $scanMeta   = $scan['meta'] ?: null;
+
         $visibility = (($params['visibility'] ?? 'public') === Tiger_Model_Media::VISIBILITY_PRIVATE)
             ? Tiger_Model_Media::VISIBILITY_PRIVATE : Tiger_Model_Media::VISIBILITY_PUBLIC;
+
+        // Video AI review is async: hold it private + in_review until a webhook approves it.
+        if ($class['kind'] === Tiger_Model_Media::KIND_VIDEO && (new Tiger_Media_Scan())->videoReview()) {
+            $visibility = Tiger_Model_Media::VISIBILITY_PRIVATE;
+            $scanStatus = Tiger_Model_Media::SCAN_IN_REVIEW;
+        }
 
         // Opaque, collision-free storage key sharded by month: 2026/07/<random>.<ext>
         $key  = date('Y/m') . '/' . bin2hex(random_bytes(16)) . ($ext !== '' ? '.' . $ext : '');
@@ -67,7 +78,8 @@ class Media_Service_Media extends Tiger_Service_Service
                 'height'      => $dims ? (int) $dims[1] : null,
                 'filename'    => $original,
                 'title'       => (string) pathinfo($original, PATHINFO_FILENAME),
-                'scan_status' => Tiger_Model_Media::SCAN_SKIPPED,
+                'scan_status' => $scanStatus,
+                'scan_meta'   => $scanMeta ? json_encode($scanMeta) : null,
             ]);
         } catch (Throwable $e) {
             Tiger_Media_Storage::disk($disk)->delete($key, $visibility);   // don't orphan the bytes

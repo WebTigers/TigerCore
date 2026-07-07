@@ -9,4 +9,6 @@ return [
     'media.error.upload'    => 'The upload did not complete. Please try again.',
     'media.error.too_large' => 'That file is too large.',
     'media.error.type'      => 'That file type is not allowed.',
+    'media.error.infected'  => 'That file was rejected by the virus scanner.',
+    'media.error.moderation'=> 'That image was rejected by content moderation.',
 ];
