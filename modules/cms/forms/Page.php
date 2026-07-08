@@ -44,7 +44,7 @@ class Cms_Form_Page extends Tiger_Form
             ]],
 
             ['select', 'format', [
-                'multiOptions' => ['html' => 'HTML', 'markdown' => 'Markdown', 'phtml' => 'PHTML (trusted code)'],
+                'multiOptions' => ['html' => 'HTML', 'markdown' => 'Markdown', 'phtml' => 'PHTML (trusted code)', 'builder' => 'Visual Builder'],
                 'value'        => 'html',
                 'attribs'      => array_merge($select, ['id' => 'cms-format']),
             ]],

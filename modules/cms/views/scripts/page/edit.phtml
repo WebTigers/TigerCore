@@ -28,6 +28,9 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
         <p class="text-body-secondary mb-0"><a href="/cms/page" class="text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i>Back to content</a></p>
     </div>
     <div class="text-nowrap">
+<?php if ($isEdit && $this->page && $this->page->type === 'page'): ?>
+        <a href="/cms/page/design/id/<?= $this->escape($this->page->page_id) ?>" class="btn btn-outline-primary" title="Design this page visually with GrapesJS"><i class="fa-solid fa-panorama me-2"></i>Design</a>
+<?php endif; ?>
         <a href="/cms/page" class="btn btn-outline-secondary">Cancel</a>
         <button type="button" id="cms-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
     </div>

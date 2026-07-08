@@ -77,6 +77,10 @@ class Tiger_Cms_Renderer
                 $html = Parsedown::instance()->text($body);
                 return $this->_shortcodes($html, $context);
 
+            case Tiger_Model_Page::FORMAT_BUILDER:
+                // GrapesJS output — a self-contained <style> + markup block. Rendered
+                // verbatim (like html) then the [shortcode] pass; <script> was stripped
+                // at save time, so it stays a SAFE format.
             case Tiger_Model_Page::FORMAT_HTML:
             default:
                 return $this->_shortcodes($body, $context);

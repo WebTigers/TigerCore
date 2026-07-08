@@ -51,6 +51,33 @@ class Cms_PageController extends Tiger_Controller_Action
             : [];
     }
 
+    /**
+     * Full-screen GrapesJS visual builder for an existing page. Renders its OWN minimal
+     * document (admin shell disabled) so the builder owns the viewport; saving goes
+     * through the /api service (Cms_Service_Page::saveDesign). The canvas restores
+     * losslessly from meta.builder when present, else seeds from the page's current body.
+     */
+    public function designAction()
+    {
+        $id   = (string) $this->getParam('id', '');
+        $page = $id !== '' ? $this->_pages->findById($id) : null;
+        if (!$page) {
+            $this->_helper->redirector->gotoUrl('/cms/page');
+            return;
+        }
+
+        $meta = [];
+        if (!empty($page->meta)) {
+            $decoded = is_array($page->meta) ? $page->meta : json_decode((string) $page->meta, true);
+            if (is_array($decoded)) { $meta = $decoded; }
+        }
+
+        $this->_helper->layout()->disableLayout();   // full-screen — the view is a complete document
+        $this->view->title       = $page->title;
+        $this->view->page        = $page;
+        $this->view->projectData = !empty($meta['builder']) ? $meta['builder'] : null;
+    }
+
     /** Map a page row to editor form values. */
     protected function _editValues($page)
     {

@@ -28,6 +28,7 @@ class Tiger_Model_Page extends Tiger_Model_Table
     const FORMAT_HTML     = 'html';      // safe
     const FORMAT_MARKDOWN = 'markdown';  // safe
     const FORMAT_PHTML    = 'phtml';     // code — trusted authors only
+    const FORMAT_BUILDER  = 'builder';   // safe — GrapesJS visual builder (self-contained HTML+CSS); <script> stripped on save
 
     /**
      * Resolve a live page by slug for an org. Walks org_id IN (current, '') and the

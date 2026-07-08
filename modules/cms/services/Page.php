@@ -112,6 +112,57 @@ class Cms_Service_Page extends Tiger_Service_Service
         }
     }
 
+    /**
+     * Save a page's visual-builder design. The full-screen GrapesJS builder posts the
+     * rendered HTML + CSS plus its lossless project JSON. We store a self-contained
+     * `<style>` + markup body (format=builder, `<script>` stripped so it stays a SAFE
+     * format) and keep the project JSON in `meta.builder` so reopening the canvas is
+     * lossless. Page metadata (title/slug/status) is edited in the normal page editor —
+     * this touches the design only, on an existing row.
+     */
+    public function saveDesign(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+
+        $pageId = trim((string) ($params['page_id'] ?? ''));
+        if ($pageId === '') { $this->_error('core.api.error.general'); return; }
+
+        $model = new Tiger_Model_Page();
+        $page  = $model->findById($pageId);
+        if (!$page) { $this->_error('core.api.error.general'); return; }
+
+        // Strip <script> — the builder is a SAFE format (tenant-editable), never code.
+        $html = (string) ($params['html'] ?? '');
+        $html = preg_replace('#<script\b[^>]*>.*?</script>#is', '', $html);
+        $html = preg_replace('#<script\b[^>]*/?>#i', '', (string) $html);
+        $css  = trim((string) ($params['css'] ?? ''));
+
+        $body = ($css !== '' ? "<style>\n{$css}\n</style>\n" : '') . $html;
+
+        // Preserve existing meta (SEO/head); replace only the builder project blob.
+        $meta = [];
+        if (!empty($page->meta)) {
+            $decoded = is_array($page->meta) ? $page->meta : json_decode((string) $page->meta, true);
+            if (is_array($decoded)) { $meta = $decoded; }
+        }
+        $project = $params['project'] ?? null;
+        if (is_string($project) && $project !== '') {
+            $decodedProject = json_decode($project, true);
+            $meta['builder'] = is_array($decodedProject) ? $decodedProject : null;
+        }
+
+        try {
+            $model->save([
+                'body'   => $body,
+                'format' => Tiger_Model_Page::FORMAT_BUILDER,
+                'meta'   => json_encode($meta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ], $pageId);
+            $this->_success(['page_id' => $pageId], 'cms.page.saved');
+        } catch (Throwable $e) {
+            $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
+        }
+    }
+
     /** Soft-delete a page (recoverable — the row is flagged, not dropped). */
     public function delete(array $params): void
     {
