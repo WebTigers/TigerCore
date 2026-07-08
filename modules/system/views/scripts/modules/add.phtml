@@ -1,11 +1,28 @@
 <?php
 /**
- * Add Module — install from a public GitHub repo (with a preview step) + search the open
- * Vendor Registry. Everything is /api (System_Service_Modules: inspect / install / search);
- * this is the shell. Gated to superadmin (installing runs vendor code).
+ * Add Module — install from a public GitHub repo + search the open Vendor Registry. A "View
+ * more" (or Check) opens a styled modal: the module header (logo/name/vendor/badges) + the
+ * repo's rendered TIGER.md + Install. Everything is /api (System_Service_Modules); gated to
+ * superadmin (installing runs vendor code).
  */
 $registryHasData = !empty($this->registryHasData);
 ?>
+<style>
+  .mod-logo{width:44px;height:44px;object-fit:contain;border-radius:.4rem;background:var(--bs-secondary-bg);}
+  .mod-card-logo{width:36px;height:36px;object-fit:contain;border-radius:.35rem;background:var(--bs-secondary-bg);flex:none;}
+  .mod-hero{width:100%;max-height:220px;object-fit:cover;border-radius:.5rem;margin-bottom:1rem;}
+  .mod-readme{font-size:.95rem;line-height:1.7;}
+  .mod-readme h1{font-size:1.5rem;font-weight:700;margin:1.4rem 0 .6rem;}
+  .mod-readme h2{font-size:1.25rem;font-weight:700;margin:1.3rem 0 .5rem;padding-bottom:.2rem;border-bottom:1px solid var(--bs-border-color);}
+  .mod-readme h3{font-size:1.08rem;font-weight:650;margin:1.1rem 0 .4rem;}
+  .mod-readme code{background:var(--bs-secondary-bg);padding:.1rem .35rem;border-radius:.25rem;}
+  .mod-readme pre{background:var(--bs-secondary-bg);padding:.8rem 1rem;border-radius:.4rem;overflow-x:auto;}
+  .mod-readme table{width:100%;border-collapse:collapse;margin:.8rem 0;}
+  .mod-readme th,.mod-readme td{border:1px solid var(--bs-border-color);padding:.4rem .6rem;text-align:left;}
+  .mod-readme blockquote{border-left:3px solid var(--bs-border-color);margin:1rem 0;padding:.2rem 0 .2rem 1rem;color:var(--bs-secondary-color);}
+  .mod-readme img{max-width:100%;height:auto;border-radius:.4rem;}
+</style>
+
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
         <h1 class="h3 mb-1">Add Module</h1>
@@ -15,11 +32,10 @@ $registryHasData = !empty($this->registryHasData);
 
 <div id="mod-feedback"></div>
 
-<!-- Install from URL (the working path) -->
 <div class="card mb-4">
     <div class="card-header fw-semibold"><i class="fa-brands fa-github me-2"></i>Install from a GitHub repository</div>
     <div class="card-body">
-        <p class="text-body-secondary small">Paste a <strong>public</strong> GitHub repo URL. We pull its <code>module.json</code> + <code>TIGER.md</code> so you can review it before installing. Private repos aren't supported — module code must be open for review.</p>
+        <p class="text-body-secondary small">Paste a <strong>public</strong> GitHub repo URL — we pull its <code>module.json</code> + <code>TIGER.md</code> so you can review it before installing. Private repos aren't supported; module code must be open for review.</p>
         <div class="row g-2 align-items-end">
             <div class="col-12 col-md-7">
                 <label class="form-label small" for="mod-url">Repository URL</label>
@@ -33,17 +49,13 @@ $registryHasData = !empty($this->registryHasData);
                 <button type="button" id="mod-check" class="btn btn-outline-primary w-100"><i class="fa-solid fa-magnifying-glass me-1"></i>Check</button>
             </div>
         </div>
-        <div id="mod-preview" class="mt-4" style="display:none;"></div>
     </div>
 </div>
 
-<!-- Vendor Registry search -->
 <div class="card">
     <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
         <span><i class="fa-solid fa-store me-2"></i>Browse the directory</span>
-        <span class="small fw-normal <?= $registryHasData ? 'text-success' : 'text-body-secondary' ?>">
-            <?= $registryHasData ? 'community registry' : 'registry unavailable' ?>
-        </span>
+        <span class="small fw-normal <?= $registryHasData ? 'text-success' : 'text-body-secondary' ?>"><?= $registryHasData ? 'community registry' : 'registry unavailable' ?></span>
     </div>
     <div class="card-body">
         <?php if (!$registryHasData): ?>
@@ -58,95 +70,107 @@ $registryHasData = !empty($this->registryHasData);
     </div>
 </div>
 
+<!-- Detail modal (the "View more" -> TIGER.md view) -->
+<div class="modal fade" id="mod-detail" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="d-flex align-items-center gap-3" id="mod-detail-head"></div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="mod-detail-body"></div>
+      <div class="modal-footer" id="mod-detail-foot"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var fb = document.getElementById('mod-feedback');
-    function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-    function alertHtml(msg, cls){ var ctx = (cls === 'error') ? 'danger' : (cls || 'info');
-        return '<div class="alert alert-' + ctx + ' alert-dismissible" role="alert">' + esc(msg) + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>'; }
-    function api(method, data){
-        var body = new URLSearchParams(Object.assign({ module: 'system', service: 'modules', method: method }, data));
-        return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body }).then(function(r){ return r.json(); });
+    var urlEl = document.getElementById('mod-url'), refEl = document.getElementById('mod-ref');
+    var modalEl = document.getElementById('mod-detail');
+    var modal = new bootstrap.Modal(modalEl);
+    var head = document.getElementById('mod-detail-head'), body = document.getElementById('mod-detail-body'), foot = document.getElementById('mod-detail-foot');
+
+    function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+    function alertHtml(msg,cls){ var ctx=(cls==='error')?'danger':(cls||'info'); return '<div class="alert alert-'+ctx+' alert-dismissible" role="alert">'+esc(msg)+'<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>'; }
+    function badge(t,cls){ return '<span class="badge text-bg-'+cls+' me-1">'+esc(t)+'</span>'; }
+    function api(method,data){ var b=new URLSearchParams(Object.assign({module:'system',service:'modules',method:method},data)); return fetch('/api',{method:'POST',headers:{'X-Requested-With':'XMLHttpRequest'},body:b}).then(function(r){return r.json();}); }
+    var imgErr = "this.style.display='none'";
+
+    // Open the detail modal for a repo (extra = registry listing fields: logo/hero/vendor/pricing…)
+    function openDetail(repo, ref, extra){
+        extra = extra || {};
+        head.innerHTML = '<h5 class="modal-title mb-0">Loading…</h5>';
+        body.innerHTML = '<div class="text-center py-5"><span class="spinner-border"></span></div>';
+        foot.innerHTML = '';
+        modal.show();
+        api('inspect', { url: repo, ref: ref || '' }).then(function(res){
+            if (res.result !== 1){ body.innerHTML = ''; (res.messages||[]).forEach(function(m){ body.innerHTML += alertHtml(m.message,m.class); }); return; }
+            renderDetail(Object.assign({}, res.data, { _extra: extra }));
+        }).catch(function(){ body.innerHTML = alertHtml('Network error.','error'); });
     }
 
-    var urlEl = document.getElementById('mod-url'), refEl = document.getElementById('mod-ref'), preview = document.getElementById('mod-preview');
+    function renderDetail(d){
+        var m = d.manifest, x = d._extra || {}, req = m.requires || {};
+        var logo = x.logo || '';
+        var vendor = x.vendor || m.author || '';
+        head.innerHTML =
+            (logo ? '<img src="'+esc(logo)+'" class="mod-logo" onerror="'+imgErr+'">' : '') +
+            '<div><h5 class="modal-title mb-0">'+esc(m.name)+' '+(m.version?'<span class="text-body-secondary fs-6">v'+esc(m.version)+'</span>':'')+'</h5>'+
+            '<div class="small text-body-secondary">'+(vendor?esc(vendor)+' · ':'')+'<code>/'+esc(m.slug)+'</code>'+(m.license?' · '+esc(m.license):'')+'</div></div>';
 
-    function badge(text, cls){ return '<span class="badge text-bg-' + cls + ' me-1">' + esc(text) + '</span>'; }
+        var reqBits=[]; if(req.tiger)reqBits.push('Tiger '+esc(req.tiger)); if(req.php)reqBits.push('PHP '+esc(req.php));
+        var pricing = (x.pricing && x.pricing.model) || m.pricing;
+        body.innerHTML =
+            (x.hero ? '<img src="'+esc(x.hero)+'" class="mod-hero" onerror="'+imgErr+'">' : '') +
+            '<div class="mb-2">' +
+              (pricing && pricing !== 'paid' ? badge('free tier','success-subtle text-success-emphasis border border-success-subtle') : (pricing==='paid'?badge('paid','secondary'):'')) +
+              '<a href="'+esc(d.repo)+'" target="_blank" rel="noopener" class="badge text-bg-light text-decoration-none"><i class="fa-brands fa-github me-1"></i>'+esc(d.repo.replace('https://github.com/',''))+'@'+esc(d.ref)+'</a>' +
+              (reqBits.length?' <span class="small text-body-secondary ms-1">Requires '+reqBits.join(', ')+'</span>':'') +
+            '</div>' +
+            (m.description ? '<p>'+esc(m.description)+'</p>' : '') +
+            (d.description_html ? '<hr><div class="mod-readme">'+d.description_html+'</div>' : '<p class="text-body-secondary small">No TIGER.md provided.</p>');
 
-    function renderPreview(d){
-        var m = d.manifest, req = m.requires || {};
-        var reqBits = [];
-        if (req.tiger) reqBits.push('Tiger ' + esc(req.tiger));
-        if (req.php)   reqBits.push('PHP ' + esc(req.php));
-        var action = d.installed
-            ? '<button type="button" class="btn btn-warning" id="mod-install"><i class="fa-solid fa-arrows-rotate me-1"></i>Update to ' + esc(m.version || d.ref) + '</button>' +
-              '<span class="ms-2 small text-body-secondary">Installed' + (d.installed_version ? ' (v' + esc(d.installed_version) + ')' : '') + '</span>'
-            : '<button type="button" class="btn btn-primary" id="mod-install"><i class="fa-solid fa-download me-1"></i>Install</button>';
-        preview.innerHTML =
-            '<div class="border rounded p-3">' +
-              '<div class="d-flex justify-content-between align-items-start">' +
-                '<div><h5 class="mb-1">' + esc(m.name) + ' ' + (m.version ? '<span class="text-body-secondary fs-6">v' + esc(m.version) + '</span>' : '') + '</h5>' +
-                  '<div class="small text-body-secondary mb-2">' +
-                    (m.author ? esc(m.author) + ' · ' : '') + '<code>/' + esc(m.slug) + '</code>' +
-                    (m.license ? ' · ' + esc(m.license) : '') + ' · <a href="' + esc(d.repo) + '" target="_blank" rel="noopener">' + esc(d.repo.replace('https://github.com/','')) + '@' + esc(d.ref) + '</a>' +
-                  '</div>' +
-                  (m.pricing && m.pricing !== 'paid' ? badge('free tier', 'success-subtle text-success-emphasis border border-success-subtle') : '') +
-                  (reqBits.length ? '<span class="small text-body-secondary ms-1">Requires ' + reqBits.join(', ') + '</span>' : '') +
-                '</div>' +
-                '<div class="text-nowrap ms-3">' + action + '</div>' +
-              '</div>' +
-              (m.description ? '<p class="mt-2 mb-0">' + esc(m.description) + '</p>' : '') +
-              (d.description_html ? '<hr><div class="mod-readme">' + d.description_html + '</div>' : '') +
-            '</div>';
-        preview.style.display = '';
-        var ib = document.getElementById('mod-install');
-        if (ib) { ib.addEventListener('click', function(){ doInstall(d.repo, d.ref, d.installed); }); }
+        foot.innerHTML = d.installed
+            ? '<span class="small text-body-secondary me-auto">Installed'+(d.installed_version?' (v'+esc(d.installed_version)+')':'')+'</span><button type="button" class="btn btn-warning" id="mod-do"><i class="fa-solid fa-arrows-rotate me-1"></i>Update to '+esc(m.version||d.ref)+'</button>'
+            : '<button type="button" class="btn btn-primary" id="mod-do"><i class="fa-solid fa-download me-1"></i>Install</button>';
+        document.getElementById('mod-do').addEventListener('click', function(){ doInstall(d.repo, d.ref, d.installed); });
     }
 
-    function doCheck(){
-        var url = urlEl.value.trim();
-        if (!url) { return; }
-        fb.innerHTML = ''; preview.style.display = 'none';
-        var btn = document.getElementById('mod-check'); btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-        api('inspect', { url: url, ref: refEl.value.trim() }).then(function(res){
-            btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-magnifying-glass me-1"></i>Check';
-            if (res.result !== 1) { (res.messages||[]).forEach(function(m){ fb.innerHTML += alertHtml(m.message, m.class); }); return; }
-            renderPreview(res.data);
-        }).catch(function(){ btn.disabled = false; btn.innerHTML = 'Check'; fb.innerHTML = alertHtml('Network error.', 'error'); });
-    }
     function doInstall(repo, ref, isUpdate){
-        if (!confirm((isUpdate ? 'Update' : 'Install') + ' this module? Its code will run in your app once active.')) { return; }
-        var ib = document.getElementById('mod-install'); if (ib){ ib.disabled = true; ib.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Installing…'; }
-        api('install', { url: repo, ref: ref, force: isUpdate ? 1 : 0 }).then(function(res){
-            if (res.result === 1) { window.location = res.redirect || '/system/modules'; return; }
-            (res.messages||[]).forEach(function(m){ fb.innerHTML += alertHtml(m.message, m.class); });
-            if (ib){ ib.disabled = false; ib.innerHTML = 'Install'; }
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }).catch(function(){ if (ib){ ib.disabled = false; ib.innerHTML = 'Install'; } fb.innerHTML = alertHtml('Network error.', 'error'); });
+        if (!confirm((isUpdate?'Update':'Install')+' this module? Its code will run in your app once active.')) return;
+        var b=document.getElementById('mod-do'); b.disabled=true; b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Installing…';
+        api('install',{url:repo,ref:ref,force:isUpdate?1:0}).then(function(res){
+            if (res.result===1){ window.location=res.redirect||'/system/modules'; return; }
+            modal.hide(); fb.innerHTML=''; (res.messages||[]).forEach(function(m){ fb.innerHTML+=alertHtml(m.message,m.class); }); window.scrollTo({top:0,behavior:'smooth'});
+        }).catch(function(){ b.disabled=false; b.innerHTML='Install'; });
     }
-    document.getElementById('mod-check').addEventListener('click', doCheck);
-    urlEl.addEventListener('keydown', function(e){ if (e.key === 'Enter') { doCheck(); } });
+
+    document.getElementById('mod-check').addEventListener('click', function(){ var u=urlEl.value.trim(); if(u){ openDetail(u, refEl.value.trim(), {}); } });
+    urlEl.addEventListener('keydown', function(e){ if(e.key==='Enter'){ document.getElementById('mod-check').click(); } });
 
     // Registry search
-    var searchEl = document.getElementById('mod-search'), results = document.getElementById('mod-results'), t;
-    if (searchEl) {
-        searchEl.addEventListener('input', function(){ clearTimeout(t); t = setTimeout(runSearch, 250); });
-        runSearch();
-    }
+    var searchEl=document.getElementById('mod-search'), results=document.getElementById('mod-results'), t;
+    if (searchEl){ searchEl.addEventListener('input', function(){ clearTimeout(t); t=setTimeout(runSearch,250); }); runSearch(); }
     function runSearch(){
-        api('search', { q: searchEl.value.trim() }).then(function(res){
-            if (res.result !== 1) { return; }
-            var list = (res.data && res.data.results) || [];
-            if (!list.length) { results.innerHTML = '<div class="col text-body-secondary small">No modules match.</div>'; return; }
-            results.innerHTML = list.map(function(m){
-                return '<div class="col"><div class="card h-100"><div class="card-body">' +
-                    '<h6 class="mb-1">' + esc(m.name || m.slug) + (m.pricing && m.pricing !== 'paid' ? ' <span class="badge text-bg-success-subtle text-success-emphasis border border-success-subtle">free</span>' : '') + '</h6>' +
-                    '<p class="small text-body-secondary mb-2">' + esc(m.description || '') + '</p>' +
-                    '<button type="button" class="btn btn-sm btn-outline-primary" data-repo="' + esc(m.repository || '') + '">View</button>' +
-                    '</div></div></div>';
+        api('search',{q:searchEl.value.trim()}).then(function(res){
+            if (res.result!==1) return;
+            var list=(res.data&&res.data.results)||[];
+            if (!list.length){ results.innerHTML='<div class="col text-body-secondary small">No modules match.</div>'; return; }
+            results.innerHTML = list.map(function(m,i){
+                var free = m.pricing && m.pricing.model && m.pricing.model!=='paid';
+                return '<div class="col"><div class="card h-100"><div class="card-body d-flex gap-3">'+
+                    (m.logo?'<img src="'+esc(m.logo)+'" class="mod-card-logo" onerror="'+imgErr+'">':'')+
+                    '<div class="flex-grow-1">'+
+                      '<h6 class="mb-0">'+esc(m.module||m.slug)+(free?' <span class="badge text-bg-success-subtle text-success-emphasis border border-success-subtle">free</span>':'')+'</h6>'+
+                      '<div class="small text-body-secondary mb-1">'+esc(m.vendor||'')+'</div>'+
+                      '<p class="small text-body-secondary mb-2">'+esc(m.description||'')+'</p>'+
+                      '<button type="button" class="btn btn-sm btn-outline-primary" data-i="'+i+'">View more</button>'+
+                    '</div></div></div></div>';
             }).join('');
-            results.querySelectorAll('[data-repo]').forEach(function(b){
-                b.addEventListener('click', function(){ urlEl.value = b.getAttribute('data-repo'); refEl.value = ''; window.scrollTo({top:0,behavior:'smooth'}); doCheck(); });
+            results.querySelectorAll('[data-i]').forEach(function(b){
+                b.addEventListener('click', function(){ var m=list[+b.getAttribute('data-i')]; openDetail(m.repository, m.ref, m); });
             });
         });
     }
