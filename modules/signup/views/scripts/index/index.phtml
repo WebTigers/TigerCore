@@ -1,0 +1,146 @@
+<?php
+/**
+ * Signup — the platform's reference form view. Every field is convenience-validated on blur
+ * (data-tiger-validate + data-module/data-form → Tiger_Service_Validate), the password has a
+ * live strength meter, the Save button shows its busy state (TigerButton), and feedback comes
+ * through TigerDOM.notify. This is the copy-me template for building any Tiger form.
+ */
+$form = $this->form;
+$el = function ($name) use ($form) { return $form->getElement($name); };
+?>
+<div class="tiger-auth-brand">
+    <span class="tiger-auth-mark"><i class="fa-solid fa-paw"></i></span>
+    <h1 class="h4 mb-1">Create your account</h1>
+    <p class="text-body-secondary small mb-0">Start your Tiger workspace — it takes a minute.</p>
+</div>
+
+<div id="signup-feedback"></div>
+<div id="signup-done"></div>
+
+<form id="signup-form" data-tiger-validate data-module="signup" data-form="Signup" onsubmit="return false;" novalidate>
+    <?= $el('_csrf') ?>
+
+    <div class="row g-3">
+        <div class="col-sm-6" data-field>
+            <label class="form-label" for="su-first">First name</label>
+            <?= $el('first_name') ?>
+        </div>
+        <div class="col-sm-6" data-field>
+            <label class="form-label" for="su-last">Last name</label>
+            <?= $el('last_name') ?>
+        </div>
+    </div>
+    <div class="mt-3" data-field>
+        <label class="form-label" for="su-company">Company</label>
+        <?= $el('company') ?>
+    </div>
+
+    <hr class="my-4">
+
+    <div data-field>
+        <label class="form-label" for="su-username">Username</label>
+        <?= $el('username') ?>
+    </div>
+    <div class="mt-3" data-field>
+        <label class="form-label" for="su-password">Password</label>
+        <?= $el('password') ?>
+    </div>
+    <div class="mt-3" data-field>
+        <label class="form-label" for="su-email">Email</label>
+        <?= $el('email') ?>
+    </div>
+
+    <hr class="my-4">
+
+    <div data-field>
+        <label class="form-label" for="su-street">Street address</label>
+        <?= $el('street') ?>
+    </div>
+    <div class="row g-3 mt-0">
+        <div class="col-sm-5" data-field>
+            <label class="form-label" for="su-city">City</label>
+            <?= $el('city') ?>
+        </div>
+        <div class="col-sm-4" data-field>
+            <label class="form-label" for="su-region">State / Province</label>
+            <?= $el('region') ?>
+        </div>
+        <div class="col-sm-3" data-field>
+            <label class="form-label" for="su-postal">Postal</label>
+            <?= $el('postal') ?>
+        </div>
+    </div>
+    <div class="mt-3" data-field>
+        <label class="form-label" for="su-country">Country</label>
+        <?= $el('country') ?>
+    </div>
+
+    <hr class="my-4">
+
+    <div class="row g-3">
+        <div class="col-sm-4" data-field>
+            <label class="form-label" for="su-phone-type">Phone type</label>
+            <?= $el('phone_type') ?>
+        </div>
+        <div class="col-sm-8" data-field>
+            <label class="form-label" for="su-phone">Phone</label>
+            <?= $el('phone') ?>
+        </div>
+    </div>
+
+    <div class="d-grid mt-4">
+        <button type="button" id="signup-submit" class="btn btn-primary btn-lg"><i class="fa-solid fa-user-plus me-2"></i>Create account</button>
+    </div>
+</form>
+
+<div class="tiger-auth-foot">
+    <a href="/auth/login" class="small text-decoration-none">Already have an account? Sign in</a>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('signup-form');
+    var fb   = document.getElementById('signup-feedback');
+
+    document.getElementById('signup-submit').addEventListener('click', function () {
+        var btn = this;
+        form.querySelectorAll('.is-invalid').forEach(function (e) { e.classList.remove('is-invalid'); });
+
+        var fd = new URLSearchParams(new FormData(form));
+        fd.set('module', 'signup'); fd.set('service', 'signup'); fd.set('method', 'create');
+
+        TigerButton.run(btn, function () {
+            return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
+                .then(function (r) { return r.json().catch(function () { return {}; }); });
+        }).then(function (res) {
+            if (res && res.result === 1) {
+                form.style.display = 'none';
+                TigerDOM.notify(document.getElementById('signup-done'),
+                    '<strong>Almost there.</strong> We emailed a verification link to activate your account — click it, then sign in.',
+                    { type: 'success', dismissAfter: 0 });
+                return;
+            }
+            if (res && res.form) {
+                Object.keys(res.form).forEach(function (field) {
+                    var input = form.querySelector('[name="' + field + '"]');
+                    if (!input) { return; }
+                    input.classList.add('is-invalid');
+                    var cell = input.closest('[data-field]');
+                    if (cell) {
+                        var fbk = cell.querySelector('.invalid-feedback') || cell.appendChild(Object.assign(document.createElement('div'), { className: 'invalid-feedback' }));
+                        var msgs = res.form[field];
+                        fbk.textContent = (msgs && typeof msgs === 'object') ? (Object.values(msgs)[0] || 'Please check this field.') : String(msgs || 'Please check this field.');
+                        fbk.style.display = 'block';
+                    }
+                });
+                TigerDOM.notify(fb, 'Please fix the highlighted fields.', { type: 'error' });
+                return;
+            }
+            (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class, replace: false }); });
+            if (!res || !res.messages || !res.messages.length) { TigerDOM.notify(fb, 'Something went wrong. Please try again.', { type: 'error' }); }
+        }).catch(function () {
+            TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' });
+        });
+    });
+});
+</script>

@@ -10,6 +10,7 @@
         var(--bs-body-bg);
 }
 .tiger-auth-wrap { width: 100%; max-width: 26rem; padding: 1.5rem; }
+.tiger-auth-wrap-wide { max-width: 44rem; }   /* multi-column forms (e.g. signup) */
 .tiger-auth-card {
     background: var(--bs-body-bg);
     border: 1px solid var(--bs-border-color);

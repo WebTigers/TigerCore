@@ -1,0 +1,28 @@
+<?php
+/**
+ * Email-verification result (rendered in the auth layout). ok=true → account activated;
+ * else the link was invalid/expired.
+ */
+?>
+<div class="tiger-auth-brand">
+    <span class="tiger-auth-mark"><i class="fa-solid fa-paw"></i></span>
+    <h1 class="h4 mb-1">Email verification</h1>
+</div>
+
+<?php if ($this->ok): ?>
+    <div class="alert alert-success d-flex align-items-start gap-2" role="alert">
+        <i class="fa-solid fa-circle-check mt-1"></i>
+        <div>Your email is verified and your account is active. You can sign in now.</div>
+    </div>
+    <div class="d-grid">
+        <a href="/auth/login" class="btn btn-primary"><i class="fa-solid fa-right-to-bracket me-2"></i>Sign in</a>
+    </div>
+<?php else: ?>
+    <div class="alert alert-danger d-flex align-items-start gap-2" role="alert">
+        <i class="fa-solid fa-circle-exclamation mt-1"></i>
+        <div>This verification link is invalid or has expired. You can sign up again, or contact support if you already registered.</div>
+    </div>
+    <div class="d-grid">
+        <a href="/signup" class="btn btn-outline-secondary"><i class="fa-solid fa-angle-left me-2"></i>Back to signup</a>
+    </div>
+<?php endif; ?>
