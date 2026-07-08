@@ -19,7 +19,27 @@
     height: '100%',
     fromElement: false,
     storageManager: false,            // Tiger owns persistence, via /api
-    assetManager: { embedAsBase64: true },
+    // Choosing/uploading an image opens the shared Tiger Media Library (TigerMediaPicker
+    // over Media_Service_Media) instead of GrapesJS's default uploader — so page media is
+    // real TigerMedia (public URL / CDN), never a base64 blob inlined into the body.
+    assetManager: {
+      custom: {
+        open: function (props) {
+          if (!window.TigerMediaPicker) { return; }
+          window.TigerMediaPicker.open({
+            kind: 'image',
+            onSelect: function (item) {
+              if (item && item.url) {
+                try { editor.AssetManager.add({ src: item.url, name: item.filename }); } catch (e) {}
+                try { props.select({ src: item.url, name: item.filename }, true); } catch (e) {}
+              }
+              if (props && props.close) { props.close(); }
+            }
+          });
+        },
+        close: function () {}
+      }
+    },
     plugins: preset ? [preset] : [],
     pluginsOpts: preset ? { 'grapesjs-preset-webpage': { modalImportTitle: 'Import HTML' } } : {}
   });

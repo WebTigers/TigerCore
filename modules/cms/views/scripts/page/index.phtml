@@ -112,6 +112,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 var html = '';
                 if (row.can_edit) {
                     html += '<a href="/cms/page/edit/id/' + encodeURIComponent(row.page_id) + '" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="fa-solid fa-pen"></i></a> ';
+                    if (row.type === 'page') {
+                        html += '<a href="/cms/page/design/id/' + encodeURIComponent(row.page_id) + '" class="btn btn-sm btn-outline-primary" title="Design visually"><i class="fa-solid fa-panorama"></i></a> ';
+                    }
                 }
                 if (row.can_delete) {
                     html += '<button type="button" class="btn btn-sm btn-outline-danger" data-cms-delete="' + esc(row.page_id) + '" title="Delete"><i class="fa-solid fa-trash"></i></button>';
