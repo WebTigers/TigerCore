@@ -16,7 +16,8 @@
 class Tiger_Code_Runtime
 {
     const LOC_GLOBAL   = 'global';
-    const CACHE_SUBDIR = 'storage/cache/code';
+    const CACHE_SUBDIR = 'storage/cache/code';     // private: PHP bundles + inject manifests (included)
+    const PUBLIC_URL   = '/_code';                 // public: css/js assets (served, browser-cached)
     const MARKER       = '__tiger_code_running';   // $GLOBALS key: the snippet currently executing
 
     protected static $_booted     = [];      // once per request per location
@@ -91,7 +92,8 @@ class Tiger_Code_Runtime
         $cfg = new Tiger_Model_Config();
         $cur = (int) $cfg->get(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.code.version');
         $new = $cur + 1;
-        self::compile($location, $new);   // validates + writes; throws if the bundle is invalid
+        self::compile($location, $new);         // PHP bundle (validated; throws if invalid)
+        self::compileClient($location, $new);   // CSS/JS assets + injection manifest (best-effort)
         $cfg->set(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.code.version', (string) $new);
         return $new;
     }
@@ -154,6 +156,105 @@ class Tiger_Code_Runtime
         $msg = trim(implode("\n", $out));
         $msg = str_replace($file, 'the compiled bundle', $msg);
         return ['ok' => false, 'error' => $msg !== '' ? $msg : 'the compiled bundle failed to compile'];
+    }
+
+    /**
+     * Compile the CLIENT tier for a run location: active css/js concatenate into versioned,
+     * browser-cacheable PUBLIC assets (public/_code/<loc>.<ver>.css|js); html/phtml become
+     * inline items in a private injection MANIFEST the view helper reads. Best-effort — client
+     * code can't brick the server, so this never throws.
+     */
+    public static function compileClient($location, $version)
+    {
+        $loc   = preg_replace('/[^a-z]/', '', (string) $location);
+        $model = new Tiger_Model_Code();
+        $rows  = $model->activeClient($location, '');
+
+        $css = '';
+        $js  = ['head' => '', 'footer' => ''];
+        $inline = ['head' => [], 'footer' => []];
+        foreach ($rows as $r) {
+            $pos  = ($r->auto_insert === Tiger_Model_Code::AUTO_FOOTER) ? 'footer' : 'head';
+            $code = (string) $r->code;
+            $tag  = '/* ' . str_replace('*/', '* /', (string) $r->name) . " */\n";
+            switch ($r->language) {
+                case Tiger_Model_Code::LANG_CSS:  $css .= $tag . $code . "\n"; break;
+                case Tiger_Model_Code::LANG_JS:   $js[$pos] .= $tag . ";\n" . $code . "\n"; break;   // leading ; guards ASI
+                case Tiger_Model_Code::LANG_HTML: $inline[$pos][] = ['type' => 'html', 'html' => $code]; break;
+                case Tiger_Model_Code::LANG_PHTML:$inline[$pos][] = ['type' => 'phtml', 'code' => $code]; break;
+            }
+        }
+
+        $manifest = ['head' => [], 'footer' => []];
+        if ($css !== '') {
+            self::_writePublic("{$loc}.{$version}.css", $css);
+            $manifest['head'][] = ['type' => 'css_asset', 'url' => self::PUBLIC_URL . "/{$loc}.{$version}.css"];
+        }
+        foreach (['head', 'footer'] as $pos) {
+            if ($js[$pos] !== '') {
+                self::_writePublic("{$loc}.{$version}.{$pos}.js", $js[$pos]);
+                $manifest[$pos][] = ['type' => 'js_asset', 'url' => self::PUBLIC_URL . "/{$loc}.{$version}.{$pos}.js"];
+            }
+            foreach ($inline[$pos] as $item) {
+                $manifest[$pos][] = $item;   // html/phtml, in priority order, after the asset link
+            }
+        }
+
+        // Private manifest (included by the view helper — never served).
+        $mf  = self::cacheDir() . "/inject.{$loc}.{$version}.php";
+        $tmp = $mf . '.' . getmypid() . '.tmp';
+        if (!is_dir(self::cacheDir())) { @mkdir(self::cacheDir(), 0775, true); }
+        file_put_contents($tmp, "<?php\nreturn " . var_export($manifest, true) . ";\n", LOCK_EX);
+        @rename($tmp, $mf);
+        if (function_exists('opcache_invalidate')) { @opcache_invalidate($mf, true); }
+        self::_gcClient($loc, $version);
+    }
+
+    /** The injection manifest for a version+location (compile-if-missing). Returns head/footer arrays. */
+    public static function injectManifest($version, $location = self::LOC_GLOBAL)
+    {
+        $loc = preg_replace('/[^a-z]/', '', (string) $location);
+        $mf  = self::cacheDir() . "/inject.{$loc}.{$version}.php";
+        if (!is_file($mf)) {
+            try { self::compileClient($location, $version); } catch (Throwable $e) { return ['head' => [], 'footer' => []]; }
+        }
+        if (!is_file($mf)) {
+            return ['head' => [], 'footer' => []];
+        }
+        $m = include $mf;
+        return is_array($m) ? $m : ['head' => [], 'footer' => []];
+    }
+
+    protected static function publicDir()
+    {
+        $base = defined('APPLICATION_ROOT') ? rtrim(APPLICATION_ROOT, '/') : rtrim(getcwd(), '/');
+        return $base . '/public/_code';
+    }
+
+    /** Write a versioned public asset atomically. */
+    protected static function _writePublic($name, $content)
+    {
+        $dir = self::publicDir();
+        if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+            self::_log('cannot create public asset dir ' . $dir);
+            return;
+        }
+        $file = $dir . '/' . $name;
+        $tmp  = $file . '.' . getmypid() . '.tmp';
+        file_put_contents($tmp, $content, LOCK_EX);
+        @rename($tmp, $file);
+    }
+
+    /** Remove superseded client assets + manifests for a location. */
+    protected static function _gcClient($loc, $version)
+    {
+        $keep = ".{$version}.";
+        foreach (glob(self::publicDir() . "/{$loc}.*") ?: [] as $f) {
+            if (strpos(basename($f), $keep) === false) { @unlink($f); }
+        }
+        foreach (glob(self::cacheDir() . "/inject.{$loc}.*.php") ?: [] as $f) {
+            if (strpos(basename($f), $keep) === false) { @unlink($f); }
+        }
     }
 
     /** Kill-switch: a DISABLED file (fastest recovery) or config `tiger.code.enabled = 0`. */

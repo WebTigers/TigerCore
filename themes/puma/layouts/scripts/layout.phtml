@@ -34,6 +34,7 @@ $_lang = defined('LANG') ? LANG : 'en';
 <?php if (!empty($this->skin)): ?>
     <link id="tiger-skin" rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/skins/' . $this->skin . '.css') ?>">
 <?php endif; ?>
+<?= $this->codeInject('head') ?>
 </head>
 <body>
 <?= $this->render('_partials/public-header.phtml') ?>
@@ -46,5 +47,6 @@ $_lang = defined('LANG') ? LANG : 'en';
 
 <script src="<?= $this->asset($this->themeAssets . '/js/bootstrap.bundle.min.js') ?>"></script>
 <script src="<?= $this->asset($this->themeAssets . '/js/tiger.prefs.js') ?>"></script>
+<?= $this->codeInject('footer') ?>
 </body>
 </html>

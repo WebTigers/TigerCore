@@ -17,10 +17,19 @@ class Tiger_Model_Code extends Tiger_Model_Table
     protected $_name    = 'code';
     protected $_primary = 'code_id';
 
-    const LANG_PHP  = 'php';
-    const LANG_JS   = 'js';
-    const LANG_CSS  = 'css';
-    const LANG_HTML = 'html';
+    const LANG_PHP   = 'php';    // server-executed (global functions/hooks)
+    const LANG_PHTML = 'phtml';  // server-rendered template, injected at a location
+    const LANG_JS    = 'js';     // client-injected
+    const LANG_CSS   = 'css';    // client-injected
+    const LANG_HTML  = 'html';   // client-injected (verbatim)
+
+    /** Server-executed languages (the RCE class — platform scope + code.execute only). */
+    const SERVER_LANGS = [self::LANG_PHP, self::LANG_PHTML];
+    /** Client-injected languages (emitted to the browser). */
+    const CLIENT_LANGS = [self::LANG_CSS, self::LANG_JS, self::LANG_HTML, self::LANG_PHTML];
+
+    const AUTO_HEAD   = 'head';
+    const AUTO_FOOTER = 'footer';
 
     const LOC_GLOBAL   = 'global';
     const LOC_ADMIN    = 'admin';
@@ -73,6 +82,23 @@ class Tiger_Model_Code extends Tiger_Model_Table
                 ->where('active = 1')
                 ->where('language = ?', (string) $language)
                 ->where('run_location = ?', (string) $location)
+                ->where('org_id = ?', (string) $orgId)
+                ->order(['priority ASC', 'created_at ASC'])
+        );
+    }
+
+    /**
+     * Active client-injected rows (css/js/html/phtml) for a run location + org scope, in load
+     * order — the source for the injection manifest + asset bundles (Tiger_Code_Runtime). PHP
+     * (the bootstrap bundle) is handled separately by activeForLoad().
+     */
+    public function activeClient($runLocation, $orgId = '')
+    {
+        return $this->fetchAll(
+            $this->activeSelect()
+                ->where('active = 1')
+                ->where('language IN (?)', self::CLIENT_LANGS)
+                ->where('run_location = ?', (string) $runLocation)
                 ->where('org_id = ?', (string) $orgId)
                 ->order(['priority ASC', 'created_at ASC'])
         );

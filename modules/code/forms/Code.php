@@ -25,6 +25,24 @@ class Code_Form_Code extends Tiger_Form
                 'attribs' => array_merge($control, ['id' => 'code-description', 'maxlength' => 255]),
             ]],
 
+            ['select', 'language', [
+                'multiOptions' => [
+                    'php'   => 'PHP — runs on every request (functions/hooks)',
+                    'phtml' => 'PHTML — rendered + injected',
+                    'html'  => 'HTML — injected verbatim',
+                    'css'   => 'CSS — injected as a stylesheet',
+                    'js'    => 'JavaScript — injected as a script',
+                ],
+                'value'   => 'php',
+                'attribs' => array_merge(['class' => 'form-select'], ['id' => 'code-language']),
+            ]],
+
+            ['select', 'auto_insert', [
+                'multiOptions' => ['head' => 'Head', 'footer' => 'Footer'],
+                'value'        => 'head',
+                'attribs'      => array_merge(['class' => 'form-select'], ['id' => 'code-auto-insert']),
+            ]],
+
             ['text', 'priority', [
                 'filters'    => ['StringTrim'],
                 'validators' => [['Int']],

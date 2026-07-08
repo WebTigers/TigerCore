@@ -35,6 +35,8 @@ class Code_IndexController extends Tiger_Controller_Action
                 'code_id'     => $row->code_id,
                 'name'        => $row->name,
                 'description' => $row->description,
+                'language'    => $row->language,
+                'auto_insert' => $row->auto_insert ?: 'head',
                 'priority'    => $row->priority,
                 'active'      => (int) $row->active === 1,
                 'code'        => $row->code,

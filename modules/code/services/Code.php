@@ -63,20 +63,30 @@ class Code_Service_Code extends Tiger_Service_Service
         $model  = new Tiger_Model_Code();
         $active = !empty($v['active']);
 
-        // Safety gate: PHP must parse. A syntax error is refused — nothing broken is stored.
-        $lint = $model->lint($v['code']);
-        if (!$lint['ok']) {
-            $this->_error('Not saved — ' . $lint['error']);   // verbatim: the php -l message
-            return;
+        $allowed  = [Tiger_Model_Code::LANG_PHP, Tiger_Model_Code::LANG_PHTML, Tiger_Model_Code::LANG_HTML, Tiger_Model_Code::LANG_CSS, Tiger_Model_Code::LANG_JS];
+        $language = in_array($v['language'], $allowed, true) ? $v['language'] : Tiger_Model_Code::LANG_PHP;
+
+        // Server-executed languages (php, phtml) must parse — a syntax error is refused.
+        if (in_array($language, Tiger_Model_Code::SERVER_LANGS, true)) {
+            $lint = $model->lint($v['code']);
+            if (!$lint['ok']) { $this->_error('Not saved — ' . $lint['error']); return; }
+        }
+
+        // auto_insert applies to INJECTED languages; css is always head; php has no location.
+        $autoInsert = null;
+        if ($language !== Tiger_Model_Code::LANG_PHP) {
+            $autoInsert = ($language === Tiger_Model_Code::LANG_CSS) ? Tiger_Model_Code::AUTO_HEAD
+                : (($v['auto_insert'] === Tiger_Model_Code::AUTO_FOOTER) ? Tiger_Model_Code::AUTO_FOOTER : Tiger_Model_Code::AUTO_HEAD);
         }
 
         $data = [
-            'org_id'       => '',                                  // PHP is platform-scope only
+            'org_id'       => '',                                  // v1: platform scope (tenant scoping later)
             'name'         => (string) $v['name'],
             'description'  => (string) $v['description'],
-            'language'     => Tiger_Model_Code::LANG_PHP,          // v1: PHP tier
+            'language'     => $language,
             'code'         => (string) $v['code'],
             'run_location' => Tiger_Model_Code::LOC_GLOBAL,        // v1: global
+            'auto_insert'  => $autoInsert,
             'priority'     => (int) ($v['priority'] ?: 100),
             'active'       => $active ? 1 : 0,
             'status'       => $active ? Tiger_Model_Code::STATUS_ACTIVE : Tiger_Model_Code::STATUS_DRAFT,
@@ -128,7 +138,7 @@ class Code_Service_Code extends Tiger_Service_Service
         $row   = $model->findById($id);
         if (!$row) { $this->_error('core.api.error.general'); return; }
 
-        if ($on && $row->language === Tiger_Model_Code::LANG_PHP) {
+        if ($on && in_array($row->language, Tiger_Model_Code::SERVER_LANGS, true)) {
             $lint = $model->lint($row->code);
             if (!$lint['ok']) { $this->_error('Cannot activate — ' . $lint['error']); return; }
         }

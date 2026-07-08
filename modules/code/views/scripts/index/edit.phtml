@@ -30,9 +30,9 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
     </div>
 </div>
 
-<div class="alert alert-warning d-flex align-items-center gap-2 py-2" role="alert">
+<div id="code-warning" class="alert alert-warning d-flex align-items-center gap-2 py-2" role="alert">
     <i class="fa-solid fa-triangle-exclamation"></i>
-    <div class="small">This PHP runs on <strong>every request</strong> once active. It's linted on save, and auto-deactivates if it fatals on load — but you're editing live platform code.</div>
+    <div class="small" id="code-warning-text">This PHP runs on <strong>every request</strong> once active. It's linted on save and auto-deactivates if it fatals on load.</div>
 </div>
 
 <div id="code-feedback"></div>
@@ -49,13 +49,27 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
                         <?= $el('name') ?>
                     </div>
                     <div class="mb-0">
-                        <label class="form-label" for="code-code">PHP <span class="text-body-secondary fw-normal">— no <code>&lt;?php</code> tag needed</span></label>
+                        <label class="form-label" for="code-code" id="code-lang-label">Code</label>
                         <?= $el('code') ?>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header fw-semibold">Type</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="code-language">Language</label>
+                        <?= $el('language') ?>
+                    </div>
+                    <div class="mb-0" id="code-loc-row">
+                        <label class="form-label" for="code-auto-insert">Inject at</label>
+                        <?= $el('auto_insert') ?>
+                        <div class="form-text">Where injected CSS/JS/HTML/PHTML lands.</div>
+                    </div>
+                </div>
+            </div>
             <div class="card mb-4">
                 <div class="card-header fw-semibold">Activation</div>
                 <div class="card-body">
@@ -109,9 +123,29 @@ document.addEventListener('DOMContentLoaded', function () {
     var form = document.getElementById('code-form');
     var fb   = document.getElementById('code-feedback');
 
-    if (window.TigerCodeEditor && document.getElementById('code-code')) {
-        TigerCodeEditor.from(document.getElementById('code-code'), { mode: 'php' });
+    var langSel = document.getElementById('code-language');
+    var cm = (window.TigerCodeEditor && document.getElementById('code-code'))
+        ? TigerCodeEditor.from(document.getElementById('code-code'), { mode: langSel ? langSel.value : 'php' })
+        : null;
+
+    var CM_MODE = { php: 'php', phtml: 'phtml', html: 'html', css: 'css', js: 'js' };
+    var SERVER  = { php: 1, phtml: 1 };
+    function syncLang() {
+        if (!langSel) { return; }
+        var L = langSel.value;
+        if (cm) { TigerCodeEditor.setMode(cm, CM_MODE[L] || 'php'); }
+        document.getElementById('code-lang-label').textContent = L.toUpperCase();
+        document.getElementById('code-loc-row').style.display = (L === 'php' || L === 'css') ? 'none' : '';
+        var w = document.getElementById('code-warning'), t = document.getElementById('code-warning-text');
+        if (SERVER[L]) {
+            w.className = 'alert alert-warning d-flex align-items-center gap-2 py-2';
+            t.innerHTML = 'This ' + (L === 'phtml' ? 'PHTML' : 'PHP') + ' is <strong>server-executed</strong>. Linted on save; auto-deactivates if it fatals.';
+        } else {
+            w.className = 'alert alert-info d-flex align-items-center gap-2 py-2';
+            t.innerHTML = 'This ' + L.toUpperCase() + ' is injected into the page and runs in the browser.';
+        }
     }
+    if (langSel) { langSel.addEventListener('change', syncLang); syncLang(); }
 
     function alertHtml(msg, cls) {
         var ctx = (cls === 'error') ? 'danger' : (cls || 'info');
