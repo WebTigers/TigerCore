@@ -6,7 +6,9 @@ A factual inventory of what the platform does. For the *why* behind these choice
 Tiger is a multi-tenant SaaS foundation built on **TigerZF** (ZendFramework 1 modernized
 for PHP 8.1–8.5). It ships as a framework (`webtigers/tiger-core`, consumed from `vendor/`)
 plus a skeleton (`webtigers/tiger`, created once with `composer create-project`). Licensed
-`(MIT AND BSD-3-Clause)`.
+`BSD-3-Clause` (matching its Zend Framework heritage; bundled third-party components retain
+their own licenses). "Tiger" and "WebTigers" are trademarks — see [LICENSE](LICENSE) and
+[TRADEMARKS.md](TRADEMARKS.md).
 
 ## Foundation
 

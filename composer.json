@@ -4,7 +4,7 @@
     "type": "library",
     "keywords": ["tiger", "saas", "multi-tenant", "zf1", "tigerzf"],
     "homepage": "https://github.com/WebTigers/tiger-core/",
-    "license": "(MIT AND BSD-3-Clause)",
+    "license": "BSD-3-Clause",
     "require": {
         "php": ">=8.1",
         "webtigers/tigerzf": "^1.30"
