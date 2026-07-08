@@ -38,7 +38,9 @@
   var tickTimer   = null;
   var pollTimer   = null;
 
-  function clampWarn(w) { return Math.max(0, Math.min(w, seconds - 1)); }
+  // Never let the warning lead exceed half the window — so a short timeout (e.g. 65s)
+  // gets a proportionate heads-up, not a modal that's up for almost the whole countdown.
+  function clampWarn(w) { return Math.max(0, Math.min(w, Math.floor(seconds / 2))); }
 
   // --- warning modal (built lazily; Bootstrap is present in the admin layout) ---
   var modalEl, modalBs, countEl;
