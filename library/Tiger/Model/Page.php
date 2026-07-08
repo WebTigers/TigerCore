@@ -34,18 +34,23 @@ class Tiger_Model_Page extends Tiger_Model_Table
      * TENANT row wins over global; only published rows whose schedule has arrived.
      * Returns the row or null.
      */
-    public function resolveBySlug($slug, $locale, $orgId = '')
+    public function resolveBySlug($slug, $locale, $orgId = '', $type = null)
     {
-        return $this->fetchRow(
-            $this->activeSelect()
-                ->where('slug = ?', (string) $slug)
-                ->where('locale = ?', (string) $locale)
-                ->where('org_id IN (?)', $this->_orgScope($orgId))
-                ->where('status = ?', self::STATUS_PUBLISHED)
-                ->where('published_at IS NULL OR published_at <= NOW()')
-                ->order('org_id DESC')   // non-empty (tenant) sorts before '' (global)
-                ->limit(1)
-        );
+        $select = $this->activeSelect()
+            ->where('slug = ?', (string) $slug)
+            ->where('locale = ?', (string) $locale)
+            ->where('org_id IN (?)', $this->_orgScope($orgId))
+            ->where('status = ?', self::STATUS_PUBLISHED)
+            ->where('published_at IS NULL OR published_at <= NOW()')
+            ->order('org_id DESC')   // non-empty (tenant) sorts before '' (global)
+            ->limit(1);
+        // Root dispatch resolves only real pages; posts/articles are routed under /blog by
+        // their module, so they don't answer at the site root even though they share the slug
+        // space. Callers that want a specific kind pass it (e.g. Blog_Model_Post::resolveArticle).
+        if ($type !== null) {
+            $select->where('type = ?', (string) $type);
+        }
+        return $this->fetchRow($select);
     }
 
     /**

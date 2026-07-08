@@ -1,0 +1,31 @@
+<?php
+/**
+ * RSS 2.0 feed of recent articles. Layout is disabled by the controller; this script owns
+ * the XML (a theme can override it). Absolute URLs are built from the request scheme/host.
+ */
+$posts  = $this->posts ?? [];
+$scheme = (defined('HTTPS') && HTTPS) ? 'https' : 'http';
+$host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$base   = $scheme . '://' . $host;
+$x = function ($s) { return htmlspecialchars((string) $s, ENT_XML1 | ENT_QUOTES, 'UTF-8'); };
+echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title><?= $x($this->site ?: 'Blog') ?></title>
+    <link><?= $x($base . '/blog') ?></link>
+    <atom:link href="<?= $x($base . '/blog/feed') ?>" rel="self" type="application/rss+xml"/>
+    <description><?= $x('Latest articles from ' . ($this->site ?: 'the blog')) ?></description>
+    <language>en</language>
+    <?php foreach ($posts as $p): $link = $base . $p['url']; ?>
+    <item>
+      <title><?= $x($p['title']) ?></title>
+      <link><?= $x($link) ?></link>
+      <guid isPermaLink="true"><?= $x($link) ?></guid>
+      <?php if (!empty($p['author']['name'])): ?><dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/"><?= $x($p['author']['name']) ?></dc:creator><?php endif; ?>
+      <?php if ($p['published_at']): ?><pubDate><?= $x(date('r', strtotime((string) $p['published_at']))) ?></pubDate><?php endif; ?>
+      <description><?= $x($p['excerpt']) ?></description>
+    </item>
+    <?php endforeach; ?>
+  </channel>
+</rss>

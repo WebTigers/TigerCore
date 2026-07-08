@@ -41,7 +41,8 @@ class Tiger_Controller_Plugin_PageDispatch extends Zend_Controller_Plugin_Abstra
         $orgId  = '';   // global public pages for now (host->org mapping is future)
 
         try {
-            $page = (new Tiger_Model_Page())->resolveBySlug($slug, $locale, $orgId);
+            // Only real pages answer at the site root — articles/posts route under /blog.
+            $page = (new Tiger_Model_Page())->resolveBySlug($slug, $locale, $orgId, Tiger_Model_Page::TYPE_PAGE);
             if ($page) {
                 $request->setModuleName($front->getDispatcher()->getDefaultModule())
                         ->setControllerName('page')

@@ -66,6 +66,31 @@ class Blog_Model_Taxonomy extends Tiger_Model_Table
         ]);
     }
 
+    /** A single term by slug within a vocabulary (tenant over global) — for archive pages. */
+    public function resolveTermBySlug($vocabulary, $slug, $locale = 'en', $orgId = '')
+    {
+        return $this->fetchRow(
+            $this->activeSelect()
+                ->where('vocabulary = ?', (string) $vocabulary)
+                ->where('slug = ?', (string) $slug)
+                ->where('locale = ?', (string) $locale)
+                ->where('org_id IN (?)', $this->_orgScope($orgId))
+                ->order('org_id DESC')
+                ->limit(1)
+        );
+    }
+
+    /** The page_ids linked to a term (its posts), for the archive listing. */
+    public function pageIdsForTerm($taxonomyId)
+    {
+        $db = $this->getAdapter();
+        return $db->fetchCol(
+            $db->select()->from(self::JOIN, ['page_id'])
+                ->where('taxonomy_id = ?', (string) $taxonomyId)
+                ->order('sort_order ASC')
+        );
+    }
+
     /** The terms linked to a page (optionally one vocabulary), in author order. */
     public function forPage($pageId, $vocabulary = null)
     {

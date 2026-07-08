@@ -1,0 +1,27 @@
+<?php
+/**
+ * Blog index — the latest published articles, rendered in the theme's PUBLIC layout.
+ * Data comes from Blog_Model_Post::present() (via the controller); this view only lays it
+ * out, and a theme can override it wholesale. Cards are the shared index/_card.phtml partial.
+ */
+$posts = $this->posts ?? [];
+?>
+<div class="container py-5" style="max-width:960px;">
+  <header class="mb-4">
+    <h1 class="display-6 fw-bold mb-1"><?= $this->escape($this->heading ?: 'Blog') ?></h1>
+    <a href="/blog/feed" class="small text-decoration-none text-body-secondary"><i class="fa-solid fa-rss me-1"></i>RSS feed</a>
+  </header>
+
+  <?php if (!$posts): ?>
+    <div class="text-center text-body-secondary py-5">
+      <i class="fa-regular fa-newspaper fa-2x mb-3 d-block"></i>
+      No articles published yet.
+    </div>
+  <?php else: ?>
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-4">
+      <?php foreach ($posts as $p): ?>
+        <?= $this->partial('index/_card.phtml', $p) ?>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+</div>

@@ -102,8 +102,55 @@ class Blog_Model_Post extends Tiger_Model_Page
     /** A published article by slug (tenant over global), for the front-end. */
     public function resolveArticle($slug, $locale, $orgId = '')
     {
-        $row = $this->resolveBySlug($slug, $locale, $orgId);
-        return ($row && $row->type === self::TYPE_ARTICLE) ? $row : null;
+        return $this->resolveBySlug($slug, $locale, $orgId, self::TYPE_ARTICLE);
+    }
+
+    /**
+     * Presentation data for one article row — the reusable, view-agnostic shape the default
+     * views (and any theme/3rd-party surface) render. Resolves the byline author name and the
+     * feature-image URL. `body` is added by the caller (rendered via Tiger_Cms_Renderer) so
+     * this stays a pure metadata projection.
+     *
+     * NOTE: resolves author + feature per row (fine for a single post / a short list). For big
+     * listings, batch-resolve upstream — left simple on purpose; a theme may not need either.
+     *
+     * @return array
+     */
+    public function present($row)
+    {
+        $meta = $this->unpackMeta($row->meta);
+
+        $authorId = (string) $meta['author_id'];
+        $author   = ['id' => $authorId, 'name' => ''];
+        if ($authorId !== '') {
+            $u = (new Tiger_Model_User())->findById($authorId);
+            if ($u) { $author['name'] = $u->username ?: $u->email; }
+        }
+
+        $feature = null;
+        $fid = (string) $meta['feature_media_id'];
+        if ($fid !== '') {
+            $mm = new Tiger_Model_Media();
+            $m  = $mm->findById($fid);
+            if ($m) { $a = $m->toArray(); $feature = ['id' => $fid, 'url' => $mm->url($a), 'thumb' => $mm->thumbUrl($a)]; }
+        }
+
+        return [
+            'page_id'        => $row->page_id,
+            'title'          => (string) $row->title,
+            'slug'           => (string) $row->slug,
+            'url'            => '/blog/' . $row->slug,
+            'kicker'         => (string) $meta['kicker'],
+            'subtitle'       => (string) $meta['subtitle'],
+            'preamble'       => (string) $meta['preamble'],
+            'excerpt'        => (string) ($meta['excerpt'] !== '' ? $meta['excerpt'] : $meta['subtitle']),
+            'reading_time'   => (int) $meta['reading_time'],
+            'published_at'   => $row->published_at,
+            'author'         => $author,
+            'feature'        => $feature,
+            'allow_comments' => !empty($meta['allow_comments']),
+            'seo'            => $meta['seo'],
+        ];
     }
 
     /**

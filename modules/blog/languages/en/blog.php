@@ -9,7 +9,8 @@ return [
     'blog.post.saved'    => 'Article saved.',
     'blog.post.deleted'  => 'Article deleted.',
     'blog.post.restored' => 'Article restored to the selected version.',
-    'blog.error.slug'    => 'This article needs a title or slug.',
+    'blog.error.slug'          => 'This article needs a title or slug.',
+    'blog.error.slug_reserved' => 'That slug is reserved (post, category, tag, feed). Pick another.',
 
     // editor labels
     'blog.editor.kicker'       => 'Kicker',

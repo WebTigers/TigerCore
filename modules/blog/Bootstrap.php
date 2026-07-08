@@ -14,4 +14,29 @@
  */
 class Blog_Bootstrap extends Zend_Application_Module_Bootstrap
 {
+    /**
+     * Public front-end routes under /blog. The rewrite router checks routes newest-first,
+     * so ORDER here matters: the admin route (/blog/post → the authoring controller) is added
+     * LAST so it shadows the /blog/:slug article route for that one path. Everything else —
+     * /blog (index, via the default module route), /blog/<slug>, /blog/category|tag/<slug>,
+     * /blog/feed — resolves to Blog_IndexController. The words post/category/tag/feed are
+     * therefore reserved article slugs (enforced in Blog_Service_Post::save).
+     */
+    protected function _initBlogRoutes()
+    {
+        $router = Zend_Controller_Front::getInstance()->getRouter();
+
+        $router->addRoute('blog_single', new Zend_Controller_Router_Route(
+            'blog/:slug', ['module' => 'blog', 'controller' => 'index', 'action' => 'view']));
+        $router->addRoute('blog_category', new Zend_Controller_Router_Route(
+            'blog/category/:slug', ['module' => 'blog', 'controller' => 'index', 'action' => 'category']));
+        $router->addRoute('blog_tag', new Zend_Controller_Router_Route(
+            'blog/tag/:slug', ['module' => 'blog', 'controller' => 'index', 'action' => 'tag']));
+        $router->addRoute('blog_feed', new Zend_Controller_Router_Route(
+            'blog/feed', ['module' => 'blog', 'controller' => 'index', 'action' => 'feed']));
+
+        // Added last → checked first → /blog/post stays the admin list (not an article slug).
+        $router->addRoute('blog_admin', new Zend_Controller_Router_Route(
+            'blog/post', ['module' => 'blog', 'controller' => 'post', 'action' => 'index']));
+    }
 }

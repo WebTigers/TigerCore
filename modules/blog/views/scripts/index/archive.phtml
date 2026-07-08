@@ -1,0 +1,30 @@
+<?php
+/**
+ * Category / tag archive — posts under one term. Same card grid as the index; the controller
+ * routes both /blog/category/<slug> and /blog/tag/<slug> here (Blog_IndexController::_archive).
+ */
+$posts = $this->posts ?? [];
+$term  = $this->term ?? ['name' => '', 'vocabulary' => '', 'description' => ''];
+?>
+<div class="container py-5" style="max-width:960px;">
+  <header class="mb-4">
+    <div class="small text-uppercase text-body-secondary mb-1" style="letter-spacing:.09em;font-weight:600;">
+      <?= $this->escape($term['vocabulary'] === 'category' ? 'Category' : 'Tag') ?>
+    </div>
+    <h1 class="display-6 fw-bold mb-2"><?= $this->escape($term['name']) ?></h1>
+    <?php if (!empty($term['description'])): ?>
+      <p class="text-body-secondary"><?= $this->escape($term['description']) ?></p>
+    <?php endif; ?>
+    <a href="/blog" class="small text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i>All articles</a>
+  </header>
+
+  <?php if (!$posts): ?>
+    <div class="text-center text-body-secondary py-5">No articles here yet.</div>
+  <?php else: ?>
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-4">
+      <?php foreach ($posts as $p): ?>
+        <?= $this->partial('index/_card.phtml', $p) ?>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+</div>

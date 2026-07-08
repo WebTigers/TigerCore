@@ -68,6 +68,11 @@ class Blog_Service_Post extends Tiger_Service_Service
         $slugIn = trim((string) $v['slug']);
         $slug   = $this->_slugify($slugIn !== '' ? $slugIn : (string) $v['title']);
         if ($slug === '') { $this->_error('blog.error.slug'); return; }
+        // These paths are routed to the admin/archives/feed under /blog, so an article can't
+        // own them (it would be unreachable). Reject with a clear message.
+        if (in_array($slug, ['post', 'category', 'tag', 'feed', 'index'], true)) {
+            $this->_error('blog.error.slug_reserved'); return;
+        }
 
         $fields = [
             'page_key'         => $slug,

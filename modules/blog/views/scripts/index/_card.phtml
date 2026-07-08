@@ -1,0 +1,31 @@
+<?php
+/**
+ * Article card — one post summary, reused by the index + archive listings. Receives a
+ * Blog_Model_Post::present() array as view vars. A theme can override just this partial to
+ * restyle every listing without touching the controllers.
+ */
+$date = $this->published_at ? date('M j, Y', strtotime((string) $this->published_at)) : '';
+?>
+<article class="col">
+  <div class="card h-100 border-0 shadow-sm">
+    <?php if ($this->feature): ?>
+      <a href="<?= $this->escape($this->url) ?>" class="ratio ratio-16x9 overflow-hidden rounded-top">
+        <img src="<?= $this->escape($this->feature['thumb'] ?: $this->feature['url']) ?>" alt="" style="object-fit:cover;">
+      </a>
+    <?php endif; ?>
+    <div class="card-body d-flex flex-column">
+      <?php if ($this->kicker): ?>
+        <div class="small text-uppercase text-body-secondary mb-1" style="letter-spacing:.09em;font-weight:600;"><?= $this->escape($this->kicker) ?></div>
+      <?php endif; ?>
+      <h3 class="h5 mb-2"><a href="<?= $this->escape($this->url) ?>" class="stretched-link text-decoration-none text-body"><?= $this->escape($this->title) ?></a></h3>
+      <?php if ($this->excerpt): ?>
+        <p class="text-body-secondary mb-3"><?= $this->escape($this->excerpt) ?></p>
+      <?php endif; ?>
+      <div class="small text-body-secondary mt-auto">
+        <?php if (!empty($this->author['name'])): ?><span class="fw-semibold"><?= $this->escape($this->author['name']) ?></span><?php endif; ?>
+        <?php if ($date): ?><span class="mx-1">·</span><?= $this->escape($date) ?><?php endif; ?>
+        <?php if ($this->reading_time): ?><span class="mx-1">·</span><?= (int) $this->reading_time ?> min read<?php endif; ?>
+      </div>
+    </div>
+  </div>
+</article>
