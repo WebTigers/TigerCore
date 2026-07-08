@@ -75,7 +75,10 @@ class Signup_Form_Signup extends Tiger_Form
             ]],
             ['text', 'email', [
                 'required' => true, 'filters' => ['StringTrim', 'StringToLower'],
-                'validators' => [['EmailAddress', true], $uniqueEmail],
+                // Format-only email check — ALLOW_ALL skips the wonky TLD/DNS hostname list
+                // (which rejects perfectly good addresses like *.test / new TLDs). Uniqueness
+                // is the NoRecordExists below.
+                'validators' => [['EmailAddress', true, ['allow' => Zend_Validate_Hostname::ALLOW_ALL]], $uniqueEmail],
                 'attribs' => array_merge($control, ['id' => 'su-email', 'type' => 'email', 'autocomplete' => 'email', 'placeholder' => 'jane@acme.com']),
             ]],
 
