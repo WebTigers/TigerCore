@@ -120,6 +120,25 @@ switch ($cmd) {
         }
         break;
 
+    case 'install:storage':
+        // Create the writable runtime dirs (storage/cache/{code}, storage/media, public asset
+        // dirs). Idempotent; safe to re-run. chown to the web-server user/group after if the
+        // installer runs as a different user.
+        try {
+            $root = defined('APPLICATION_ROOT') ? APPLICATION_ROOT : dirname(APPLICATION_PATH);
+            $made = Tiger_Install::provisionStorage($root);
+            if ($made) {
+                echo "  \xE2\x9C\x93 Created writable runtime dirs (chown to the web user/group if needed):\n";
+                foreach ($made as $d) { echo "    - {$d}\n"; }
+            } else {
+                echo "  All runtime dirs already exist — nothing to do.\n";
+            }
+        } catch (Throwable $e) {
+            fwrite(STDERR, "  install:storage failed: " . $e->getMessage() . "\n");
+            exit(1);
+        }
+        break;
+
     case 'install:admin':
         // Create the founding org + owner. Non-interactive via flags
         // (--email= --password= --org= [--username=] [--slug=] [--role=]); prompts for anything missing.
@@ -128,6 +147,7 @@ switch ($cmd) {
         // password is hashed before this process reloads config, so it starts unpeppered
         // and upgrades to the peppered scheme on first login (verifyPassword migration).
         try { Tiger_Install::provisionSecrets(APPLICATION_PATH . '/configs/local.ini'); } catch (Throwable $e) {}
+        try { Tiger_Install::provisionStorage(defined('APPLICATION_ROOT') ? APPLICATION_ROOT : dirname(APPLICATION_PATH)); } catch (Throwable $e) {}
         $flags = tiger_flags($argv);
         $email = isset($flags['email']) ? $flags['email'] : tiger_prompt('Admin email');
         $org   = isset($flags['org'])   ? $flags['org']   : tiger_prompt('Organization name');
@@ -243,6 +263,8 @@ switch ($cmd) {
         echo "  migrate:rollback [n]   Reverse the last n migrations (default 1)\n";
         echo "  install:secrets        Generate the install's random secrets (app encryption key +\n";
         echo "                         password/code pepper) into local.ini if missing (idempotent)\n";
+        echo "  install:storage        Create the writable runtime dirs (storage/cache, media, public\n";
+        echo "                         asset dirs) — idempotent; chown to the web user after if needed\n";
         echo "  install:admin          Create the founding org + owner (also provisions secrets;\n";
         echo "                         --email= --password= --org= [--username=] [--slug=] [--role=developer])\n";
         echo "  crypto:rotate-key      Rotate the app encryption key (old kept as retired)\n";

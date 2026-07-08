@@ -126,6 +126,47 @@ class Tiger_Install
     }
 
     /**
+     * Create the writable runtime directories the framework needs (idempotent). Private
+     * caches live under storage/; browser-served assets under public/. Called by
+     * install:admin + the standalone `install:storage` command, and safe to re-run.
+     *
+     * Dirs are made 0775; the WEB SERVER user must be able to write them — on a single-user
+     * host (cPanel) that's automatic, on a split root/www-user host chown/chgrp them to the
+     * web group after. Returns the dirs actually created.
+     *
+     * @return string[] relative paths created (empty if all already existed)
+     */
+    public static function provisionStorage($appRoot = null)
+    {
+        $root = $appRoot ?: (defined('APPLICATION_ROOT') ? APPLICATION_ROOT : null);
+        if (!$root) {
+            throw new RuntimeException('provisionStorage: no application root (APPLICATION_ROOT undefined).');
+        }
+        $root = rtrim($root, '/');
+
+        $dirs = [
+            'storage',
+            'storage/cache',
+            'storage/cache/code',   // Tiger Code — compiled PHP bundles + inject manifests (private)
+            'storage/media',        // Media — private files (streamed, outside the docroot)
+            'public/_media',         // Media — public files (served)
+            'public/_code',          // Tiger Code — css/js assets (served, browser-cached)
+        ];
+        $made = [];
+        foreach ($dirs as $rel) {
+            $abs = $root . '/' . $rel;
+            if (is_dir($abs)) {
+                continue;   // also true for an existing symlink to a dir — never clobbered
+            }
+            if (!@mkdir($abs, 0775, true) && !is_dir($abs)) {
+                throw new RuntimeException('provisionStorage: could not create ' . $abs);
+            }
+            $made[] = $rel;
+        }
+        return $made;
+    }
+
+    /**
      * Rotate a local.ini secret: move the CURRENT value into the retired list (deduped,
      * newest first) and set the current key to $newValue. Nothing is destroyed — the old
      * value stays available (retired) so in-flight verification/decryption keeps working
