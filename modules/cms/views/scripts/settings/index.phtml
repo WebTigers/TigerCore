@@ -53,12 +53,15 @@ document.addEventListener('DOMContentLoaded', function () {
                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
     }
     document.getElementById('cms-settings-save').addEventListener('click', function () {
+        var btn = this;
         fb.innerHTML = '';
         form.querySelectorAll('.is-invalid').forEach(function (e) { e.classList.remove('is-invalid'); });
         var fd = new URLSearchParams(new FormData(form));
         fd.set('module', 'cms'); fd.set('service', 'settings'); fd.set('method', 'save');
-        fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
-            .then(function (r) { return r.json().catch(function () { return {}; }); })
+        TigerButton.run(btn, function () {
+            return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
+                .then(function (r) { return r.json().catch(function () { return {}; }); });
+        })
             .then(function (res) {
                 if (res && res.result === 1) { fb.innerHTML = alertHtml('Settings saved.', 'success'); return; }
                 if (res && res.form) {
