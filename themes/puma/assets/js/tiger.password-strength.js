@@ -1,17 +1,18 @@
 /**
- * tiger.password-strength.js — a live password strength meter.
+ * tiger.password-strength.js — password meter, show/hide toggle, and valid/invalid state.
  *
- * Put `data-tiger-strength` on a password input and this injects a slim 2px bar beneath it
- * that fills red → yellow → green as the password gets stronger on keyup. On blur, if the
- * password is still weak it elegantly FADES the bar out and reveals the weakness message in
- * its place; the next keystroke fades the message back out and the bar back in. (The server
- * password policy — Tiger_Validate_Password — remains the authority at submit; this is the
- * live UX on top.) Zero markup required beyond the one attribute.
+ * Put `data-tiger-strength` on a password input (optionally inside an .input-group with a
+ * `[data-tiger-pw-toggle]` eye button). This gives you:
+ *   • a slim 2px bar beneath the field that fills red → yellow → green on keyup
+ *   • on blur: weak → the field goes .is-invalid (red) and the bar fades to a red message
+ *     with an icon; strong → the field goes .is-valid (green). Typing returns it to neutral.
+ *   • an eye button that shows/hides the password (fa-eye ⇄ fa-eye-slash)
+ * The server password policy (Tiger_Validate_Password) stays the authority at submit; this
+ * is the live UX. Zero markup beyond the attribute (+ the optional eye button).
  */
 (function (global) {
     'use strict';
 
-    // Score 0..4 by length + character variety.
     function score(pw) {
         var s = 0;
         if (pw.length >= 8) { s++; }
@@ -21,7 +22,6 @@
         if (/[^A-Za-z0-9]/.test(pw)) { s++; }
         return Math.min(s, 4);
     }
-    // The single most useful thing to fix, or '' when it's strong enough.
     function weakness(pw) {
         if (pw.length < 8) { return 'Use at least 8 characters.'; }
         if (!/\d/.test(pw) && !/[^A-Za-z0-9]/.test(pw)) { return 'Add a number or a symbol.'; }
@@ -33,6 +33,7 @@
     function attach(input) {
         if (input.__tgStrength) { return; }
         input.__tgStrength = true;
+        var anchor = input.closest('.input-group') || input;   // inject AFTER the whole group
 
         var track = document.createElement('div');
         track.className = 'tg-strength';
@@ -45,38 +46,55 @@
         msg.className = 'form-text text-danger';
         msg.style.cssText = 'margin-top:6px;opacity:0;height:0;overflow:hidden;transition:opacity .25s ease;';
 
-        input.insertAdjacentElement('afterend', msg);
-        input.insertAdjacentElement('afterend', track);
+        anchor.insertAdjacentElement('afterend', msg);
+        anchor.insertAdjacentElement('afterend', track);
 
         function paint() {
             var s = score(input.value);
             bar.style.width = (input.value ? (s / 4) * 100 : 0) + '%';
             bar.style.backgroundColor = COLORS[s];
         }
-        function showBar() {                       // keyup: bar in, message out
-            msg.style.opacity = '0'; msg.style.height = '0';
-            track.style.opacity = '1';
-            paint();
-        }
-        function showMessage(text) {               // blur-weak: message in, bar out
-            track.style.opacity = '0';
-            msg.textContent = text;
-            msg.style.height = 'auto'; msg.style.opacity = '1';
-        }
+        function neutral() { input.classList.remove('is-invalid', 'is-valid'); }
+        function hideMsg() { msg.style.opacity = '0'; msg.style.height = '0'; }
 
-        input.addEventListener('keyup', showBar);
-        input.addEventListener('input', showBar);
-        input.addEventListener('focus', showBar);
+        // Typing: neutral field, bar visible, no message.
+        function live() { neutral(); hideMsg(); track.style.opacity = '1'; paint(); }
+
+        input.addEventListener('keyup', live);
+        input.addEventListener('input', live);
+        input.addEventListener('focus', live);
         input.addEventListener('blur', function () {
-            var w = input.value ? weakness(input.value) : '';
-            if (w) { showMessage(w); } else { showBar(); }
+            if (!input.value) { neutral(); hideMsg(); track.style.opacity = '1'; paint(); return; }
+            var w = weakness(input.value);
+            if (w) {
+                input.classList.add('is-invalid'); input.classList.remove('is-valid');
+                track.style.opacity = '0';                       // bar fades out…
+                msg.innerHTML = '<i class="fa-solid fa-circle-exclamation me-1"></i>' + w;   // …message fades in
+                msg.style.height = 'auto'; msg.style.opacity = '1';
+            } else {
+                input.classList.add('is-valid'); input.classList.remove('is-invalid');
+                hideMsg(); track.style.opacity = '1'; paint();
+            }
         });
         paint();
     }
 
-    function scan(root) {
-        (root || document).querySelectorAll('input[data-tiger-strength]').forEach(attach);
-    }
+    // Eye toggle (delegated) — show/hide the password in the button's input-group.
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest ? e.target.closest('[data-tiger-pw-toggle]') : null;
+        if (!btn) { return; }
+        e.preventDefault();
+        var group = btn.closest('.input-group');
+        var input = group && group.querySelector('input');
+        if (!input) { return; }
+        var reveal = input.type === 'password';
+        input.type = reveal ? 'text' : 'password';
+        var icon = btn.querySelector('i');
+        if (icon) { icon.className = reveal ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'; }
+        btn.setAttribute('aria-label', reveal ? 'Hide password' : 'Show password');
+    });
+
+    function scan(root) { (root || document).querySelectorAll('input[data-tiger-strength]').forEach(attach); }
     if (document.readyState !== 'loading') { scan(); }
     else { document.addEventListener('DOMContentLoaded', function () { scan(); }); }
 
