@@ -10,22 +10,20 @@
     <p class="text-body-secondary small mb-0">We'll email you a link to choose a new one.</p>
 </div>
 
-<div id="forgot-panel">
-    <div id="forgot-feedback"></div>
-    <form id="forgot-form" novalidate>
-        <div class="mb-3">
-            <label class="form-label" for="forgot-email">Email</label>
-            <input type="email" class="form-control form-control-lg" id="forgot-email" name="email"
-                   autocomplete="username" inputmode="email" autofocus required>
-        </div>
-        <?php $rc = $this->formRecaptcha(); if ($rc): ?>
-        <div class="mb-3 d-flex justify-content-center"><?= $rc ?></div>
-        <?php endif; ?>
-        <div class="d-grid mb-2">
-            <button type="submit" id="forgot-submit" class="btn btn-primary btn-lg">Send reset link</button>
-        </div>
-    </form>
-</div>
+<div id="forgot-feedback"></div>
+<form id="forgot-form" novalidate>
+    <div class="mb-3">
+        <label class="form-label" for="forgot-email">Email</label>
+        <input type="email" class="form-control form-control-lg" id="forgot-email" name="email"
+               autocomplete="username" inputmode="email" autofocus required>
+    </div>
+    <?php $rc = $this->formRecaptcha(); if ($rc): ?>
+    <div class="mb-3 d-flex justify-content-center"><?= $rc ?></div>
+    <?php endif; ?>
+    <div class="d-grid mb-2">
+        <button type="submit" id="forgot-submit" class="btn btn-primary btn-lg">Send reset link</button>
+    </div>
+</form>
 
 <div class="tiger-auth-foot">
     <a href="/auth/login" class="small text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i>Back to sign in</a>
@@ -34,7 +32,6 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var form  = document.getElementById('forgot-form');
-    var panel = document.getElementById('forgot-panel');
     var fb    = document.getElementById('forgot-feedback');
     var btn   = document.getElementById('forgot-submit');
 
