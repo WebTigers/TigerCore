@@ -125,6 +125,11 @@ class Tiger_Service_Authentication
         // signed-in user straight to the lock card. (Cleared after _establish so it sticks
         // through the session-fixation regeneration.)
         unset($this->_lockNs()->locked);
+        // Start the auto-logout inactivity clock fresh — the login itself is activity.
+        // Without this, a stale `last` surviving a prior session (logout only regenerates
+        // the id, it doesn't wipe session data) makes the first poll see a huge idle and
+        // auto-logout the user the instant they sign in.
+        $this->_activityNs()->last = time();
         $this->_recordLogin(Tiger_Model_Login::RESULT_SUCCESS, $identifier, $user->user_id, $identity->org_id, $method);
         return $identity;
     }
@@ -162,6 +167,7 @@ class Tiger_Service_Authentication
     public function logout()
     {
         Zend_Auth::getInstance()->clearIdentity();
+        unset($this->_activityNs()->last, $this->_lockNs()->locked);   // regenerateId keeps data — clear ours
         if (Zend_Session::isStarted()) {
             Zend_Session::regenerateId();
         }
