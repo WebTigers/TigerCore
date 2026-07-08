@@ -258,11 +258,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (codeBtn) { codeBtn.addEventListener('click', function () { codeMode ? toVisual() : toCode(); }); }
     function syncBody() { bodySrc.value = (codeMode && srcCM) ? srcCM.getValue() : bodyEl.innerHTML.trim(); }
 
-    function alertHtml(msg, cls) {
-        var ctx = (cls === 'error') ? 'danger' : (cls || 'info');
-        return '<div class="alert alert-' + ctx + ' alert-dismissible" role="alert">' + String(msg) +
-               '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
-    }
     function clearErrors() {
         fb.innerHTML = '';
         form.querySelectorAll('.is-invalid').forEach(function (e) { e.classList.remove('is-invalid'); });
@@ -332,11 +327,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (res.form) { Object.keys(res.form).forEach(function (f) {
                     var i = form.querySelector('[name="' + f + '"]'); if (i) { i.classList.add('is-invalid'); }
                 }); }
-                (res.messages || []).forEach(function (m) { fb.innerHTML += alertHtml(m.message, m.class); });
-                if (!res.messages || !res.messages.length) { fb.innerHTML = alertHtml('Please fix the highlighted fields.', 'error'); }
+                var msgs = (res.messages) || [];
+                if (msgs.length) { fb.innerHTML = ''; msgs.forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class, replace: false }); }); }
+                else { TigerDOM.notify(fb, 'Please fix the highlighted fields.', { type: 'error' }); }
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             })
-            .catch(function () { fb.innerHTML = alertHtml('Network error — please try again.', 'error'); });
+            .catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
     }
 
     document.getElementById('ed-save').addEventListener('click', function () {

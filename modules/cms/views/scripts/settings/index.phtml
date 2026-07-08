@@ -47,11 +47,6 @@ document.addEventListener('DOMContentLoaded', function () {
     var form = document.getElementById('cms-settings-form');
     var fb   = document.getElementById('cms-settings-feedback');
 
-    function alertHtml(msg, cls) {
-        var ctx = (cls === 'error') ? 'danger' : (cls || 'info');
-        return '<div class="alert alert-' + ctx + ' alert-dismissible" role="alert">' + String(msg) +
-               '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
-    }
     document.getElementById('cms-settings-save').addEventListener('click', function () {
         var btn = this;
         fb.innerHTML = '';
@@ -63,17 +58,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(function (r) { return r.json().catch(function () { return {}; }); });
         })
             .then(function (res) {
-                if (res && res.result === 1) { fb.innerHTML = alertHtml('Settings saved.', 'success'); return; }
+                if (res && res.result === 1) { TigerDOM.notify(fb, 'Settings saved.', { type: 'success' }); return; }
                 if (res && res.form) {
                     Object.keys(res.form).forEach(function (field) {
                         var input = form.querySelector('[name="' + field + '"]');
                         if (input) { input.classList.add('is-invalid'); }
                     });
                 }
-                (res && res.messages || []).forEach(function (m) { fb.innerHTML += alertHtml(m.message, m.class); });
-                if (!res || !res.messages || !res.messages.length) { fb.innerHTML = alertHtml('Please fix the highlighted fields.', 'error'); }
+                var msgs = (res && res.messages) || [];
+                if (msgs.length) { fb.innerHTML = ''; msgs.forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class, replace: false }); }); }
+                else { TigerDOM.notify(fb, 'Please fix the highlighted fields.', { type: 'error' }); }
             })
-            .catch(function () { fb.innerHTML = alertHtml('Network error — please try again.', 'error'); });
+            .catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
     });
 });
 </script>

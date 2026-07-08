@@ -63,9 +63,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var reqBtn  = document.getElementById('otp-request-submit');
     var verBtn  = document.getElementById('otp-verify-submit');
 
-    function fail(msg) {
-        fb.innerHTML = '<div class="alert alert-danger py-2 mb-3" role="alert">' + msg + '</div>';
-    }
+    function fail(msg) { TigerDOM.notify(fb, msg, { type: 'error' }); }
     function rcReset() { if (window.grecaptcha) { try { grecaptcha.reset(); } catch (e) {} } }
     function post(body) {
         return fetch('/auth/otp', {

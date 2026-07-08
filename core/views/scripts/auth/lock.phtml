@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var sendForm= document.getElementById('lock-send-form');
     var codeForm= document.getElementById('lock-code-form');
 
-    function fail(msg) { fb.innerHTML = '<div class="alert alert-danger py-2 mb-3" role="alert">' + msg + '</div>'; }
+    function fail(msg) { TigerDOM.notify(fb, msg, { type: 'error' }); }
     function post(body) {
         return fetch('/auth/lock', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: new URLSearchParams(body) })
             .then(function (r) { return r.json().catch(function () { return {}; }); });

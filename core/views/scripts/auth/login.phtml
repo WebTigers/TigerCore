@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var codeIn  = document.getElementById('twofa-code');
 
     function fail(msg) {
-        fb.innerHTML = '<div class="alert alert-danger py-2 mb-3" role="alert">' + msg + '</div>';
+        TigerDOM.notify(fb, msg, { type: 'error' });
     }
     function rcReset() { if (window.grecaptcha) { try { grecaptcha.reset(); } catch (e) {} } }
     function post(body) {

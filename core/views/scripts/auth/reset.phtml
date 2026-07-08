@@ -46,14 +46,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var fb   = document.getElementById('reset-feedback');
     var btn  = document.getElementById('reset-submit');
 
-    function fail(msg) {
-        fb.innerHTML = '';
-        var d = document.createElement('div');
-        d.className = 'alert alert-danger py-2 mb-3';
-        d.setAttribute('role', 'alert');
-        d.textContent = msg;
-        fb.appendChild(d);
-    }
+    function fail(msg) { TigerDOM.notify(fb, msg, { type: 'error' }); }
     function rcReset() { if (window.grecaptcha) { try { grecaptcha.reset(); } catch (e) {} } }
 
     form.addEventListener('submit', function (e) {

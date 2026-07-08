@@ -93,7 +93,6 @@ document.addEventListener('DOMContentLoaded', function () {
     var head = document.getElementById('mod-detail-head'), body = document.getElementById('mod-detail-body'), foot = document.getElementById('mod-detail-foot');
 
     function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
-    function alertHtml(msg,cls){ var ctx=(cls==='error')?'danger':(cls||'info'); return '<div class="alert alert-'+ctx+' alert-dismissible" role="alert">'+esc(msg)+'<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>'; }
     function badge(t,cls){ return '<span class="badge text-bg-'+cls+' me-1">'+esc(t)+'</span>'; }
     function api(method,data){ var b=new URLSearchParams(Object.assign({module:'system',service:'modules',method:method},data)); return fetch('/api',{method:'POST',headers:{'X-Requested-With':'XMLHttpRequest'},body:b}).then(function(r){return r.json();}); }
     var imgErr = "this.style.display='none'";
@@ -108,9 +107,9 @@ document.addEventListener('DOMContentLoaded', function () {
         modal.show();
         var task = function(){ return api('inspect', { url: repo, ref: ref || '' }); };
         (btn ? TigerButton.run(btn, task) : task()).then(function(res){
-            if (res.result !== 1){ body.innerHTML = ''; (res.messages||[]).forEach(function(m){ body.innerHTML += alertHtml(m.message,m.class); }); return; }
+            if (res.result !== 1){ body.innerHTML = ''; (res.messages||[]).forEach(function(m){ TigerDOM.notify(body, m.message, { type: m.class, replace: false }); }); return; }
             renderDetail(Object.assign({}, res.data, { _extra: extra }));
-        }).catch(function(){ body.innerHTML = alertHtml('Network error.','error'); });
+        }).catch(function(){ TigerDOM.notify(body, 'Network error.', { type: 'error' }); });
     }
 
     function renderDetail(d){
@@ -147,7 +146,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return api('install',{url:repo,ref:ref,force:isUpdate?1:0});
         }).then(function(res){
             if (res.result===1){ window.location=res.redirect||'/system/modules'; return; }
-            modal.hide(); fb.innerHTML=''; (res.messages||[]).forEach(function(m){ fb.innerHTML+=alertHtml(m.message,m.class); }); window.scrollTo({top:0,behavior:'smooth'});
+            modal.hide(); fb.innerHTML=''; (res.messages||[]).forEach(function(m){ TigerDOM.notify(fb, m.message, { type: m.class, replace: false }); }); window.scrollTo({top:0,behavior:'smooth'});
         }).catch(function(){});
     }
 

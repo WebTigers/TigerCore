@@ -147,11 +147,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     if (langSel) { langSel.addEventListener('change', syncLang); syncLang(); }
 
-    function alertHtml(msg, cls) {
-        var ctx = (cls === 'error') ? 'danger' : (cls || 'info');
-        return '<div class="alert alert-' + ctx + ' alert-dismissible" role="alert"><pre class="mb-0" style="white-space:pre-wrap;font-family:inherit;">' +
-               String(msg) + '</pre><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
-    }
     function post(extra, onOk, btn) {
         if (window.TigerCodeEditor) { TigerCodeEditor.syncAll(); }   // flush CodeMirror — synchronous setup, before the busy-state
         var fd = new URLSearchParams(new FormData(form));
@@ -164,12 +159,12 @@ document.addEventListener('DOMContentLoaded', function () {
         return (btn ? TigerButton.run(btn, task) : task())
             .then(function (res) {
                 if (res.result === 1) { onOk(res); return; }
-                fb.innerHTML = '';
-                (res.messages || []).forEach(function (m) { fb.innerHTML += alertHtml(m.message, m.class); });
-                if (!res.messages || !res.messages.length) { fb.innerHTML = alertHtml('Please check the form and try again.', 'error'); }
+                var msgs = (res.messages) || [];
+                if (msgs.length) { fb.innerHTML = ''; msgs.forEach(function (m) { TigerDOM.notify(fb, '<pre class="mb-0" style="white-space:pre-wrap;font-family:inherit;">' + String(m.message) + '</pre>', { type: m.class, replace: false }); }); }
+                else { TigerDOM.notify(fb, 'Please check the form and try again.', { type: 'error' }); }
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             })
-            .catch(function () { fb.innerHTML = alertHtml('Network error — please try again.', 'error'); });
+            .catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
     }
 
     document.getElementById('code-save').addEventListener('click', function () {

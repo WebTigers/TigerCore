@@ -57,15 +57,15 @@ document.addEventListener('DOMContentLoaded', function () {
             // A reCAPTCHA block is a real error (not account enumeration) — surface it.
             if (res && res.result === 0 && res.recaptcha) {
                 rcReset();
-                fb.innerHTML = '<div class="alert alert-danger py-2 mb-3" role="alert">Please complete the reCAPTCHA and try again.</div>';
+                TigerDOM.notify(fb, 'Please complete the reCAPTCHA and try again.', { type: 'error' });
                 return;
             }
-            var a = document.createElement('div');
-            a.className = 'alert alert-success mb-0';
-            a.setAttribute('role', 'alert');
-            a.textContent = 'If an account exists for ' + email + ', a reset link is on its way. Check your inbox.';
-            panel.innerHTML = '';
-            panel.appendChild(a);
+            // Hide the form and confirm via notify. Escape the (user-supplied) email —
+            // notify takes HTML, so build the text safely rather than concatenating raw.
+            var msg = document.createElement('span');
+            msg.textContent = 'If an account exists for ' + email + ', a reset link is on its way. Check your inbox.';
+            form.style.display = 'none';
+            TigerDOM.notify(fb, msg.innerHTML, { type: 'success' });
         })
         .catch(function () {
             rcReset();

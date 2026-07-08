@@ -201,8 +201,6 @@ $collect($this->tree);
   </div>
 </div>
 
-<div class="toast-container position-fixed bottom-0 end-0 p-3" id="menu-toasts" style="z-index:1090;"></div>
-
 <script>
 var MENU_ITEMS = <?= json_encode($flat, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
 document.addEventListener('DOMContentLoaded', function () {
@@ -225,17 +223,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function setDepth(li, d) { li.dataset.depth = d; li.style.setProperty('--depth', d); }
     function prevItem(li) { var p = li.previousElementSibling; while (p && !p.classList.contains('menu-item')) { p = p.previousElementSibling; } return p; }
 
-    function toast(msg, kind) {
-        var el = document.createElement('div');
-        el.className = 'toast align-items-center text-bg-' + (kind || 'success') + ' border-0';
-        el.setAttribute('role', 'status');
-        el.innerHTML = '<div class="d-flex"><div class="toast-body">' + esc(msg) + '</div>'
-            + '<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>';
-        document.getElementById('menu-toasts').appendChild(el);
-        var t = bootstrap.Toast.getOrCreateInstance(el, { delay: 2200 });
-        el.addEventListener('hidden.bs.toast', function () { el.remove(); });
-        t.show();
-    }
     function api(method, params) {
         var body = new URLSearchParams(params || {});
         body.set('module', 'cms'); body.set('service', 'menu'); body.set('method', method);
@@ -295,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Turn a dropped palette clone into a real, persisted flat item.
     function createFromSource(el) {
-        if (!currentKey()) { toast('Name the menu (key) first.', 'danger'); el.remove(); return; }
+        if (!currentKey()) { TigerDOM.toast('Name the menu (key) first.', { type: 'error' }); el.remove(); return; }
         var d = el.dataset;
         var above = prevItem(el);
         var depth = above ? depthOf(above) : 0;                  // land at the neighbor's level
@@ -303,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (d.source === 'page') { params.page_key = d.pageKey; }
         else if (d.kind === 'url') { params.url = '#'; }
         api('save', params).then(function (res) {
-            if (!res || res.result !== 1 || !res.data) { toast('Could not add item.', 'danger'); el.remove(); return; }
+            if (!res || res.result !== 1 || !res.data) { TigerDOM.toast('Could not add item.', { type: 'error' }); el.remove(); return; }
             var id = res.data.menu_id;
             el.classList.remove('menu-source');
             ['source', 'kind', 'page-key', 'label'].forEach(function (k) { el.removeAttribute('data-' + k); });
@@ -311,7 +298,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var d2 = { label: params.label, page_key: params.page_key || '', url: params.url || '', icon: '', css_class: '', dom_id: '', link_target: '', link_rel: '', resource: '', privilege: '', status: 'published' };
             el.innerHTML = chipHTML(d2); MENU_ITEMS[id] = d2;
             schedulePersist();
-            toast((params.label || 'Item') + ' added');
+            TigerDOM.toast(esc((params.label || 'Item') + ' added'), { type: 'success' });
             if (d.source === 'custom') { openModal(id); }
         });
     }
@@ -360,7 +347,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!res || res.result !== 1) {
                 var msg = 'Could not save.';
                 if (res && res.form) { var f0 = Object.values(res.form)[0]; if (f0) { msg = Object.values(f0)[0] || msg; } }
-                errBox.innerHTML = '<div class="alert alert-danger py-2">' + esc(msg) + '</div>';
+                TigerDOM.notify(errBox, esc(msg), { type: 'error' });
                 return;
             }
             var d = MENU_ITEMS[editId] || {};
@@ -369,8 +356,8 @@ document.addEventListener('DOMContentLoaded', function () {
             var li = root.querySelector('li.menu-item[data-menu-id="' + editId + '"]');
             if (li) { var chip = li.querySelector(':scope > .menu-chip'); if (chip) { chip.outerHTML = chipHTML(d); } }
             modal().hide();
-            toast((d.label || 'Item') + ' saved');
-        }).catch(function () { errBox.innerHTML = '<div class="alert alert-danger py-2">Network error.</div>'; });
+            TigerDOM.toast(esc((d.label || 'Item') + ' saved'), { type: 'success' });
+        }).catch(function () { TigerDOM.notify(errBox, 'Network error.', { type: 'error' }); });
     });
 
     // Delegated open / delete (delete removes the row + its deeper-depth descendants).
@@ -386,7 +373,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 var depth = depthOf(li), n = li.nextElementSibling;
                 li.remove();
                 while (n) { var nn = n.nextElementSibling; if (n.classList.contains('menu-item') && depthOf(n) > depth) { n.remove(); } else { break; } n = nn; }
-                schedulePersist(); toast('Item removed');
+                schedulePersist(); TigerDOM.toast('Item removed', { type: 'success' });
             });
         }
     });

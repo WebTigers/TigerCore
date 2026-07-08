@@ -124,7 +124,7 @@ $available = !empty($twofa['available']);
 document.addEventListener('DOMContentLoaded', function () {
     var fb = document.getElementById('twofa-feedback');
     function note(msg, kind) {
-        fb.innerHTML = '<div class="alert alert-' + (kind || 'danger') + ' py-2" role="alert">' + msg + '</div>';
+        TigerDOM.notify(fb, msg, { type: kind === 'success' ? 'success' : 'error' });
     }
     function post(url, body) {
         return fetch(url, {
