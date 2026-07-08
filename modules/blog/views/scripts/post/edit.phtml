@@ -15,7 +15,13 @@ $el  = function ($name) use ($form) { return $form->getElement($name); };
 $val = function ($name) use ($form) { $e = $form->getElement($name); return $this->escape((string) ($e ? $e->getValue() : '')); };
 $body = $form->getElement('body')->getValue();   // raw HTML into the contentEditable
 ?>
+<link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/vendor/codemirror/codemirror.bundle.css') ?>">
+<link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/vendor/codemirror/theme-dark.css') ?>">
+<script src="<?= $this->asset($this->themeAssets . '/vendor/codemirror/codemirror.bundle.js') ?>"></script>
+<script src="<?= $this->asset($this->themeAssets . '/js/tiger.code-editor.js') ?>"></script>
 <style>
+  .ed-canvas .CodeMirror{border:1px solid var(--bs-border-color);border-radius:.4rem;height:auto;min-height:40vh;font-size:.92rem;}
+  .ed-toolbar .btn.active{background:var(--bs-secondary-bg);}
   .ed-topbar{position:sticky;top:0;z-index:5;background:var(--bs-body-bg);border-bottom:1px solid var(--bs-border-color);
     display:flex;align-items:center;gap:.5rem;padding:.6rem 0;margin-bottom:1.5rem}
   .ed-canvas{max-width:720px;margin:0 auto}
@@ -111,11 +117,14 @@ $body = $form->getElement('body')->getValue();   // raw HTML into the contentEdi
             <span class="vr mx-1"></span>
             <button type="button" class="btn btn-sm btn-light" data-ed-link title="Link"><i class="fa-solid fa-link"></i></button>
             <button type="button" class="btn btn-sm btn-light" data-ed-image title="Insert image"><i class="fa-solid fa-image"></i></button>
+            <span class="vr mx-1"></span>
+            <button type="button" class="btn btn-sm btn-light" data-ed-code title="Edit HTML source"><i class="fa-solid fa-code"></i></button>
         </div>
 
         <div id="ed-body" class="ed-body" contenteditable="true"
              data-placeholder="Tell your story…"><?= $body ?></div>
         <textarea name="body" id="ed-body-src" class="d-none"><?= $this->escape($body) ?></textarea>
+        <textarea id="ed-body-code" class="d-none"></textarea>
     </div>
 </form>
 
@@ -228,6 +237,27 @@ document.addEventListener('DOMContentLoaded', function () {
     var bodySrc = document.getElementById('ed-body-src');
     var featInput = document.getElementById('post-feature');
 
+    // Visual ↔ HTML-source toggle — same body, two ways to edit it (colored, foldable code).
+    var codeMode = false, srcCM = null;
+    var codeBtn = document.querySelector('[data-ed-code]');
+    function toCode() {
+        if (!window.TigerCodeEditor) { return; }
+        var ta = document.getElementById('ed-body-code');
+        ta.value = bodyEl.innerHTML.trim();
+        if (!srcCM) { srcCM = TigerCodeEditor.from(ta, { mode: 'html' }); }
+        else { srcCM.setValue(ta.value); srcCM.getWrapperElement().style.display = ''; }
+        srcCM.refresh();
+        bodyEl.classList.add('d-none');
+        codeMode = true; if (codeBtn) { codeBtn.classList.add('active'); }
+    }
+    function toVisual() {
+        if (srcCM) { bodyEl.innerHTML = srcCM.getValue(); srcCM.getWrapperElement().style.display = 'none'; }
+        bodyEl.classList.remove('d-none');
+        codeMode = false; if (codeBtn) { codeBtn.classList.remove('active'); }
+    }
+    if (codeBtn) { codeBtn.addEventListener('click', function () { codeMode ? toVisual() : toCode(); }); }
+    function syncBody() { bodySrc.value = (codeMode && srcCM) ? srcCM.getValue() : bodyEl.innerHTML.trim(); }
+
     function alertHtml(msg, cls) {
         var ctx = (cls === 'error') ? 'danger' : (cls || 'info');
         return '<div class="alert alert-' + ctx + ' alert-dismissible" role="alert">' + String(msg) +
@@ -287,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function post(extra, onOk) {
-        bodySrc.value = bodyEl.innerHTML.trim();   // mirror the canvas into the form field
+        syncBody();   // mirror the active surface (visual or code) into the form field
         var fd = new URLSearchParams(new FormData(form));
         fd.set('module', 'blog'); fd.set('service', 'post');
         Object.keys(extra).forEach(function (k) { fd.set(k, extra[k]); });

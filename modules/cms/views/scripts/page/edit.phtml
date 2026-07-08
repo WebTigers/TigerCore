@@ -12,6 +12,16 @@ $versions = $this->versions ?? [];
 $isEdit   = (bool) $page;
 $el = function ($name) use ($form) { return $form->getElement($name); };
 ?>
+<link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/vendor/codemirror/codemirror.bundle.css') ?>">
+<link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/vendor/codemirror/theme-dark.css') ?>">
+<script src="<?= $this->asset($this->themeAssets . '/vendor/codemirror/codemirror.bundle.js') ?>"></script>
+<script src="<?= $this->asset($this->themeAssets . '/js/tiger.code-editor.js') ?>"></script>
+<style>
+  .CodeMirror{border:1px solid var(--bs-border-color);border-radius:.375rem;height:auto;min-height:440px;font-size:.9rem;}
+  .CodeMirror-focused{border-color:var(--bs-primary);box-shadow:0 0 0 .2rem rgba(var(--bs-primary-rgb),.15);}
+  .cm-toolbar{display:flex;gap:.3rem;align-items:center;}
+</style>
+
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
         <h1 class="h3 mb-1"><?= $isEdit ? 'Edit Page' : 'New Page' ?></h1>
@@ -37,7 +47,13 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
                         <?= $el('title') ?>
                     </div>
                     <div class="mb-0">
-                        <label class="form-label" for="<?= $this->escape($el('body')->getId()) ?>">Body</label>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <label class="form-label mb-0" for="<?= $this->escape($el('body')->getId()) ?>">Body</label>
+                            <div class="cm-toolbar">
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0" id="cms-fold" title="Collapse all blocks"><i class="fa-solid fa-angles-up me-1"></i>Fold</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0" id="cms-unfold" title="Expand all blocks"><i class="fa-solid fa-angles-down me-1"></i>Unfold</button>
+                            </div>
+                        </div>
                         <?= $el('body') ?>
                         <div class="form-text">Rendered per the selected format. <code>[shortcodes]</code> work in HTML/Markdown; PHTML runs view code (trusted authors only).</div>
                     </div>
@@ -126,6 +142,16 @@ document.addEventListener('DOMContentLoaded', function () {
     var form = document.getElementById('cms-page-form');
     var fb   = document.getElementById('cms-feedback');
 
+    // Colored, foldable code editing for the body — mode follows the Format select.
+    var fmt = document.getElementById('cms-format');
+    var cm  = (window.TigerCodeEditor && document.getElementById('cms-body'))
+        ? TigerCodeEditor.from(document.getElementById('cms-body'), { mode: fmt ? fmt.value : 'html' })
+        : null;
+    if (cm && fmt) { fmt.addEventListener('change', function () { TigerCodeEditor.setMode(cm, fmt.value); }); }
+    var foldBtn = document.getElementById('cms-fold'), unfoldBtn = document.getElementById('cms-unfold');
+    if (foldBtn)   { foldBtn.addEventListener('click', function () { TigerCodeEditor.foldAll(cm); }); }
+    if (unfoldBtn) { unfoldBtn.addEventListener('click', function () { TigerCodeEditor.unfoldAll(cm); }); }
+
     function alertHtml(msg, cls) {
         var ctx = (cls === 'error') ? 'danger' : (cls || 'info');
         return '<div class="alert alert-' + ctx + ' alert-dismissible" role="alert">' +
@@ -136,6 +162,7 @@ document.addEventListener('DOMContentLoaded', function () {
         form.querySelectorAll('.is-invalid').forEach(function (e) { e.classList.remove('is-invalid'); });
     }
     function post(extra, onOk) {
+        if (window.TigerCodeEditor) { TigerCodeEditor.syncAll(); }   // flush CodeMirror -> textarea
         var fd = new URLSearchParams(new FormData(form));
         fd.set('module', 'cms'); fd.set('service', 'page');
         Object.keys(extra).forEach(function (k) { fd.set(k, extra[k]); });
