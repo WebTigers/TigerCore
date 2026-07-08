@@ -1,7 +1,7 @@
 <?php
 /**
  * Modules admin — the installed-modules list (the WordPress "Plugins" screen for Tiger).
- * Server-rendered from Tiger_Module_Discovery + installed_module state; activate/deactivate
+ * Server-rendered from Tiger_Module_Discovery + module state; activate/deactivate
  * post to System_Service_Modules over /api, then reload. "Add New" lands the Module Installer.
  */
 $modules = $this->modules ?? [];

@@ -2,7 +2,7 @@
 /**
  * System_Service_Modules — the /api service for the Module manager (activate / deactivate).
  *
- * Toggling flips the `installed_module.active` flag; the activation gate
+ * Toggling flips the `module.active` flag; the activation gate
  * (Tiger_Application_Resource_Modules) picks it up on the NEXT request — a deactivated module
  * drops off routing + bootstrapping entirely. Gated to `superadmin`+ (managing modules is a
  * platform-admin privilege). A PROTECTED set can never be deactivated so you can't lock
@@ -29,7 +29,7 @@ class System_Service_Modules extends Tiger_Service_Service
 
         try {
             $d = $discovered[$slug];
-            (new Tiger_Model_InstalledModule())->setActive($slug, $on, ['name' => $d['name'], 'version' => $d['version']]);
+            (new Tiger_Model_Module())->setActive($slug, $on, ['name' => $d['name'], 'version' => $d['version']]);
             $this->_success(
                 ['slug' => $slug, 'active' => $on],
                 $on ? 'system.module.activated' : 'system.module.deactivated',

@@ -17,7 +17,7 @@ class System_ModulesController extends Tiger_Controller_Action
 
     public function indexAction()
     {
-        $installed = (new Tiger_Model_InstalledModule())->bySlugMap();
+        $installed = (new Tiger_Model_Module())->bySlugMap();
 
         $modules = [];
         foreach (Tiger_Module_Discovery::all() as $slug => $m) {

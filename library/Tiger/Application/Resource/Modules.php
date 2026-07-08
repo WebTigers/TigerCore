@@ -12,7 +12,7 @@
  * means it neither loads its Bootstrap nor answers any URL. Deactivation = invisible, not
  * deleted.
  *
- * Fail-safe: any error (no DB, no `installed_module` table on a fresh install) leaves the map
+ * Fail-safe: any error (no DB, no `module` table on a fresh install) leaves the map
  * untouched, so every module stays active — never a worse state than stock ZF1.
  *
  * @api
@@ -24,7 +24,7 @@ class Tiger_Application_Resource_Modules extends Zend_Application_Resource_Modul
         try {
             $front = Zend_Controller_Front::getInstance();
             $default = $front->getDefaultModule();
-            foreach ((new Tiger_Model_InstalledModule())->inactiveSlugs() as $slug) {
+            foreach ((new Tiger_Model_Module())->inactiveSlugs() as $slug) {
                 $slug = (string) $slug;
                 // never strip the default (core) namespace; the protected set is enforced by the
                 // admin service so a row for one can't exist, but guard the kernel here regardless.

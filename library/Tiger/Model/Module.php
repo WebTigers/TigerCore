@@ -1,6 +1,6 @@
 <?php
 /**
- * Tiger_Model_InstalledModule — the module lifecycle registry (see migration 0023).
+ * Tiger_Model_Module — the module lifecycle registry (see migration 0023).
  *
  * The source of truth for which modules are ACTIVE. `inactiveSlugs()` is the hot path the
  * boot-time gate (Tiger_Application_Resource_Modules) calls to strip deactivated modules from
@@ -9,10 +9,10 @@
  *
  * @api
  */
-class Tiger_Model_InstalledModule extends Tiger_Model_Table
+class Tiger_Model_Module extends Tiger_Model_Table
 {
-    protected $_name    = 'installed_module';
-    protected $_primary = 'installed_module_id';
+    protected $_name    = 'module';
+    protected $_primary = 'module_id';
 
     const SOURCE_REGISTRY   = 'registry';
     const SOURCE_URL        = 'url';
@@ -54,7 +54,7 @@ class Tiger_Model_InstalledModule extends Tiger_Model_Table
         ];
         if ($row) {
             $this->update($data, $this->getAdapter()->quoteInto('slug = ?', (string) $slug));
-            return $row->installed_module_id;
+            return $row->module_id;
         }
         $data['slug']    = (string) $slug;
         $data['source']  = $meta['source']  ?? self::SOURCE_DISCOVERED;
