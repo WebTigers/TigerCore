@@ -40,27 +40,61 @@ working to-do, not a changelog (git history is the changelog).
   customer per **org** (ties to the tenant substrate), plans/prices, subscriptions, Checkout +
   Customer Portal, and a webhook endpoint (Stripe events → local state). Declares its own
   `stripe/stripe-php` dependency. Underpins the hosted/marketplace/SaaS business paths.
-- **Marketplace module — app-level, PRIVATE (WebTigers-only)** — the **catalog / storefront**: a
-  listing of installable plugins/modules (+ themes) browsable from within Tiger that feeds the core
-  **Module Manager** (below) for auto-install. Works **with the Billing module** (paid items settle
-  via Stripe). Private/internal (only our apps run the storefront); what it lists installs anywhere.
-  Curated — we vet everything listed.
+- **Module Installer + Vendor Registry — WordPress-familiar, open-but-reviewable (CORE, Tiger-owned)**
+  — the evolution of the old "private curated marketplace": an **open community registry** + install
+  from any **public GitHub repo URL**. Public code is the price of admission — **no private repos**
+  (module code must be out in the open for review). Vendors may sell pro tiers; we **encourage a
+  free tier for every module**. First end-to-end test: the **`docs` module** (WebTigers/tiger-docs).
 
-- **Core Module Manager — WordPress-style plugin lifecycle (CORE, Tiger-owned)** — find, install,
-  and manage marketplace modules from inside Tiger:
-  - **Find** (browse the Marketplace) → **Install** (download + verify + unzip the package into the
-    managed-modules dir) → **Activate** (run the module's IDEMPOTENT setup — its own migrations + an
-    `activate` hook) → **Deactivate** (teardown/disable; uninstall removes the files).
-  - **Module-aware = the safety guarantee:** tracks ONLY managed (marketplace-installed) modules in
-    a registry (a `module` table + per-module manifest) and **never touches developer-authored
-    custom modules** — the same ownership boundary as `vendor/` (managed vs custom = Tiger-owned vs
-    app-owned).
-  - **Security = the WordPress supply-chain footgun; design in from day 1:** curated + signed
-    packages from the trusted WebTigers marketplace ONLY, checksum verification, install gated to
-    superadmin/developer, explicit "activate runs code" trust boundary. Do NOT copy WP's
-    install-anything-from-anywhere model.
-  - Ties into the migrator (run a module's OWN migrations on activate) and `bin/tiger`
-    (`module:install|activate|deactivate|list`).
+  - **Discovery — the Vendor Registry (`WebTigers/Vendors` repo).** The registry IS a git repo (no
+    server to run/scale). A vendor opens a PR adding their listing; our **AI reviews open PRs a few
+    times/day** — manifest schema valid, repo public + exists, license present, the claimed release
+    tag exists, module layout conforms, basic safety heuristics — then opens a **response PR on the
+    vendor's repo** with findings. Accepted → merged into the registry; rejected → resubmit.
+    - **Recommendation: one JSON file per module** (`/data/<slug>.json`), *not* one giant file — PRs
+      never collide, and a CI step compiles `/data/index.json` (the search index). A single "massive
+      JSON" would turn every submission into a merge conflict.
+    - Tiger polls `index.json` a few times/day (or on-demand when the admin opens *Add Module*),
+      caches it locally (TTL) → search is local + instant, no GitHub hammering.
+
+  - **Package format (`module.json`).** The repo **root IS the module** (WP-style); on install its
+    contents become `application/modules/<slug>/`. Manifest = slug, version, description, author,
+    homepage, repository, license, `requires` (tiger/php), `provides` (routes/acl/migrations/assets),
+    `pricing` (free|freemium|paid + `pro_url`). The registry listing = this manifest + the **vetted
+    release ref**. *(Format defined by `tiger-docs/module.json`.)*
+
+  - **Install mechanism (no git/composer on the host).** Download the GitHub release tarball for a
+    **pinned tag** (`/archive/refs/tags/<tag>.tar.gz`), **verify its SHA** against the registry's
+    vetted ref (what was reviewed == what installs), **zip-slip-guard** the extraction into
+    `application/modules/<slug>/`, run the module's migrations, publish `assets/` →
+    `public/_modules/<slug>/`. Same pipeline for **Install from URL** (paste a public repo URL for
+    unlisted/dev — resolves the latest release).
+
+  - **Lifecycle + the active-modules boundary.** A new **`installed_module`** table (slug, name,
+    version, repo, ref/SHA, source [registry|url], active, timestamps) is the source of truth.
+    **Module discovery must consult it:** today ZF1 auto-loads *all* of `application/modules`; to get
+    WP-style activate/deactivate (installed-but-off), discovery loads only **active managed** modules
+    — developer-authored *custom* modules stay always-on (managed vs custom = Tiger-owned vs app-owned,
+    same boundary as `vendor/`). `bin/tiger module:install|activate|deactivate|update|list`. Activate
+    runs the module's migrations + an idempotent `activate` hook.
+
+  - **Trust model — be honest (the WP supply-chain footgun).** Installing a module runs its PHP in
+    your app = RCE by design; there is no PHP sandbox. Guardrails: **public-repo-only** (auditable +
+    accountable), **pinned refs** (install exactly what was reviewed, never a moving HEAD), checksum
+    verify, install gated to `code.execute`/superadmin, an explicit "activate runs code" confirm.
+    **A listing means triaged, not certified safe** — surface tiers: *community* (listed) / *verified*
+    (deeper review) / *partner*. Same ethos as **Tiger Code** (code that runs must be reviewable) —
+    lean into it, don't pretend it's risk-free.
+
+  - **WP-familiar UX.** A **Modules** admin screen (≈ Plugins): installed list with activate /
+    deactivate / delete + **update badges** ("v1.2 available"); **Add New** = registry search (cards:
+    name, author, description, **free-tier badge**, Install) + **Install from URL**; a details view
+    (changelog, requires, license, screenshots from the manifest). Free tier **encouraged** via a
+    badge + sort preference, never enforced.
+
+  - **Optional paid layer (Billing).** A curated/paid **storefront** (WebTigers-run) can sit *on top*
+    of the open registry — paid modules settle via the **Billing module** (Stripe), license keys gate
+    the pro tier. The open registry stays the free base; commerce is an additive layer, not a gate.
 
 - **Extension model — how modules extend Tiger (the anti-WP-hooks design; decide before the admin UI).**
   NOT WP's ~2,000 stringly-typed hooks (WP needs them because it's procedural). Four typed mechanisms
