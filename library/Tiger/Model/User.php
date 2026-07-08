@@ -35,6 +35,55 @@ class Tiger_Model_User extends Tiger_Model_Table
     }
 
     /**
+     * Resolve a login IDENTIFIER to a user — the one entry point every login flow uses.
+     * An identifier is what you claim to be; the CREDENTIAL (password / code / passkey)
+     * that proves it is verified separately, afterward.
+     *
+     * Resolution order, first hit wins:
+     *   1. email    — the canonical identity column (unique)
+     *   2. username — identity column (unique)
+     *   3. a verified factor `identifier` in user_credential — the (type, identifier)
+     *      reverse-lookup the schema was built for: phone (sms, E.164), oauth subject,
+     *      webauthn cred-id. Singleton factors (password/totp) carry identifier='' and
+     *      never match here, and a pending/unverified factor must not resolve identity.
+     *
+     * Email-first keeps things deterministic if a username ever equals another user's
+     * email local-part. Phone/oauth/passkey login all fall out of step 3 for free once
+     * those factors exist (phone-number normalization lands with the SMS factor).
+     *
+     * @param  string $identifier email | username | a verified factor identifier
+     * @return Zend_Db_Table_Row_Abstract|null
+     */
+    public function findByIdentifier($identifier)
+    {
+        $identifier = trim((string) $identifier);
+        if ($identifier === '') {
+            return null;
+        }
+
+        // 1 + 2: identity columns on the user row.
+        $user = $this->findByEmail($identifier)
+            ?: ($this->fetchRow($this->activeSelect()->where('username = ?', $identifier)) ?: null);
+        if ($user) {
+            return $user;
+        }
+
+        // 3: a verified factor identifier (phone / oauth subject / webauthn cred-id).
+        $db  = $this->getAdapter();
+        $uid = $db->fetchOne(
+            $db->select()
+               ->from('user_credential', ['user_id'])
+               ->where('identifier = ?', $identifier)
+               ->where("identifier <> ''")           // exclude singleton factors (password/totp)
+               ->where('status = ?', 'active')
+               ->where('deleted = ?', 0)
+               ->where('verified_at IS NOT NULL')     // pending factors don't resolve identity
+               ->limit(1)
+        );
+        return $uid ? $this->findById($uid) : null;
+    }
+
+    /**
      * DataTables data for the Users admin: identity + a membership summary (org count
      * and the distinct roles held, via org_user). Owns the query; the service handles
      * presentation + ACL. Returns total (scoped), filtered (scoped + search), and one

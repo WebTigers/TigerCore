@@ -23,9 +23,9 @@
 <!-- Step 1: credentials -->
 <form id="login-form" novalidate>
     <div class="mb-3">
-        <label class="form-label" for="login-identifier">Email</label>
-        <input type="email" class="form-control form-control-lg" id="login-identifier" name="identifier"
-               autocomplete="username" inputmode="email" autofocus required>
+        <label class="form-label" for="login-identifier">Email or username</label>
+        <input type="text" class="form-control form-control-lg" id="login-identifier" name="identifier"
+               autocomplete="username" autofocus required>
     </div>
     <div class="mb-2">
         <label class="form-label" for="login-password">Password</label>
@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function () {
             btn.disabled = false;
             btn.textContent = 'Sign in';
             rcReset();   // the reCAPTCHA token (if any) is spent — let the user re-solve
-            fail((res && res.recaptcha) ? 'Please complete the reCAPTCHA and try again.' : 'Invalid email or password.');
+            fail((res && res.recaptcha) ? 'Please complete the reCAPTCHA and try again.' : 'Invalid login or password.');
             document.getElementById('login-password').value = '';
         }).catch(function () {
             btn.disabled = false;

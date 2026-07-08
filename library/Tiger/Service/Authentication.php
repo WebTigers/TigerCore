@@ -49,16 +49,18 @@ class Tiger_Service_Authentication
     const RECOVERY_COUNT = 10;
 
     /**
-     * Authenticate by identifier (email) + password. Returns the identity object on
-     * success, self::TWOFA_REQUIRED when a second factor is needed, or false on any
-     * failure (unknown user, inactive, bad password).
+     * Authenticate by identifier + password. The identifier is email, username, or any
+     * verified factor identifier (phone/oauth/… once those exist) — see
+     * Tiger_Model_User::findByIdentifier. Returns the identity object on success,
+     * self::TWOFA_REQUIRED when a second factor is needed, or false on any failure
+     * (unknown user, inactive, bad password).
      *
      * @return object|false
      */
     public function login($identifier, $password)
     {
         $password = (string) $password;
-        $user     = (new Tiger_Model_User())->findByEmail($identifier);
+        $user     = (new Tiger_Model_User())->findByIdentifier($identifier);
 
         // Constant-time / no user-enumeration: on an unknown or inactive user, still
         // run a bcrypt verify against a dummy hash so response timing doesn't reveal
