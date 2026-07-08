@@ -19,6 +19,14 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
      */
     protected function _initTigerPaths()
     {
+        // Resolve the `modules` resource to Tiger's subclass (adds the activation gate).
+        // Registered here (a class resource) so it's in place before the `modules` plugin
+        // resource runs. class_exists/autoload finds the class; the path is a fallback.
+        $this->getPluginLoader()->addPrefixPath(
+            'Tiger_Application_Resource',
+            TIGER_CORE_PATH . '/library/Tiger/Application/Resource'
+        );
+
         $this->bootstrap('frontController');
         $front = $this->getResource('frontController');
 
