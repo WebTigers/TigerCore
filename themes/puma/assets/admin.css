@@ -82,8 +82,12 @@ body {
 }
 .tiger-nav i:first-child { font-size: 1.05rem; }
 .tiger-nav-caret { margin-left: auto; font-size: .8rem; transition: transform .15s ease; }
-.tiger-nav-children { padding: 0; background: color-mix(in srgb, var(--bs-secondary-bg) 40%, transparent); }
+.tiger-nav-children { padding: 0; background: color-mix(in srgb, var(--bs-secondary-bg) 40%, transparent); display: none; }
 .tiger-nav-children a { padding-left: 3.1rem; font-size: .92rem; }
+/* Collapsible submenu: hidden until the parent li is toggled open (admin-menu marks it
+   open when a child is active). */
+.tiger-nav .has-children.open > .tiger-nav-children { display: block; }
+.tiger-nav .has-children.open > a .tiger-nav-caret { transform: rotate(180deg); }
 
 /* --- Right aside ----------------------------------------------------------- */
 .tiger-sidebar-right {

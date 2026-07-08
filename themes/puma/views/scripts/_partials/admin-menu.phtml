@@ -10,11 +10,13 @@
  *   match     (string)  path prefix that marks the item active (default: href)
  *   resource  (string)  optional ACL resource — item HIDES if the live role can't
  *                       reach it (menus mirror permissions automatically)
- *   children  (array)   nested items (submenu)
+ *   children  (array)   nested items (submenu). A parent with children is a TOGGLE —
+ *                       clicking expands/collapses, it does not navigate. Hidden if it
+ *                       has no visible children.
  *
- * The role is read live from the identity; ACL from the registry. This is the
- * same principle AskLevi used via Zend_Navigation, distilled to a plain tree so a
- * module can hand one in without the full navigation stack.
+ * The "Settings" tree's children come from Tiger_Admin_Settings — core registers CMS +
+ * System, modules self-register their own page (see the registry). The role is read live
+ * from the identity; ACL from the registry.
  */
 $nav = $this->nav ?? [
     ['label' => 'Dashboard',     'href' => '/admin',        'icon' => 'fa-gauge-high', 'match' => '/admin'],
@@ -26,7 +28,7 @@ $nav = $this->nav ?? [
     ['label' => 'Organizations', 'href' => '/access/org',   'icon' => 'fa-building',   'match' => '/access/org',  'resource' => 'Access_OrgController'],
     ['label' => 'Code',          'href' => '/code',         'icon' => 'fa-code',       'match' => '/code', 'resource' => 'Code_IndexController'],
     ['label' => 'Modules',       'href' => '/system/modules', 'icon' => 'fa-puzzle-piece', 'match' => '/system/modules', 'resource' => 'System_ModulesController'],
-    ['label' => 'Settings',      'href' => '/cms/settings', 'icon' => 'fa-gear',       'match' => '/cms/settings', 'resource' => 'Cms_SettingsController'],
+    ['label' => 'Settings',      'icon' => 'fa-gear',       'children' => Tiger_Admin_Settings::pages()],
 ];
 
 $acl  = Zend_Registry::isRegistered('Zend_Acl') ? Zend_Registry::get('Zend_Acl') : null;
@@ -52,12 +54,23 @@ $render = function ($items, $depth = 0) use (&$render, $allowed, $isActive) {
     $html = '';
     foreach ($items as $item) {
         if (!$allowed($item)) { continue; }
-        $children = !empty($item['children']) ? array_values(array_filter($item['children'], $allowed)) : [];
-        $active   = $isActive($item);
-        $classes  = trim(($active ? 'active ' : '') . ($children ? 'has-children' : ''));
+
+        $hasChildKey = array_key_exists('children', $item);
+        $children    = $hasChildKey ? array_values(array_filter($item['children'], $allowed)) : [];
+        // A parent that declared children but has none visible (all ACL-denied, or empty
+        // registry) is dropped — no dead toggle.
+        if ($hasChildKey && !$children) { continue; }
+
+        $childActive = false;
+        foreach ($children as $c) { if ($isActive($c)) { $childActive = true; break; } }
+        $active  = $children ? $childActive : $isActive($item);
+        $classes = trim(($active ? 'active ' : '') . ($children ? 'has-children ' : '') . ($childActive ? 'open' : ''));
 
         $html .= '<li' . ($classes ? ' class="' . $classes . '"' : '') . '>';
-        $html .= '<a href="' . htmlspecialchars($item['href'] ?? '#') . '">';
+        // Parent = toggle (expand/collapse, no navigation); leaf = link.
+        $href = $children ? '#' : ($item['href'] ?? '#');
+        $toggle = $children ? ' data-tiger-toggle="submenu"' : '';
+        $html .= '<a href="' . htmlspecialchars($href) . '"' . $toggle . '>';
         if ($depth === 0) {
             $html .= '<i class="fa-solid ' . htmlspecialchars($item['icon'] ?? 'fa-circle') . ' fa-fw"></i>';
         }

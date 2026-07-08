@@ -1,21 +1,16 @@
 <?php
 /**
- * Site / CMS Settings. ViewHelper-only form (the view owns markup). Saving is an
- * /api call to Cms_Service_Settings; the JSON response drives the redirect / errors.
- *
- * Tabbed: a "Site" tab (name + home page) and a "Session" tab (timeout + auto-logout).
- * Both panes live in ONE form, so the single Save submits everything regardless of the
- * active tab; a validation error switches to the tab holding the first bad field.
+ * CMS Settings — the site name + the home page served at "/". ViewHelper-only form (the
+ * view owns markup). Saving is an /api call to Cms_Service_Settings; the JSON response
+ * drives the feedback. (Session/security moved to System settings.)
  */
 $form = $this->form;
 $el = function ($name) use ($form) { return $form->getElement($name); };
-$alEnabled = !empty($el('autologout_enabled')->getValue());
-$alAction  = (string) $el('autologout_action')->getValue() ?: 'logout';
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1">Settings</h1>
-        <p class="text-body-secondary mb-0">Your site configuration and session security.</p>
+        <h1 class="h3 mb-1">CMS</h1>
+        <p class="text-body-secondary mb-0">Your site's name and home page.</p>
     </div>
     <div class="text-nowrap">
         <button type="button" id="cms-settings-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
@@ -26,91 +21,20 @@ $alAction  = (string) $el('autologout_action')->getValue() ?: 'logout';
 
 <form id="cms-settings-form" onsubmit="return false;" novalidate>
     <?= $el('_csrf') ?>
-
-    <ul class="nav nav-tabs mb-3" id="settings-tabs" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="tab-site-btn" data-bs-toggle="tab" data-bs-target="#tab-site" type="button" role="tab" aria-controls="tab-site" aria-selected="true">
-                <i class="fa-solid fa-globe me-2"></i>Site
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="tab-session-btn" data-bs-toggle="tab" data-bs-target="#tab-session" type="button" role="tab" aria-controls="tab-session" aria-selected="false">
-                <i class="fa-solid fa-shield-halved me-2"></i>Session
-            </button>
-        </li>
-    </ul>
-
-    <div class="tab-content">
-        <!-- Site -->
-        <div class="tab-pane fade show active" id="tab-site" role="tabpanel" aria-labelledby="tab-site-btn">
-            <div class="row g-4">
-                <div class="col-lg-7">
-                    <div class="card">
-                        <div class="card-header fw-semibold"><i class="fa-solid fa-globe me-2"></i>Site Settings</div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <label class="form-label" for="<?= $this->escape($el('site_name')->getId()) ?>">Site name</label>
-                                <?= $el('site_name') ?>
-                                <div class="form-text">Shown in the site header and browser tab, and used as the default page title.</div>
-                            </div>
-                            <div class="mb-0">
-                                <label class="form-label" for="<?= $this->escape($el('home_page')->getId()) ?>">Home page</label>
-                                <?= $el('home_page') ?>
-                                <div class="form-text">Which page to serve at <code>/</code>. “Built-in landing page” keeps the default marketing page.</div>
-                            </div>
-                        </div>
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header fw-semibold"><i class="fa-solid fa-globe me-2"></i>Site Settings</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="<?= $this->escape($el('site_name')->getId()) ?>">Site name</label>
+                        <?= $el('site_name') ?>
+                        <div class="form-text">Shown in the site header and browser tab, and used as the default page title.</div>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Session -->
-        <div class="tab-pane fade" id="tab-session" role="tabpanel" aria-labelledby="tab-session-btn">
-            <div class="row g-4">
-                <div class="col-lg-7">
-                    <div class="card">
-                        <div class="card-header fw-semibold"><i class="fa-solid fa-shield-halved me-2"></i>Session &amp; Security</div>
-                        <div class="card-body">
-                            <div class="mb-4">
-                                <label class="form-label" for="set-session-ttl">Maximum session timeout <span class="text-body-secondary fw-normal">(seconds)</span></label>
-                                <div class="input-group" style="max-width:24rem;">
-                                    <?= $el('session_ttl') ?>
-                                    <span class="input-group-text">sec</span>
-                                </div>
-                                <div class="form-text mt-1"><i class="fa-regular fa-clock me-1"></i><span id="set-session-ttl-h" class="fw-semibold text-body">—</span></div>
-                                <div class="form-text">How long a standard user's session stays valid while idle — the hard backstop, enforced even with the tab closed. Admin roles use a separate, shorter tier.</div>
-                            </div>
-
-                            <hr>
-
-                            <div class="form-check form-switch mb-3">
-                                <input class="form-check-input" type="checkbox" role="switch" id="set-autologout-enabled" name="autologout_enabled" value="1" <?= $alEnabled ? 'checked' : '' ?>>
-                                <label class="form-check-label fw-semibold" for="set-autologout-enabled">Auto-logout on inactivity</label>
-                                <div class="form-text">Proactively sign the user out (or lock the screen) after a period of no interaction. Server-authoritative: the browser polls for time-left every minute, and the clock only resets on genuine activity.</div>
-                            </div>
-
-                            <fieldset id="set-autologout-opts" class="ps-1 <?= $alEnabled ? '' : 'opacity-50' ?>">
-                                <div class="mb-3">
-                                    <label class="form-label" for="set-autologout-seconds">Log out after <span class="text-body-secondary fw-normal">(seconds of inactivity)</span></label>
-                                    <div class="input-group" style="max-width:24rem;">
-                                        <?= $el('autologout_seconds') ?>
-                                        <span class="input-group-text">sec</span>
-                                    </div>
-                                    <div class="form-text mt-1"><i class="fa-regular fa-hourglass-half me-1"></i><span id="set-autologout-seconds-h" class="fw-semibold text-body">—</span></div>
-                                </div>
-                                <div class="mb-0">
-                                    <label class="form-label d-block">When it fires</label>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="autologout_action" id="al-act-logout" value="logout" <?= $alAction !== 'lock' ? 'checked' : '' ?>>
-                                        <label class="form-check-label" for="al-act-logout">Full logout <span class="text-body-secondary">— end the session, return to sign-in</span></label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="autologout_action" id="al-act-lock" value="lock" <?= $alAction === 'lock' ? 'checked' : '' ?>>
-                                        <label class="form-check-label" for="al-act-lock">Lock screen <span class="text-body-secondary">— keep the session, re-enter password to resume</span></label>
-                                    </div>
-                                </div>
-                            </fieldset>
-                        </div>
+                    <div class="mb-0">
+                        <label class="form-label" for="<?= $this->escape($el('home_page')->getId()) ?>">Home page</label>
+                        <?= $el('home_page') ?>
+                        <div class="form-text">Which page to serve at <code>/</code>. “Built-in landing page” keeps the default marketing page.</div>
                     </div>
                 </div>
             </div>
@@ -136,58 +60,17 @@ document.addEventListener('DOMContentLoaded', function () {
         fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
             .then(function (r) { return r.json().catch(function () { return {}; }); })
             .then(function (res) {
-                if (res && res.result === 1) {
-                    fb.innerHTML = alertHtml('Settings saved.', 'success');
-                    return;
-                }
+                if (res && res.result === 1) { fb.innerHTML = alertHtml('Settings saved.', 'success'); return; }
                 if (res && res.form) {
-                    var firstBad = null;
                     Object.keys(res.form).forEach(function (field) {
                         var input = form.querySelector('[name="' + field + '"]');
-                        if (input) { input.classList.add('is-invalid'); if (!firstBad) { firstBad = input; } }
+                        if (input) { input.classList.add('is-invalid'); }
                     });
-                    // Surface the error: switch to the tab holding the first bad field.
-                    if (firstBad) {
-                        var pane = firstBad.closest('.tab-pane');
-                        var btn  = pane && document.querySelector('[data-bs-target="#' + pane.id + '"]');
-                        if (btn && window.bootstrap) { bootstrap.Tab.getOrCreateInstance(btn).show(); }
-                    }
                 }
                 (res && res.messages || []).forEach(function (m) { fb.innerHTML += alertHtml(m.message, m.class); });
                 if (!res || !res.messages || !res.messages.length) { fb.innerHTML = alertHtml('Please fix the highlighted fields.', 'error'); }
             })
             .catch(function () { fb.innerHTML = alertHtml('Network error — please try again.', 'error'); });
     });
-
-    // --- Session & security: live human-readable durations + dim the options when off ---
-    function humanize(total) {
-        total = Math.max(0, parseInt(total, 10) || 0);
-        if (!total) { return '0 seconds'; }
-        var units = [['year', 31536000], ['month', 2592000], ['day', 86400], ['hour', 3600], ['minute', 60]];
-        var parts = [], rem = total;
-        units.forEach(function (u) {
-            var n = Math.floor(rem / u[1]);
-            if (n > 0) { parts.push(n + ' ' + u[0] + (n > 1 ? 's' : '')); rem -= n * u[1]; }
-        });
-        if (rem > 0 && parts.length < 2) { parts.push(rem + ' second' + (rem > 1 ? 's' : '')); }
-        return parts.join(', ');
-    }
-    function bindDuration(inputId, outId) {
-        var i = document.getElementById(inputId), o = document.getElementById(outId);
-        if (!i || !o) { return; }
-        var upd = function () { o.textContent = '≈ ' + humanize(i.value); };
-        i.addEventListener('input', upd); upd();
-    }
-    bindDuration('set-session-ttl', 'set-session-ttl-h');
-    bindDuration('set-autologout-seconds', 'set-autologout-seconds-h');
-
-    var alToggle = document.getElementById('set-autologout-enabled');
-    var alOpts   = document.getElementById('set-autologout-opts');
-    if (alToggle && alOpts) {
-        // Dim only — the fields must still submit (they're required server-side), so we
-        // don't disable them.
-        var sync = function () { alOpts.classList.toggle('opacity-50', !alToggle.checked); };
-        alToggle.addEventListener('change', sync); sync();
-    }
 });
 </script>

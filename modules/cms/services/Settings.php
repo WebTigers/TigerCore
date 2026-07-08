@@ -24,13 +24,6 @@ class Cms_Service_Settings extends Tiger_Service_Service
             $cfg->set($g, '', 'tiger.site.name', trim((string) $v['site_name']));
             $cfg->set($g, '', 'tiger.site.home_page', (string) $v['home_page']);
 
-            // Session & security. Max session timeout overrides the standard-user idle TTL;
-            // auto-logout is the proactive inactivity feature (toggle + window + action).
-            $cfg->set($g, '', 'tiger.session.ttl.authed', (string) max(60, (int) $v['session_ttl']));
-            $cfg->set($g, '', 'tiger.session.autologout.enabled', !empty($v['autologout_enabled']) ? '1' : '0');
-            $cfg->set($g, '', 'tiger.session.autologout.seconds', (string) max(30, (int) $v['autologout_seconds']));
-            $cfg->set($g, '', 'tiger.session.autologout.action', $v['autologout_action'] === 'lock' ? 'lock' : 'logout');
-
             $this->_success([], 'cms.settings.saved', '/cms/settings');
         } catch (Throwable $e) {
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');

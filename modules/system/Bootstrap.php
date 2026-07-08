@@ -7,4 +7,16 @@
  */
 class System_Bootstrap extends Zend_Application_Module_Bootstrap
 {
+    /** Contribute the System page to the admin Settings tree (ACL-gated in the menu). */
+    protected function _initAdminSettings()
+    {
+        Tiger_Admin_Settings::register([
+            'key'      => 'system',
+            'label'    => 'System',
+            'icon'     => 'fa-server',
+            'href'     => '/system/settings',
+            'resource' => 'System_SettingsController',
+            'order'    => 20,
+        ]);
+    }
 }

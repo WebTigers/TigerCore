@@ -9,4 +9,5 @@ return [
     'system.module.installed'   => 'Module installed and activated.',
     'system.error.protected'    => 'That module is protected and can\'t be deactivated.',
     'system.error.unknown'      => 'No such module.',
+    'system.settings.saved'     => 'Settings saved.',
 ];

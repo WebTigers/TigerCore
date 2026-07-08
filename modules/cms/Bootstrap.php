@@ -15,4 +15,16 @@
  */
 class Cms_Bootstrap extends Zend_Application_Module_Bootstrap
 {
+    /** Contribute the CMS page to the admin Settings tree (ACL-gated in the menu). */
+    protected function _initAdminSettings()
+    {
+        Tiger_Admin_Settings::register([
+            'key'      => 'cms',
+            'label'    => 'CMS',
+            'icon'     => 'fa-file-lines',
+            'href'     => '/cms/settings',
+            'resource' => 'Cms_SettingsController',
+            'order'    => 10,
+        ]);
+    }
 }

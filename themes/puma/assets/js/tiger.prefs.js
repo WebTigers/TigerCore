@@ -107,7 +107,16 @@
         }
 
         var aside = e.target.closest('[data-tiger-toggle="aside"]');
-        if (aside) { e.preventDefault(); root.classList.toggle('aside-open'); }
+        if (aside) { e.preventDefault(); root.classList.toggle('aside-open'); return; }
+
+        // Sidebar submenu (e.g. Settings): a parent toggles its children open/closed and
+        // never navigates.
+        var submenu = e.target.closest('[data-tiger-toggle="submenu"]');
+        if (submenu) {
+            e.preventDefault();
+            var li = submenu.closest('.has-children');
+            if (li) { li.classList.toggle('open'); }
+        }
     });
 
     // Keep localStorage in step with the server-resolved `locale` cookie — e.g. after
