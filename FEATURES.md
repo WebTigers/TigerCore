@@ -10,6 +10,11 @@ plus a skeleton (`webtigers/tiger`, created once with `composer create-project`)
 their own licenses). "Tiger" and "WebTigers" are trademarks — see [LICENSE](LICENSE) and
 [TRADEMARKS.md](TRADEMARKS.md).
 
+> **Status: public beta.** `webtigers/tiger-core` (**v0.1.0-beta.2**) and the `webtigers/tiger`
+> skeleton (**v0.1.0-beta.3**) are on **Packagist**. Create a new app with
+> `composer create-project webtigers/tiger my-app --stability=beta` (the `--stability` flag drops
+> at the stable 1.0). The `@api` surface may still shift between beta releases.
+
 ## Foundation
 
 - **Zero build toolchain.** No npm/webpack/Sass. `composer install` + an asset symlink and
@@ -319,6 +324,10 @@ framework.
 
 ## Deployment
 
+- **Install from Packagist.** `composer create-project webtigers/tiger my-app --stability=beta`
+  pulls the skeleton + framework (`tiger-core`, `tigerzf`) and their deps — no clone, no build
+  step. A pre-built vendored ZIP + a browser web installer for no-shell / cPanel hosts is on the
+  roadmap.
 - **Works on any web server.** A zero-config `public/.htaccess` (front-controller routing) is
   the default; reference configs ship for an Apache vhost (the faster form), nginx, and
   Caddy/FrankenPHP.
