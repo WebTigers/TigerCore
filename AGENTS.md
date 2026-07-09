@@ -147,6 +147,21 @@ class Billing_Form_Invoice extends Tiger_Form
 }
 ```
 
+**Convenience validation is free — declare validators once.** The validators you put on an
+element run at submit (`isValid()`) *and* on blur, before submit: add `data-tiger-validate
+data-module="<mod>" data-form="<FormName>"` to the `<form>` and `tiger.validate.js` posts each
+field to `Tiger_Service_Validate`, which runs that element's real validators
+(`Tiger_Form::convenienceValidate`) and shows the first error inline. So don't hand-roll
+per-field AJAX checks — just declare the validator. **`modules/signup/forms/Signup.php` +
+its view are the reference form**: every field type, DB-uniqueness (`Zend_Validate_Db_NoRecordExists`),
+password policy (`Tiger_Validate_Password`), address autocomplete, and the localized country
+picker (`Tiger_I18n_Country`). Copy that when building a new form.
+
+Platform helpers worth knowing before you build your own: **`Tiger_Location`** (address /
+geocode / reverse / IP behind adapters, normalized `Place` payload) and **`Tiger_I18n_Country`**
+(biased, localized country list). Both are config-driven and reachable via the public
+`Tiger_Service_Location` when a form needs them.
+
 ## Models & schema
 
 - Extend `Tiger_Model_Table`. It mints the UUID PK on insert (v7 default; set

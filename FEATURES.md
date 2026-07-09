@@ -147,6 +147,18 @@ framework.
   stripped to ViewHelper-only so the view owns all markup (forms are AJAX-submitted).
   Subclasses declare a declarative `elements()` schema; CSRF and a translate helper are
   baked in. Validate with `isValid()` / `isValidPartial()`.
+- **Convenience validation** — a field is validated *as you tab off it*, before submit. On
+  blur, `TigerValidateJS` posts `{form, field, value}` to the public core service
+  `Tiger_Service_Validate` (over `/api`), which runs that element's REAL validators
+  (`Tiger_Form::convenienceValidate`) and returns the first error — so the field goes
+  `.is-invalid` with its message inline while it's still easy to fix. Same validators run
+  again at submit; you declare them once. Includes DB-uniqueness (`Zend_Validate_Db_NoRecordExists`),
+  a password-policy validator (`Tiger_Validate_Password`), and everything Zend ships.
+- **Reference form + input UX.** `Signup_Form_Signup` is the gold-standard example (every
+  field type + validator, convenience-validated). Ships a live **password strength meter**
+  with show/hide toggle (`tiger.password-strength.js`), **address autocomplete** that fills
+  city/state/postal/country (the Location Service), and a full **localized country picker**
+  (`Tiger_I18n_Country`) with a biased "Frequent" group and IP-based country pre-selection.
 - **Google reCAPTCHA control.** A drop-in `['recaptcha', 'recaptcha', []]` form element
   (`Tiger_Form_Element_Recaptcha`) that renders the widget and self-attaches a server-side
   validator (`Tiger_Validate_Recaptcha`, verified against Google's `siteverify`). Supports v2
@@ -240,6 +252,39 @@ framework.
   `mail()` (sendmail) by default, or **SMTP with TLS + auth** per deploy (`mail.transport`,
   `mail.smtp.*`, `mail.from.*`), with SMTP credentials in `local.ini` (never committed). Every
   message is multipart — a plain-text alternative is auto-derived from the HTML for deliverability.
+
+## Location Service
+
+- **Capability-based, provider-agnostic.** `Tiger_Location` is one facade for **address
+  autocomplete/geocode**, **reverse-geocode** (lat/lng → address), and **IP geolocation**.
+  Adapters (extend `Tiger_Location_Adapter_Abstract`) declare which operations they support;
+  the facade routes each call to the configured, capable provider and returns the same
+  normalized `Tiger_Location_Place` payload every time — so callers never care who answered.
+- **Adapters ship for Nominatim/OSM (the free, key-less default), AWS Location Service**
+  (SigV4-signed, Esri/HERE data), and **IP geolocation** (`ip-api.com` dev default; docblocks
+  point at paid production vendors). Add more with `Tiger_Location::register()`.
+- **Config-driven, graceful.** `tiger.location.address.provider` / `.ip.provider` pick the
+  provider per operation group; each adapter reads `tiger.location.adapters.<name>.*`. An
+  unset/incapable provider or an error yields empty results, never a fatal — an unconfigured
+  form just quietly does nothing.
+- **Public over `/api`.** `Tiger_Service_Location` (guest-allowed, read-only) powers the
+  signup address autocomplete + IP-based country pre-fill; the IP lookup is locked to the
+  requester's own address.
+- **Countries.** `Tiger_I18n_Country` reads a lazy `country.ini` (ISO alpha-2/-3 + a `sort`
+  bias, NOT autoloaded); names resolve via translation key `country.<ISO2>` with a CLDR
+  (`Zend_Locale`) fallback — localized for every locale, override-able, biased so the common
+  countries float to the top of the picker.
+
+## Documentation (TigerDocs module)
+
+- Tiger ships **lean** — no product docs baked into the framework. The platform docs live at
+  **`tiger.webtigers.com/docs`**, served by the first-party **TigerDocs** module.
+- **Two content sources, one path.** TigerDocs serves docs from **static files** (version-
+  controlled `.md`/`.html`/`.phtml` shipped with the module — how WebTigers publishes the
+  platform docs) *and* from **DB rows** (per-org, admin-authored — how a Tiger app builds its
+  own help center). Resolution is the familiar cascade: **a DB doc (org-scoped) wins, else a
+  static file** — so a tenant can override a shipped doc just like a config value or theme view.
+  Both sources render through `Tiger_Cms_Renderer` + the active theme.
 
 ## Logging
 
