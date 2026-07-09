@@ -83,8 +83,36 @@
     }
 
     function scan(root) { (root || document).querySelectorAll('input[data-tiger-address]').forEach(attach); }
-    if (document.readyState !== 'loading') { scan(); }
-    else { document.addEventListener('DOMContentLoaded', function () { scan(); }); }
 
-    global.TigerAddress = { scan: scan };
+    // IP → pre-select an as-yet-unchosen <select data-tiger-ip-country> on load (best-effort).
+    // Coarse-but-forgiving: country only, never city/state (the street pick fills those
+    // precisely). Skips a select the user already touched, and only sets a country the list
+    // actually offers.
+    function prefillCountry() {
+        var selects = document.querySelectorAll('select[data-tiger-ip-country]');
+        if (!selects.length) { return; }
+        var body = new URLSearchParams();
+        body.set('module', 'tiger'); body.set('service', 'location'); body.set('method', 'ip');
+        fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' }, body: body.toString(), credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                var place = ((res && res.data) || {}).place;
+                var cc = place && place.country;
+                if (!cc) { return; }
+                selects.forEach(function (sel) {
+                    if (sel.value) { return; }   // never override a choice already made
+                    if (Array.prototype.some.call(sel.options, function (o) { return o.value === cc; })) {
+                        sel.value = cc;
+                        sel.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                });
+            })
+            .catch(function () {});
+    }
+
+    function init() { scan(); prefillCountry(); }
+    if (document.readyState !== 'loading') { init(); }
+    else { document.addEventListener('DOMContentLoaded', init); }
+
+    global.TigerAddress = { scan: scan, prefillCountry: prefillCountry };
 })(window);

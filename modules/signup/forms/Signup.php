@@ -112,7 +112,8 @@ class Signup_Form_Signup extends Tiger_Form
             ['select', 'country', [
                 'required' => true, 'multiOptions' => self::$_countries,
                 'validators' => [['InArray', true, ['haystack' => $countryCodes, 'messages' => [Zend_Validate_InArray::NOT_IN_ARRAY => 'Please choose a country.']]]],
-                'attribs' => array_merge($select, ['id' => 'su-country', 'autocomplete' => 'country']),
+                // data-tiger-ip-country -> tiger.address.js pre-selects it from the visitor's IP on load.
+                'attribs' => array_merge($select, ['id' => 'su-country', 'autocomplete' => 'country', 'data-tiger-ip-country' => '1']),
             ]],
 
             ['select', 'phone_type', [
