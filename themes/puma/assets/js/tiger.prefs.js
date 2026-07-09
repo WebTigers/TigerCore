@@ -62,7 +62,20 @@
             setCookie('locale', l);
             try { localStorage.setItem('tiger_locale', l); } catch (e2) {}
             persist({ lang: l });
-            window.location.reload();   // server re-renders the page in the new locale
+            // Locale precedence (LocalePrefix): a /xx/ URL prefix OVERRIDES the cookie (and even
+            // resets it to match). So if the URL carries a SUPPORTED-locale prefix, switching must
+            // rewrite that prefix and navigate (/en/docs -> /es/docs); otherwise the cookie is
+            // authoritative and a reload is enough (/docs stays /docs, re-rendered in the new lang).
+            var path = window.location.pathname;
+            var m = path.match(/^\/([a-z]{2})(?=\/|$)/);
+            var supported = {};
+            var opts = document.querySelectorAll('.tiger-lang-switch[data-lang]');
+            for (var oi = 0; oi < opts.length; oi++) { supported[opts[oi].getAttribute('data-lang')] = 1; }
+            if (m && supported[m[1]]) {
+                window.location.href = '/' + l + path.slice(m[0].length) + window.location.search + window.location.hash;
+            } else {
+                window.location.reload();   // no URL locale — cookie drives the re-render
+            }
             return;
         }
 

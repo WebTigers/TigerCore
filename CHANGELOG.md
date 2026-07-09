@@ -4,6 +4,14 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses [SemVer](https://semver.org/)
 — while `0.x`, the public API (`@api`) may still shift between minor versions.
 
+## [0.1.0-beta.3] — 2026-07-09
+
+### Fixed
+- **Language switcher respects `/xx/` URL prefixes.** On a locale-prefixed URL (e.g. `/en/docs`),
+  the header switcher (`tiger.prefs.js`) now rewrites the prefix and navigates (`/en/docs` →
+  `/es/docs`) — a `/xx/` prefix outranks the cookie (and resets it to match), so setting the cookie
+  alone was silently overridden. On non-prefixed URLs it still just sets the cookie and reloads.
+
 ## [0.1.0-beta.2] — 2026-07-09
 
 ### Added
@@ -71,5 +79,6 @@ TigerZF (ZF1 for PHP 8.1–8.5). Beta: functional and running, API not yet froze
 ### Licensing
 - **BSD-3-Clause**; Tiger™/WebTigers™ trademarks reserved (see LICENSE / TRADEMARKS.md).
 
+[0.1.0-beta.3]: https://github.com/WebTigers/TigerCore/releases/tag/v0.1.0-beta.3
 [0.1.0-beta.2]: https://github.com/WebTigers/TigerCore/releases/tag/v0.1.0-beta.2
 [0.1.0-beta.1]: https://github.com/WebTigers/TigerCore/releases/tag/v0.1.0-beta.1
