@@ -4,11 +4,20 @@
 /**
  * PUMA public header — the marketing/site navbar (MIT, Tiger-original).
  *
- * Brand + nav links, the language / theme / skin switchers (shared partials), and a
- * Sign-in (or Dashboard, when authenticated) CTA. Rendered in the public layout via
- * render(), so $this->skins/escape flow in. Behavior lives in tiger.prefs.js.
+ * Layout: [ brand ] [ main menu ] [ · search region · ] [ utility switchers ] [ sign up ] [ sign in ]
+ *
+ * Two header REGIONS let a feature contribute chrome without this theme file knowing about
+ * it (the two-step view renders the action script first, so a view script can fill a region
+ * that the layout — and this header — read afterward):
+ *   - `tigerHeaderSearch` — the centered slot; a feature drops a search trigger here
+ *     (TigerDocs fills it with its ⌘K launcher). Empty on pages that don't use it.
+ *   - `tigerHeaderAuth`   — the sign-up/sign-in/dashboard slot; the theme renders a sensible
+ *     default (below), but a feature may override the whole region.
+ *
+ * Behavior (switchers, prefs) lives in tiger.prefs.js.
  */
-$identity = Zend_Auth::getInstance()->hasIdentity() ? Zend_Auth::getInstance()->getIdentity() : null;
+$identity   = Zend_Auth::getInstance()->hasIdentity() ? Zend_Auth::getInstance()->getIdentity() : null;
+$authRegion = $this->placeholder('tigerHeaderAuth');
 ?>
 <nav class="navbar navbar-expand-lg border-bottom sticky-top" style="background: var(--bs-body-bg);">
     <div class="container">
@@ -22,11 +31,14 @@ $identity = Zend_Auth::getInstance()->hasIdentity() ? Zend_Auth::getInstance()->
         </button>
 
         <div class="collapse navbar-collapse" id="tigerNav">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <ul class="navbar-nav mb-2 mb-lg-0">
                 <li class="nav-item"><a class="nav-link" href="/#features">Features</a></li>
-                <li class="nav-item"><a class="nav-link" href="https://github.com/WebTigers/Tiger" target="_blank" rel="noopener">Docs</a></li>
+                <li class="nav-item"><a class="nav-link" href="/docs">Docs</a></li>
                 <li class="nav-item"><a class="nav-link" href="https://github.com/WebTigers/Tiger" target="_blank" rel="noopener">GitHub</a></li>
             </ul>
+
+            <!-- Centered search region: filled by a feature (e.g. TigerDocs ⌘K); collapses to nothing when empty. -->
+            <div class="tiger-header-search mx-lg-auto my-2 my-lg-0"><?= $this->placeholder('tigerHeaderSearch') ?></div>
 
             <div class="d-flex align-items-center gap-1">
                 <?= $this->render('_partials/lang-switcher.phtml') ?>
@@ -34,10 +46,14 @@ $identity = Zend_Auth::getInstance()->hasIdentity() ? Zend_Auth::getInstance()->
 <?php if (!empty($this->skins)): ?>
                 <?= $this->render('_partials/skin-switcher.phtml') ?>
 <?php endif; ?>
-<?php if ($identity): ?>
+                <!-- Auth region: theme default (sign up / sign in, or dashboard) unless a feature fills it. -->
+<?php if (count($authRegion)): ?>
+                <?= $authRegion ?>
+<?php elseif ($identity): ?>
                 <a class="btn btn-primary ms-2" href="/admin"><i class="fa-solid fa-gauge-high me-1"></i>Dashboard</a>
 <?php else: ?>
-                <a class="btn btn-outline-secondary ms-2" href="/auth/login">Sign in</a>
+                <a class="btn btn-link ms-2 text-decoration-none" href="/signup">Sign up</a>
+                <a class="btn btn-outline-secondary" href="/auth/login">Sign in</a>
 <?php endif; ?>
             </div>
         </div>

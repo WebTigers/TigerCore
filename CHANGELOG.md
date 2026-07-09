@@ -4,6 +4,26 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses [SemVer](https://semver.org/)
 — while `0.x`, the public API (`@api`) may still shift between minor versions.
 
+## [0.2.0-beta] — 2026-07-09
+
+### Added
+- **Header regions in the PUMA public header.** The navbar now exposes two named regions a
+  feature can fill without editing the theme (via `Zend_View` placeholders — the two-step view
+  renders the action script before the layout, so a view script can contribute header chrome):
+  - `tigerHeaderSearch` — a **centered search slot**. Empty by default (collapses to nothing);
+    TigerDocs fills it with its ⌘K search launcher. Any feature can drop a search trigger here.
+  - `tigerHeaderAuth` — the **sign-up / sign-in (or Dashboard) slot**. The theme renders a
+    sensible default; a feature may override the whole region.
+- **Restructured public navbar** to `[ brand ] [ menu ] [ · search · ] [ switchers ] [ sign up ]
+  [ sign in ]`, and added a **Sign up** CTA (→ `/signup`) plus a first-party **Docs** link
+  (→ `/docs`).
+
+### Note
+- **Versioning during beta.** This is the first **minor** bump (a feature — the header regions).
+  Because `^0.1.0-beta` won't accept `0.2.x` (Composer's `0.x` caret locks the minor), the
+  skeleton's constraint moves to a beta-line range (`>=0.1.0-beta <1.0.0`) so `composer update`
+  keeps working across beta minors — see `webtigers/tiger`.
+
 ## [0.1.0-beta.3] — 2026-07-09
 
 ### Fixed
@@ -79,6 +99,7 @@ TigerZF (ZF1 for PHP 8.1–8.5). Beta: functional and running, API not yet froze
 ### Licensing
 - **BSD-3-Clause**; Tiger™/WebTigers™ trademarks reserved (see LICENSE / TRADEMARKS.md).
 
+[0.2.0-beta]: https://github.com/WebTigers/TigerCore/releases/tag/v0.2.0-beta
 [0.1.0-beta.3]: https://github.com/WebTigers/TigerCore/releases/tag/v0.1.0-beta.3
 [0.1.0-beta.2]: https://github.com/WebTigers/TigerCore/releases/tag/v0.1.0-beta.2
 [0.1.0-beta.1]: https://github.com/WebTigers/TigerCore/releases/tag/v0.1.0-beta.1

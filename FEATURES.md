@@ -10,8 +10,8 @@ plus a skeleton (`webtigers/tiger`, created once with `composer create-project`)
 their own licenses). "Tiger" and "WebTigers" are trademarks — see [LICENSE](LICENSE) and
 [TRADEMARKS.md](TRADEMARKS.md).
 
-> **Status: public beta.** `webtigers/tiger-core` (**v0.1.0-beta.2**) and the `webtigers/tiger`
-> skeleton (**v0.1.0-beta.3**) are on **Packagist**. Create a new app with
+> **Status: public beta.** `webtigers/tiger-core` (**v0.2.0-beta**) and the `webtigers/tiger`
+> skeleton (**v0.1.1-beta**) are on **Packagist**. Create a new app with
 > `composer create-project webtigers/tiger my-app --stability=beta` (the `--stability` flag drops
 > at the stable 1.0). The `@api` surface may still shift between beta releases.
 
@@ -209,7 +209,10 @@ framework.
   all driven over the `/api` message pattern. Row controls are gated by server-computed ACL
   permission flags.
 - **Public site chrome** — a responsive header/nav + footer and a starter landing page ship in
-  the PUMA theme, ready to customize (the switchers restyle the page live).
+  the PUMA theme, ready to customize (the switchers restyle the page live). The header exposes two
+  **regions** — a centered `tigerHeaderSearch` slot and a `tigerHeaderAuth` (sign-up/sign-in) slot —
+  that a feature fills without editing the theme (via a `Zend_View` placeholder that persists from
+  the view into the layout); TigerDocs uses the search slot for its ⌘K launcher.
 - **Theme vs skin split** — theme = structure/layout; skin = CSS-only look; both resolve
   per request and can vary per org.
 - **Cache-busted, root-relative assets** — a view helper (`$this->asset()`) appends
@@ -290,6 +293,10 @@ framework.
   own help center). Resolution is the familiar cascade: **a DB doc (org-scoped) wins, else a
   static file** — so a tenant can override a shipped doc just like a config value or theme view.
   Both sources render through `Tiger_Cms_Renderer` + the active theme.
+- **Navigation built in.** A **filter box** at the top of the sidebar TOC narrows the page list as
+  you type (client-side); a per-doc **"On this page"** rail is auto-built from the doc's headings;
+  and a **⌘K search** (also `/`, or the header launcher) runs a locale-aware full-text query over
+  the docs through a public `/api` service — ranked results with keyboard navigation.
 
 ## Logging
 
