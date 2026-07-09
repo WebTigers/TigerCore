@@ -12,15 +12,8 @@
  * Apps typically build their own admin as a MODULE; this ships so a fresh install
  * has a working, themed back office out of the box.
  */
-class AdminController extends Tiger_Controller_Action
+class AdminController extends Tiger_Controller_Admin_Action
 {
-    /** Every action in this controller renders inside the admin shell. */
-    public function init()
-    {
-        parent::init();
-        $this->_helper->layout()->setLayout('admin');
-    }
-
     /** The dashboard. Demo tiles now; a real app wires these to its own models. */
     public function indexAction()
     {

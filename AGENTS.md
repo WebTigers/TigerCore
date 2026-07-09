@@ -4,7 +4,7 @@ Instructions for an AI assistant (or a new human contributor) working in this co
 Follow the patterns already here; don't invent new ones. For the *why* read
 [ARCHITECTURE.md](ARCHITECTURE.md); for the feature surface read [FEATURES.md](FEATURES.md);
 for the `/api` model read [WEBSERVICES.md](WEBSERVICES.md); for URLs + module route overrides
-read [ROUTING.md](ROUTING.md).
+read [ROUTING.md](ROUTING.md); for building an admin screen read [ADMIN.md](ADMIN.md).
 
 > This file documents TigerCore + app conventions. Tiger is designed to be read and written
 > largely by AI — so the docs live in the code. Match the surrounding style.

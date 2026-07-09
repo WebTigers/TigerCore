@@ -10,7 +10,7 @@
  * ACL-gated to admin+ (modules/cms/configs/acl.ini) by the unbypassable
  * Authorization plugin; a guest is bounced to login, a non-admin gets a themed 403.
  */
-class Cms_PageController extends Tiger_Controller_Action
+class Cms_PageController extends Tiger_Controller_Admin_Action
 {
     /** @var Tiger_Model_Page */
     protected $_pages;
@@ -19,7 +19,6 @@ class Cms_PageController extends Tiger_Controller_Action
     public function init()
     {
         parent::init();
-        $this->_helper->layout()->setLayout('admin');
         $this->_pages = new Tiger_Model_Page();
     }
 

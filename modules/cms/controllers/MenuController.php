@@ -10,14 +10,8 @@
  * modules/cms/configs/acl.ini. The drag-drop reordering UI builds on the tree this
  * renders (each item carries data-menu-id for the sortable to persist via reorder).
  */
-class Cms_MenuController extends Tiger_Controller_Action
+class Cms_MenuController extends Tiger_Controller_Admin_Action
 {
-    public function init()
-    {
-        parent::init();
-        $this->_helper->layout()->setLayout('admin');
-    }
-
     /** The menus list — shell only; rows load over AJAX (Cms_Service_Menu::datatable). */
     public function indexAction()
     {

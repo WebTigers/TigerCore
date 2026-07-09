@@ -10,14 +10,8 @@
  * parent (org hierarchies); membership (who belongs, and their role) is managed
  * separately.
  */
-class Access_OrgController extends Tiger_Controller_Action
+class Access_OrgController extends Tiger_Controller_Admin_Action
 {
-    public function init()
-    {
-        parent::init();
-        $this->_helper->layout()->setLayout('admin');
-    }
-
     /** Orgs list — shell only; rows arrive over AJAX. */
     public function indexAction()
     {

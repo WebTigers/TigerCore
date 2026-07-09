@@ -9,14 +9,8 @@
  * superadmin activate/deactivate the non-protected ones. Thin: mutations go through
  * System_Service_Modules over /api. ACL-gated to superadmin+ (configs/acl.ini).
  */
-class System_ModulesController extends Tiger_Controller_Action
+class System_ModulesController extends Tiger_Controller_Admin_Action
 {
-    public function init()
-    {
-        parent::init();
-        $this->_helper->layout()->setLayout('admin');
-    }
-
     public function indexAction()
     {
         $installed = (new Tiger_Model_Module())->bySlugMap();

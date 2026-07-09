@@ -8,7 +8,7 @@
  * it only READS/RENDERS — every mutation goes through Code_Service_Code. Gated to
  * `superadmin`+ (configs/acl.ini): this screen writes server-executed code.
  */
-class Code_IndexController extends Tiger_Controller_Action
+class Code_IndexController extends Tiger_Controller_Admin_Action
 {
     /** @var Tiger_Model_Code */
     protected $_code;
@@ -16,7 +16,6 @@ class Code_IndexController extends Tiger_Controller_Action
     public function init()
     {
         parent::init();
-        $this->_helper->layout()->setLayout('admin');
         $this->_code = new Tiger_Model_Code();
     }
 

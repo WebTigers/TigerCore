@@ -10,14 +10,8 @@
  * (email / username / status); profile fields live in an Account module, and role is
  * per-membership (managed in the org context), not here.
  */
-class Access_UserController extends Tiger_Controller_Action
+class Access_UserController extends Tiger_Controller_Admin_Action
 {
-    public function init()
-    {
-        parent::init();
-        $this->_helper->layout()->setLayout('admin');
-    }
-
     /** Users list — shell only; rows arrive over AJAX. */
     public function indexAction()
     {

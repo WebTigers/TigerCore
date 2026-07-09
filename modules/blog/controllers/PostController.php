@@ -9,7 +9,7 @@
  * goes through the /api service Blog_Service_Post (save/delete/restore). ACL-gated to
  * admin+ (modules/blog/configs/acl.ini) by the Authorization plugin.
  */
-class Blog_PostController extends Tiger_Controller_Action
+class Blog_PostController extends Tiger_Controller_Admin_Action
 {
     /** @var Blog_Model_Post */
     protected $_posts;
@@ -17,7 +17,6 @@ class Blog_PostController extends Tiger_Controller_Action
     public function init()
     {
         parent::init();
-        $this->_helper->layout()->setLayout('admin');
         $this->_posts = new Blog_Model_Post();
     }
 

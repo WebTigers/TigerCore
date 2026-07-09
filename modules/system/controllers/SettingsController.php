@@ -8,14 +8,8 @@
  * (System_Service_Settings). ACL-gated admin+ (modules/system/configs/acl.ini).
  * Reached from the sidebar's Settings › System (registered via Tiger_Admin_Settings).
  */
-class System_SettingsController extends Tiger_Controller_Action
+class System_SettingsController extends Tiger_Controller_Admin_Action
 {
-    public function init()
-    {
-        parent::init();
-        $this->_helper->layout()->setLayout('admin');
-    }
-
     public function indexAction()
     {
         $cfg     = Zend_Registry::get('Zend_Config');
