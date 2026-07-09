@@ -8,6 +8,12 @@
  */
 class Media_IndexController extends Tiger_Controller_Admin_Action
 {
+    /** Admin shell (layout) comes from the base; keep the explicit init cascade. */
+    public function init()
+    {
+        parent::init();
+    }
+
     public function indexAction()
     {
         // Tell the uploader whether it must make the thumbnail itself: when the server has

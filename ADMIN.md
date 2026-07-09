@@ -26,6 +26,12 @@ and renders; every mutation is an `/api` call, not a page-POST.
 ```php
 class Docs_AdminController extends Tiger_Controller_Admin_Action
 {
+    /** Admin shell (layout) comes from the base; keep the explicit init cascade. */
+    public function init()
+    {
+        parent::init();          // base sets layout('admin'); add your own setup after this
+    }
+
     public function settingsAction()
     {
         $form = new Docs_Form_Settings();
@@ -36,6 +42,9 @@ class Docs_AdminController extends Tiger_Controller_Admin_Action
 }
 ```
 
+Keep a thin `init()` that calls `parent::init()` — it's the explicit cascade hook and the ready
+spot for per-controller setup (a model, shared view vars). The base's job is to remove the
+duplicated `setLayout('admin')`, **not** to forbid an `init()`; just never re-set the layout there.
 A single action that must go full-screen (a builder, a canvas) calls
 `$this->_helper->layout()->disableLayout();` in *that* action — init sets the default, the action
 overrides.
@@ -137,7 +146,8 @@ envelope. See WEBSERVICES.md.
 
 ## The house rules for an admin screen
 
-- **Extend `Tiger_Controller_Admin_Action`** — never set the admin layout by hand.
+- **Extend `Tiger_Controller_Admin_Action`** — never set the admin layout by hand. Keep a thin
+  `init()` that calls `parent::init()` (the cascade hook); just don't re-set the layout in it.
 - **Header = `h3` title + `text-body-secondary` one-liner on the left, action buttons right.** One
   primary `btn-primary`; secondary actions `btn-outline-*`/`btn-light`.
 - **Group content in `.card`s** with a `.card-header` label; one concern per card; use tabs only

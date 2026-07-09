@@ -12,6 +12,12 @@
  */
 class Access_OrgController extends Tiger_Controller_Admin_Action
 {
+    /** Admin shell (layout) comes from the base; keep the explicit init cascade. */
+    public function init()
+    {
+        parent::init();
+    }
+
     /** Orgs list — shell only; rows arrive over AJAX. */
     public function indexAction()
     {

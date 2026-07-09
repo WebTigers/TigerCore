@@ -14,6 +14,12 @@
  */
 class AdminController extends Tiger_Controller_Admin_Action
 {
+    /** Admin shell (layout) comes from the base; keep the explicit init cascade. */
+    public function init()
+    {
+        parent::init();
+    }
+
     /** The dashboard. Demo tiles now; a real app wires these to its own models. */
     public function indexAction()
     {

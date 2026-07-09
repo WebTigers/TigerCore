@@ -11,6 +11,12 @@
  */
 class System_ModulesController extends Tiger_Controller_Admin_Action
 {
+    /** Admin shell (layout) comes from the base; keep the explicit init cascade. */
+    public function init()
+    {
+        parent::init();
+    }
+
     public function indexAction()
     {
         $installed = (new Tiger_Model_Module())->bySlugMap();

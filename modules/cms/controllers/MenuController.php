@@ -12,6 +12,12 @@
  */
 class Cms_MenuController extends Tiger_Controller_Admin_Action
 {
+    /** Admin shell (layout) comes from the base; keep the explicit init cascade. */
+    public function init()
+    {
+        parent::init();
+    }
+
     /** The menus list — shell only; rows load over AJAX (Cms_Service_Menu::datatable). */
     public function indexAction()
     {
