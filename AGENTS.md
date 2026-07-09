@@ -3,7 +3,8 @@
 Instructions for an AI assistant (or a new human contributor) working in this codebase.
 Follow the patterns already here; don't invent new ones. For the *why* read
 [ARCHITECTURE.md](ARCHITECTURE.md); for the feature surface read [FEATURES.md](FEATURES.md);
-for the `/api` model read [WEBSERVICES.md](WEBSERVICES.md).
+for the `/api` model read [WEBSERVICES.md](WEBSERVICES.md); for URLs + module route overrides
+read [ROUTING.md](ROUTING.md).
 
 > This file documents TigerCore + app conventions. Tiger is designed to be read and written
 > largely by AI — so the docs live in the code. Match the surrounding style.
@@ -214,6 +215,9 @@ a bootstrap `_init*`. See `Tiger_Model_Config` / `Tiger_Model_Translation`.
 - Don't hardcode user-facing strings, roles, or config — use keys, ACL data, and config.
 - Don't put logic in controllers, or run mutations without a form-validate + transaction.
 - Don't build REST-by-URL endpoints — use the `/api` message pattern.
+- Don't `addRoute` a pretty alias in a module Bootstrap — declare a `Tiger_Routing_Overrides`
+  override so one authority owns ordering (see ROUTING.md). Reach features at their canonical
+  `<module>/<controller>/<action>` path; don't register a route for it.
 - Don't page-POST forms to controllers or server-render list/table data — the UI is a client
   that calls `/api`; controllers render the initial shell only (see the client/server section).
 - Don't hand-roll a button spinner/busy flag or `innerHTML = '<div class="alert">'` — use

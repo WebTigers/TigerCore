@@ -105,6 +105,21 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
     }
 
     /**
+     * Routing overrides: register the plugin that applies modules' declared pretty routes
+     * (Tiger_Routing_Overrides) — e.g. /docs -> docs/index/docs. Runs at routeShutdown and only
+     * claims URLs no real controller handles, so it never shadows a module's own paths. Bootstrap
+     * 'modules' first so module Bootstraps have registered their declarations; register BEFORE
+     * _initCms so a pretty route resolves its slug ahead of the CMS content fallback.
+     */
+    protected function _initRouteOverrides()
+    {
+        $this->bootstrap('frontController');
+        $this->bootstrap('modules');
+        $this->getResource('frontController')
+             ->registerPlugin(new Tiger_Controller_Plugin_RouteOverride());
+    }
+
+    /**
      * CMS: register the page-dispatch plugin. It routes URLs that match no real
      * controller to CMS `page` content (or a 301 via page_redirect), and leaves
      * everything else to the normal 404 path. Runs at routeShutdown; graceful when

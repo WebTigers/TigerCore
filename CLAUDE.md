@@ -4,4 +4,4 @@ Conventions for AI assistants working in this repo live in @AGENTS.md — read i
 writing code, and follow the patterns already here rather than inventing new ones.
 
 Reference docs: @ARCHITECTURE.md (the why) · @FEATURES.md (what the platform does) ·
-@WEBSERVICES.md (the `/api` message pattern).
+@WEBSERVICES.md (the `/api` message pattern) · @ROUTING.md (URLs, module route overrides).
