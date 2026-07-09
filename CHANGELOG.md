@@ -4,6 +4,15 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses [SemVer](https://semver.org/)
 — while `0.x`, the public API (`@api`) may still shift between minor versions.
 
+## [0.2.1-beta] — 2026-07-09
+
+### Fixed
+- **Dropdown menus could render transparent.** Bootstrap derives `.dropdown-menu` background from
+  `--bs-body-bg` with no fallback, so if that variable failed to resolve in a given context the
+  menu went `transparent` and page content showed through it (visible on the header theme/lang/skin
+  switchers over dark backgrounds). PUMA now sets an explicit, theme-aware opaque background with a
+  concrete light/dark fallback.
+
 ## [0.2.0-beta] — 2026-07-09
 
 ### Added
@@ -99,6 +108,7 @@ TigerZF (ZF1 for PHP 8.1–8.5). Beta: functional and running, API not yet froze
 ### Licensing
 - **BSD-3-Clause**; Tiger™/WebTigers™ trademarks reserved (see LICENSE / TRADEMARKS.md).
 
+[0.2.1-beta]: https://github.com/WebTigers/TigerCore/releases/tag/v0.2.1-beta
 [0.2.0-beta]: https://github.com/WebTigers/TigerCore/releases/tag/v0.2.0-beta
 [0.1.0-beta.3]: https://github.com/WebTigers/TigerCore/releases/tag/v0.1.0-beta.3
 [0.1.0-beta.2]: https://github.com/WebTigers/TigerCore/releases/tag/v0.1.0-beta.2

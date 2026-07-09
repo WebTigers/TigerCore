@@ -5,6 +5,17 @@
     --bs-body-font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
+/* Dropdown menus — guarantee an OPAQUE, theme-aware background. Bootstrap derives the menu
+ * background from --bs-body-bg with no fallback, so if that variable ever fails to resolve in a
+ * given context the background-color collapses to `transparent` and page content shows through
+ * the menu (seen on the header theme/lang/skin switchers). The concrete fallback keeps it solid. */
+.dropdown-menu {
+    background-color: var(--bs-body-bg, #fff);
+}
+[data-bs-theme="dark"] .dropdown-menu {
+    background-color: var(--bs-body-bg, #212529);
+}
+
 .tiger-hero { padding: 4rem 0; }
 
 footer.tiger-foot {
