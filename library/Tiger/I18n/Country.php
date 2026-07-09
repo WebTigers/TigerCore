@@ -85,6 +85,21 @@ class Tiger_I18n_Country
         return $opts;
     }
 
+    /**
+     * The list split into the biased blocks for rendering real <optgroup>s:
+     *   ['priority' => [iso2 => name], 'rest' => [iso2 => name]]
+     * The view labels them (so the labels stay translatable UI strings, not data).
+     */
+    public static function grouped(?string $locale = null): array
+    {
+        $data = self::_data();
+        $priority = $rest = [];
+        foreach (self::all($locale) as $iso2 => $name) {
+            if ((int) ($data[$iso2]['sort'] ?? 0) > 0) { $priority[$iso2] = $name; } else { $rest[$iso2] = $name; }
+        }
+        return ['priority' => $priority, 'rest' => $rest];
+    }
+
     /** ISO-3166 alpha-3 for an alpha-2 code (e.g. for providers that want alpha-3). */
     public static function iso3(string $iso2): ?string
     {
