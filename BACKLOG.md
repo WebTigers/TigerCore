@@ -7,6 +7,13 @@ for now).
 capability, add it to [FEATURES.md](FEATURES.md). Keep this list short and current — it's a
 working to-do, not a changelog (git history is the changelog).
 
+## Priorities (next up)
+
+1. **One-click "Updates" admin screen** — the WordPress-simple self-updater: *Login → Admin →
+   Updates*, checkbox-select **Tiger + TigerCore + modules**, click → **self-installs** (no shell, no
+   Composer), with a **full step-by-step log** so any failure is diagnosable. Full design + the engine
+   (detection, no-shell installer, atomic `vendor/` swap) under **Update system** in *Features* below.
+
 ## Features (planned)
 
 - **Core CMS module** *(building this week)* — a first-party module for DB-driven page content,
@@ -179,6 +186,14 @@ working to-do, not a changelog (git history is the changelog).
     file juggling, no FTP.** A progress line + a rollback on failure; a maintenance flash during a core
     swap. Everything below is just the engine that makes that one click real — from the user's side
     it's a checkbox and a button.
+  - **Full audit log of every run — "what broke" must be answerable.** Log EVERY step (resolve ref →
+    download → checksum/signature verify → extract → run each migration → `vendor/` swap → asset
+    republish → cache warm) through `Tiger_Log` (structured JSON), AND persist a per-update record
+    (before/after versions, repo + ref/SHA, the exact migrations run, timings, and outcome =
+    success | rolled-back + the error). **Stream it live to the UI** during the run and keep it
+    **viewable afterward** (an "Update history / log" panel). This matters most for the core swap +
+    migrations, where a half-applied update needs a precise trail to diagnose and to drive the
+    rollback. No silent steps — a failure names itself, its input, and the rollback taken.
   - What exists to build on: `composer update` for core/platform, and `Tiger_Module_Installer`
     (install from a GitHub release tarball → migrate → publish → record in the `module` table) driven
     by `bin/tiger module:install|remove|list|activate|deactivate`. The gaps:

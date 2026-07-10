@@ -97,7 +97,8 @@ as `vendor/`). `Tiger_Module_Dependency` warns (never blocks) on missing require
 
 **The target UX — WordPress-simple.** *Login → Admin → Updates:* one screen lists everything with a
 pending update (Tiger + TigerCore to latest, and each module), checkbox-select or "Update All",
-click → it **self-installs** (download → verify → apply → migrate → warm), no shell, no Composer.
+click → it **self-installs** (download → verify → apply → migrate → warm), no shell, no Composer —
+with a **full step-by-step log** streamed live and kept for review, so any failure is diagnosable.
 Everything below is the engine behind that one click.
 
 - **Version-change detection** — polling a registry / Packagist / GitHub tags to surface
