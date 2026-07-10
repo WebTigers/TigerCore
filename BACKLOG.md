@@ -282,6 +282,14 @@ working to-do, not a changelog (git history is the changelog).
 
 ## Issues / tech debt
 
+- **Automated test suite + CI — none yet for Tiger's own code (gates 1.0).** TigerZF carries its
+  upstream ZF1 test baseline, but `tiger-core` (kernel, ACL, auth, crypto, CMS, the `/api`
+  dispatcher, the module installer) and the first-party modules (incl. TigerDocs' scan engine +
+  docblock reference generator, and the coming update system) ship **untested**. Stand up PHPUnit +
+  a GitHub Actions CI workflow and backfill coverage — **security-critical paths first** (auth/login
+  + lockout, ACL deny-by-default, crypto/pepper rotation, module-install extraction + zip-slip guard,
+  the `/api` reserved-module guard). A green suite is the gate for the stable **1.0** that freezes the
+  `@api` (see §13 of [ARCHITECTURE.md](ARCHITECTURE.md)).
 - **Error pages not i18n-keyed** — `core/views/scripts/error/error.phtml` uses literal English;
   key it to `core.error.*` (the keys are already seeded in `core/languages/`).
 - **Packagist webhooks** — only TigerZF has its per-repo Packagist auto-update hook; add one
