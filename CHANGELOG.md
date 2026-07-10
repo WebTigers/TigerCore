@@ -4,6 +4,16 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses [SemVer](https://semver.org/)
 — while `0.x`, the public API (`@api`) may still shift between minor versions.
 
+## [0.5.0-beta] — 2026-07-10
+
+### Changed
+- **Docblocks standardized across the whole framework** — every `@api` class and public method now
+  carries the reference contract (`@api`/`@internal` on classes; `@param`/`@return`/`@throws` on
+  public methods) per the new **"Docblocks — the reference contract"** section in `AGENTS.md`. This
+  is the machine-readable source the TigerDocs **reference generator** reads to produce API-reference
+  pages, so the docblocks are now a first-class deliverable, not just comments. ~127 files touched
+  across `Tiger_*` (library) and `core/` + first-party modules; comment-only, no behavior change.
+
 ## [0.4.0-beta] — 2026-07-10
 
 ### Added
