@@ -28,6 +28,11 @@ class Tiger_Location_Adapter_IpApi extends Tiger_Location_Adapter_Abstract
     /** The ip-api fields we request (keeps the payload tight + the mapping stable). */
     const FIELDS = 'status,country,countryCode,region,regionName,city,zip,lat,lon,query';
 
+    /**
+     * The CAP_* operations this adapter supports (IP geolocation only).
+     *
+     * @return array a list of CAP_* capability constants
+     */
     public function capabilities(): array
     {
         return [self::CAP_IP];
@@ -36,6 +41,10 @@ class Tiger_Location_Adapter_IpApi extends Tiger_Location_Adapter_Abstract
     /**
      * Resolve an IP to an approximate Tiger_Location_Place, or null when the provider can't
      * place it (private/invalid IP, rate-limit, network error, …).
+     *
+     * @param  string $ip   the IP address to look up
+     * @param  array  $opts provider options
+     * @return Tiger_Location_Place|null the place, or null when unplaceable
      */
     public function ip(string $ip, array $opts = []): ?Tiger_Location_Place
     {

@@ -16,6 +16,14 @@
  */
 class Tiger_View_Helper_MediaField extends Zend_View_Helper_Abstract
 {
+    /**
+     * Render a media-picker form field (hidden input + live preview + Choose/Clear buttons).
+     *
+     * @param  string $name    the form field name (also the default id)
+     * @param  string $value   the current media_id (or a comma list when multiple)
+     * @param  array  $options kind, multiple (bool), label, id
+     * @return string          the field's HTML markup
+     */
     public function mediaField($name, $value = '', array $options = [])
     {
         $esc      = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES); };

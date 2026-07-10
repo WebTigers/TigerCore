@@ -16,6 +16,8 @@ interface Tiger_Media_Scanner_Interface
      * Scan a file on disk. Never throws — transport/tooling failures come back as
      * `error` so the orchestrator can apply its fail-open/closed policy.
      *
+     * @param  string  $path the file on disk to scan
+     * @param  ?string $mime the file's MIME type (may be null)
      * @return array{status:string, reason:?string, meta:array}
      *         status: `clean` | `infected` | `rejected` (failed AI moderation) | `error`
      */

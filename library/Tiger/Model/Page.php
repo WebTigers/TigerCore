@@ -36,6 +36,12 @@ class Tiger_Model_Page extends Tiger_Model_Table
      * Resolve a live page by slug for an org. Walks org_id IN (current, '') and the
      * TENANT row wins over global; only published rows whose schedule has arrived.
      * Returns the row or null.
+     *
+     * @param string      $slug   the page slug
+     * @param string      $locale the locale to match
+     * @param string      $orgId  tenant scope ('' = global)
+     * @param string|null $type   restrict to a TYPE_* constant, or null for any
+     * @return Zend_Db_Table_Row_Abstract|null the live page row, or null
      */
     public function resolveBySlug($slug, $locale, $orgId = '', $type = null)
     {
@@ -60,6 +66,12 @@ class Tiger_Model_Page extends Tiger_Model_Table
      * Fetch by stable handle (layouts, partials, or a page by key). Not publish-
      * gated — layouts/partials are infrastructure, fetched regardless of status.
      * Tenant row wins over global.
+     *
+     * @param string      $key    the stable page_key handle
+     * @param string      $locale the locale to match
+     * @param string      $orgId  tenant scope ('' = global)
+     * @param string|null $type   restrict to a TYPE_* constant, or null for any
+     * @return Zend_Db_Table_Row_Abstract|null the row, or null
      */
     public function fetchByKey($key, $locale, $orgId = '', $type = null)
     {
@@ -75,7 +87,14 @@ class Tiger_Model_Page extends Tiger_Model_Table
         return $this->fetchRow($select);
     }
 
-    /** All published pages under a parent, ordered — for nav/menus. */
+    /**
+     * All published pages under a parent, ordered — for nav/menus.
+     *
+     * @param string $parentId the parent page id
+     * @param string $locale   the locale to match
+     * @param string $orgId    tenant scope ('' = global)
+     * @return Zend_Db_Table_Rowset_Abstract the ordered child pages
+     */
     public function children($parentId, $locale, $orgId = '')
     {
         return $this->fetchAll(
@@ -96,7 +115,8 @@ class Tiger_Model_Page extends Tiger_Model_Table
      *
      * @param array       $data   page columns to write
      * @param string|null $pageId update this page, or null to insert a new one
-     * @return string
+     * @return string the saved page_id
+     * @throws Throwable on a DB failure (the transaction is rolled back and rethrown)
      */
     public function save(array $data, $pageId = null)
     {
@@ -139,6 +159,11 @@ class Tiger_Model_Page extends Tiger_Model_Table
      * Restore a page to a prior version — copies that version's content back onto the
      * page (which snapshots as a new version). Returns the page_id. (Named
      * restoreVersion to avoid Tiger_Model_Table::restore(), the soft-delete undelete.)
+     *
+     * @param string $pageId  the page id to restore
+     * @param int    $version the version number to restore
+     * @return string the saved page_id
+     * @throws RuntimeException if the version doesn't exist for the page
      */
     public function restoreVersion($pageId, $version)
     {

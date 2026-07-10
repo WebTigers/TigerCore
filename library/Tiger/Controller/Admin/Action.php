@@ -21,6 +21,11 @@
  */
 abstract class Tiger_Controller_Admin_Action extends Tiger_Controller_Action
 {
+    /**
+     * Initialize the controller and set the admin layout for every admin screen.
+     *
+     * @return void
+     */
     public function init()
     {
         parent::init();

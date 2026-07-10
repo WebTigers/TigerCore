@@ -45,6 +45,10 @@ class Tiger_Routing_Overrides
     /**
      * Declare a module's default pretty route. Called from a module Bootstrap. The admin can
      * override it by name via config. Re-registering the same name replaces the default.
+     *
+     * @param  string $name the override's unique name
+     * @param  array  $spec the declared spec (pattern/target/priority/enabled)
+     * @return void
      */
     public static function register($name, array $spec)
     {
@@ -65,6 +69,8 @@ class Tiger_Routing_Overrides
      * override), regardless of enabled state — for the admin settings screen. Null if neither
      * a declaration nor config exists for the name.
      *
+     * @param  string           $name   the override name
+     * @param  Zend_Config|null $config config to read the override tier from (defaults to the registry)
      * @return array{name:string,pattern:string,prefix:string,target:string,mca:array,priority:int,enabled:bool}|null
      */
     public static function get($name, $config = null)
@@ -96,6 +102,7 @@ class Tiger_Routing_Overrides
      * All ENABLED, valid overrides, sorted by priority DESC (highest checked first). Invalid
      * (no prefix/target) or reserved-prefix entries are dropped. This is what the plugin walks.
      *
+     * @param  Zend_Config|null $config config to read the override tier from (defaults to the registry)
      * @return array<int,array>
      */
     public static function all($config = null)
@@ -122,7 +129,11 @@ class Tiger_Routing_Overrides
         return $out;
     }
 
-    /** Reset declarations (tests). */
+    /**
+     * Reset declarations (tests).
+     *
+     * @return void
+     */
     public static function clear()
     {
         self::$_declared = [];

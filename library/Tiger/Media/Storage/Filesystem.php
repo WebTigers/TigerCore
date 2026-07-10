@@ -21,6 +21,12 @@ class Tiger_Media_Storage_Filesystem implements Tiger_Media_Storage_Interface
     protected $_privateRoot;
     protected $_publicUrl;
 
+    /**
+     * Resolve the public/private roots and public URL base from the disk config.
+     *
+     * @param  array $config the `media.disks.<name>.*` settings
+     * @return void
+     */
     public function __construct(array $config)
     {
         $base = defined('APPLICATION_ROOT') ? rtrim(APPLICATION_ROOT, '/') : rtrim(getcwd(), '/');
@@ -29,6 +35,16 @@ class Tiger_Media_Storage_Filesystem implements Tiger_Media_Storage_Interface
         $this->_publicUrl   = rtrim((string) ($config['public_url'] ?? '/_media'), '/');
     }
 
+    /**
+     * Store bytes from a source file path (copies the file to its target).
+     *
+     * @param  string  $key        the adapter-relative storage key
+     * @param  string  $sourcePath the source file on disk to copy from
+     * @param  string  $visibility public|private
+     * @param  ?string $mime       the content MIME type (unused by this adapter)
+     * @return void
+     * @throws RuntimeException when the target can't be written
+     */
     public function put($key, $sourcePath, $visibility, $mime = null)
     {
         $target = $this->_path($key, $visibility);
@@ -39,6 +55,16 @@ class Tiger_Media_Storage_Filesystem implements Tiger_Media_Storage_Interface
         @chmod($target, 0644);
     }
 
+    /**
+     * Store raw bytes to the target file.
+     *
+     * @param  string  $key        the adapter-relative storage key
+     * @param  string  $bytes      the raw bytes to store
+     * @param  string  $visibility public|private
+     * @param  ?string $mime       the content MIME type (unused by this adapter)
+     * @return void
+     * @throws RuntimeException when the target can't be written
+     */
     public function write($key, $bytes, $visibility, $mime = null)
     {
         $target = $this->_path($key, $visibility);
@@ -49,6 +75,14 @@ class Tiger_Media_Storage_Filesystem implements Tiger_Media_Storage_Interface
         @chmod($target, 0644);
     }
 
+    /**
+     * Read all bytes of a file.
+     *
+     * @param  string $key        the adapter-relative storage key
+     * @param  string $visibility public|private
+     * @return string the file's bytes
+     * @throws RuntimeException when the file is not found
+     */
     public function get($key, $visibility)
     {
         $path = $this->_path($key, $visibility);
@@ -59,6 +93,14 @@ class Tiger_Media_Storage_Filesystem implements Tiger_Media_Storage_Interface
         return $bytes;
     }
 
+    /**
+     * Open a read stream for a file.
+     *
+     * @param  string   $key        the adapter-relative storage key
+     * @param  string   $visibility public|private
+     * @return resource a readable file handle
+     * @throws RuntimeException when the file is not found
+     */
     public function stream($key, $visibility)
     {
         $fh = @fopen($this->_path($key, $visibility), 'rb');
@@ -68,6 +110,13 @@ class Tiger_Media_Storage_Filesystem implements Tiger_Media_Storage_Interface
         return $fh;
     }
 
+    /**
+     * Remove a file (idempotent — a missing file is not an error).
+     *
+     * @param  string $key        the adapter-relative storage key
+     * @param  string $visibility public|private
+     * @return void
+     */
     public function delete($key, $visibility)
     {
         $path = $this->_path($key, $visibility);
@@ -76,17 +125,39 @@ class Tiger_Media_Storage_Filesystem implements Tiger_Media_Storage_Interface
         }
     }
 
+    /**
+     * Does the file exist?
+     *
+     * @param  string $key        the adapter-relative storage key
+     * @param  string $visibility public|private
+     * @return bool   true when the file exists
+     */
     public function exists($key, $visibility)
     {
         return is_file($this->_path($key, $visibility));
     }
 
+    /**
+     * Size of a file in bytes (0 if missing).
+     *
+     * @param  string $key        the adapter-relative storage key
+     * @param  string $visibility public|private
+     * @return int    the file size in bytes, or 0 if missing
+     */
     public function size($key, $visibility)
     {
         $path = $this->_path($key, $visibility);
         return is_file($path) ? (int) filesize($path) : 0;
     }
 
+    /**
+     * A directly-usable URL for a file (a docroot URL for public; '' for private).
+     *
+     * @param  string $key        the adapter-relative storage key
+     * @param  string $visibility public|private
+     * @param  ?int   $ttl        unused by this adapter (no signed URLs)
+     * @return string a public URL, or '' when the app must stream the bytes itself
+     */
     public function url($key, $visibility, $ttl = null)
     {
         // Public: a direct docroot URL. Private: '' -> the media layer uses the streamer route.

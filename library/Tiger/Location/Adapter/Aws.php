@@ -44,6 +44,11 @@ class Tiger_Location_Adapter_Aws extends Tiger_Location_Adapter_Abstract
         'MEX' => 'MX', 'BRA' => 'BR',
     ];
 
+    /**
+     * The CAP_* operations this adapter supports (suggest, geocode, reverse).
+     *
+     * @return array a list of CAP_* capability constants
+     */
     public function capabilities(): array
     {
         return [self::CAP_SUGGEST, self::CAP_GEOCODE, self::CAP_REVERSE];
@@ -53,6 +58,8 @@ class Tiger_Location_Adapter_Aws extends Tiger_Location_Adapter_Abstract
      * Autocomplete a partial address. Returns Tiger_Location_Place[] of lightweight suggestions
      * (label + optional PlaceId to feed a follow-up geocode). Empty on any error.
      *
+     * @param  string $query the partial address text
+     * @param  array  $opts  options (e.g. 'country' to bias results)
      * @return Tiger_Location_Place[]
      */
     public function suggest(string $query, array $opts = []): array
@@ -84,6 +91,8 @@ class Tiger_Location_Adapter_Aws extends Tiger_Location_Adapter_Abstract
     /**
      * Geocode free text to structured address(es) with coordinates. Empty on any error.
      *
+     * @param  string $query the address text to geocode
+     * @param  array  $opts  options (e.g. 'country' to bias results)
      * @return Tiger_Location_Place[]
      */
     public function geocode(string $query, array $opts = []): array
@@ -107,6 +116,11 @@ class Tiger_Location_Adapter_Aws extends Tiger_Location_Adapter_Abstract
     /**
      * Reverse-geocode a coordinate to the nearest address. Null on any error / no match.
      * Note AWS takes position as [longitude, latitude].
+     *
+     * @param  float $lat  the latitude
+     * @param  float $lng  the longitude
+     * @param  array $opts provider options
+     * @return Tiger_Location_Place|null the nearest place, or null on error / no match
      */
     public function reverse(float $lat, float $lng, array $opts = []): ?Tiger_Location_Place
     {

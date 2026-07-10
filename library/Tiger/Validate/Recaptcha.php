@@ -31,6 +31,12 @@ class Tiger_Validate_Recaptcha extends Zend_Validate_Abstract
     /** Optional expected v3 action name (defense against token replay across forms). */
     protected $_action;
 
+    /**
+     * Build the validator, optionally binding an expected v3 action.
+     *
+     * @param  array|Zend_Config|null $options optional config; an `action` key sets the expected v3 action
+     * @return void
+     */
     public function __construct($options = null)
     {
         if ($options instanceof Zend_Config) {
@@ -42,9 +48,11 @@ class Tiger_Validate_Recaptcha extends Zend_Validate_Abstract
     }
 
     /**
+     * Verify the reCAPTCHA token from the form context (pass-through when disabled).
+     *
      * @param  mixed $value   the element value (usually empty — the real token is in context)
      * @param  array $context the full form data, carrying `g-recaptcha-response`
-     * @return bool
+     * @return bool           true when reCAPTCHA is disabled, the outage policy fails open, or verification passes
      */
     public function isValid($value, $context = null)
     {

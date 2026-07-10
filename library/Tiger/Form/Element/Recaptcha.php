@@ -29,6 +29,11 @@ class Tiger_Form_Element_Recaptcha extends Zend_Form_Element_Xhtml
     /** Rendered by $view->formRecaptcha(). */
     public $helper = 'formRecaptcha';
 
+    /**
+     * Configure the element: optional v3 action, not required, and self-attach the validator.
+     *
+     * @return void
+     */
     public function init()
     {
         $options = [];

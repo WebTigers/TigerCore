@@ -40,6 +40,12 @@ class Tiger_Location_Place
     /** @var array raw provider payload (debug / provider-specific extras) */
     public $raw = [];
 
+    /**
+     * Hydrate the place from a field map (unknown keys are ignored).
+     *
+     * @param  array $data field => value pairs matching this object's properties
+     * @return void
+     */
     public function __construct(array $data = [])
     {
         foreach ($data as $k => $v) {
@@ -47,7 +53,11 @@ class Tiger_Location_Place
         }
     }
 
-    /** The stable public payload (no raw provider blob). */
+    /**
+     * The stable public payload (no raw provider blob).
+     *
+     * @return array the normalized place fields
+     */
     public function toArray(): array
     {
         return [

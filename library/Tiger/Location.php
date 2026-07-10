@@ -31,13 +31,25 @@ class Tiger_Location
     /** @var array<string,Tiger_Location_Adapter_Interface> */
     protected $_instances = [];
 
-    /** Register (or replace) a provider name -> adapter class. */
+    /**
+     * Register (or replace) a provider name -> adapter class.
+     *
+     * @param  string $name  the provider name (case-insensitive)
+     * @param  string $class the adapter class to instantiate for it
+     * @return void
+     */
     public static function register(string $name, string $class): void
     {
         self::$_adapters[strtolower($name)] = $class;
     }
 
-    /** @return Tiger_Location_Place[] */
+    /**
+     * Suggest address matches for a partial query via the configured address provider.
+     *
+     * @param  string $query the partial address text
+     * @param  array  $opts  provider options (e.g. country bias)
+     * @return Tiger_Location_Place[] the suggestions, or [] when unconfigured or on error
+     */
     public function suggest(string $query, array $opts = []): array
     {
         $query = trim($query);
@@ -47,7 +59,13 @@ class Tiger_Location
         try { return $a->suggest($query, $opts); } catch (Throwable $e) { return []; }
     }
 
-    /** @return Tiger_Location_Place[] */
+    /**
+     * Geocode a query to structured place(s) via the configured address provider.
+     *
+     * @param  string $query the address text to geocode
+     * @param  array  $opts  provider options (e.g. country bias)
+     * @return Tiger_Location_Place[] the matches, or [] when unconfigured or on error
+     */
     public function geocode(string $query, array $opts = []): array
     {
         $query = trim($query);
@@ -57,6 +75,14 @@ class Tiger_Location
         try { return $a->geocode($query, $opts); } catch (Throwable $e) { return []; }
     }
 
+    /**
+     * Reverse-geocode a coordinate to the nearest place via the configured address provider.
+     *
+     * @param  float $lat  the latitude
+     * @param  float $lng  the longitude
+     * @param  array $opts provider options
+     * @return Tiger_Location_Place|null the place, or null when unconfigured or on error
+     */
     public function reverse(float $lat, float $lng, array $opts = []): ?Tiger_Location_Place
     {
         $a = $this->_adapterFor(Tiger_Location_Adapter_Interface::CAP_REVERSE, 'address');
@@ -64,6 +90,13 @@ class Tiger_Location
         try { return $a->reverse($lat, $lng, $opts); } catch (Throwable $e) { return null; }
     }
 
+    /**
+     * Geolocate an IP address via the configured IP provider.
+     *
+     * @param  string $ip   the IP address to look up
+     * @param  array  $opts provider options
+     * @return Tiger_Location_Place|null the place, or null on an invalid IP, unconfigured, or error
+     */
     public function ip(string $ip, array $opts = []): ?Tiger_Location_Place
     {
         $ip = trim($ip);

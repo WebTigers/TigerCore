@@ -40,6 +40,15 @@ class Tiger_Media_Storage_S3 implements Tiger_Media_Storage_Interface
     /** @var \Aws\S3\S3Client|null memoized */
     protected $_client;
 
+    /**
+     * Build the S3 adapter from a disk config array.
+     *
+     * @param  array $config the disk config (`bucket` required; plus optional `region`,
+     *                       `prefix`, `public_prefix`, `private_prefix`, `cdn`, `presign_ttl`,
+     *                       `public_acl`, `key`/`secret`, `endpoint`, `use_path_style`)
+     * @return void
+     * @throws RuntimeException when `bucket` is missing
+     */
     public function __construct(array $config)
     {
         $this->_bucket = (string) ($config['bucket'] ?? '');
@@ -56,16 +65,42 @@ class Tiger_Media_Storage_S3 implements Tiger_Media_Storage_Interface
         $this->_settings      = $config;
     }
 
+    /**
+     * Upload a file from a local path to the bucket.
+     *
+     * @param  string      $key        the storage key
+     * @param  string      $sourcePath local file path to upload
+     * @param  string      $visibility PUBLIC or PRIVATE (selects the key prefix)
+     * @param  string|null $mime       optional content-type
+     * @return void
+     */
     public function put($key, $sourcePath, $visibility, $mime = null)
     {
         $this->_putObject($key, $visibility, ['SourceFile' => $sourcePath], $mime, $key);
     }
 
+    /**
+     * Write in-memory bytes to the bucket.
+     *
+     * @param  string      $key        the storage key
+     * @param  string      $bytes      the object body
+     * @param  string      $visibility PUBLIC or PRIVATE (selects the key prefix)
+     * @param  string|null $mime       optional content-type
+     * @return void
+     */
     public function write($key, $bytes, $visibility, $mime = null)
     {
         $this->_putObject($key, $visibility, ['Body' => $bytes], $mime, $key);
     }
 
+    /**
+     * Fetch an object's full contents.
+     *
+     * @param  string $key        the storage key
+     * @param  string $visibility PUBLIC or PRIVATE (selects the key prefix)
+     * @return string the object bytes
+     * @throws RuntimeException when the object is not found
+     */
     public function get($key, $visibility)
     {
         try {
@@ -76,6 +111,14 @@ class Tiger_Media_Storage_S3 implements Tiger_Media_Storage_Interface
         }
     }
 
+    /**
+     * Open a readable stream for an object (live socket when possible, else a temp buffer).
+     *
+     * @param  string   $key        the storage key
+     * @param  string   $visibility PUBLIC or PRIVATE (selects the key prefix)
+     * @return resource a readable stream handle
+     * @throws RuntimeException when the object is not found
+     */
     public function stream($key, $visibility)
     {
         try {
@@ -101,6 +144,13 @@ class Tiger_Media_Storage_S3 implements Tiger_Media_Storage_Interface
         return $fh;
     }
 
+    /**
+     * Delete an object (idempotent — deleting a missing key still succeeds).
+     *
+     * @param  string $key        the storage key
+     * @param  string $visibility PUBLIC or PRIVATE (selects the key prefix)
+     * @return void
+     */
     public function delete($key, $visibility)
     {
         // S3 delete of a missing key still succeeds — idempotent, like the interface asks.
@@ -111,6 +161,13 @@ class Tiger_Media_Storage_S3 implements Tiger_Media_Storage_Interface
         }
     }
 
+    /**
+     * Report whether an object exists.
+     *
+     * @param  string $key        the storage key
+     * @param  string $visibility PUBLIC or PRIVATE (selects the key prefix)
+     * @return bool   true when the object exists
+     */
     public function exists($key, $visibility)
     {
         try {
@@ -120,6 +177,13 @@ class Tiger_Media_Storage_S3 implements Tiger_Media_Storage_Interface
         }
     }
 
+    /**
+     * Return an object's size in bytes (0 when missing).
+     *
+     * @param  string $key        the storage key
+     * @param  string $visibility PUBLIC or PRIVATE (selects the key prefix)
+     * @return int    the byte length, or 0 if not found
+     */
     public function size($key, $visibility)
     {
         try {
@@ -130,6 +194,17 @@ class Tiger_Media_Storage_S3 implements Tiger_Media_Storage_Interface
         }
     }
 
+    /**
+     * Build a URL for an object: a direct public URL, or a short-lived presigned GET for private.
+     *
+     * Returns '' for private objects when presigning is disabled, so the media layer streams
+     * through the ACL-checked route instead.
+     *
+     * @param  string   $key        the storage key
+     * @param  string   $visibility PUBLIC or PRIVATE (selects the key prefix)
+     * @param  int|null $ttl        override the presign lifetime (seconds) for a private object
+     * @return string   the object URL, or '' when no direct/presigned URL is available
+     */
     public function url($key, $visibility, $ttl = null)
     {
         $full = $this->_fullKey($key, $visibility);

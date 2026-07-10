@@ -20,20 +20,33 @@ class Tiger_Model_Module extends Tiger_Model_Table
     const SOURCE_URL        = 'url';
     const SOURCE_DISCOVERED = 'discovered';
 
-    /** Slugs of deactivated modules (active = 0). The gate's query — keep it lean. */
+    /**
+     * Slugs of deactivated modules (active = 0). The gate's query — keep it lean.
+     *
+     * @return array<int,string> the slugs of inactive modules
+     */
     public function inactiveSlugs()
     {
         $db = $this->getAdapter();
         return $db->fetchCol($db->select()->from($this->_name, ['slug'])->where('active = 0'));
     }
 
-    /** One row by slug, or null. */
+    /**
+     * One row by slug, or null.
+     *
+     * @param string $slug the module slug
+     * @return Zend_Db_Table_Row_Abstract|null the module row, or null if none
+     */
     public function bySlug($slug)
     {
         return $this->fetchRow($this->select()->where('slug = ?', (string) $slug));
     }
 
-    /** All rows keyed by slug — for overlaying state onto discovered modules. */
+    /**
+     * All rows keyed by slug — for overlaying state onto discovered modules.
+     *
+     * @return array<string,Zend_Db_Table_Row_Abstract> module rows keyed by slug
+     */
     public function bySlugMap()
     {
         $out = [];
@@ -46,6 +59,11 @@ class Tiger_Model_Module extends Tiger_Model_Table
     /**
      * Set a module's active state (upsert). A discovered module gets a row the first time it's
      * toggled; an installer-managed row keeps its provenance. Returns the row id.
+     *
+     * @param string $slug   the module slug
+     * @param bool   $active the desired active state
+     * @param array  $meta   optional provenance for a new row (source, name, version)
+     * @return string the module_id
      */
     public function setActive($slug, $active, array $meta = [])
     {
@@ -65,7 +83,13 @@ class Tiger_Model_Module extends Tiger_Model_Table
         return $this->insert($data);
     }
 
-    /** Record an installed (or updated) module with full provenance + active. Returns the id. */
+    /**
+     * Record an installed (or updated) module with full provenance + active. Returns the id.
+     *
+     * @param string $slug the module slug
+     * @param array  $meta provenance (name, version, repository, ref, source)
+     * @return string the module_id
+     */
     public function install($slug, array $meta)
     {
         $data = [
@@ -86,7 +110,12 @@ class Tiger_Model_Module extends Tiger_Model_Table
         return $this->insert($data);
     }
 
-    /** Drop a module's registry row (uninstall). */
+    /**
+     * Drop a module's registry row (uninstall).
+     *
+     * @param string $slug the module slug
+     * @return int the number of rows deleted
+     */
     public function uninstall($slug)
     {
         return $this->delete($this->getAdapter()->quoteInto('slug = ?', (string) $slug));

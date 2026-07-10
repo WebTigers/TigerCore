@@ -23,7 +23,9 @@ class Tiger_Model_Config extends Tiger_Model_Table
     /**
      * Active config rows for a scope (+ optional scope id). Global uses scope_id ''.
      *
-     * @return Zend_Db_Table_Rowset_Abstract
+     * @param  string $scope   the scope (global/org/user)
+     * @param  string $scopeId the scope id ('' for global)
+     * @return Zend_Db_Table_Rowset_Abstract the matching config rows
      */
     public function getForScope($scope, $scopeId = '')
     {
@@ -34,7 +36,14 @@ class Tiger_Model_Config extends Tiger_Model_Table
         );
     }
 
-    /** A single config value, or null. */
+    /**
+     * Fetch a single config value, or null.
+     *
+     * @param  string $scope   the scope (global/org/user)
+     * @param  string $scopeId the scope id ('' for global)
+     * @param  string $key     the dot-notation config key
+     * @return string|null the config value, or null when unset
+     */
     public function get($scope, $scopeId, $key)
     {
         $row = $this->fetchRow(
@@ -49,7 +58,11 @@ class Tiger_Model_Config extends Tiger_Model_Table
     /**
      * Upsert a config value for a scope. Returns the config_id.
      *
-     * @return string
+     * @param  string $scope   the scope (global/org/user)
+     * @param  string $scopeId the scope id ('' for global)
+     * @param  string $key     the dot-notation config key
+     * @param  string $value   the config value to store
+     * @return string the config_id
      */
     public function set($scope, $scopeId, $key, $value)
     {

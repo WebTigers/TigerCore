@@ -21,6 +21,12 @@
  */
 class Tiger_Application_Resource_Modules extends Zend_Application_Resource_Modules
 {
+    /**
+     * Strip deactivated modules from the controller-directory map, then delegate to the
+     * stock module bootstrapping.
+     *
+     * @return mixed the stock resource's initialized module bootstraps
+     */
     public function init()
     {
         try {

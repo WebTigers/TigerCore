@@ -20,12 +20,27 @@ class Tiger_Media_Scanner_Rekognition implements Tiger_Media_Scanner_Interface
     protected $_threshold;
     protected $_region;
 
+    /**
+     * Configure the moderation threshold and AWS region.
+     *
+     * @param  float  $threshold minimum label confidence (percent) that rejects an image
+     * @param  string $region    the AWS region for the Rekognition client
+     * @return void
+     */
     public function __construct(float $threshold = 80.0, string $region = 'us-east-1')
     {
         $this->_threshold = $threshold;
         $this->_region    = $region;
     }
 
+    /**
+     * Moderate an image synchronously via Rekognition DetectModerationLabels.
+     *
+     * @param  string  $path the image on disk to moderate
+     * @param  ?string $mime the file's MIME type (unused; part of the scanner contract)
+     * @return array{status:string, reason:?string, meta:array}
+     *         status: `clean` | `rejected` | `error` (never throws)
+     */
     public function scan(string $path, ?string $mime = null): array
     {
         if (!class_exists('Aws\\Rekognition\\RekognitionClient')) {
@@ -60,6 +75,12 @@ class Tiger_Media_Scanner_Rekognition implements Tiger_Media_Scanner_Interface
      *
      * TODO(P4/P5): wire once S3 storage + the SNS topic/role are provisioned — needs
      * media.scan.video_sns_topic + media.scan.video_role and the S3 disk.
+     *
+     * @param  string $bucket      the S3 bucket holding the stored video
+     * @param  string $key         the S3 object key of the video
+     * @param  string $snsTopicArn the SNS topic ARN Rekognition publishes the result to
+     * @param  string $roleArn     the IAM role ARN Rekognition assumes to publish
+     * @return ?string the Rekognition JobId, or null on failure
      */
     public function submitVideo(string $bucket, string $key, string $snsTopicArn, string $roleArn): ?string
     {

@@ -34,6 +34,13 @@ class Tiger_Media_Storage_Gcs implements Tiger_Media_Storage_Interface
     /** @var \Google\Cloud\Storage\Bucket|null memoized */
     protected $_bucket;
 
+    /**
+     * Configure the bucket, prefixes, CDN, and presign TTL from the disk config.
+     *
+     * @param  array $config the `media.disks.<name>.*` settings
+     * @return void
+     * @throws RuntimeException when the bucket is not configured
+     */
     public function __construct(array $config)
     {
         $this->_bucketName = (string) ($config['bucket'] ?? '');
@@ -49,6 +56,16 @@ class Tiger_Media_Storage_Gcs implements Tiger_Media_Storage_Interface
         $this->_settings      = $config;
     }
 
+    /**
+     * Store bytes from a source file path as a GCS object.
+     *
+     * @param  string  $key        the adapter-relative storage key
+     * @param  string  $sourcePath the source file on disk to read from
+     * @param  string  $visibility public|private
+     * @param  ?string $mime       the content MIME type (may be null)
+     * @return void
+     * @throws RuntimeException when the source can't be read or the upload fails
+     */
     public function put($key, $sourcePath, $visibility, $mime = null)
     {
         $h = @fopen($sourcePath, 'rb');
@@ -62,11 +79,28 @@ class Tiger_Media_Storage_Gcs implements Tiger_Media_Storage_Interface
         }
     }
 
+    /**
+     * Store raw bytes as a GCS object.
+     *
+     * @param  string  $key        the adapter-relative storage key
+     * @param  string  $bytes      the raw bytes to store
+     * @param  string  $visibility public|private
+     * @param  ?string $mime       the content MIME type (may be null)
+     * @return void
+     */
     public function write($key, $bytes, $visibility, $mime = null)
     {
         $this->_upload($key, $visibility, $bytes, $mime);
     }
 
+    /**
+     * Read all bytes of an object.
+     *
+     * @param  string $key        the adapter-relative storage key
+     * @param  string $visibility public|private
+     * @return string the object's bytes
+     * @throws RuntimeException when the object is not found
+     */
     public function get($key, $visibility)
     {
         try {
@@ -76,6 +110,14 @@ class Tiger_Media_Storage_Gcs implements Tiger_Media_Storage_Interface
         }
     }
 
+    /**
+     * Open a read stream for an object.
+     *
+     * @param  string   $key        the adapter-relative storage key
+     * @param  string   $visibility public|private
+     * @return resource a readable stream for the object
+     * @throws RuntimeException when the object is not found
+     */
     public function stream($key, $visibility)
     {
         try {
@@ -96,6 +138,13 @@ class Tiger_Media_Storage_Gcs implements Tiger_Media_Storage_Interface
         return $fh;
     }
 
+    /**
+     * Remove an object (idempotent — a missing object is not an error).
+     *
+     * @param  string $key        the adapter-relative storage key
+     * @param  string $visibility public|private
+     * @return void
+     */
     public function delete($key, $visibility)
     {
         try {
@@ -105,6 +154,13 @@ class Tiger_Media_Storage_Gcs implements Tiger_Media_Storage_Interface
         }
     }
 
+    /**
+     * Does the object exist?
+     *
+     * @param  string $key        the adapter-relative storage key
+     * @param  string $visibility public|private
+     * @return bool   true when the object exists
+     */
     public function exists($key, $visibility)
     {
         try {
@@ -114,6 +170,13 @@ class Tiger_Media_Storage_Gcs implements Tiger_Media_Storage_Interface
         }
     }
 
+    /**
+     * Size of an object in bytes (0 if missing).
+     *
+     * @param  string $key        the adapter-relative storage key
+     * @param  string $visibility public|private
+     * @return int    the object size in bytes, or 0 if missing
+     */
     public function size($key, $visibility)
     {
         try {
@@ -124,6 +187,14 @@ class Tiger_Media_Storage_Gcs implements Tiger_Media_Storage_Interface
         }
     }
 
+    /**
+     * A directly-usable URL for an object (CDN/public URL for public, a V4 signed URL for private).
+     *
+     * @param  string $key        the adapter-relative storage key
+     * @param  string $visibility public|private
+     * @param  ?int   $ttl        seconds for the private signed URL (adapter default when null)
+     * @return string a usable URL, or '' when the app must stream the bytes itself
+     */
     public function url($key, $visibility, $ttl = null)
     {
         $full = $this->_fullKey($key, $visibility);

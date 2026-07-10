@@ -12,7 +12,11 @@ class Tiger_Model_AclResource extends Tiger_Model_Table
     protected $_name    = 'acl_resource';
     protected $_primary = 'acl_resource_id';
 
-    /** All active resources for the ACL loader. */
+    /**
+     * Fetch all active resources for the ACL loader.
+     *
+     * @return Zend_Db_Table_Rowset_Abstract the active resource rows
+     */
     public function getResourceList()
     {
         return $this->fetchAll($this->activeSelect());

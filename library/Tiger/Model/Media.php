@@ -51,6 +51,7 @@ class Tiger_Model_Media extends Tiger_Model_Table
      * Returns the kind and whether it's allowed at all. `pdf` is split out of documents so
      * it gets the pdf.js preview path.
      *
+     * @param  string $extension the upload's file extension (with or without leading dot)
      * @return array{kind:string, allowed:bool}
      */
     public static function classify($extension)
@@ -81,6 +82,9 @@ class Tiger_Model_Media extends Tiger_Model_Table
      * (`<org>/images/…`, `/videos/…`, `/docs/…`, `/files/…`): pdf+document → docs, archive+other
      * → files. Used to build the storage key; the adapter adds the visibility root (public/ |
      * private/) on top.
+     *
+     * @param  string $kind a KIND_* constant
+     * @return string the storage sub-folder name
      */
     public static function kindFolder($kind)
     {
@@ -104,6 +108,7 @@ class Tiger_Model_Media extends Tiger_Model_Table
      *
      * @param array       $media   a media row (array)
      * @param string|null $variant a variants key (e.g. 'thumbnail'); null/'original' = the file itself
+     * @return string the resolved URL (direct/CDN or streamer route), or '' if none
      */
     public function url(array $media, $variant = null)
     {
@@ -139,7 +144,12 @@ class Tiger_Model_Media extends Tiger_Model_Table
         return $route;
     }
 
-    /** Decode the variants JSON to an array. */
+    /**
+     * Decode the variants JSON to an array.
+     *
+     * @param  array $media a media row (array)
+     * @return array the variants map (derivative key => descriptor)
+     */
     public function variants(array $media)
     {
         $v = $media['variants'] ?? null;
@@ -149,7 +159,12 @@ class Tiger_Model_Media extends Tiger_Model_Table
         return $v ? (array) json_decode((string) $v, true) : [];
     }
 
-    /** The best display URL for a thumbnail-sized preview (thumbnail variant, else original). */
+    /**
+     * The best display URL for a thumbnail-sized preview (thumbnail variant, else original).
+     *
+     * @param  array $media a media row (array)
+     * @return string the thumbnail (or original) URL
+     */
     public function thumbUrl(array $media)
     {
         $variants = $this->variants($media);
@@ -160,6 +175,7 @@ class Tiger_Model_Media extends Tiger_Model_Table
      * DataTables source for the Media Library: kind filter, search across filename/title/
      * caption, sort, paginate. Query lives here; the service formats + ACL-gates.
      *
+     * @param  array $opts query options (search, kind, limit, offset, orderCol, orderDir)
      * @return array{total:int,filtered:int,rows:array}
      */
     public function datatable(array $opts)

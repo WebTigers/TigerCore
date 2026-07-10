@@ -24,6 +24,14 @@ class Tiger_Model_MessageObject
     /** @var string|null field this message attaches to, if any */
     public $field;
 
+    /**
+     * Build a feedback message, translating the message as a key when possible.
+     *
+     * @param string      $message the message text, or a translation key to resolve
+     * @param string      $class   Bootstrap alert context: success | error | alert | info
+     * @param string|null $field   the form field this message attaches to, if any
+     * @return void
+     */
     public function __construct($message, $class = 'info', $field = null)
     {
         $translate = Zend_Registry::isRegistered('Zend_Translate')

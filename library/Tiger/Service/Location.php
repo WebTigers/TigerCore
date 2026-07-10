@@ -16,6 +16,12 @@
  */
 class Tiger_Service_Location extends Tiger_Service_Service
 {
+    /**
+     * Autocomplete address suggestions for a partial query.
+     *
+     * @param  array $params the request payload (`q`, optional `country` bias)
+     * @return void
+     */
     public function suggest(array $params): void
     {
         $opts = [];
@@ -25,12 +31,24 @@ class Tiger_Service_Location extends Tiger_Service_Service
         $this->_success(['results' => array_map(static function ($p) { return $p->toArray(); }, $places)]);
     }
 
+    /**
+     * Reverse-geocode coordinates into a normalized place.
+     *
+     * @param  array $params the request payload (`lat`, `lng`)
+     * @return void
+     */
     public function reverse(array $params): void
     {
         $place = (new Tiger_Location())->reverse((float) ($params['lat'] ?? 0), (float) ($params['lng'] ?? 0));
         $this->_success(['place' => $place ? $place->toArray() : null]);
     }
 
+    /**
+     * Geolocate the requester's own IP address.
+     *
+     * @param  array $params the request payload (unused; the IP is the caller's own)
+     * @return void
+     */
     public function ip(array $params): void
     {
         // Always the requester's own IP (normalized from X-Forwarded-For behind the ALB) —

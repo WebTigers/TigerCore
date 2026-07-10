@@ -28,7 +28,12 @@
  */
 class Tiger_Crypto
 {
-    /** Encrypt a plaintext string under the CURRENT key; base64 blob safe for a text column. */
+    /**
+     * Encrypt a plaintext string under the CURRENT key; base64 blob safe for a text column.
+     *
+     * @param  string $plaintext the value to encrypt
+     * @return string base64-encoded `nonce . ciphertext`
+     */
     public static function encrypt($plaintext)
     {
         $nonce  = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
@@ -41,7 +46,9 @@ class Tiger_Crypto
      * rotation window Just Works). Throws on a missing key, malformed input, or when no
      * configured key authenticates — callers treat any throw as "secret unusable".
      *
-     * @throws RuntimeException
+     * @param  string $blob the base64 blob produced by encrypt()
+     * @return string the recovered plaintext
+     * @throws RuntimeException on malformed input or when no configured key authenticates
      */
     public static function decrypt($blob)
     {
@@ -61,13 +68,22 @@ class Tiger_Crypto
         throw new RuntimeException('Tiger_Crypto: decryption failed (no configured key matched)');
     }
 
-    /** Re-encrypt a blob under the CURRENT key (decrypting via current-or-retired). For rekey. */
+    /**
+     * Re-encrypt a blob under the CURRENT key (decrypting via current-or-retired). For rekey.
+     *
+     * @param  string $blob the existing ciphertext blob
+     * @return string the blob re-encrypted under the current key
+     */
     public static function reencrypt($blob)
     {
         return self::encrypt(self::decrypt($blob));
     }
 
-    /** True when a usable current key is configured — lets callers gate features (TOTP enrollment). */
+    /**
+     * True when a usable current key is configured — lets callers gate features (TOTP enrollment).
+     *
+     * @return bool whether a usable current key is configured
+     */
     public static function isConfigured()
     {
         try {
@@ -78,7 +94,11 @@ class Tiger_Crypto
         }
     }
 
-    /** Mint a fresh base64 key for local.ini / a secrets manager. Handy for install/rotate. */
+    /**
+     * Mint a fresh base64 key for local.ini / a secrets manager. Handy for install/rotate.
+     *
+     * @return string a new base64-encoded 32-byte key
+     */
     public static function generateKey()
     {
         return base64_encode(random_bytes(SODIUM_CRYPTO_SECRETBOX_KEYBYTES));

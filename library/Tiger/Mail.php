@@ -37,6 +37,11 @@ class Tiger_Mail
     /** @var Zend_Config|null */
     protected $_config;
 
+    /**
+     * Capture the resolved config for later transport resolution.
+     *
+     * @return void
+     */
     public function __construct()
     {
         $this->_config = Zend_Registry::isRegistered('Zend_Config')
@@ -44,17 +49,64 @@ class Tiger_Mail
             : null;
     }
 
+    /**
+     * Add a recipient (chainable).
+     *
+     * @param  string $email the recipient email address
+     * @param  string $name  the recipient display name
+     * @return self          this instance, for chaining
+     */
     public function to($email, $name = '')      { $this->_to[]    = [(string) $email, (string) $name]; return $this; }
+
+    /**
+     * Set the sender (chainable); overrides the config default.
+     *
+     * @param  string $email the sender email address
+     * @param  string $name  the sender display name
+     * @return self          this instance, for chaining
+     */
     public function from($email, $name = '')    { $this->_from    = [(string) $email, (string) $name]; return $this; }
+
+    /**
+     * Set the Reply-To address (chainable).
+     *
+     * @param  string $email the reply-to email address
+     * @param  string $name  the reply-to display name
+     * @return self          this instance, for chaining
+     */
     public function replyTo($email, $name = '') { $this->_replyTo = [(string) $email, (string) $name]; return $this; }
+
+    /**
+     * Set the subject line (chainable).
+     *
+     * @param  string $subject the message subject
+     * @return self            this instance, for chaining
+     */
     public function subject($subject)           { $this->_subject = (string) $subject; return $this; }
+
+    /**
+     * Set the HTML body (chainable); a plain-text alternative is auto-derived if unset.
+     *
+     * @param  string $html the HTML message body
+     * @return self         this instance, for chaining
+     */
     public function html($html)                 { $this->_html    = (string) $html; return $this; }
+
+    /**
+     * Set the plain-text body explicitly (chainable).
+     *
+     * @param  string $text the plain-text message body
+     * @return self         this instance, for chaining
+     */
     public function text($text)                 { $this->_text    = (string) $text; return $this; }
 
     /**
      * Send the message. Pass a transport to override the config-resolved one (handy
      * for tests — e.g. a Zend_Mail_Transport_File that captures instead of delivers).
      * Throws Zend_Mail_Exception / transport exceptions on failure.
+     *
+     * @param  Zend_Mail_Transport_Abstract|null $transport transport override, or null to resolve from config
+     * @return self this instance, for chaining
      */
     public function send($transport = null)
     {

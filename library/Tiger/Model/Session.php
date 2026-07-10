@@ -16,7 +16,11 @@ class Tiger_Model_Session extends Zend_Db_Table_Abstract
     protected $_name    = 'session';
     protected $_primary = 'session_id';
 
-    /** Delete sessions whose (now - modified) > lifetime. Returns rows removed. */
+    /**
+     * Delete sessions whose (now - modified) > lifetime. Returns rows removed.
+     *
+     * @return int the number of expired sessions removed
+     */
     public function gc()
     {
         return (int) $this->delete(
@@ -24,13 +28,23 @@ class Tiger_Model_Session extends Zend_Db_Table_Abstract
         );
     }
 
-    /** A user's sessions, newest first (for a "signed-in devices" view). */
+    /**
+     * A user's sessions, newest first (for a "signed-in devices" view).
+     *
+     * @param string $userId the user id
+     * @return Zend_Db_Table_Rowset_Abstract the user's sessions, newest first
+     */
     public function getByUserId($userId)
     {
         return $this->fetchAll($this->select()->where('user_id = ?', $userId)->order('modified DESC'));
     }
 
-    /** Force-logout: delete all of a user's sessions. */
+    /**
+     * Force-logout: delete all of a user's sessions.
+     *
+     * @param string $userId the user id
+     * @return int the number of sessions deleted
+     */
     public function deleteByUserId($userId)
     {
         return (int) $this->delete($this->getAdapter()->quoteInto('user_id = ?', $userId));

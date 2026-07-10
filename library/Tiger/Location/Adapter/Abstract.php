@@ -16,26 +16,79 @@ abstract class Tiger_Location_Adapter_Abstract implements Tiger_Location_Adapter
     /** @var array adapter config (tiger.location.adapters.<name>.*) */
     protected $_config = [];
 
+    /**
+     * Store the adapter's config (from tiger.location.adapters.<name>).
+     *
+     * @param  array $config the adapter's config map
+     * @return void
+     */
     public function __construct(array $config = [])
     {
         $this->_config = $config;
     }
 
+    /**
+     * The CAP_* operations this adapter supports (none by default).
+     *
+     * @return array a list of CAP_* capability constants
+     */
     public function capabilities(): array
     {
         return [];
     }
 
-    /** Does this adapter support a CAP_* operation? */
+    /**
+     * Does this adapter support a CAP_* operation?
+     *
+     * @param  string $capability the CAP_* capability to check
+     * @return bool               true if the operation is supported
+     */
     public function supports(string $capability): bool
     {
         return in_array($capability, $this->capabilities(), true);
     }
 
     // Unsupported by default — concrete adapters override what they can do.
+
+    /**
+     * Suggest address matches (unsupported here — override in a capable adapter).
+     *
+     * @param  string $query the partial address text
+     * @param  array  $opts  provider options
+     * @return Tiger_Location_Place[] the suggestions
+     * @throws Tiger_Location_Exception always, unless the adapter overrides this
+     */
     public function suggest(string $query, array $opts = []): array { throw $this->_unsupported(self::CAP_SUGGEST); }
+
+    /**
+     * Geocode free text (unsupported here — override in a capable adapter).
+     *
+     * @param  string $query the address text to geocode
+     * @param  array  $opts  provider options
+     * @return Tiger_Location_Place[] the matches
+     * @throws Tiger_Location_Exception always, unless the adapter overrides this
+     */
     public function geocode(string $query, array $opts = []): array { throw $this->_unsupported(self::CAP_GEOCODE); }
+
+    /**
+     * Reverse-geocode a coordinate (unsupported here — override in a capable adapter).
+     *
+     * @param  float $lat  the latitude
+     * @param  float $lng  the longitude
+     * @param  array $opts provider options
+     * @return Tiger_Location_Place|null the nearest place
+     * @throws Tiger_Location_Exception always, unless the adapter overrides this
+     */
     public function reverse(float $lat, float $lng, array $opts = []): ?Tiger_Location_Place { throw $this->_unsupported(self::CAP_REVERSE); }
+
+    /**
+     * Geolocate an IP (unsupported here — override in a capable adapter).
+     *
+     * @param  string $ip   the IP address to look up
+     * @param  array  $opts provider options
+     * @return Tiger_Location_Place|null the place
+     * @throws Tiger_Location_Exception always, unless the adapter overrides this
+     */
     public function ip(string $ip, array $opts = []): ?Tiger_Location_Place { throw $this->_unsupported(self::CAP_IP); }
 
     protected function _unsupported(string $cap): Tiger_Location_Exception

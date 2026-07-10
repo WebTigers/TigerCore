@@ -51,6 +51,12 @@ class Tiger_Form extends Zend_Form
      */
     protected $_translateFn;
 
+    /**
+     * Build the form: POST method, ViewHelper-only decorators, CSRF, translate helper, and
+     * the declared elements.
+     *
+     * @return void
+     */
     public function init()
     {
         $this->setMethod('post');

@@ -24,7 +24,12 @@
  */
 class Tiger_Module_Dependency
 {
-    /** The slugs $slug declares it requires (its configs/dependency.ini [requires] modules[]). */
+    /**
+     * The slugs $slug declares it requires (its configs/dependency.ini [requires] modules[]).
+     *
+     * @param  string $slug the module slug to read requirements for
+     * @return string[] the required module slugs (lowercased, deduped)
+     */
     public static function requires($slug)
     {
         $dir = self::_dir($slug);
@@ -34,6 +39,9 @@ class Tiger_Module_Dependency
     /**
      * Of what $slug requires, the ones NOT currently usable — absent from disk OR deactivated.
      * The activate-time alert: "this module requires X, Y, Z to activate."
+     *
+     * @param  string $slug the module slug being activated
+     * @return string[] the required slugs that are missing or inactive
      */
     public static function missing($slug)
     {
@@ -51,6 +59,9 @@ class Tiger_Module_Dependency
     /**
      * Active modules that list $slug as a requirement. The deactivate-time alert:
      * "X, Y still depend on this — deactivate anyway?" (surfaced, never a block).
+     *
+     * @param  string $slug the module slug being deactivated
+     * @return string[] the active module slugs that depend on $slug
      */
     public static function dependents($slug)
     {

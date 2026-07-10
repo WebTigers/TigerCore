@@ -26,7 +26,12 @@ class Tiger_Admin_Nav
     /** @var array<string,array> key => item definition */
     protected static $_items = [];
 
-    /** Register (or replace, by key) a top-level nav item. Requires key, label, href. */
+    /**
+     * Register (or replace, by key) a top-level nav item. Requires key, label, href.
+     *
+     * @param  array $item item definition (key, label, href, and optional icon/match/resource/order)
+     * @return void
+     */
     public static function register(array $item)
     {
         if (empty($item['key']) || empty($item['label']) || empty($item['href'])) {
@@ -63,7 +68,11 @@ class Tiger_Admin_Nav
         }, $items);
     }
 
-    /** Reset the registry (tests). */
+    /**
+     * Reset the registry (tests).
+     *
+     * @return void
+     */
     public static function clear()
     {
         self::$_items = [];

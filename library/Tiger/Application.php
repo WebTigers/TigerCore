@@ -17,11 +17,22 @@ class Tiger_Application
     /** @var string absolute project root (dir containing public/, application/, vendor/) */
     protected $root;
 
+    /**
+     * Capture the project root (the shim hands it in from public/index.php).
+     *
+     * @param  string $root absolute project root (dir containing public/, application/, vendor/)
+     * @return void
+     */
     public function __construct($root)
     {
         $this->root = rtrim(str_replace('\\', '/', $root), '/');
     }
 
+    /**
+     * Boot the application and dispatch the request, failing safe on any error.
+     *
+     * @return void
+     */
     public function run()
     {
         try {

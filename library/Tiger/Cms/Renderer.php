@@ -25,7 +25,13 @@ class Tiger_Cms_Renderer
     /** @var array<string,callable> name => handler(array $attrs, ?string $inner, array $context) */
     protected static $_shortcodes = [];
 
-    /** Register (or replace) a [shortcode] handler. */
+    /**
+     * Register (or replace) a [shortcode] handler.
+     *
+     * @param  string   $name    the shortcode name (case-insensitive)
+     * @param  callable $handler handler(array $attrs, ?string $inner, array $context): string
+     * @return void
+     */
     public static function registerShortcode($name, callable $handler)
     {
         self::$_shortcodes[strtolower($name)] = $handler;

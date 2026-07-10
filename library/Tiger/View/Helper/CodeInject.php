@@ -16,7 +16,12 @@
  */
 class Tiger_View_Helper_CodeInject extends Zend_View_Helper_Abstract
 {
-    /** @param string $position 'head' | 'footer' */
+    /**
+     * Emit Tiger Code's client-tier injections for a page position.
+     *
+     * @param  string $position 'head' | 'footer'
+     * @return string           the concatenated markup, or '' when nothing is injected
+     */
     public function codeInject($position)
     {
         if (!Tiger_Code_Runtime::enabled()) {

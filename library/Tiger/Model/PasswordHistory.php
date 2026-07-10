@@ -14,13 +14,25 @@ class Tiger_Model_PasswordHistory extends Tiger_Model_Table
     protected $_name    = 'password_history';
     protected $_primary = 'password_history_id';
 
-    /** Archive a retired password hash for a user. */
+    /**
+     * Archive a retired password hash for a user.
+     *
+     * @param string $userId the user id
+     * @param string $hash   the retired password hash to archive
+     * @return string the password_history_id
+     */
     public function archive($userId, $hash)
     {
         return $this->insert(['user_id' => $userId, 'secret' => $hash]);
     }
 
-    /** The user's last N retired hashes, newest first. */
+    /**
+     * The user's last N retired hashes, newest first.
+     *
+     * @param string $userId the user id
+     * @param int    $limit  the maximum number of hashes to return
+     * @return Zend_Db_Table_Rowset_Abstract the retired hashes, newest first
+     */
     public function recentForUser($userId, $limit = 5)
     {
         return $this->fetchAll(
@@ -29,7 +41,13 @@ class Tiger_Model_PasswordHistory extends Tiger_Model_Table
         );
     }
 
-    /** Keep only the newest $keep rows for a user (bounded history). */
+    /**
+     * Keep only the newest $keep rows for a user (bounded history).
+     *
+     * @param string $userId the user id
+     * @param int    $keep   the number of newest rows to retain
+     * @return void
+     */
     public function prune($userId, $keep)
     {
         $keep = max(0, (int) $keep);

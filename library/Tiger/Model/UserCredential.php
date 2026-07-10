@@ -38,6 +38,9 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
     /**
      * Hash a plaintext password. PASSWORD_DEFAULT = bcrypt today, upgraded by PHP
      * over time. A password hash is one-way, so it's stored as-is (not encrypted).
+     *
+     * @param  string $plain the plaintext password
+     * @return string the (peppered) password hash
      */
     public static function hashPassword($plain)
     {
@@ -50,6 +53,8 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
      * Set (create or replace) the user's single password credential. Idempotent —
      * one password row per user (enforced by the UNIQUE key with identifier='').
      *
+     * @param  string $userId the owning user's id
+     * @param  string $plain  the new plaintext password
      * @return string credential_id
      */
     public function setPassword($userId, $plain)
@@ -83,7 +88,9 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
      * Verify a plaintext password against the user's stored hash. Records last_used_at
      * on success. Returns false if there's no password credential.
      *
-     * @return bool
+     * @param  string $userId the owning user's id
+     * @param  string $plain  the candidate plaintext password
+     * @return bool true if the password matches
      */
     public function verifyPassword($userId, $plain)
     {
@@ -138,6 +145,9 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
      * A specific factor for a user. Singleton types (password/totp) use the default
      * identifier ''; sms/oauth pass the phone/subject.
      *
+     * @param  string $userId     the owning user's id
+     * @param  string $type       factor type (TYPE_PASSWORD, TYPE_SMS, …)
+     * @param  string $identifier the factor sub-key (phone/subject; '' for singletons)
      * @return Zend_Db_Table_Row_Abstract|null
      */
     public function factor($userId, $type, $identifier = '')
@@ -150,7 +160,12 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
         ) ?: null;
     }
 
-    /** All (non-deleted) factors a user holds — e.g. for a "security settings" screen. */
+    /**
+     * All (non-deleted) factors a user holds — e.g. for a "security settings" screen.
+     *
+     * @param  string $userId the owning user's id
+     * @return Zend_Db_Table_Rowset_Abstract the user's factor rows
+     */
     public function factorsFor($userId)
     {
         return $this->fetchAll($this->activeSelect()->where('user_id = ?', $userId));
@@ -161,6 +176,8 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
      * "log in by phone" (sms) and SSO callback resolution (oauth). Only matches
      * VERIFIED factors — an unconfirmed phone can't be used to authenticate.
      *
+     * @param  string $type       factor type (TYPE_SMS, TYPE_OAUTH, …)
+     * @param  string $identifier the factor identifier (phone/subject) to look up
      * @return Zend_Db_Table_Row_Abstract|null
      */
     public function findVerifiedByIdentifier($type, $identifier)
@@ -173,7 +190,12 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
         ) ?: null;
     }
 
-    /** Mark a factor confirmed (e.g. after a successful SMS OTP). */
+    /**
+     * Mark a factor confirmed (e.g. after a successful SMS OTP).
+     *
+     * @param  string $credentialId the credential_id to confirm
+     * @return int affected rows
+     */
     public function markVerified($credentialId)
     {
         return $this->update(
@@ -182,7 +204,12 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
         );
     }
 
-    /** Record that a factor was just used to authenticate. */
+    /**
+     * Record that a factor was just used to authenticate.
+     *
+     * @param  string $credentialId the credential_id to stamp last_used_at on
+     * @return int affected rows
+     */
     public function touch($credentialId)
     {
         return $this->update(
@@ -193,13 +220,23 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
 
     // ----- login lockout (brute-force guard) ---------------------------------
 
-    /** The user's password credential row, or null. */
+    /**
+     * The user's password credential row, or null.
+     *
+     * @param  string $userId the owning user's id
+     * @return Zend_Db_Table_Row_Abstract|null
+     */
     public function passwordCredential($userId)
     {
         return $this->factor($userId, self::TYPE_PASSWORD);
     }
 
-    /** Is this credential currently locked out (too many recent failures)? */
+    /**
+     * Is this credential currently locked out (too many recent failures)?
+     *
+     * @param  Zend_Db_Table_Row_Abstract|null $credential the credential row to check
+     * @return bool true if the credential is locked out right now
+     */
     public function isLockedOut($credential)
     {
         return $credential
@@ -207,7 +244,12 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
             && strtotime($credential->locked_until) > time();
     }
 
-    /** Record a failed authentication; lock the credential after MAX_FAILURES. */
+    /**
+     * Record a failed authentication; lock the credential after MAX_FAILURES.
+     *
+     * @param  string $credentialId the credential_id that failed
+     * @return void
+     */
     public function recordFailure($credentialId)
     {
         $cred = $this->findById($credentialId);
@@ -222,7 +264,12 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
         $this->update($data, $this->getAdapter()->quoteInto('credential_id = ?', $credentialId));
     }
 
-    /** Record a successful authentication: clear the failure counter + lockout, touch. */
+    /**
+     * Record a successful authentication: clear the failure counter + lockout, touch.
+     *
+     * @param  string $credentialId the credential_id that succeeded
+     * @return void
+     */
     public function recordSuccess($credentialId)
     {
         $this->update(
@@ -241,7 +288,12 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
     // would collide with a fresh enrollment. Auth factors carry no audit value that the
     // login log doesn't already hold, so a hard delete is the right call here.
 
-    /** The user's active, confirmed TOTP factor row, or null. */
+    /**
+     * The user's active, confirmed TOTP factor row, or null.
+     *
+     * @param  string $userId the owning user's id
+     * @return Zend_Db_Table_Row_Abstract|null
+     */
     public function activeTotp($userId)
     {
         return $this->fetchRow(
@@ -254,7 +306,12 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
         ) ?: null;
     }
 
-    /** Does the user have a confirmed authenticator-app factor? */
+    /**
+     * Does the user have a confirmed authenticator-app factor?
+     *
+     * @param  string $userId the owning user's id
+     * @return bool true if a confirmed TOTP factor exists
+     */
     public function hasActiveTotp($userId)
     {
         return $this->activeTotp($userId) !== null;
@@ -265,9 +322,10 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
      * confirmed secret and a new set of hashed backup codes, atomically-ish (one owner
      * of these rows). Call only AFTER the enrollment code has been verified.
      *
-     * @param string   $userId
-     * @param string   $encryptedSecret Tiger_Crypto::encrypt() of the base32 secret
-     * @param string[] $recoveryHashes  sha256 hashes of the plaintext backup codes
+     * @param  string   $userId
+     * @param  string   $encryptedSecret Tiger_Crypto::encrypt() of the base32 secret
+     * @param  string[] $recoveryHashes  sha256 hashes of the plaintext backup codes
+     * @return void
      */
     public function replaceTotp($userId, $encryptedSecret, array $recoveryHashes)
     {
@@ -293,7 +351,12 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
         }
     }
 
-    /** Disable TOTP entirely: drop the secret and all remaining backup codes. */
+    /**
+     * Disable TOTP entirely: drop the secret and all remaining backup codes.
+     *
+     * @param  string $userId the owning user's id
+     * @return void
+     */
     public function removeTotp($userId)
     {
         $this->_purgeTotp($userId);
@@ -303,6 +366,10 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
      * Redeem a single-use recovery code (constant-time match against remaining codes).
      * On success the code is consumed (deleted) so it can't be reused. Returns true iff
      * a code matched.
+     *
+     * @param  string $userId    the owning user's id
+     * @param  string $plainCode the recovery code the user entered
+     * @return bool true if a code matched and was consumed
      */
     public function redeemRecoveryCode($userId, $plainCode)
     {
@@ -355,7 +422,12 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
         return ['rekeyed' => $rekeyed, 'failed' => $failed];
     }
 
-    /** How many unused recovery codes the user has left (for the security screen). */
+    /**
+     * How many unused recovery codes the user has left (for the security screen).
+     *
+     * @param  string $userId the owning user's id
+     * @return int the number of remaining recovery codes
+     */
     public function recoveryCount($userId)
     {
         return count($this->fetchAll(

@@ -25,7 +25,12 @@ class Tiger_Code_Runtime
     protected static $_booted     = [];      // once per request per location
     protected static $_guardArmed = false;
 
-    /** Per-request loader for a run location (default: global). Safe to call once per location. */
+    /**
+     * Per-request loader for a run location (default: global). Safe to call once per location.
+     *
+     * @param  string $location the run location
+     * @return void
+     */
     public static function boot($location = self::LOC_GLOBAL)
     {
         if (!empty(self::$_booted[$location])) {
@@ -88,6 +93,9 @@ class Tiger_Code_Runtime
      * (a cross-snippet redeclare, or a parse error) — the version stays put, the last-good
      * bundle keeps serving, and the caller surfaces the error. This is what makes bricking
      * impossible: a bad set never becomes live.
+     *
+     * @param  string $location the run location
+     * @return int              the new version token
      */
     public static function rebuild($location = self::LOC_GLOBAL)
     {
@@ -104,6 +112,11 @@ class Tiger_Code_Runtime
      * Compile active PHP rows for a location into one bundle file (atomic write). Each snippet
      * is preceded by a $GLOBALS marker so the shutdown guard can name the one that fatals.
      * Always writes (even an empty bundle) so a request never re-queries for the same version.
+     *
+     * @param  string $location the run location
+     * @param  int    $version  the version being compiled
+     * @return string           the written bundle file path
+     * @throws RuntimeException if the cache dir can't be created or the bundle fails to lint
      */
     public static function compile($location, $version)
     {
@@ -165,6 +178,10 @@ class Tiger_Code_Runtime
      * browser-cacheable PUBLIC assets (public/_code/<loc>.<ver>.css|js); html/phtml become
      * inline items in a private injection MANIFEST the view helper reads. Best-effort — client
      * code can't brick the server, so this never throws.
+     *
+     * @param  string $location the run location
+     * @param  int    $version  the version being compiled
+     * @return void
      */
     public static function compileClient($location, $version)
     {
@@ -212,7 +229,13 @@ class Tiger_Code_Runtime
         self::_gcClient($loc, $version);
     }
 
-    /** The injection manifest for a version+location (compile-if-missing). Returns head/footer arrays. */
+    /**
+     * The injection manifest for a version+location (compile-if-missing). Returns head/footer arrays.
+     *
+     * @param  int    $version  the version to load
+     * @param  string $location the run location
+     * @return array            ['head' => [...], 'footer' => [...]]
+     */
     public static function injectManifest($version, $location = self::LOC_GLOBAL)
     {
         $loc = preg_replace('/[^a-z]/', '', (string) $location);
@@ -259,7 +282,11 @@ class Tiger_Code_Runtime
         }
     }
 
-    /** Kill-switch: a DISABLED file (fastest recovery) or config `tiger.code.enabled = 0`. */
+    /**
+     * Kill-switch: a DISABLED file (fastest recovery) or config `tiger.code.enabled = 0`.
+     *
+     * @return bool true if Tiger Code execution is enabled
+     */
     public static function enabled()
     {
         if (is_file(self::cacheDir() . '/DISABLED')) {
@@ -272,7 +299,11 @@ class Tiger_Code_Runtime
         return true;
     }
 
-    /** Current version token from the already-loaded config (no query). 0 = none. */
+    /**
+     * Current version token from the already-loaded config (no query). 0 = none.
+     *
+     * @return int the current version token (0 = none)
+     */
     public static function version()
     {
         $c = self::_cfgNode();

@@ -35,8 +35,11 @@ class Tiger_Db_Migrator
     private $paths;
 
     /**
+     * Construct the migrator over a DB adapter and a set of migration directories.
+     *
      * @param Zend_Db_Adapter_Abstract $db
      * @param string[]                 $paths migration directories (existing ones; missing are ignored)
+     * @return void
      */
     public function __construct(Zend_Db_Adapter_Abstract $db, array $paths)
     {

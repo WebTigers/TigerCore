@@ -22,7 +22,11 @@
  */
 class Tiger_Policy_Password
 {
-    /** Effective policy (defaults <- tiger.password.* in the resolved, per-org config). */
+    /**
+     * Effective policy (defaults <- tiger.password.* in the resolved, per-org config).
+     *
+     * @return array{min_length:int,history:int,require_complexity:int,max_age_days:int} the effective policy
+     */
     public function config()
     {
         $defaults = [
@@ -76,13 +80,24 @@ class Tiger_Policy_Password
         return $out;
     }
 
-    /** Convenience boolean. */
+    /**
+     * Convenience boolean.
+     *
+     * @param  string      $plain  the candidate password
+     * @param  string|null $userId when given, enables reuse-prevention
+     * @return bool true if the password passes the policy
+     */
     public function isValid($plain, $userId = null)
     {
         return $this->validate($plain, $userId) === [];
     }
 
-    /** Has the user's password exceeded max_age_days? (Always false when expiry is off.) */
+    /**
+     * Has the user's password exceeded max_age_days? (Always false when expiry is off.)
+     *
+     * @param  string $userId the user whose password age to check
+     * @return bool true if the password has expired
+     */
     public function isExpired($userId)
     {
         $cfg = $this->config();

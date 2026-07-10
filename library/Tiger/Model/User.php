@@ -141,7 +141,14 @@ class Tiger_Model_User extends Tiger_Model_Table
         return ['total' => $total, 'filtered' => $filtered, 'rows' => $db->fetchAll($pageSel)];
     }
 
-    /** Is $value already used in $col (email|username) by a different, non-deleted user? */
+    /**
+     * Is $value already used in $col (email|username) by a different, non-deleted user?
+     *
+     * @param  string      $col       the column to check — 'email' or 'username'
+     * @param  string      $value     the value to test for uniqueness
+     * @param  string|null $excludeId a user_id to exclude (the row being edited)
+     * @return bool true if the value is already taken by another user
+     */
     public function isTaken($col, $value, $excludeId = null)
     {
         if (!in_array($col, ['email', 'username'], true)) {

@@ -25,6 +25,13 @@ class Tiger_Controller_Plugin_Authorization extends Zend_Controller_Plugin_Abstr
     const ROLE_GUEST         = 'guest';
     const ROLE_AUTHENTICATED = 'user';
 
+    /**
+     * Gate every dispatch deny-by-default: resolve the caller's live role and authorize the
+     * target controller resource, redirecting or forbidding when access is denied.
+     *
+     * @param  Zend_Controller_Request_Abstract $request the current request
+     * @return void
+     */
     public function preDispatch(Zend_Controller_Request_Abstract $request)
     {
         // Don't gate a request with no dispatchable controller — let ZF's

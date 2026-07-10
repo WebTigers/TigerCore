@@ -41,7 +41,13 @@ class Tiger_Model_Login extends Tiger_Model_Table
         ]);
     }
 
-    /** A user's login history, newest first (for a "recent sign-in activity" view). */
+    /**
+     * Fetch a user's login history, newest first (for a "recent sign-in activity" view).
+     *
+     * @param  string $userId the user id
+     * @param  int    $limit  max rows to return
+     * @return Zend_Db_Table_Rowset_Abstract the login rows, newest first
+     */
     public function recentForUser($userId, $limit = 20)
     {
         return $this->fetchAll(
@@ -50,19 +56,36 @@ class Tiger_Model_Login extends Tiger_Model_Table
         );
     }
 
-    /** Count recent FAILED/LOCKED attempts for an identifier (email/phone) — for rate-limiting. */
+    /**
+     * Count recent FAILED/LOCKED attempts for an identifier (email/phone) — for rate-limiting.
+     *
+     * @param  string $identifier   the login identifier (email/phone)
+     * @param  int    $sinceSeconds the look-back window in seconds
+     * @return int    the count of failed/locked attempts
+     */
     public function recentFailuresForIdentifier($identifier, $sinceSeconds = 900)
     {
         return $this->_countFailuresSince('identifier = ?', $identifier, $sinceSeconds);
     }
 
-    /** Count recent FAILED/LOCKED attempts from an IP — for distributed brute-force detection. */
+    /**
+     * Count recent FAILED/LOCKED attempts from an IP — for distributed brute-force detection.
+     *
+     * @param  string $ip           the client IP address
+     * @param  int    $sinceSeconds the look-back window in seconds
+     * @return int    the count of failed/locked attempts
+     */
     public function recentFailuresFromIp($ip, $sinceSeconds = 900)
     {
         return $this->_countFailuresSince('ip_address = ?', $ip, $sinceSeconds);
     }
 
-    /** Retention: delete log rows older than N days. Call on a schedule (GDPR). */
+    /**
+     * Retention: delete log rows older than N days. Call on a schedule (GDPR).
+     *
+     * @param  int $days the age threshold in days
+     * @return int rows removed
+     */
     public function purgeOlderThan($days)
     {
         $cutoff = date('Y-m-d H:i:s', time() - ((int) $days * 86400));

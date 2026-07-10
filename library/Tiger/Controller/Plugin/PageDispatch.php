@@ -23,6 +23,12 @@
  */
 class Tiger_Controller_Plugin_PageDispatch extends Zend_Controller_Plugin_Abstract
 {
+    /**
+     * Route an otherwise-unmatched URL to a published CMS page, or 301 a moved slug.
+     *
+     * @param  Zend_Controller_Request_Abstract $request the current request
+     * @return void
+     */
     public function routeShutdown(Zend_Controller_Request_Abstract $request)
     {
         if (!$request instanceof Zend_Controller_Request_Http) {

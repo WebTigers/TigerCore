@@ -12,6 +12,12 @@ class Tiger_Model_CodeVersion extends Tiger_Model_Table
     protected $_name    = 'code_version';
     protected $_primary = 'code_version_id';
 
+    /**
+     * Compute the next version number for a code row (max existing + 1).
+     *
+     * @param  string $codeId the code_id
+     * @return int    the next version number
+     */
     public function nextVersion($codeId)
     {
         $db  = $this->getAdapter();
@@ -22,7 +28,14 @@ class Tiger_Model_CodeVersion extends Tiger_Model_Table
         return $max + 1;
     }
 
-    /** Snapshot a code row as a new version. Returns the version number. */
+    /**
+     * Snapshot a code row as a new version.
+     *
+     * @param  string $codeId the code_id
+     * @param  array  $f      the snapshotted fields (name, language, code, run_location,
+     *                        auto_insert, priority, active, status)
+     * @return int    the new version number
+     */
     public function snapshot($codeId, array $f)
     {
         $version = $this->nextVersion($codeId);
@@ -41,7 +54,13 @@ class Tiger_Model_CodeVersion extends Tiger_Model_Table
         return $version;
     }
 
-    /** A code row's versions, newest first. */
+    /**
+     * Fetch a code row's versions, newest first.
+     *
+     * @param  string $codeId the code_id
+     * @param  int    $limit  max versions to return
+     * @return Zend_Db_Table_Rowset_Abstract the version rows
+     */
     public function recentFor($codeId, $limit = 50)
     {
         return $this->fetchAll(
@@ -49,7 +68,13 @@ class Tiger_Model_CodeVersion extends Tiger_Model_Table
         );
     }
 
-    /** One version, or null. */
+    /**
+     * Fetch one version of a code row, or null.
+     *
+     * @param  string $codeId  the code_id
+     * @param  int    $version the version number
+     * @return Zend_Db_Table_Row_Abstract|null the version row, or null
+     */
     public function get($codeId, $version)
     {
         return $this->fetchRow(

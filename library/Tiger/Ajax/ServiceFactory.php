@@ -52,6 +52,13 @@ class Tiger_Ajax_ServiceFactory
     /** Controller-mode hand-off descriptor, or null in service mode. */
     protected $_forward = null;
 
+    /**
+     * Build the dispatcher and process the request immediately (the response is ready
+     * on return).
+     *
+     * @param  Zend_Controller_Request_Http $request the incoming /api request
+     * @return void
+     */
     public function __construct(Zend_Controller_Request_Http $request)
     {
         $this->_request  = $request;
@@ -59,7 +66,12 @@ class Tiger_Ajax_ServiceFactory
         $this->_processRequest();
     }
 
-    /** Reserve an additional module name from /api dispatch. */
+    /**
+     * Reserve an additional module name from /api dispatch.
+     *
+     * @param  string $module the module name to reserve
+     * @return void
+     */
     public static function reserve($module)
     {
         $module = strtolower($module);
@@ -68,18 +80,32 @@ class Tiger_Ajax_ServiceFactory
         }
     }
 
-    /** Is this module name reserved (framework-internal, not API-routable)? */
+    /**
+     * Is this module name reserved (framework-internal, not API-routable)?
+     *
+     * @param  string $module the module name to test
+     * @return bool           true if reserved
+     */
     public static function isReserved($module)
     {
         return in_array(strtolower($module), self::$_reserved, true);
     }
 
+    /**
+     * The processed response envelope for the request.
+     *
+     * @return Tiger_Model_ResponseObject
+     */
     public function getResponse()
     {
         return $this->_response;
     }
 
-    /** Controller-mode: ['module','controller','action','params'] for ApiController to _forward, else null. */
+    /**
+     * The controller-mode hand-off descriptor for ApiController to _forward.
+     *
+     * @return array|null ['module','controller','action','params'], or null in service mode
+     */
     public function getForward()
     {
         return $this->_forward;

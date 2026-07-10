@@ -40,6 +40,13 @@ class Tiger_Media_Storage_Azure implements Tiger_Media_Storage_Interface
     /** @var \MicrosoftAzure\Storage\Blob\BlobRestProxy|null memoized */
     protected $_client;
 
+    /**
+     * Configure containers, prefixes, CDN, and presign TTL from the disk config.
+     *
+     * @param  array $config the `media.disks.<name>.*` settings
+     * @return void
+     * @throws RuntimeException when neither a single container nor both public/private containers are set
+     */
     public function __construct(array $config)
     {
         $this->_container        = (string) ($config['container'] ?? '');
@@ -57,6 +64,16 @@ class Tiger_Media_Storage_Azure implements Tiger_Media_Storage_Interface
         $this->_settings      = $config;
     }
 
+    /**
+     * Store bytes from a source file path as a block blob.
+     *
+     * @param  string  $key        the adapter-relative storage key
+     * @param  string  $sourcePath the source file on disk to read from
+     * @param  string  $visibility public|private
+     * @param  ?string $mime       the content MIME type (may be null)
+     * @return void
+     * @throws RuntimeException when the source can't be read or the blob can't be created
+     */
     public function put($key, $sourcePath, $visibility, $mime = null)
     {
         $h = @fopen($sourcePath, 'rb');
@@ -70,11 +87,28 @@ class Tiger_Media_Storage_Azure implements Tiger_Media_Storage_Interface
         }
     }
 
+    /**
+     * Store raw bytes as a block blob.
+     *
+     * @param  string  $key        the adapter-relative storage key
+     * @param  string  $bytes      the raw bytes to store
+     * @param  string  $visibility public|private
+     * @param  ?string $mime       the content MIME type (may be null)
+     * @return void
+     */
     public function write($key, $bytes, $visibility, $mime = null)
     {
         $this->_create($key, $visibility, $bytes, $mime);
     }
 
+    /**
+     * Read all bytes of a blob.
+     *
+     * @param  string $key        the adapter-relative storage key
+     * @param  string $visibility public|private
+     * @return string the blob's bytes
+     * @throws RuntimeException when the blob is not found
+     */
     public function get($key, $visibility)
     {
         try {
@@ -85,6 +119,14 @@ class Tiger_Media_Storage_Azure implements Tiger_Media_Storage_Interface
         }
     }
 
+    /**
+     * Open a read stream for a blob.
+     *
+     * @param  string   $key        the adapter-relative storage key
+     * @param  string   $visibility public|private
+     * @return resource a readable stream for the blob
+     * @throws RuntimeException when the blob is not found
+     */
     public function stream($key, $visibility)
     {
         try {
@@ -102,6 +144,13 @@ class Tiger_Media_Storage_Azure implements Tiger_Media_Storage_Interface
         return $fh;
     }
 
+    /**
+     * Remove a blob (idempotent — a missing blob is not an error).
+     *
+     * @param  string $key        the adapter-relative storage key
+     * @param  string $visibility public|private
+     * @return void
+     */
     public function delete($key, $visibility)
     {
         try {
@@ -111,6 +160,13 @@ class Tiger_Media_Storage_Azure implements Tiger_Media_Storage_Interface
         }
     }
 
+    /**
+     * Does the blob exist?
+     *
+     * @param  string $key        the adapter-relative storage key
+     * @param  string $visibility public|private
+     * @return bool   true when the blob exists
+     */
     public function exists($key, $visibility)
     {
         try {
@@ -121,6 +177,13 @@ class Tiger_Media_Storage_Azure implements Tiger_Media_Storage_Interface
         }
     }
 
+    /**
+     * Size of a blob in bytes (0 if missing).
+     *
+     * @param  string $key        the adapter-relative storage key
+     * @param  string $visibility public|private
+     * @return int    the blob size in bytes, or 0 if missing
+     */
     public function size($key, $visibility)
     {
         try {
@@ -131,6 +194,14 @@ class Tiger_Media_Storage_Azure implements Tiger_Media_Storage_Interface
         }
     }
 
+    /**
+     * A directly-usable URL for a blob (CDN/endpoint for public, a SAS URL for private).
+     *
+     * @param  string   $key        the adapter-relative storage key
+     * @param  string   $visibility public|private
+     * @param  ?int     $ttl        seconds for the private SAS URL (adapter default when null)
+     * @return string   a usable URL, or '' when the app must stream the bytes itself
+     */
     public function url($key, $visibility, $ttl = null)
     {
         $container = $this->_container($visibility);

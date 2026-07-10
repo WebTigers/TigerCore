@@ -20,11 +20,23 @@ class Tiger_Validate_Password extends Zend_Validate_Abstract
     /** @var string|null when set, enables reuse-prevention against this user's history */
     protected $_userId;
 
+    /**
+     * Build the validator, optionally scoped to a user for reuse-prevention.
+     *
+     * @param  string|null $userId when set, enables reuse-prevention against this user's history
+     * @return void
+     */
     public function __construct($userId = null)
     {
         $this->_userId = $userId ?: null;
     }
 
+    /**
+     * Run the platform password policy; the first violation becomes the field message.
+     *
+     * @param  string $value the submitted password
+     * @return bool           true when the password satisfies the policy
+     */
     public function isValid($value)
     {
         $value = (string) $value;

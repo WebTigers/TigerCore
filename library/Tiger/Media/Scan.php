@@ -22,6 +22,9 @@ class Tiger_Media_Scan
     /**
      * Pre-store verdict for a file.
      *
+     * @param  string  $path the file on disk to scan
+     * @param  ?string $mime the file's MIME type (may be null)
+     * @param  string  $kind the media kind (image/video/…) gating image moderation
      * @return array{ok:bool, status:string, message:?string, meta:array}
      *         ok=false → reject (message is an i18n key); status maps to `media.scan_status`.
      */
@@ -59,7 +62,11 @@ class Tiger_Media_Scan
         return ['ok' => true, 'status' => $status, 'message' => null, 'meta' => $meta];
     }
 
-    /** Should a video be held for async AI review (stored private + in_review)? */
+    /**
+     * Should a video be held for async AI review (stored private + in_review)?
+     *
+     * @return bool true when video review is configured on
+     */
     public function videoReview(): bool
     {
         return $this->_on('video');

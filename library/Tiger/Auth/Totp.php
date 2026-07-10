@@ -30,6 +30,9 @@ class Tiger_Auth_Totp
     /**
      * A fresh random shared secret, base32-encoded. 20 bytes = 160 bits = the RFC 4226
      * recommended HMAC-SHA1 key length; encodes to 32 base32 chars.
+     *
+     * @param  int    $bytes random key length in bytes
+     * @return string        the base32-encoded secret
      */
     public static function generateSecret($bytes = 20)
     {
@@ -39,6 +42,11 @@ class Tiger_Auth_Totp
     /**
      * The `otpauth://totp/...` provisioning URI an authenticator app consumes (via QR
      * or manual paste). `issuer` and `account` are shown to the user in their app.
+     *
+     * @param  string $secret  the base32 shared secret
+     * @param  string $account the account label (usually the user's email)
+     * @param  string $issuer  the issuer label (the app/site name)
+     * @return string          the otpauth:// URI
      */
     public static function uri($secret, $account, $issuer)
     {
@@ -84,6 +92,10 @@ class Tiger_Auth_Totp
     /**
      * The HOTP value for a given counter (RFC 4226 §5.3 dynamic truncation), as a
      * zero-padded DIGITS-length string.
+     *
+     * @param  string $secret  the base32 shared secret
+     * @param  int    $counter the moving-factor counter
+     * @return string          the zero-padded code
      */
     public static function codeAt($secret, $counter)
     {
@@ -99,7 +111,12 @@ class Tiger_Auth_Totp
         return str_pad((string) $otp, self::DIGITS, '0', STR_PAD_LEFT);
     }
 
-    /** Encode raw bytes to base32 (no padding). */
+    /**
+     * Encode raw bytes to base32 (no padding).
+     *
+     * @param  string $raw the raw bytes
+     * @return string      the base32 encoding
+     */
     public static function base32Encode($raw)
     {
         $out = '';
@@ -120,7 +137,12 @@ class Tiger_Auth_Totp
         return $out;
     }
 
-    /** Decode a base32 string to raw bytes (ignores spaces/padding/case). */
+    /**
+     * Decode a base32 string to raw bytes (ignores spaces/padding/case).
+     *
+     * @param  string $b32 the base32 string
+     * @return string      the decoded raw bytes
+     */
     public static function base32Decode($b32)
     {
         $b32 = strtoupper(preg_replace('/[^A-Za-z2-7]/', '', (string) $b32));

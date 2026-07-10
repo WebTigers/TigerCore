@@ -47,6 +47,13 @@ abstract class Tiger_Service_Service
     /** @var string|null current org id (the tenant the identity is acting in) */
     protected $_org_id = null;
 
+    /**
+     * Construct the service with the whole request message and dispatch it — by the
+     * time this returns the named action has run and the response is ready.
+     *
+     * @param  array $params the full request message/payload
+     * @return void
+     */
     public function __construct(array $params = [])
     {
         $this->_response = new Tiger_Model_ResponseObject();
@@ -275,6 +282,11 @@ abstract class Tiger_Service_Service
 
     // -------------------------------------------------------------------------
 
+    /**
+     * The response object built during construction/dispatch.
+     *
+     * @return Tiger_Model_ResponseObject
+     */
     public function getResponse()
     {
         return $this->_response;

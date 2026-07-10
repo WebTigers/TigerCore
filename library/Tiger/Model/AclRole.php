@@ -12,7 +12,11 @@ class Tiger_Model_AclRole extends Tiger_Model_Table
     protected $_name    = 'acl_role';
     protected $_primary = 'acl_role_id';
 
-    /** All active roles (role + comma-sep parent_role) for the ACL loader. */
+    /**
+     * Fetch all active roles (role + comma-sep parent_role) for the ACL loader.
+     *
+     * @return Zend_Db_Table_Rowset_Abstract the active role rows
+     */
     public function getRoleList()
     {
         return $this->fetchAll($this->activeSelect());

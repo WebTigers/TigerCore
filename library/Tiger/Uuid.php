@@ -115,6 +115,9 @@ class Tiger_Uuid
     /**
      * Loosely validate a canonical UUID string (any version). Handy for guarding
      * route params / API input before hitting the DB.
+     *
+     * @param  mixed $value the value to test
+     * @return bool
      */
     public static function isValid($value)
     {

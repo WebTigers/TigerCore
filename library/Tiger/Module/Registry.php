@@ -20,13 +20,22 @@ class Tiger_Module_Registry
     const CACHE_TTL     = 10800;   // 3h — a few refreshes a day, per the discovery model
     const CACHE_FILE    = 'registry-index.json';
 
-    /** True if the registry index is reachable (fetch or fresh cache). */
+    /**
+     * True if the registry index is reachable (fetch or fresh cache).
+     *
+     * @return bool true if the index could be loaded
+     */
     public static function available()
     {
         return self::index() !== null;
     }
 
-    /** Search the registry; [] when unavailable or no match. Matches name/slug/description/keywords. */
+    /**
+     * Search the registry; [] when unavailable or no match. Matches name/slug/description/keywords.
+     *
+     * @param  string $query the search term ('' returns all modules)
+     * @return array the matching module entries
+     */
     public static function search($query)
     {
         $index = self::index();
@@ -47,7 +56,11 @@ class Tiger_Module_Registry
         return $out;
     }
 
-    /** The (cached) registry index array, or null if unreachable. */
+    /**
+     * The (cached) registry index array, or null if unreachable.
+     *
+     * @return array|null the decoded index, or null if unreachable
+     */
     public static function index()
     {
         $cache = self::_cacheFile();
@@ -71,6 +84,11 @@ class Tiger_Module_Registry
         return $j;
     }
 
+    /**
+     * The registry index URL — the configured `tiger.modules.registry`, else DEFAULT_INDEX.
+     *
+     * @return string the index URL
+     */
     public static function indexUrl()
     {
         $cfg = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;

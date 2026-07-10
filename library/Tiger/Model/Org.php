@@ -97,7 +97,13 @@ class Tiger_Model_Org extends Tiger_Model_Table
         return ['total' => $total, 'filtered' => $filtered, 'rows' => $db->fetchAll($pageSel)];
     }
 
-    /** Is $slug already used by a different, non-deleted org? */
+    /**
+     * Is $slug already used by a different, non-deleted org?
+     *
+     * @param string      $slug      the slug to check
+     * @param string|null $excludeId an org id to exclude (e.g. the org being edited)
+     * @return bool true if the slug is taken by another live org
+     */
     public function slugTaken($slug, $excludeId = null)
     {
         $sel = $this->activeSelect()->where('slug = ?', (string) $slug);

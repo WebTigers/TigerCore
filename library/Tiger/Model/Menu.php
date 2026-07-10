@@ -28,6 +28,9 @@ class Tiger_Model_Menu extends Tiger_Model_Table
      * `sort_order` within each level. Front-end callers get published-only; the admin
      * editor passes $onlyPublished = false to see drafts.
      *
+     * @param string $menuKey       the menu's key
+     * @param string $orgId         tenant scope ('' = global)
+     * @param bool   $onlyPublished exclude drafts (front-end); false for the admin editor
      * @return array<int,array<string,mixed>>
      */
     public function tree($menuKey, $orgId = '', $onlyPublished = true)
@@ -40,6 +43,9 @@ class Tiger_Model_Menu extends Tiger_Model_Table
      * Flat, ordered rows for a menu after the tenant cascade (the org's menu wins whole,
      * else global). Returned as plain arrays.
      *
+     * @param string $menuKey       the menu's key
+     * @param string $orgId         tenant scope ('' = global)
+     * @param bool   $onlyPublished exclude drafts (front-end); false for the admin editor
      * @return array<int,array<string,mixed>>
      */
     public function flat($menuKey, $orgId = '', $onlyPublished = true)
@@ -87,7 +93,10 @@ class Tiger_Model_Menu extends Tiger_Model_Table
      * moving foreign rows.
      *
      * @param array<int,array{menu_id:string,parent_id:?string,sort_order:int}> $items
+     * @param string $menuKey the menu's key (the scope guard)
+     * @param string $orgId   tenant scope ('' = global)
      * @return int rows updated
+     * @throws Throwable on a DB failure (the transaction is rolled back and rethrown)
      */
     public function reorder(array $items, $menuKey, $orgId = '')
     {
@@ -138,6 +147,7 @@ class Tiger_Model_Menu extends Tiger_Model_Table
      * The list of distinct menus for the admin index: one entry per (org_id, menu_key)
      * with the item count. Optional search on the key. Server-side DataTables shape.
      *
+     * @param array $opts query options (search, limit, offset, orderCol, orderDir)
      * @return array{total:int,filtered:int,rows:array}
      */
     public function datatable(array $opts)
@@ -185,13 +195,26 @@ class Tiger_Model_Menu extends Tiger_Model_Table
         return ['total' => $total, 'filtered' => $filtered, 'rows' => $db->fetchAll($rowsSel)];
     }
 
-    /** Every live item for a menu scope, flat + ordered — the admin editor's working set. */
+    /**
+     * Every live item for a menu scope, flat + ordered — the admin editor's working set.
+     *
+     * @param string $menuKey the menu's key
+     * @param string $orgId   tenant scope ('' = global)
+     * @return array<int,array<string,mixed>> flat, ordered rows
+     */
     public function itemsForEditor($menuKey, $orgId = '')
     {
         return $this->_scopeRows($menuKey, (string) $orgId, false);
     }
 
-    /** The next sort_order to append a new item at the end of its level. */
+    /**
+     * The next sort_order to append a new item at the end of its level.
+     *
+     * @param string      $menuKey  the menu's key
+     * @param string      $orgId    tenant scope ('' = global)
+     * @param string|null $parentId the parent item id, or null/'' for a top-level item
+     * @return int the next sort_order value
+     */
     public function nextSort($menuKey, $orgId, $parentId)
     {
         $db  = $this->getAdapter();
@@ -208,7 +231,12 @@ class Tiger_Model_Menu extends Tiger_Model_Table
         return ((int) $db->fetchOne($sel)) + 1;
     }
 
-    /** Soft-delete an item AND all its descendants (deleting a parent removes its subtree). */
+    /**
+     * Soft-delete an item AND all its descendants (deleting a parent removes its subtree).
+     *
+     * @param string $menuId the item id to delete
+     * @return int the number of rows soft-deleted (the item plus its descendants)
+     */
     public function deleteItem($menuId)
     {
         $ids   = $this->_descendantIds((string) $menuId);
@@ -234,7 +262,12 @@ class Tiger_Model_Menu extends Tiger_Model_Table
         return $acc;
     }
 
-    /** Distinct menu_keys that already have rows (feeds the "add item to menu" pickers). */
+    /**
+     * Distinct menu_keys that already have rows (feeds the "add item to menu" pickers).
+     *
+     * @param string|null $orgId restrict to a tenant scope, or null for all scopes
+     * @return array<int,string> the distinct menu keys
+     */
     public function keys($orgId = null)
     {
         $db  = $this->getAdapter();

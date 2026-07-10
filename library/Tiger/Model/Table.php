@@ -54,13 +54,22 @@ abstract class Tiger_Model_Table extends Zend_Db_Table_Abstract
      */
     private static $_actor = null;
 
-    /** Set the current actor (a user_id). Auth calls this on login. */
+    /**
+     * Set the current actor (a user_id). Auth calls this on login.
+     *
+     * @param  string|null $userId the acting user's id, or null for system/CLI
+     * @return void
+     */
     public static function setActor($userId)
     {
         self::$_actor = $userId;
     }
 
-    /** The current actor's user_id, or null in a system/CLI context. */
+    /**
+     * The current actor's user_id, or null in a system/CLI context.
+     *
+     * @return string|null the acting user's id, or null
+     */
     public static function actor()
     {
         return self::$_actor;
@@ -141,7 +150,12 @@ abstract class Tiger_Model_Table extends Zend_Db_Table_Abstract
         return $this->update(['deleted' => 1], $where);
     }
 
-    /** Reverse a soft delete: set `deleted` back to 0. */
+    /**
+     * Reverse a soft delete: set `deleted` back to 0.
+     *
+     * @param  array|string $where
+     * @return int affected rows
+     */
     public function restore($where)
     {
         return $this->update(['deleted' => 0], $where);

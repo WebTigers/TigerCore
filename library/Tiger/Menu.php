@@ -24,7 +24,15 @@
  */
 class Tiger_Menu
 {
-    /** Rendered menu HTML (a <ul>), auth-filtered. $options: ['class'=>ulClass,'id'=>ulId,'org'=>orgId]. */
+    /**
+     * Render a menu to auth-filtered HTML (a `<ul>`).
+     *
+     * $options: ['class'=>ulClass,'id'=>ulId,'org'=>orgId].
+     *
+     * @param  string $menuKey the menu key (the rows sharing this key form the tree)
+     * @param  array  $options render options: `class`, `id`, `org`
+     * @return string the `<ul>…</ul>` markup, or '' when the menu is empty or fully filtered out
+     */
     public static function getHTML($menuKey, array $options = [])
     {
         [$orgId, $locale] = self::_context($options);
@@ -53,7 +61,13 @@ class Tiger_Menu
         return '<ul' . $attr . '>' . $inner . '</ul>';
     }
 
-    /** The raw menu tree as a nested array (labels translated, hrefs resolved); NO auth filter. */
+    /**
+     * Return the raw menu tree as a nested array (labels translated, hrefs resolved); NO auth filter.
+     *
+     * @param  string      $menuKey the menu key
+     * @param  string|null $orgId   tenant scope (defaults to the current identity's org)
+     * @return array       the nested tree (each node with `label`, `href`, `active`, `children`)
+     */
     public static function getData($menuKey, $orgId = null)
     {
         [$org, $locale] = self::_context(['org' => $orgId]);

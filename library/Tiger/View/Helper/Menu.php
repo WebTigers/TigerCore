@@ -12,6 +12,13 @@
  */
 class Tiger_View_Helper_Menu extends Zend_View_Helper_Abstract
 {
+    /**
+     * Render a custom menu's `<ul>`, or return the helper for fluent access.
+     *
+     * @param  string|null $menuKey the menu key to render; null returns the helper itself
+     * @param  array       $options outer list attributes (e.g. `class`, `id`)
+     * @return string|self          the menu HTML, or `$this` when no key is given
+     */
     public function menu($menuKey = null, array $options = [])
     {
         if ($menuKey === null) {

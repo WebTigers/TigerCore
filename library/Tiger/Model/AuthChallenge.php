@@ -47,7 +47,9 @@ class Tiger_Model_AuthChallenge extends Tiger_Model_Table
      * success, or null on any failure (missing / already used / expired / locked /
      * wrong code). A wrong code increments the attempt counter.
      *
-     * @return Zend_Db_Table_Row_Abstract|null
+     * @param  string $challengeId the challenge id (v4 UUID)
+     * @param  string $plainCode   the code/token to verify
+     * @return Zend_Db_Table_Row_Abstract|null the consumed challenge row, or null on failure
      */
     public function redeem($challengeId, $plainCode)
     {
@@ -80,7 +82,9 @@ class Tiger_Model_AuthChallenge extends Tiger_Model_Table
      * The newest still-usable challenge for a user+type (not consumed, not expired,
      * not attempt-locked), or null. Used to verify a code by email (no id in the URL).
      *
-     * @return Zend_Db_Table_Row_Abstract|null
+     * @param  string $userId the user id
+     * @param  string $type    the challenge type
+     * @return Zend_Db_Table_Row_Abstract|null the newest usable challenge, or null
      */
     public function latestActive($userId, $type)
     {
@@ -101,7 +105,9 @@ class Tiger_Model_AuthChallenge extends Tiger_Model_Table
      * issuing a fresh one so only the newest code is ever valid, which also keeps
      * latestActive() unambiguous.
      *
-     * @return int rows invalidated
+     * @param  string $userId the user id
+     * @param  string $type    the challenge type
+     * @return int    rows invalidated
      */
     public function invalidateActive($userId, $type)
     {
@@ -112,7 +118,14 @@ class Tiger_Model_AuthChallenge extends Tiger_Model_Table
         return $this->update(['consumed_at' => $this->_now()], $where);
     }
 
-    /** How many challenges of a type a user got in the last $seconds (send-rate guard). */
+    /**
+     * Count how many challenges of a type a user got in the last $seconds (send-rate guard).
+     *
+     * @param  string $userId  the user id
+     * @param  string $type    the challenge type
+     * @param  int    $seconds the look-back window in seconds
+     * @return int    the count of matching challenges
+     */
     public function countRecent($userId, $type, $seconds)
     {
         $db  = $this->getAdapter();

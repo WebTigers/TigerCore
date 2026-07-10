@@ -36,12 +36,25 @@ class Tiger_Controller_Plugin_LocalePrefix extends Zend_Controller_Plugin_Abstra
     /** @var string fallback language */
     protected $_default;
 
+    /**
+     * Configure the supported languages and the fallback language.
+     *
+     * @param  string[] $supported supported language codes (language-only)
+     * @param  string   $default   fallback language when none resolves
+     * @return void
+     */
     public function __construct(array $supported = ['en'], string $default = 'en')
     {
         $this->_supported = $supported ?: ['en'];
         $this->_default   = in_array($default, $this->_supported, true) ? $default : $this->_supported[0];
     }
 
+    /**
+     * Resolve the request language and strip a leading /xx/ prefix so the routes match.
+     *
+     * @param  Zend_Controller_Request_Abstract $request the current request
+     * @return void
+     */
     public function routeStartup(Zend_Controller_Request_Abstract $request)
     {
         if (!$request instanceof Zend_Controller_Request_Http) {

@@ -17,13 +17,22 @@
  */
 class Tiger_Media_Image
 {
-    /** Is GD available at all? */
+    /**
+     * Is GD available at all?
+     *
+     * @return bool true when the GD extension and truecolor support are present
+     */
     public static function hasGd()
     {
         return extension_loaded('gd') && function_exists('imagecreatetruecolor');
     }
 
-    /** Can we process this MIME with the GD build present? */
+    /**
+     * Can we process this MIME with the GD build present?
+     *
+     * @param  string $mime the MIME type to test
+     * @return bool          true when GD can decode/encode this MIME
+     */
     public static function supports($mime)
     {
         if (!self::hasGd()) {

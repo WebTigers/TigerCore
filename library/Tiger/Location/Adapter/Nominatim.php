@@ -17,21 +17,48 @@
  */
 class Tiger_Location_Adapter_Nominatim extends Tiger_Location_Adapter_Abstract
 {
+    /**
+     * The CAP_* operations this adapter supports (suggest, geocode, reverse).
+     *
+     * @return array a list of CAP_* capability constants
+     */
     public function capabilities(): array
     {
         return [self::CAP_SUGGEST, self::CAP_GEOCODE, self::CAP_REVERSE];
     }
 
+    /**
+     * Autocomplete a partial address via Nominatim search.
+     *
+     * @param  string $query the partial address text
+     * @param  array  $opts  options (e.g. 'limit', 'country' to bias results)
+     * @return Tiger_Location_Place[] the suggestions
+     */
     public function suggest(string $query, array $opts = []): array
     {
         return $this->_search($query, (int) ($opts['limit'] ?? 5), $opts);
     }
 
+    /**
+     * Geocode free text to structured place(s) via Nominatim search.
+     *
+     * @param  string $query the address text to geocode
+     * @param  array  $opts  options (e.g. 'limit', 'country' to bias results)
+     * @return Tiger_Location_Place[] the matches
+     */
     public function geocode(string $query, array $opts = []): array
     {
         return $this->_search($query, (int) ($opts['limit'] ?? 5), $opts);
     }
 
+    /**
+     * Reverse-geocode a coordinate to the nearest address via Nominatim.
+     *
+     * @param  float $lat  the latitude
+     * @param  float $lng  the longitude
+     * @param  array $opts provider options
+     * @return Tiger_Location_Place|null the nearest place, or null on no match
+     */
     public function reverse(float $lat, float $lng, array $opts = []): ?Tiger_Location_Place
     {
         $url = $this->_base() . '/reverse?' . http_build_query(array_filter([

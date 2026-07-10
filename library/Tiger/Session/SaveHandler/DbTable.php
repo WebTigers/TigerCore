@@ -18,6 +18,10 @@ class Tiger_Session_SaveHandler_DbTable extends Zend_Session_SaveHandler_DbTable
 
     /**
      * Write the session row, stamping identity context + a role-based lifetime.
+     *
+     * @param  string $id   the session id
+     * @param  string $data the serialized session payload
+     * @return bool          true on success (or a skipped empty guest session)
      */
     public function write($id, $data): bool
     {
@@ -52,7 +56,12 @@ class Tiger_Session_SaveHandler_DbTable extends Zend_Session_SaveHandler_DbTable
         return true;
     }
 
-    /** Reap expired sessions. Never lets a GC failure break the request. */
+    /**
+     * Reap expired sessions. Never lets a GC failure break the request.
+     *
+     * @param  int $maxlifetime PHP's configured max session lifetime (unused; TTL is per-row)
+     * @return bool             always true
+     */
     public function gc($maxlifetime): bool
     {
         try {

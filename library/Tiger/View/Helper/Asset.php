@@ -31,6 +31,15 @@ class Tiger_View_Helper_Asset extends Zend_View_Helper_Abstract
     /** @var array<string,string> path -> versioned url, memoized per request */
     protected static $_memo = [];
 
+    /**
+     * Append a cache-busting `?v=<filemtime>` token to a local asset path.
+     *
+     * Remote/protocol-relative/empty paths, and paths whose file can't be stat'd, pass
+     * through unchanged. Results are memoized per request.
+     *
+     * @param  string $path the root-relative asset path (e.g. `/_theme/css/app.css`)
+     * @return string       the versioned URL, or the original path when it can't be versioned
+     */
     public function asset($path)
     {
         $path = (string) $path;

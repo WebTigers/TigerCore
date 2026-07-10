@@ -16,7 +16,12 @@ class Tiger_Media_Storage
     /** @var Tiger_Media_Storage_Interface[] memoized per disk name */
     protected static $_disks = [];
 
-    /** The adapter for a disk (default disk when null). */
+    /**
+     * The adapter for a disk (default disk when null).
+     *
+     * @param  ?string $name the disk name, or null for the default disk
+     * @return Tiger_Media_Storage_Interface the memoized adapter for the disk
+     */
     public static function disk($name = null)
     {
         $name = $name ?: self::defaultDisk();
@@ -26,7 +31,11 @@ class Tiger_Media_Storage
         return self::$_disks[$name];
     }
 
-    /** The configured default disk name (`local` if unset). */
+    /**
+     * The configured default disk name (`local` if unset).
+     *
+     * @return string the default disk name
+     */
     public static function defaultDisk()
     {
         $media = self::_config();
@@ -34,7 +43,11 @@ class Tiger_Media_Storage
         return $d !== '' ? $d : 'local';
     }
 
-    /** Reset the memo (tests / after a config change). */
+    /**
+     * Reset the memo (tests / after a config change).
+     *
+     * @return void
+     */
     public static function reset()
     {
         self::$_disks = [];

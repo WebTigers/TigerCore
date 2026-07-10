@@ -25,6 +25,9 @@ class Tiger_Model_Translation extends Tiger_Model_Table
      * Overrides for a locale + scope as a key => value map, ready to hand to
      * Zend_Translate::addTranslation.
      *
+     * @param  string $locale  language-only locale (en, es)
+     * @param  string $scope   SCOPE_GLOBAL | SCOPE_ORG
+     * @param  string $scopeId scope discriminator (org id for SCOPE_ORG, '' otherwise)
      * @return array<string,string>
      */
     public function getForLocale($locale, $scope = self::SCOPE_GLOBAL, $scopeId = '')
@@ -42,7 +45,15 @@ class Tiger_Model_Translation extends Tiger_Model_Table
         return $map;
     }
 
-    /** A single override value, or null. */
+    /**
+     * A single override value, or null.
+     *
+     * @param  string $locale  language-only locale (en, es)
+     * @param  string $scope   SCOPE_GLOBAL | SCOPE_ORG
+     * @param  string $scopeId scope discriminator (org id for SCOPE_ORG, '' otherwise)
+     * @param  string $key     owner-prefixed semantic translation key
+     * @return string|null the override value, or null if none
+     */
     public function get($locale, $scope, $scopeId, $key)
     {
         $row = $this->fetchRow(
@@ -55,7 +66,16 @@ class Tiger_Model_Translation extends Tiger_Model_Table
         return $row ? $row->translation_value : null;
     }
 
-    /** Upsert one override. Returns the translation_id. */
+    /**
+     * Upsert one override. Returns the translation_id.
+     *
+     * @param  string $locale  language-only locale (en, es)
+     * @param  string $scope   SCOPE_GLOBAL | SCOPE_ORG
+     * @param  string $scopeId scope discriminator (org id for SCOPE_ORG, '' otherwise)
+     * @param  string $key     owner-prefixed semantic translation key
+     * @param  string $value   the override text
+     * @return string the translation_id (existing on update, generated on insert)
+     */
     public function set($locale, $scope, $scopeId, $key, $value)
     {
         $existing = $this->fetchRow(

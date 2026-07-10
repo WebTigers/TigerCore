@@ -22,6 +22,11 @@ class Tiger_Controller_Action extends Zend_Controller_Action
     /** @var Zend_Controller_Action_Helper_FlashMessenger */
     protected $_flash;
 
+    /**
+     * Initialize the controller: wire config, translator, and flash-messenger handles.
+     *
+     * @return void
+     */
     public function init()
     {
         parent::init();

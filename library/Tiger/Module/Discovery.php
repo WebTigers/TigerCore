@@ -13,7 +13,11 @@
  */
 class Tiger_Module_Discovery
 {
-    /** All modules on disk, keyed by slug: {slug, area, name, version, description, author, license, homepage, pricing, has_manifest}. */
+    /**
+     * All modules on disk, keyed by slug: {slug, area, name, version, description, author, license, homepage, pricing, has_manifest}.
+     *
+     * @return array<string,array> module metadata rows keyed by slug (sorted)
+     */
     public static function all()
     {
         $roots = [];

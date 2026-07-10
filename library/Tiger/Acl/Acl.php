@@ -30,6 +30,12 @@
  */
 class Tiger_Acl_Acl extends Zend_Acl
 {
+    /**
+     * Build the ACL by loading policy in override order (ini roles, DB roles, ini
+     * rules, DB rules — last write wins).
+     *
+     * @return void
+     */
     public function __construct()
     {
         $this->_loadRolesFromIni();
@@ -39,9 +45,16 @@ class Tiger_Acl_Acl extends Zend_Acl
     }
 
     /**
+     * Authorize a role against a resource and privilege (deny-by-default).
+     *
      * Unknown role => not allowed (never a Zend_Acl exception). A user has exactly
      * one role per request (resolved from their org_user membership); callers pass
      * that single string.
+     *
+     * @param  string|null $role      the role name (null = the Zend_Acl wildcard)
+     * @param  string|null $resource  the resource name (null = wildcard)
+     * @param  string|null $privilege the privilege (null = wildcard)
+     * @return bool                   true if allowed
      */
     public function isAllowed($role = null, $resource = null, $privilege = null)
     {

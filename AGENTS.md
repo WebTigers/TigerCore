@@ -38,6 +38,56 @@ change app behavior** — you'll lose it on the next update. Extend instead:
   URL (see `Tiger_Service_Authentication::setReturnTo`/`takeReturnTo`) — avoids `%2F` path 404s and
   history leakage.
 
+## Docblocks — the reference contract
+
+The public API reference is **generated from docblocks**, so consistency here is what makes that
+possible. Every `@api` class and every **public method** follows this shape. Protected/private
+methods aren't part of the contract — document them where helpful, but they're not required and
+never appear in the reference.
+
+**Class docblock** — the SPDX line lives in the top-of-file `//` comment, so the docblock is purely
+the API description:
+
+```php
+/**
+ * Tiger_Model_Table — <one concise sentence: what this class IS>.
+ *
+ * <Longer description: the design, the why, how to use it. Paragraphs encouraged — the reference
+ *  renders these as the class page body.>
+ *
+ * @api                       ← REQUIRED on every class: @api (stable, build on it) or @internal
+ * @see  Tiger_Model_Org      ← optional; becomes a cross-link
+ * @since 0.4.0               ← optional
+ */
+```
+
+**Public method docblock** — a summary plus the tags the generator reads. Types stay in the
+signature (PHP 8); the docblock adds the *descriptions*:
+
+```php
+/**
+ * <One line, imperative — "Resolve a doc across both sources.">
+ *
+ * <Optional longer description.>
+ *
+ * @param  string $slug   the URL slug (may be nested)
+ * @param  int    $limit  max results
+ * @return array          the ranked hits
+ * @throws Zend_Db_Exception on a DB failure
+ */
+```
+
+Rules:
+- **Fixed tag order:** description → `@param` (one per parameter, in order) → `@return` → `@throws`
+  → `@see`/`@deprecated`. Keeps the parser trivial and the output uniform.
+- **Every public method gets a docblock** with a summary, a `@param` for each parameter, and a
+  `@return` (use `@return void` for no return value). Constructors included.
+- **`@param <type> $name <desc>`** with a real type expression (`string`, `int`, `?Foo`,
+  `Foo|null`, `array<int,string>`) — the generator prefers the reflected type and uses this line for
+  the description.
+- **Augment, don't rewrite.** Existing prose is good; this is about adding the *tags* + filling
+  gaps, never redoing what's there. Never change code, signatures, or behavior.
+
 ## Client/server: the UI calls `/api`, it does not post to pages
 
 Tiger apps are **client/server**. The server renders the initial HTML — the page *shell* and

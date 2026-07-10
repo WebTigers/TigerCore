@@ -18,6 +18,14 @@
  */
 class Tiger_Media_Scanner_ClamAv implements Tiger_Media_Scanner_Interface
 {
+    /**
+     * Scan a file for malware via ClamAV (clamdscan, falling back to clamscan).
+     *
+     * @param  string  $path the file on disk to scan
+     * @param  ?string $mime the file's MIME type (unused; part of the scanner contract)
+     * @return array{status:string, reason:?string, meta:array}
+     *         status: `clean` | `infected` | `error` (never throws)
+     */
     public function scan(string $path, ?string $mime = null): array
     {
         // Daemon client first; on a definite verdict (clean/infected) use it.

@@ -42,7 +42,14 @@ class Tiger_Model_Code extends Tiger_Model_Table
     const STATUS_ACTIVE = 'active';
     const STATUS_ERROR  = 'error';
 
-    /** Save (insert/update) + snapshot to code_version, transactionally. Returns code_id. */
+    /**
+     * Save (insert/update) + snapshot to code_version, transactionally.
+     *
+     * @param  array       $data the code row fields
+     * @param  string|null $id   the code_id to update, or null to insert
+     * @return string      the code_id
+     * @throws Throwable   on any failure (the transaction is rolled back and the error rethrown)
+     */
     public function save(array $data, $id = null)
     {
         $db = $this->getAdapter();
@@ -76,6 +83,11 @@ class Tiger_Model_Code extends Tiger_Model_Table
     /**
      * The compiler's rebuild query: active rows for a language + run location + org scope,
      * in load order. Hits ix_code_load. Only ever called during a (rare) bundle rebuild.
+     *
+     * @param  string $language the code language (php/phtml/js/css/html)
+     * @param  string $location the run location
+     * @param  string $orgId    the org scope ('' = platform/global)
+     * @return Zend_Db_Table_Rowset_Abstract the matching active rows, in load order
      */
     public function activeForLoad($language, $location, $orgId = '')
     {
@@ -93,6 +105,10 @@ class Tiger_Model_Code extends Tiger_Model_Table
      * Active client-injected rows (css/js/html/phtml) for a run location + org scope, in load
      * order — the source for the injection manifest + asset bundles (Tiger_Code_Runtime). PHP
      * (the bootstrap bundle) is handled separately by activeForLoad().
+     *
+     * @param  string $runLocation the run location
+     * @param  string $orgId       the org scope ('' = platform/global)
+     * @return Zend_Db_Table_Rowset_Abstract the matching active client rows, in load order
      */
     public function activeClient($runLocation, $orgId = '')
     {
@@ -109,6 +125,9 @@ class Tiger_Model_Code extends Tiger_Model_Table
     /**
      * Lint PHP source with `php -l` (out-of-process, never executed). Returns
      * {ok:bool, error:?string}. The safety gate before any PHP row can go active.
+     *
+     * @param  string $code the PHP source to lint (a code body, no opening tag needed)
+     * @return array{ok:bool,error:?string} lint result
      */
     public function lint($code)
     {
@@ -132,7 +151,12 @@ class Tiger_Model_Code extends Tiger_Model_Table
         return ['ok' => false, 'error' => $msg !== '' ? $msg : 'Syntax error.'];
     }
 
-    /** Strip a leading `<?php`/`<?`/BOM and a trailing `?>` so stored code is a clean body. */
+    /**
+     * Strip a leading `<?php`/`<?`/BOM and a trailing `?>` so stored code is a clean body.
+     *
+     * @param  string $code the raw code
+     * @return string the normalized code body
+     */
     public function normalize($code)
     {
         $code = (string) $code;
@@ -148,7 +172,13 @@ class Tiger_Model_Code extends Tiger_Model_Table
         return preg_replace('/\?>\s*$/', '', $code);
     }
 
-    /** Flag a row inactive with the error that killed it (the auto-deactivate rail). */
+    /**
+     * Flag a row inactive with the error that killed it (the auto-deactivate rail).
+     *
+     * @param  string $id  the code_id
+     * @param  string $msg the error message (truncated to 2000 chars)
+     * @return void
+     */
     public function markError($id, $msg)
     {
         $this->update(
@@ -157,7 +187,13 @@ class Tiger_Model_Code extends Tiger_Model_Table
         );
     }
 
-    /** Toggle active state (service lints PHP before activating). Clears last_error on activate. */
+    /**
+     * Toggle active state (service lints PHP before activating). Clears last_error on activate.
+     *
+     * @param  string $id     the code_id
+     * @param  bool   $active whether the row should be active
+     * @return void
+     */
     public function setActive($id, $active)
     {
         $active = $active ? 1 : 0;
@@ -168,7 +204,14 @@ class Tiger_Model_Code extends Tiger_Model_Table
         ], $this->getAdapter()->quoteInto('code_id = ?', (string) $id));
     }
 
-    /** Restore a prior version (does NOT auto-reactivate — safer for executable code). */
+    /**
+     * Restore a prior version (does NOT auto-reactivate — safer for executable code).
+     *
+     * @param  string $id      the code_id
+     * @param  int    $version the version number to restore
+     * @return string the code_id
+     * @throws RuntimeException when the requested version doesn't exist
+     */
     public function restoreVersion($id, $version)
     {
         $v = (new Tiger_Model_CodeVersion())->get($id, $version);
@@ -190,6 +233,8 @@ class Tiger_Model_Code extends Tiger_Model_Table
      * DataTables data for the admin list: search name/description, filter language, sort,
      * paginate. Query lives here; the service formats + ACL-gates.
      *
+     * @param  array $opts DataTables options: `search`, `language`, `limit`, `offset`,
+     *                     `orderCol`, `orderDir`
      * @return array{total:int,filtered:int,rows:array}
      */
     public function datatable(array $opts)

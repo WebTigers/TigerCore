@@ -32,6 +32,9 @@ class Tiger_Admin_Settings
     /**
      * Register (or replace, by key) a settings page. Requires key, label, href; icon,
      * resource, order, and match are optional.
+     *
+     * @param  array $page page definition (key, label, href, and optional icon/resource/order/match)
+     * @return void
      */
     public static function register(array $page)
     {
@@ -69,7 +72,11 @@ class Tiger_Admin_Settings
         }, $pages);
     }
 
-    /** Reset the registry (tests). */
+    /**
+     * Reset the registry (tests).
+     *
+     * @return void
+     */
     public static function clear()
     {
         self::$_pages = [];

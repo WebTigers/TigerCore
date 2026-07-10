@@ -17,7 +17,12 @@ class Tiger_Module_Github
     const API = 'https://api.github.com';
     const UA  = 'Tiger-Module-Installer';
 
-    /** Parse a GitHub repo URL/slug → ['org','repo'], or null. Accepts …/org/repo(.git)(/…). */
+    /**
+     * Parse a GitHub repo URL/slug → ['org','repo'], or null. Accepts …/org/repo(.git)(/…).
+     *
+     * @param  string $url a GitHub repo URL or an "org/repo" slug
+     * @return array{org:string,repo:string}|null the parsed parts, or null if unrecognized
+     */
     public static function parseRepo($url)
     {
         $url = trim((string) $url);
@@ -28,13 +33,27 @@ class Tiger_Module_Github
         return null;
     }
 
-    /** Fetch a raw file from a public repo at a ref (branch/tag/sha). Content string, or null. */
+    /**
+     * Fetch a raw file from a public repo at a ref (branch/tag/sha). Content string, or null.
+     *
+     * @param  string $org  the repo owner
+     * @param  string $repo the repo name
+     * @param  string $ref  the branch, tag, or sha
+     * @param  string $path the file path within the repo
+     * @return string|null the file contents, or null if unreachable
+     */
     public static function fetchRaw($org, $repo, $ref, $path)
     {
         return self::_http(self::RAW . "/{$org}/{$repo}/{$ref}/" . ltrim((string) $path, '/'));
     }
 
-    /** The latest RELEASE tag (preferred — pinnable), else the default branch. Null if neither. */
+    /**
+     * The latest RELEASE tag (preferred — pinnable), else the default branch. Null if neither.
+     *
+     * @param  string $org  the repo owner
+     * @param  string $repo the repo name
+     * @return string|null the resolved ref, or null if neither is available
+     */
     public static function latestRef($org, $repo)
     {
         $rel = self::_http(self::API . "/repos/{$org}/{$repo}/releases/latest", true);
@@ -50,19 +69,37 @@ class Tiger_Module_Github
         return null;
     }
 
-    /** GitHub's codeload tarball URL for a ref (redirects; download() follows). */
+    /**
+     * GitHub's codeload tarball URL for a ref (redirects; download() follows).
+     *
+     * @param  string $org  the repo owner
+     * @param  string $repo the repo name
+     * @param  string $ref  the branch, tag, or sha to archive
+     * @return string the tarball download URL
+     */
     public static function tarballUrl($org, $repo, $ref)
     {
         return "https://github.com/{$org}/{$repo}/archive/" . rawurlencode((string) $ref) . '.tar.gz';
     }
 
-    /** Download a URL to a local file. Returns bool. */
+    /**
+     * Download a URL to a local file. Returns bool.
+     *
+     * @param  string $url      the URL to download
+     * @param  string $destFile the local path to write to
+     * @return bool true on success
+     */
     public static function download($url, $destFile)
     {
         return (bool) self::_http($url, false, $destFile);
     }
 
-    /** GET any public URL (e.g. the Vendor Registry index). Body string, or null. */
+    /**
+     * GET any public URL (e.g. the Vendor Registry index). Body string, or null.
+     *
+     * @param  string $url the URL to fetch
+     * @return string|null the response body, or null on failure
+     */
     public static function get($url)
     {
         return self::_http($url);

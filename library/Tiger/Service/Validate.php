@@ -27,6 +27,12 @@
  */
 class Tiger_Service_Validate extends Tiger_Service_Service
 {
+    /**
+     * Validate a single form field with its real server-side validators.
+     *
+     * @param  array $params the request payload (`form_module`, `form`, `field`, `value`, …)
+     * @return void
+     */
     public function field(array $params): void
     {
         $formModule = preg_replace('/[^a-zA-Z]/', '', (string) ($params['form_module'] ?? ''));

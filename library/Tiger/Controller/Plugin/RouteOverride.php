@@ -23,6 +23,13 @@
  */
 class Tiger_Controller_Plugin_RouteOverride extends Zend_Controller_Plugin_Abstract
 {
+    /**
+     * Rewrite an unmatched URL to a declared override's canonical MVC target, with the
+     * remaining path handed on as the `slug` param.
+     *
+     * @param  Zend_Controller_Request_Abstract $request the current request
+     * @return void
+     */
     public function routeShutdown(Zend_Controller_Request_Abstract $request)
     {
         if (!$request instanceof Zend_Controller_Request_Http) {

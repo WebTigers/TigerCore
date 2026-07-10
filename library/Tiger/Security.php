@@ -31,6 +31,9 @@ class Tiger_Security
      * Prepare a password for password_hash(): HMAC-then-base64 with the CURRENT pepper,
      * else the raw password (no-pepper path). base64 of the 32-byte HMAC is 44 chars —
      * under bcrypt's 72-byte limit and NUL-safe (so long passwords aren't truncated).
+     *
+     * @param  string $plain the plaintext password
+     * @return string         the pepper-prepared (or raw) password to hash
      */
     public static function prehashPassword($plain)
     {
@@ -46,6 +49,7 @@ class Tiger_Security
      * pepper, then legacy raw. The caller matches against the stored bcrypt hash and,
      * if the match is NOT the first (current) form, re-hashes to the current scheme.
      *
+     * @param  string $plain the plaintext password to build candidates for
      * @return string[]
      */
     public static function passwordVerifiers($plain)
@@ -63,6 +67,8 @@ class Tiger_Security
      * pepper (per-context subkey), else plain sha256. `$context` domain-separates so the
      * same code hashes differently as a recovery code vs a login challenge.
      *
+     * @param  string $code    the short secret code to hash
+     * @param  string $context domain-separation label (e.g. 'recovery')
      * @return string 64-char hex (same shape/length as the legacy sha256).
      */
     public static function hashCode($code, $context = '')
@@ -78,6 +84,11 @@ class Tiger_Security
      * Constant-time check of a code against a stored hash, trying the current pepper, each
      * retired pepper, then the legacy sha256 — so a code issued before a rotation still
      * redeems. (Transient codes could just expire, but recovery codes are longer-lived.)
+     *
+     * @param  string $code       the code to check
+     * @param  string $context    the domain-separation label used when it was hashed
+     * @param  string $storedHash the stored hash to compare against
+     * @return bool                true on a match under any (current/retired/legacy) pepper
      */
     public static function codeMatches($code, $context, $storedHash)
     {
@@ -91,13 +102,21 @@ class Tiger_Security
         return $matched;
     }
 
-    /** Is a pepper configured? (Drives the graceful-migration fallbacks in the callers.) */
+    /**
+     * Is a pepper configured? (Drives the graceful-migration fallbacks in the callers.)
+     *
+     * @return bool
+     */
     public static function hasPepper()
     {
         return self::current() !== '';
     }
 
-    /** Mint a fresh pepper for local.ini / a secrets manager (install + rotate). */
+    /**
+     * Mint a fresh pepper for local.ini / a secrets manager (install + rotate).
+     *
+     * @return string a new base64-encoded 32-byte pepper
+     */
     public static function generatePepper()
     {
         return base64_encode(random_bytes(32));

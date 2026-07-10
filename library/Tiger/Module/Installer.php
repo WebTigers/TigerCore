@@ -19,7 +19,15 @@ class Tiger_Module_Installer
 {
     const RESERVED = ['default', 'system', 'access', 'core', 'tiger', 'zend', 'application', 'library', 'public'];
 
-    /** Install (or update, with opts[force]) a module from a public GitHub URL. */
+    /**
+     * Install (or update, with opts[force]) a module from a public GitHub URL.
+     *
+     * @param  string      $repoUrl a GitHub repo URL or "org/repo" slug
+     * @param  string|null $ref     a specific ref to pin, or null to resolve the latest release
+     * @param  array       $opts    install options (e.g. ['force' => true] to update in place)
+     * @return array{slug:string,name:string,version:?string,ref:?string} the installed module summary
+     * @throws RuntimeException if the URL, ref, manifest, or download is invalid/unreachable
+     */
     public static function installFromUrl($repoUrl, $ref = null, array $opts = [])
     {
         $r = Tiger_Module_Github::parseRepo($repoUrl);
@@ -54,7 +62,15 @@ class Tiger_Module_Installer
         }
     }
 
-    /** Shared install tail: extract a .tar.gz, validate, place, migrate, publish, record. */
+    /**
+     * Shared install tail: extract a .tar.gz, validate, place, migrate, publish, record.
+     *
+     * @param  string $tarPath    path to the module's .tar.gz package
+     * @param  array  $provenance install provenance (repository, ref, source)
+     * @param  array  $opts       install options (e.g. ['force' => true] to update in place)
+     * @return array{slug:string,name:string,version:?string,ref:?string} the installed module summary
+     * @throws RuntimeException if extraction, the manifest, the slug, or placement fails
+     */
     public static function installFromTarball($tarPath, array $provenance = [], array $opts = [])
     {
         $parent = sys_get_temp_dir() . '/tigerinstall_' . getmypid() . '_' . substr(md5($tarPath . mt_rand()), 0, 8);
@@ -108,7 +124,13 @@ class Tiger_Module_Installer
         }
     }
 
-    /** Remove an INSTALLER-MANAGED module: delete files, unpublish assets, drop the row. */
+    /**
+     * Remove an INSTALLER-MANAGED module: delete files, unpublish assets, drop the row.
+     *
+     * @param  string $slug the module slug to remove
+     * @return bool true on success
+     * @throws RuntimeException if the slug is invalid or the module isn't installer-managed
+     */
     public static function remove($slug)
     {
         $slug = self::_validSlug($slug);
@@ -207,6 +229,9 @@ class Tiger_Module_Installer
      * A symlink (copy fallback where symlinks are blocked); a no-op otherwise. Called on ACTIVATE
      * (and install), so a module's css/js is served the moment it's turned on. Finds the module in
      * the app OR the first-party core modules dir.
+     *
+     * @param  string $slug the module slug whose assets to publish
+     * @return void
      */
     public static function publishAssets($slug)
     {
@@ -219,7 +244,12 @@ class Tiger_Module_Installer
         }
     }
 
-    /** Remove a module's published assets from public/_modules/<slug>. Called on DEACTIVATE. */
+    /**
+     * Remove a module's published assets from public/_modules/<slug>. Called on DEACTIVATE.
+     *
+     * @param  string $slug the module slug whose assets to unpublish
+     * @return void
+     */
     public static function unpublishAssets($slug)
     {
         $link = self::publicModulesDir() . '/' . basename((string) $slug);

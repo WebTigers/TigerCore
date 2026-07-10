@@ -29,7 +29,13 @@ class Tiger_I18n_Country
         return self::$_data;
     }
 
-    /** Localized name for a country: translation override (country.<ISO2>) then CLDR. */
+    /**
+     * Localized name for a country: translation override (country.<ISO2>) then CLDR.
+     *
+     * @param  string      $iso2   ISO-3166 alpha-2 country code
+     * @param  string|null $locale locale to localize into, or null for the current locale
+     * @return string              the localized country name, or the code if unresolved
+     */
     public static function name(string $iso2, ?string $locale = null): string
     {
         $iso2 = strtoupper($iso2);
@@ -42,7 +48,12 @@ class Tiger_I18n_Country
         return $cldr[$iso2] ?? $iso2;
     }
 
-    /** All countries as [iso2 => localized name], biased sort (common first, then A–Z). */
+    /**
+     * All countries as [iso2 => localized name], biased sort (common first, then A–Z).
+     *
+     * @param  string|null $locale locale to localize into, or null for the current locale
+     * @return array               map of ISO-3166 alpha-2 code => localized name
+     */
     public static function all(?string $locale = null): array
     {
         $data = self::_data();
@@ -71,6 +82,10 @@ class Tiger_I18n_Country
     /**
      * <select> multiOptions: a placeholder, then a "Common" optgroup (the biased set), then
      * "All countries" — so the top picks are one tap away and the divider is semantic.
+     *
+     * @param  string|null $locale      locale to localize into, or null for the current locale
+     * @param  string      $placeholder the leading empty-value placeholder label
+     * @return array                    Zend_Form multiOptions (placeholder + optgroups)
      */
     public static function options(?string $locale = null, string $placeholder = '— Select —'): array
     {
@@ -89,6 +104,9 @@ class Tiger_I18n_Country
      * The list split into the biased blocks for rendering real <optgroup>s:
      *   ['priority' => [iso2 => name], 'rest' => [iso2 => name]]
      * The view labels them (so the labels stay translatable UI strings, not data).
+     *
+     * @param  string|null $locale locale to localize into, or null for the current locale
+     * @return array               ['priority' => [iso2 => name], 'rest' => [iso2 => name]]
      */
     public static function grouped(?string $locale = null): array
     {
@@ -100,7 +118,12 @@ class Tiger_I18n_Country
         return ['priority' => $priority, 'rest' => $rest];
     }
 
-    /** ISO-3166 alpha-3 for an alpha-2 code (e.g. for providers that want alpha-3). */
+    /**
+     * ISO-3166 alpha-3 for an alpha-2 code (e.g. for providers that want alpha-3).
+     *
+     * @param  string      $iso2 ISO-3166 alpha-2 country code
+     * @return string|null       the alpha-3 code, or null if unknown
+     */
     public static function iso3(string $iso2): ?string
     {
         $d = self::_data();
@@ -108,7 +131,11 @@ class Tiger_I18n_Country
         return ($v !== null && $v !== '') ? strtoupper($v) : null;
     }
 
-    /** Every valid alpha-2 code (e.g. for an InArray validator). */
+    /**
+     * Every valid alpha-2 code (e.g. for an InArray validator).
+     *
+     * @return array a list of ISO-3166 alpha-2 codes
+     */
     public static function codes(): array
     {
         return array_keys(self::_data());

@@ -57,6 +57,8 @@ class Tiger_Service_Authentication
      * self::TWOFA_REQUIRED when a second factor is needed, or false on any failure
      * (unknown user, inactive, bad password).
      *
+     * @param  string $identifier email, username, or a verified factor identifier
+     * @param  string $password   the plaintext password
      * @return object|false
      */
     public function login($identifier, $password)
@@ -165,7 +167,11 @@ class Tiger_Service_Authentication
         return $hash;
     }
 
-    /** Destroy the authenticated session. */
+    /**
+     * Destroy the authenticated session.
+     *
+     * @return void
+     */
     public function logout()
     {
         Zend_Auth::getInstance()->clearIdentity();
@@ -186,6 +192,10 @@ class Tiger_Service_Authentication
      * password_reset challenge and email a reset link (built on $baseUrl, e.g.
      * "https://host"). ALWAYS returns void so the caller can respond success either
      * way — never revealing whether an account exists (no user enumeration).
+     *
+     * @param  string $email   the address requesting a reset
+     * @param  string $baseUrl the site base URL the reset link is built on
+     * @return void
      */
     public function requestPasswordReset($email, $baseUrl)
     {
@@ -217,6 +227,10 @@ class Tiger_Service_Authentication
      * challenge (verifies the code + single-use), sets the new password, and clears
      * any brute-force lockout.
      *
+     * @param  string $challengeId the reset challenge id from the link
+     * @param  string $code        the reset token from the link
+     * @param  string $newPassword the chosen new password
+     * @param  string $confirm     the confirmation of the new password
      * @return array{ok:bool,error:?string}   error = a ready-to-show message on failure
      */
     public function resetPassword($challengeId, $code, $newPassword, $confirm)
@@ -291,6 +305,9 @@ class Tiger_Service_Authentication
      * hourly send cap, issue an email_login challenge and email a 6-digit code. ALWAYS
      * returns void so the caller can advance the UI to code-entry either way — the
      * response never reveals whether the account exists (no enumeration).
+     *
+     * @param  string $email the address to email a code to
+     * @return void
      */
     public function requestLoginCode($email)
     {
@@ -323,6 +340,8 @@ class Tiger_Service_Authentication
      * Verify an emailed login code and establish the session (passwordless sign-in).
      * Returns the identity on success, or false. See _completeCodeLogin (SMS reuses it).
      *
+     * @param  string $email the address the code was sent to
+     * @param  string $code  the 6-digit code the user entered
      * @return object|false
      */
     public function verifyLoginCode($email, $code)
@@ -367,7 +386,11 @@ class Tiger_Service_Authentication
     // so a mistyped setup can never lock the user out. Recovery (backup) codes cover a
     // lost device; the secret is encrypted at rest (Tiger_Crypto).
 
-    /** True if a password step has passed and we're waiting on a 2FA code (this session). */
+    /**
+     * True if a password step has passed and we're waiting on a 2FA code (this session).
+     *
+     * @return bool
+     */
     public function isTwoFactorPending()
     {
         $ns = $this->_twofaNs();
@@ -380,6 +403,7 @@ class Tiger_Service_Authentication
      * established (it's a full login from here). Returns the identity, or false
      * (no/expired pending challenge, too many attempts, or a bad code).
      *
+     * @param  string $code a TOTP code or a single-use recovery code
      * @return object|false
      */
     public function verifyTwoFactor($code)
@@ -460,6 +484,9 @@ class Tiger_Service_Authentication
      * Confirm an in-progress enrollment: the code must validate against the pending
      * secret, then the encrypted secret + hashed recovery codes are persisted and the
      * factor goes live. Returns true on success, false (expired setup or wrong code).
+     *
+     * @param  string $code a live TOTP code from the authenticator app
+     * @return bool
      */
     public function activateTotp($code)
     {
@@ -488,6 +515,9 @@ class Tiger_Service_Authentication
      * Turn TOTP off. Requires a valid current authenticator code OR a recovery code —
      * so a merely-open session (e.g. an unlocked, unattended browser) can't silently
      * strip the user's second factor. Returns true if disabled.
+     *
+     * @param  string $code a current TOTP code or a recovery code
+     * @return bool
      */
     public function disableTotp($code)
     {
@@ -657,6 +687,7 @@ class Tiger_Service_Authentication
      * role from that org's membership. Returns the new identity, or false if the
      * caller isn't an active member of the target org.
      *
+     * @param  string $orgId the org to switch into
      * @return object|false
      */
     public function useOrg($orgId)
@@ -677,11 +708,21 @@ class Tiger_Service_Authentication
         return $identity;
     }
 
+    /**
+     * Is there an authenticated identity on this request?
+     *
+     * @return bool
+     */
     public function isAuthenticated()
     {
         return Zend_Auth::getInstance()->hasIdentity();
     }
 
+    /**
+     * The authenticated identity object, or null when not signed in.
+     *
+     * @return object|null
+     */
     public function getIdentity()
     {
         $auth = Zend_Auth::getInstance();
@@ -694,7 +735,11 @@ class Tiger_Service_Authentication
     // at the lock card (enforced by Tiger_Controller_Plugin_Authorization) until the
     // user re-verifies their password. It is NOT a logout — identity is untouched.
 
-    /** Lock the current screen (no-op for a guest). */
+    /**
+     * Lock the current screen (no-op for a guest).
+     *
+     * @return void
+     */
     public function lock()
     {
         if (!$this->isAuthenticated()) {
@@ -703,7 +748,11 @@ class Tiger_Service_Authentication
         $this->_lockNs()->locked = true;
     }
 
-    /** Is the current authenticated session screen-locked? */
+    /**
+     * Is the current authenticated session screen-locked?
+     *
+     * @return bool
+     */
     public function isLocked()
     {
         return $this->isAuthenticated() && !empty($this->_lockNs()->locked);
@@ -716,6 +765,8 @@ class Tiger_Service_Authentication
      * after a successful unlock so the SAME request — the post-unlock redirect and any
      * _isAdmin() read — sees the real role again instead of the stale guest. (Without
      * it the role only self-corrects on the next request's _resolveRole.)
+     *
+     * @return void
      */
     public function refreshRole()
     {
@@ -740,6 +791,9 @@ class Tiger_Service_Authentication
     /**
      * Unlock by re-verifying the current identity's password. Returns true (lock
      * cleared) or false (bad password; the session stays locked).
+     *
+     * @param  string $password the current identity's password
+     * @return bool
      */
     public function unlock($password)
     {
@@ -760,6 +814,8 @@ class Tiger_Service_Authentication
      * for users who signed in with a code, or have no password at all. Reuses the OTP
      * machinery (send-cap + hashed/expiring/attempt-limited challenge). No-op if not
      * authenticated.
+     *
+     * @return void
      */
     public function requestUnlockCode()
     {
@@ -773,6 +829,9 @@ class Tiger_Service_Authentication
      * Unlock by verifying an emailed code for the CURRENT identity. Clears the lock
      * WITHOUT re-establishing the session — it's still you (a lock re-verify), not a
      * fresh login. Returns true on success, false otherwise.
+     *
+     * @param  string $code the emailed unlock code
+     * @return bool
      */
     public function unlockWithCode($code)
     {
@@ -808,7 +867,11 @@ class Tiger_Service_Authentication
     // client reports genuine user interaction ($active); an idle poll just reads it. This
     // clock is independent of the DbTable session's own idle TTL (the hard max-timeout).
 
-    /** The live auto-logout config (from the config cascade). */
+    /**
+     * The live auto-logout config (from the config cascade).
+     *
+     * @return array{enabled:bool,seconds:int,action:string,warn:int}
+     */
     public function autologoutConfig()
     {
         $node = null;
@@ -884,7 +947,12 @@ class Tiger_Service_Authentication
     // URL param. Set by the authorization plugin when it bounces a guest (to login)
     // or a locked request (to the lock card); consumed by login/unlock.
 
-    /** Remember a local return path (ignores non-local paths + auth pages, so no loops). */
+    /**
+     * Remember a local return path (ignores non-local paths + auth pages, so no loops).
+     *
+     * @param  string $path the local path to return to after auth
+     * @return void
+     */
     public function setReturnTo($path)
     {
         $path = (string) $path;
@@ -894,7 +962,11 @@ class Tiger_Service_Authentication
         $this->_authNs()->returnTo = $path;
     }
 
-    /** Read + clear the remembered return path ('' if none). */
+    /**
+     * Read + clear the remembered return path ('' if none).
+     *
+     * @return string
+     */
     public function takeReturnTo()
     {
         $ns = $this->_authNs();

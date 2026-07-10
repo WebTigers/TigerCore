@@ -27,38 +27,62 @@ class Tiger_Recaptcha
     const VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify';
     const SCRIPT_URL = 'https://www.google.com/recaptcha/api.js';
 
-    /** Is reCAPTCHA switched on for this install? */
+    /**
+     * Is reCAPTCHA switched on for this install?
+     *
+     * @return bool
+     */
     public static function isEnabled()
     {
         return (bool) self::_get('enabled', 0);
     }
 
-    /** The public site key (rendered in the widget), or '' if unset. */
+    /**
+     * The public site key (rendered in the widget), or '' if unset.
+     *
+     * @return string
+     */
     public static function siteKey()
     {
         return (string) self::_get('site_key', '');
     }
 
-    /** The server-side secret key, or '' if unset. */
+    /**
+     * The server-side secret key, or '' if unset.
+     *
+     * @return string
+     */
     public static function secretKey()
     {
         return (string) self::_get('secret_key', '');
     }
 
-    /** "v2" (checkbox) or "v3" (score). */
+    /**
+     * "v2" (checkbox) or "v3" (score).
+     *
+     * @return string
+     */
     public static function version()
     {
         $v = strtolower((string) self::_get('version', 'v2'));
         return ($v === 'v3') ? 'v3' : 'v2';
     }
 
-    /** v3 minimum passing score. */
+    /**
+     * v3 minimum passing score.
+     *
+     * @return float
+     */
     public static function minScore()
     {
         return (float) self::_get('min_score', 0.5);
     }
 
-    /** Pass on a transport failure (can't reach Google)? Default yes (availability). */
+    /**
+     * Pass on a transport failure (can't reach Google)? Default yes (availability).
+     *
+     * @return bool
+     */
     public static function failOpen()
     {
         return (bool) self::_get('fail_open', 1);
@@ -69,6 +93,8 @@ class Tiger_Recaptcha
      * and for v3 `score`/`action`), or NULL on a transport failure (couldn't reach the
      * service) — the caller decides fail-open vs fail-closed for that case.
      *
+     * @param  string      $token    the reCAPTCHA response token from the client
+     * @param  string|null $remoteIp optional client IP to include in the verify call
      * @return array|null
      */
     public static function verify($token, $remoteIp = null)

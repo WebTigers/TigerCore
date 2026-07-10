@@ -39,32 +39,71 @@ class Tiger_Log
 
     // -- severity helpers (thin wrappers over Zend_Log priorities) -------------
 
+    /**
+     * Log at CRIT severity.
+     *
+     * @param  string $message the log message
+     * @param  array  $context structured key/value context
+     * @return void
+     */
     public static function critical($message, array $context = [])
     {
         self::_emit(Zend_Log::CRIT, $message, $context);
     }
 
+    /**
+     * Log at ERR severity.
+     *
+     * @param  string $message the log message
+     * @param  array  $context structured key/value context
+     * @return void
+     */
     public static function error($message, array $context = [])
     {
         self::_emit(Zend_Log::ERR, $message, $context);
     }
 
+    /**
+     * Log at WARN severity.
+     *
+     * @param  string $message the log message
+     * @param  array  $context structured key/value context
+     * @return void
+     */
     public static function warn($message, array $context = [])
     {
         self::_emit(Zend_Log::WARN, $message, $context);
     }
 
+    /**
+     * Log at INFO severity.
+     *
+     * @param  string $message the log message
+     * @param  array  $context structured key/value context
+     * @return void
+     */
     public static function info($message, array $context = [])
     {
         self::_emit(Zend_Log::INFO, $message, $context);
     }
 
+    /**
+     * Log at DEBUG severity.
+     *
+     * @param  string $message the log message
+     * @param  array  $context structured key/value context
+     * @return void
+     */
     public static function debug($message, array $context = [])
     {
         self::_emit(Zend_Log::DEBUG, $message, $context);
     }
 
-    /** Forget the memoized logger — call after changing config at runtime, or between tests. */
+    /**
+     * Forget the memoized logger — call after changing config at runtime, or between tests.
+     *
+     * @return void
+     */
     public static function reset()
     {
         self::$_log       = null;
