@@ -11,6 +11,11 @@
  */
 class Media_FileController extends Tiger_Controller_Action
 {
+    /**
+     * Stream a private media object (or requested variant) through the ACL/org-scope check.
+     *
+     * @return void
+     */
     public function serveAction()
     {
         $this->_helper->layout()->disableLayout();

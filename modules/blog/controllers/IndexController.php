@@ -17,6 +17,11 @@ class Blog_IndexController extends Tiger_Controller_Action
     /** @var Blog_Model_Post */  protected $_posts;
     /** @var Blog_Model_Taxonomy */ protected $_tax;
 
+    /**
+     * Initialize the controller and its post + taxonomy models.
+     *
+     * @return void
+     */
     public function init()
     {
         parent::init();
@@ -24,7 +29,11 @@ class Blog_IndexController extends Tiger_Controller_Action
         $this->_tax   = new Blog_Model_Taxonomy();
     }
 
-    /** /blog — the latest published articles. */
+    /**
+     * /blog — the latest published articles.
+     *
+     * @return void
+     */
     public function indexAction()
     {
         $rows = $this->_posts->published(['locale' => $this->_locale(), 'limit' => 20]);
@@ -33,7 +42,12 @@ class Blog_IndexController extends Tiger_Controller_Action
         $this->view->title   = 'Blog';
     }
 
-    /** /blog/<slug> — a single article. */
+    /**
+     * /blog/<slug> — a single article.
+     *
+     * @return void
+     * @throws Zend_Controller_Action_Exception when the article slug resolves to nothing (404)
+     */
     public function viewAction()
     {
         $post = $this->_posts->resolveArticle((string) $this->getParam('slug', ''), $this->_locale(), '');
@@ -51,19 +65,31 @@ class Blog_IndexController extends Tiger_Controller_Action
         $this->view->metaDescription = $article['seo']['description'] !== '' ? $article['seo']['description'] : $article['excerpt'];
     }
 
-    /** /blog/category/<slug> */
+    /**
+     * /blog/category/<slug>
+     *
+     * @return void
+     */
     public function categoryAction()
     {
         $this->_archive(Blog_Model_Taxonomy::VOCAB_CATEGORY, 'Category');
     }
 
-    /** /blog/tag/<slug> */
+    /**
+     * /blog/tag/<slug>
+     *
+     * @return void
+     */
     public function tagAction()
     {
         $this->_archive(Blog_Model_Taxonomy::VOCAB_TAG, 'Tagged');
     }
 
-    /** /blog/feed — an RSS 2.0 feed of recent articles (view owns the XML; theme-overridable). */
+    /**
+     * /blog/feed — an RSS 2.0 feed of recent articles (view owns the XML; theme-overridable).
+     *
+     * @return void
+     */
     public function feedAction()
     {
         $rows = $this->_posts->published(['locale' => $this->_locale(), 'limit' => 20]);

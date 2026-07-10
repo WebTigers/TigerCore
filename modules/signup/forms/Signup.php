@@ -14,6 +14,8 @@
  *
  * The view (views/scripts/index/index.phtml) owns all markup + layout; this class only
  * declares the elements + their rules.
+ *
+ * @api
  */
 class Signup_Form_Signup extends Tiger_Form
 {

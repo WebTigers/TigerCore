@@ -12,10 +12,17 @@
  *
  * v1 = the PHP tier: language `php`, run location `global` (runs on every request), platform
  * scope (`org_id = ''`). The client CSS/JS/HTML tier + admin/frontend/page scoping come next.
+ *
+ * @api
  */
 class Code_Service_Code extends Tiger_Service_Service
 {
-    /** DataTables source for the code list. */
+    /**
+     * DataTables source for the code list.
+     *
+     * @param  array $params the DataTables request (draw/start/length/search/order) plus filters
+     * @return void
+     */
     public function datatable(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -53,7 +60,12 @@ class Code_Service_Code extends Tiger_Service_Service
         $this->_dtResponse($dt['draw'], $data['total'], $data['filtered'], $rows);
     }
 
-    /** Create or update a snippet (insert when code_id is empty). Lints PHP before storing. */
+    /**
+     * Create or update a snippet (insert when code_id is empty). Lints PHP before storing.
+     *
+     * @param  array $params the posted snippet form values
+     * @return void
+     */
     public function save(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -124,10 +136,20 @@ class Code_Service_Code extends Tiger_Service_Service
         }
     }
 
-    /** Activate a snippet (lints first). */
+    /**
+     * Activate a snippet (lints first).
+     *
+     * @param  array $params must carry `code_id`
+     * @return void
+     */
     public function activate(array $params): void { $this->_toggle($params, true); }
 
-    /** Deactivate a snippet. */
+    /**
+     * Deactivate a snippet.
+     *
+     * @param  array $params must carry `code_id`
+     * @return void
+     */
     public function deactivate(array $params): void { $this->_toggle($params, false); }
 
     protected function _toggle(array $params, $on): void
@@ -157,7 +179,12 @@ class Code_Service_Code extends Tiger_Service_Service
         }
     }
 
-    /** Soft-delete a snippet (recoverable). */
+    /**
+     * Soft-delete a snippet (recoverable).
+     *
+     * @param  array $params must carry `code_id`
+     * @return void
+     */
     public function delete(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -172,7 +199,12 @@ class Code_Service_Code extends Tiger_Service_Service
         }
     }
 
-    /** Restore a prior version (does not auto-reactivate). */
+    /**
+     * Restore a prior version (does not auto-reactivate).
+     *
+     * @param  array $params must carry `code_id` and `version`
+     * @return void
+     */
     public function restore(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }

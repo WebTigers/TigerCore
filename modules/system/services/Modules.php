@@ -9,13 +9,28 @@
  * drops off routing + bootstrapping entirely. Gated to `superadmin`+ (managing modules is a
  * platform-admin privilege). A PROTECTED set can never be deactivated so you can't lock
  * yourself out of the manager, user admin, or core dispatch.
+ *
+ * @api
  */
 class System_Service_Modules extends Tiger_Service_Service
 {
     /** Modules that must always stay active. */
     const PROTECTED = ['default', 'system', 'access'];
 
+    /**
+     * Activate a module (by `slug`), publishing its assets.
+     *
+     * @param  array $params the /api payload (expects `slug`)
+     * @return void
+     */
     public function activate(array $params): void   { $this->_toggle($params, true); }
+
+    /**
+     * Deactivate a module (by `slug`), unpublishing its assets.
+     *
+     * @param  array $params the /api payload (expects `slug`)
+     * @return void
+     */
     public function deactivate(array $params): void { $this->_toggle($params, false); }
 
     protected function _toggle(array $params, $on): void
@@ -52,7 +67,12 @@ class System_Service_Modules extends Tiger_Service_Service
         }
     }
 
-    /** Search the Vendor Registry (empty + available=false when the registry isn't reachable). */
+    /**
+     * Search the Vendor Registry (empty + available=false when the registry isn't reachable).
+     *
+     * @param  array $params the /api payload (expects `q`)
+     * @return void
+     */
     public function search(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -66,6 +86,9 @@ class System_Service_Modules extends Tiger_Service_Service
      * Preview a module before install: pull module.json + TIGER.md from the public repo and
      * return the manifest + rendered description. No side effects — the "review before you
      * install" step.
+     *
+     * @param  array $params the /api payload (expects `url`, optional `ref`)
+     * @return void
      */
     public function inspect(array $params): void
     {
@@ -123,7 +146,12 @@ class System_Service_Modules extends Tiger_Service_Service
         return $html;
     }
 
-    /** Install (or update, with force) a module from a public GitHub URL. */
+    /**
+     * Install (or update, with force) a module from a public GitHub URL.
+     *
+     * @param  array $params the /api payload (expects `url`, optional `ref`, `force`)
+     * @return void
+     */
     public function install(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }

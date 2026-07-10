@@ -9,12 +9,21 @@
  */
 class Cms_SettingsController extends Tiger_Controller_Admin_Action
 {
-    /** Admin shell (layout) comes from the base; keep the explicit init cascade. */
+    /**
+     * Set up the admin shell — the layout comes from the base; keep the explicit init cascade.
+     *
+     * @return void
+     */
     public function init()
     {
         parent::init();
     }
 
+    /**
+     * Render the settings form, pre-filled from the live config.
+     *
+     * @return void
+     */
     public function indexAction()
     {
         $cfg   = Zend_Registry::get('Zend_Config');

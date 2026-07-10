@@ -12,20 +12,32 @@
  */
 class Cms_MenuController extends Tiger_Controller_Admin_Action
 {
-    /** Admin shell (layout) comes from the base; keep the explicit init cascade. */
+    /**
+     * Set up the admin shell — the layout comes from the base; keep the explicit init cascade.
+     *
+     * @return void
+     */
     public function init()
     {
         parent::init();
     }
 
-    /** The menus list — shell only; rows load over AJAX (Cms_Service_Menu::datatable). */
+    /**
+     * Render the menus list — shell only; rows load over AJAX (Cms_Service_Menu::datatable).
+     *
+     * @return void
+     */
     public function indexAction()
     {
         $this->view->title         = 'Menus — Tiger Admin';
         $this->view->useDataTables = true;
     }
 
-    /** Edit one menu (by key), or start a new one (no key). Renders the item tree + editor. */
+    /**
+     * Edit one menu (by key), or start a new one (no key). Renders the item tree + editor.
+     *
+     * @return void
+     */
     public function editAction()
     {
         $key   = (string) $this->getParam('key', '');

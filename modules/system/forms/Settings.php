@@ -7,6 +7,8 @@
  * Values are stored in the `config` table (scope=global) by System_Service_Settings —
  * the live-override tier, no deploy. Session/security lives here (not CMS): it's a
  * platform concern. Room to grow (mail, logging, locale) as tabs on the System page.
+ *
+ * @api
  */
 class System_Form_Settings extends Tiger_Form
 {

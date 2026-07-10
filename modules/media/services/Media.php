@@ -9,10 +9,17 @@
  * Uploads are multipart POSTs to /api (module=media, service=media, method=upload) — one
  * file per request so the client can show per-file progress; the file rides in $_FILES.
  * Scan hooks (ClamAV / AI) are P4 and config-gated; here uploads are stored + recorded.
+ *
+ * @api
  */
 class Media_Service_Media extends Tiger_Service_Service
 {
-    /** Receive one uploaded file: validate -> store -> record. Returns the media row. */
+    /**
+     * Receive one uploaded file: validate -> store -> record. Returns the media row.
+     *
+     * @param  array $params the upload message ($_FILES carries the file; may set `visibility`)
+     * @return void
+     */
     public function upload(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -109,7 +116,12 @@ class Media_Service_Media extends Tiger_Service_Service
         $this->_success(['media' => $this->_present($model->findById($id))], 'media.uploaded');
     }
 
-    /** DataTables source for the Library grid (thumbnails + metadata). */
+    /**
+     * DataTables source for the Library grid (thumbnails + metadata).
+     *
+     * @param  array $params the DataTables request (draw/start/length/search/order) plus a `kind` filter
+     * @return void
+     */
     public function datatable(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -134,7 +146,12 @@ class Media_Service_Media extends Tiger_Service_Service
         $this->_dtResponse($dt['draw'], $data['total'], $data['filtered'], $rows);
     }
 
-    /** Edit editorial fields (title / caption / alt / visibility). */
+    /**
+     * Edit editorial fields (title / caption / alt / visibility).
+     *
+     * @param  array $params must carry `media_id`; optional `title`/`caption`/`alt_text`/`visibility`
+     * @return void
+     */
     public function update(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -160,7 +177,12 @@ class Media_Service_Media extends Tiger_Service_Service
         }
     }
 
-    /** Soft-delete the row AND remove the stored bytes (+ variants). */
+    /**
+     * Soft-delete the row AND remove the stored bytes (+ variants).
+     *
+     * @param  array $params must carry `media_id`
+     * @return void
+     */
     public function delete(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }

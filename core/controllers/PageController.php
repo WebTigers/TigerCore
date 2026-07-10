@@ -16,6 +16,12 @@
  */
 class PageController extends Tiger_Controller_Action
 {
+    /**
+     * Render the resolved CMS page, self-contained or wrapped in the theme's public layout.
+     *
+     * @return void
+     * @throws Zend_Controller_Action_Exception when the page id resolves to no page (404).
+     */
     public function viewAction()
     {
         $pageId = $this->getParam('cms_page_id');

@@ -12,6 +12,11 @@
  */
 class Media_CallbackController extends Tiger_Controller_Action
 {
+    /**
+     * Handle an SNS POST — confirm a subscription or process a moderation notification.
+     *
+     * @return void
+     */
     public function indexAction()
     {
         $this->_helper->layout()->disableLayout();

@@ -9,12 +9,19 @@
  * Rows are structured data with per-row ACL flags (can_edit / can_delete) — the
  * client renders controls off them; you can never delete your own account. ACL:
  * admin+ (modules/access/configs/acl.ini).
+ *
+ * @api
  */
 class Access_Service_User extends Tiger_Service_Service
 {
     private const STATUSES = ['active', 'suspended'];
 
-    /** DataTables server-side source: user identity + a membership summary. */
+    /**
+     * DataTables server-side source: user identity + a membership summary.
+     *
+     * @param  array $params the DataTables request (draw/start/length/search/order) + status filter
+     * @return void
+     */
     public function datatable(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -53,7 +60,12 @@ class Access_Service_User extends Tiger_Service_Service
         $this->_dtResponse($dt['draw'], $data['total'], $data['filtered'], $rows);
     }
 
-    /** Create or update a user identity (insert when user_id is empty). */
+    /**
+     * Create or update a user identity (insert when user_id is empty).
+     *
+     * @param  array $params the submitted form values + user_id
+     * @return void
+     */
     public function save(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -86,7 +98,12 @@ class Access_Service_User extends Tiger_Service_Service
         }
     }
 
-    /** Soft-delete a user (never yourself). */
+    /**
+     * Soft-delete a user (never yourself).
+     *
+     * @param  array $params the request payload carrying user_id
+     * @return void
+     */
     public function delete(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }

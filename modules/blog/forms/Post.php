@@ -12,6 +12,8 @@
  * `body` is the article HTML (Editor.js output) — NOT StripTags-filtered, or the markup
  * would be corrupted. The short text fields are StringTrim only; escaping happens at
  * render time.
+ *
+ * @api
  */
 class Blog_Form_Post extends Tiger_Form
 {

@@ -9,9 +9,17 @@
  * cascade, so a change takes effect on the next request with no deploy. Storage is
  * the config table; there is no separate settings/option table (config-discipline).
  * ACL: admin+ (modules/cms/configs/acl.ini).
+ *
+ * @api
  */
 class Cms_Service_Settings extends Tiger_Service_Service
 {
+    /**
+     * Validate the Settings form and persist the values to the config table.
+     *
+     * @param  array $params the posted Settings form values
+     * @return void
+     */
     public function save(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }

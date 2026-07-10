@@ -8,10 +8,17 @@
  * (and the front-end uses for term clouds). Terms are created lazily on post save
  * (Blog_Model_Taxonomy::findOrCreate), so there's no write path here yet — a dedicated
  * term-admin can come later. Admin-gated like the rest of the module.
+ *
+ * @api
  */
 class Blog_Service_Taxonomy extends Tiger_Service_Service
 {
-    /** Terms in a vocabulary ({id, name, slug}) for a Select2-style picker. */
+    /**
+     * List the terms in a vocabulary ({id, name, slug}) for a Select2-style picker.
+     *
+     * @param  array $params the request payload (`vocabulary`, `locale`)
+     * @return void
+     */
     public function listTerms(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }

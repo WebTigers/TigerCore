@@ -9,10 +9,17 @@
  *
  * ACL resource = this class (Blog_Service_Post), granted admin+ in configs/acl.ini;
  * the gateway also privilege-checks the method name.
+ *
+ * @api
  */
 class Blog_Service_Post extends Tiger_Service_Service
 {
-    /** DataTables source for the article list (type=article), rows as structured data. */
+    /**
+     * DataTables source for the article list (type=article), rows as structured data.
+     *
+     * @param  array $params the DataTables request (draw/start/length/search/order) + status filter
+     * @return void
+     */
     public function datatable(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -53,7 +60,12 @@ class Blog_Service_Post extends Tiger_Service_Service
         $this->_dtResponse($dt['draw'], $data['total'], $data['filtered'], $rows);
     }
 
-    /** Create or update an article (insert when post_id is empty). */
+    /**
+     * Create or update an article (insert when post_id is empty).
+     *
+     * @param  array $params the submitted form values + post_id
+     * @return void
+     */
     public function save(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -117,7 +129,12 @@ class Blog_Service_Post extends Tiger_Service_Service
         }
     }
 
-    /** Soft-delete an article (recoverable). */
+    /**
+     * Soft-delete an article (recoverable).
+     *
+     * @param  array $params the request payload carrying post_id
+     * @return void
+     */
     public function delete(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -132,7 +149,12 @@ class Blog_Service_Post extends Tiger_Service_Service
         }
     }
 
-    /** Restore an article to a prior version (current content snapshotted first). */
+    /**
+     * Restore an article to a prior version (current content snapshotted first).
+     *
+     * @param  array $params the request payload carrying post_id + version
+     * @return void
+     */
     public function restore(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }

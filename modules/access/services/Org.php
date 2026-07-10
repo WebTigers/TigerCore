@@ -13,12 +13,19 @@
  * Note (v1): soft-delete flags the row; it does NOT reparent children or purge
  * memberships (the FK ON DELETE actions only fire on a hard delete). Member/child
  * management is a later screen.
+ *
+ * @api
  */
 class Access_Service_Org extends Tiger_Service_Service
 {
     private const STATUSES = ['active', 'suspended'];
 
-    /** DataTables server-side source: org + parent name + member count. */
+    /**
+     * DataTables server-side source: org + parent name + member count.
+     *
+     * @param  array $params the DataTables request (draw/start/length/search/order) + status filter
+     * @return void
+     */
     public function datatable(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -56,7 +63,12 @@ class Access_Service_Org extends Tiger_Service_Service
         $this->_dtResponse($dt['draw'], $data['total'], $data['filtered'], $rows);
     }
 
-    /** Create or update an org (insert when org_id is empty). */
+    /**
+     * Create or update an org (insert when org_id is empty).
+     *
+     * @param  array $params the submitted form values + org_id
+     * @return void
+     */
     public function save(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -93,7 +105,12 @@ class Access_Service_Org extends Tiger_Service_Service
         }
     }
 
-    /** Soft-delete an org (never the one you're acting in). */
+    /**
+     * Soft-delete an org (never the one you're acting in).
+     *
+     * @param  array $params the request payload carrying org_id
+     * @return void
+     */
     public function delete(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }

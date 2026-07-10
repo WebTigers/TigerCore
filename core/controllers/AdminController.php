@@ -14,13 +14,21 @@
  */
 class AdminController extends Tiger_Controller_Admin_Action
 {
-    /** Admin shell (layout) comes from the base; keep the explicit init cascade. */
+    /**
+     * Admin shell (layout) comes from the base; keep the explicit init cascade.
+     *
+     * @return void
+     */
     public function init()
     {
         parent::init();
     }
 
-    /** The dashboard. Demo tiles now; a real app wires these to its own models. */
+    /**
+     * The dashboard. Demo tiles now; a real app wires these to its own models.
+     *
+     * @return void
+     */
     public function indexAction()
     {
         $this->view->title = 'Dashboard — Tiger Admin';

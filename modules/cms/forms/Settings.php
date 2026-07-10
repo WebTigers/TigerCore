@@ -8,6 +8,8 @@
  * NOT a settings table (see the config-discipline: config store + registry, no
  * option landfill). The home-page dropdown lists published pages; its value is a
  * `page_id` ('' = the built-in landing page).
+ *
+ * @api
  */
 class Cms_Form_Settings extends Tiger_Form
 {

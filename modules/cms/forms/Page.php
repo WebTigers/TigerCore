@@ -12,6 +12,8 @@
  *
  * Note: `body` is deliberately NOT StripTags-filtered — a body is template source
  * (HTML / Markdown / PHTML), so stripping tags would corrupt it.
+ *
+ * @api
  */
 class Cms_Form_Page extends Tiger_Form
 {

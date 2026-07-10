@@ -20,12 +20,22 @@
  */
 class ErrorController extends Tiger_Controller_Action
 {
+    /**
+     * Force the safe public layout for every error page.
+     *
+     * @return void
+     */
     public function init()
     {
         parent::init();
         $this->_helper->layout()->setLayout('layout');
     }
 
+    /**
+     * Classify the caught error as 404 vs 500, log every 500, and render a friendly page.
+     *
+     * @return void
+     */
     public function errorAction()
     {
         $errors = $this->_getParam('error_handler');
@@ -63,7 +73,11 @@ class ErrorController extends Tiger_Controller_Action
         $this->_render($code, $message, isset($errors->exception) ? $errors->exception : null);
     }
 
-    /** 403 — the authorization plugin forwards here for authenticated-but-denied. */
+    /**
+     * 403 — the authorization plugin forwards here for authenticated-but-denied.
+     *
+     * @return void
+     */
     public function forbiddenAction()
     {
         $this->_render(403, "You don't have access to that.");

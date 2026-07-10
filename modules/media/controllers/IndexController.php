@@ -8,12 +8,21 @@
  */
 class Media_IndexController extends Tiger_Controller_Admin_Action
 {
-    /** Admin shell (layout) comes from the base; keep the explicit init cascade. */
+    /**
+     * Initialize the controller. Admin shell (layout) comes from the base; keep the explicit init cascade.
+     *
+     * @return void
+     */
     public function init()
     {
         parent::init();
     }
 
+    /**
+     * Render the Media Library screen (uploader + DataTables grid).
+     *
+     * @return void
+     */
     public function indexAction()
     {
         // Tell the uploader whether it must make the thumbnail itself: when the server has

@@ -20,7 +20,14 @@ class Blog_Model_Taxonomy extends Tiger_Model_Table
 
     const JOIN = 'page_taxonomy';
 
-    /** Active terms in a vocabulary (for pickers + archives), tenant then global. */
+    /**
+     * Active terms in a vocabulary (for pickers + archives), tenant then global.
+     *
+     * @param  string $vocabulary the vocabulary (category | tag)
+     * @param  string $locale     the content locale
+     * @param  string $orgId      the tenant org id ('' = global)
+     * @return iterable the matching term rows
+     */
     public function listVocabulary($vocabulary, $locale = 'en', $orgId = '')
     {
         return $this->fetchAll(
@@ -36,6 +43,12 @@ class Blog_Model_Taxonomy extends Tiger_Model_Table
      * Resolve a term by name within a vocabulary, creating it if absent. Returns the
      * taxonomy_id. Lets the editor accept free-typed categories/tags and mint terms on
      * the fly. Matches on the derived slug so "Web Dev" and "web-dev" are the same term.
+     *
+     * @param  string $vocabulary the vocabulary (category | tag)
+     * @param  string $name       the free-typed term name
+     * @param  string $locale     the content locale
+     * @param  string $orgId      the tenant org id ('' = global)
+     * @return string|null the taxonomy_id, or null when the name is empty
      */
     public function findOrCreate($vocabulary, $name, $locale = 'en', $orgId = '')
     {
@@ -68,7 +81,15 @@ class Blog_Model_Taxonomy extends Tiger_Model_Table
         ]);
     }
 
-    /** A single term by slug within a vocabulary (tenant over global) — for archive pages. */
+    /**
+     * A single term by slug within a vocabulary (tenant over global) — for archive pages.
+     *
+     * @param  string $vocabulary the vocabulary (category | tag)
+     * @param  string $slug       the term slug
+     * @param  string $locale     the content locale
+     * @param  string $orgId      the tenant org id ('' = global)
+     * @return Zend_Db_Table_Row_Abstract|null the term row, or null if none
+     */
     public function resolveTermBySlug($vocabulary, $slug, $locale = 'en', $orgId = '')
     {
         return $this->fetchRow(
@@ -82,7 +103,12 @@ class Blog_Model_Taxonomy extends Tiger_Model_Table
         );
     }
 
-    /** The page_ids linked to a term (its posts), for the archive listing. */
+    /**
+     * The page_ids linked to a term (its posts), for the archive listing.
+     *
+     * @param  string $taxonomyId the term's taxonomy_id
+     * @return array the linked page_ids, in author order
+     */
     public function pageIdsForTerm($taxonomyId)
     {
         $db = $this->getAdapter();
@@ -93,7 +119,13 @@ class Blog_Model_Taxonomy extends Tiger_Model_Table
         );
     }
 
-    /** The terms linked to a page (optionally one vocabulary), in author order. */
+    /**
+     * The terms linked to a page (optionally one vocabulary), in author order.
+     *
+     * @param  string      $pageId     the page's page_id
+     * @param  string|null $vocabulary limit to this vocabulary, or null for all
+     * @return array the linked term rows
+     */
     public function forPage($pageId, $vocabulary = null)
     {
         $db  = $this->getAdapter();
@@ -113,6 +145,10 @@ class Blog_Model_Taxonomy extends Tiger_Model_Table
      * Replace a page's term links with $taxonomyIds (order preserved). Deletes the old
      * links and inserts the new set — the join carries no history, so a full rewrite is
      * the simplest correct sync. Ignores empty ids.
+     *
+     * @param  string $pageId      the page's page_id
+     * @param  array  $taxonomyIds the term ids to link (order preserved)
+     * @return void
      */
     public function syncPage($pageId, array $taxonomyIds)
     {
@@ -133,7 +169,14 @@ class Blog_Model_Taxonomy extends Tiger_Model_Table
         }
     }
 
-    /** Post counts per term in a vocabulary (published only) — for archives/clouds. */
+    /**
+     * Post counts per term in a vocabulary (published only) — for archives/clouds.
+     *
+     * @param  string $vocabulary the vocabulary (category | tag)
+     * @param  string $locale     the content locale
+     * @param  string $orgId      the tenant org id ('' = global)
+     * @return array the term rows with a published-post count
+     */
     public function counts($vocabulary, $locale = 'en', $orgId = '')
     {
         $db = $this->getAdapter();
@@ -150,7 +193,12 @@ class Blog_Model_Taxonomy extends Tiger_Model_Table
         return $db->fetchAll($sel);
     }
 
-    /** lowercase, hyphen-joined ascii slug. */
+    /**
+     * lowercase, hyphen-joined ascii slug.
+     *
+     * @param  string $text the source text
+     * @return string the slugified value
+     */
     public function slugify($text)
     {
         $text = strtolower(trim((string) $text));

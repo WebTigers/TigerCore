@@ -24,6 +24,8 @@ class AuthController extends Tiger_Controller_Action
      * GET  /auth/login/out/1      -> …with a "signed out" notice.
      * GET  /auth/login/reset/1    -> …with a "password reset" notice.
      * POST /auth/login            -> verify credentials, return JSON {result, redirect}.
+     *
+     * @return void
      */
     public function loginAction()
     {
@@ -87,7 +89,11 @@ class AuthController extends Tiger_Controller_Action
         }
     }
 
-    /** Destroy the session and return to the sign-in screen with a confirmation. */
+    /**
+     * Destroy the session and return to the sign-in screen with a confirmation.
+     *
+     * @return void
+     */
     public function logoutAction()
     {
         (new Tiger_Service_Authentication())->logout();
@@ -100,6 +106,8 @@ class AuthController extends Tiger_Controller_Action
      * `active=1` to report GENUINE user interaction since the last poll (refreshes the
      * clock); an idle poll (`active=0`, the default) reads time-left WITHOUT resetting it.
      * Reachable while locked so the poller keeps working on the lock card.
+     *
+     * @return void
      */
     public function sessionAction()
     {
@@ -114,6 +122,8 @@ class AuthController extends Tiger_Controller_Action
      * The authenticated session is untouched; the authorization plugin holds every
      * other route at this card until unlock succeeds, returning the user afterward to
      * wherever they were headed (remembered in session, not a URL param).
+     *
+     * @return void
      */
     public function lockAction()
     {
@@ -158,6 +168,8 @@ class AuthController extends Tiger_Controller_Action
      * GET  /auth/forgot  -> request-a-reset form.
      * POST /auth/forgot  -> email a reset link. ALWAYS returns JSON success — the
      *                       response never reveals whether the account exists.
+     *
+     * @return void
      */
     public function forgotAction()
     {
@@ -176,6 +188,8 @@ class AuthController extends Tiger_Controller_Action
     /**
      * GET  /auth/reset/cid/…/code/…  -> set-a-new-password form (from the emailed link).
      * POST /auth/reset               -> redeem the token + set the password (JSON).
+     *
+     * @return void
      */
     public function resetAction()
     {
@@ -211,6 +225,8 @@ class AuthController extends Tiger_Controller_Action
      * Email channel only in this version; an SMS channel plugs in at the service layer
      * (see Tiger_Service_Authentication OTP section). No account enumeration; the code
      * is attempt-limited + expiring in the challenge model.
+     *
+     * @return void
      */
     public function otpAction()
     {
@@ -249,6 +265,8 @@ class AuthController extends Tiger_Controller_Action
      *
      * The mutations are AJAX to the sibling actions below (thin controller, JSON out) —
      * the same client/server contract as the rest of auth.
+     *
+     * @return void
      */
     public function securityAction()
     {
@@ -271,6 +289,8 @@ class AuthController extends Tiger_Controller_Action
      * POST /auth/totp-setup -> begin enrollment: returns the base32 secret, the
      * otpauth:// URI (rendered client-side as a QR), and the one-time-shown recovery
      * codes. Nothing persists until totp-activate confirms a live code.
+     *
+     * @return void
      */
     public function totpSetupAction()
     {
@@ -287,7 +307,11 @@ class AuthController extends Tiger_Controller_Action
         $this->_json(['result' => 1, 'data' => $data]);
     }
 
-    /** POST /auth/totp-activate -> confirm enrollment with a live code (JSON {result}). */
+    /**
+     * POST /auth/totp-activate -> confirm enrollment with a live code (JSON {result}).
+     *
+     * @return void
+     */
     public function totpActivateAction()
     {
         $auth = new Tiger_Service_Authentication();
@@ -302,7 +326,11 @@ class AuthController extends Tiger_Controller_Action
         }
     }
 
-    /** POST /auth/totp-disable -> turn 2FA off; requires a current TOTP or recovery code. */
+    /**
+     * POST /auth/totp-disable -> turn 2FA off; requires a current TOTP or recovery code.
+     *
+     * @return void
+     */
     public function totpDisableAction()
     {
         $auth = new Tiger_Service_Authentication();
@@ -317,7 +345,11 @@ class AuthController extends Tiger_Controller_Action
         }
     }
 
-    /** GET /auth/me -> the current identity as JSON (handy for clients + verification). */
+    /**
+     * GET /auth/me -> the current identity as JSON (handy for clients + verification).
+     *
+     * @return void
+     */
     public function meAction()
     {
         $identity = (new Tiger_Service_Authentication())->getIdentity();

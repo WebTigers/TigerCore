@@ -12,6 +12,8 @@
  *
  * ACL resource = this class name (Cms_Service_Page), granted admin+ in
  * modules/cms/configs/acl.ini; the gateway also privilege-checks the method name.
+ *
+ * @api
  */
 class Cms_Service_Page extends Tiger_Service_Service
 {
@@ -21,6 +23,9 @@ class Cms_Service_Page extends Tiger_Service_Service
      * as STRUCTURED DATA (no HTML). Each row carries the caller's control permissions
      * (`can_edit`/`can_delete`, privilege-checked) so the client renders ACL-correct
      * action buttons — authorization stays server-side. See AGENTS.md (client/server).
+     *
+     * @param  array $params the DataTables request payload (search/sort/paginate + toolbar filters)
+     * @return void
      */
     public function datatable(array $params): void
     {
@@ -66,7 +71,12 @@ class Cms_Service_Page extends Tiger_Service_Service
         $this->_dtResponse($dt['draw'], $data['total'], $data['filtered'], $rows);
     }
 
-    /** Create or update a page (insert when page_id is empty). */
+    /**
+     * Create or update a page (insert when page_id is empty).
+     *
+     * @param  array $params the editor form payload
+     * @return void
+     */
     public function save(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -121,6 +131,9 @@ class Cms_Service_Page extends Tiger_Service_Service
      * format) and keep the project JSON in `meta.builder` so reopening the canvas is
      * lossless. Page metadata (title/slug/status) is edited in the normal page editor —
      * this touches the design only, on an existing row.
+     *
+     * @param  array $params the builder payload (`page_id`, `html`, `css`, `project`)
+     * @return void
      */
     public function saveDesign(array $params): void
     {
@@ -165,7 +178,12 @@ class Cms_Service_Page extends Tiger_Service_Service
         }
     }
 
-    /** Soft-delete a page (recoverable — the row is flagged, not dropped). */
+    /**
+     * Soft-delete a page (recoverable — the row is flagged, not dropped).
+     *
+     * @param  array $params the request payload (`page_id`)
+     * @return void
+     */
     public function delete(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -180,7 +198,12 @@ class Cms_Service_Page extends Tiger_Service_Service
         }
     }
 
-    /** Restore a page to a prior version (current content is snapshotted first). */
+    /**
+     * Restore a page to a prior version (current content is snapshotted first).
+     *
+     * @param  array $params the request payload (`page_id`, `version`)
+     * @return void
+     */
     public function restore(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }

@@ -12,20 +12,32 @@
  */
 class Access_UserController extends Tiger_Controller_Admin_Action
 {
-    /** Admin shell (layout) comes from the base; keep the explicit init cascade. */
+    /**
+     * Admin shell (layout) comes from the base; keep the explicit init cascade.
+     *
+     * @return void
+     */
     public function init()
     {
         parent::init();
     }
 
-    /** Users list — shell only; rows arrive over AJAX. */
+    /**
+     * Users list — shell only; rows arrive over AJAX.
+     *
+     * @return void
+     */
     public function indexAction()
     {
         $this->view->title         = 'Users — Tiger Admin';
         $this->view->useDataTables = true;
     }
 
-    /** Create (no id) or edit (id) a user — renders the form; saving is an /api call. */
+    /**
+     * Create (no id) or edit (id) a user — renders the form; saving is an /api call.
+     *
+     * @return void
+     */
     public function editAction()
     {
         $id   = (string) $this->getParam('id', '');

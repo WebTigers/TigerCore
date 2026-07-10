@@ -14,20 +14,33 @@ class Blog_PostController extends Tiger_Controller_Admin_Action
     /** @var Blog_Model_Post */
     protected $_posts;
 
+    /**
+     * Initialize the admin controller and its post model.
+     *
+     * @return void
+     */
     public function init()
     {
         parent::init();
         $this->_posts = new Blog_Model_Post();
     }
 
-    /** The article list — shell only; rows load over AJAX from Blog_Service_Post::datatable. */
+    /**
+     * The article list — shell only; rows load over AJAX from Blog_Service_Post::datatable.
+     *
+     * @return void
+     */
     public function indexAction()
     {
         $this->view->title         = 'Articles — Tiger Admin';
         $this->view->useDataTables = true;
     }
 
-    /** Create (no id) or edit (id) — renders the editor; saving is an /api call. */
+    /**
+     * Create (no id) or edit (id) — renders the editor; saving is an /api call.
+     *
+     * @return void
+     */
     public function editAction()
     {
         $id   = (string) $this->getParam('id', '');

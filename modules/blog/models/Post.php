@@ -43,6 +43,7 @@ class Blog_Model_Post extends Tiger_Model_Page
      *
      * @param array       $fields editor values (title, slug, body, kicker, subtitle, …)
      * @param string|null $postId update this article, or null to create
+     * @return string the saved article's page_id
      */
     public function saveArticle(array $fields, $postId = null)
     {
@@ -61,7 +62,12 @@ class Blog_Model_Post extends Tiger_Model_Page
         return $this->save($data, $postId);
     }
 
-    /** Build the meta payload from editor fields (unknown keys ignored; reading_time derived). */
+    /**
+     * Build the meta payload from editor fields (unknown keys ignored; reading_time derived).
+     *
+     * @param  array $f the editor field values
+     * @return array the article's page.meta payload
+     */
     public function packMeta(array $f)
     {
         $meta = self::META_DEFAULTS;
@@ -79,7 +85,12 @@ class Blog_Model_Post extends Tiger_Model_Page
         return $meta;
     }
 
-    /** Decode a page row's meta into a full article-meta array (defaults filled in). */
+    /**
+     * Decode a page row's meta into a full article-meta array (defaults filled in).
+     *
+     * @param  mixed $meta the stored meta (JSON string or already-decoded array)
+     * @return array the full article-meta array
+     */
     public function unpackMeta($meta)
     {
         $data = is_array($meta) ? $meta : (array) json_decode((string) $meta, true);
@@ -94,14 +105,26 @@ class Blog_Model_Post extends Tiger_Model_Page
         return $out;
     }
 
-    /** Estimated read time in minutes from HTML body (~200 wpm, min 1). */
+    /**
+     * Estimated read time in minutes from HTML body (~200 wpm, min 1).
+     *
+     * @param  string $html the article HTML body
+     * @return int the reading time in minutes (at least 1)
+     */
     public function readingTime($html)
     {
         $words = str_word_count(strip_tags((string) $html));
         return max(1, (int) ceil($words / 200));
     }
 
-    /** A published article by slug (tenant over global), for the front-end. */
+    /**
+     * A published article by slug (tenant over global), for the front-end.
+     *
+     * @param  string $slug   the article slug
+     * @param  string $locale the content locale
+     * @param  string $orgId  the tenant org id ('' = global)
+     * @return Zend_Db_Table_Row_Abstract|null the article row, or null if none
+     */
     public function resolveArticle($slug, $locale, $orgId = '')
     {
         return $this->resolveBySlug($slug, $locale, $orgId, self::TYPE_ARTICLE);
@@ -116,7 +139,8 @@ class Blog_Model_Post extends Tiger_Model_Page
      * NOTE: resolves author + feature per row (fine for a single post / a short list). For big
      * listings, batch-resolve upstream — left simple on purpose; a theme may not need either.
      *
-     * @return array
+     * @param  Zend_Db_Table_Row_Abstract $row the article/page row
+     * @return array the view-agnostic presentation payload
      */
     public function present($row)
     {
@@ -159,7 +183,8 @@ class Blog_Model_Post extends Tiger_Model_Page
      * Published articles for a listing/feed, newest first. Optionally scoped to a term
      * (its page_ids) for archive pages.
      *
-     * @param array $opts {locale, orgId, limit, offset, pageIds?}
+     * @param  array $opts {locale, orgId, limit, offset, pageIds?}
+     * @return iterable the published article rows
      */
     public function published(array $opts = [])
     {
@@ -188,6 +213,7 @@ class Blog_Model_Post extends Tiger_Model_Page
      * DataTables data for the article admin list (type=article only): search on
      * title/slug, status filter, sort, paginate. Query lives here; service formats.
      *
+     * @param  array $opts {search, status, orderCol, orderDir, offset, limit}
      * @return array{total:int,filtered:int,rows:array}
      */
     public function articleDatatable(array $opts)

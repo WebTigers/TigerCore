@@ -10,6 +10,11 @@
  */
 class IndexController extends Zend_Controller_Action
 {
+    /**
+     * Serve the configured CMS home page at "/", else render the built-in landing.
+     *
+     * @return void
+     */
     public function indexAction()
     {
         // If an admin picked a CMS page as the home page (tiger.site.home_page), serve

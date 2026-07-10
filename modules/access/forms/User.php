@@ -9,6 +9,8 @@
  * module; role belongs to org membership (managed in the org context) — neither is
  * here. Uniqueness is enforced by Access_Service_User::save (friendly errors) on top
  * of the DB unique indexes.
+ *
+ * @api
  */
 class Access_Form_User extends Tiger_Form
 {

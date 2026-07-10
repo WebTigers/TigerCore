@@ -9,12 +9,21 @@
  * org being edited to the constructor to exclude it from its own parent options (a
  * belt-and-braces guard — the service also rejects parent == self). Slug uniqueness
  * and the self-parent guard live in Access_Service_Org::save.
+ *
+ * @api
  */
 class Access_Form_Org extends Tiger_Form
 {
     /** @var string org_id to exclude from the parent options (the org being edited). */
     protected $_excludeId = '';
 
+    /**
+     * Build the org form, excluding the given org from its own parent options.
+     *
+     * @param  string $excludeId org_id of the org being edited (kept out of the parent list)
+     * @param  mixed  $options    form options passed through to Tiger_Form/Zend_Form
+     * @return void
+     */
     public function __construct($excludeId = '', $options = null)
     {
         $this->_excludeId = (string) $excludeId;   // set before parent ctor -> init() -> elements()

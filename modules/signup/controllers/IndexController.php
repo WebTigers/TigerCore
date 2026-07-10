@@ -10,12 +10,22 @@
  */
 class Signup_IndexController extends Tiger_Controller_Action
 {
+    /**
+     * Initialize the controller and switch to the public 'auth' layout.
+     *
+     * @return void
+     */
     public function init()
     {
         parent::init();
         $this->_helper->layout()->setLayout('auth');
     }
 
+    /**
+     * Render the signup form (redirect an already-authenticated user to /admin).
+     *
+     * @return void
+     */
     public function indexAction()
     {
         if (Zend_Auth::getInstance()->hasIdentity()) {
@@ -27,7 +37,11 @@ class Signup_IndexController extends Tiger_Controller_Action
         $this->view->form     = new Signup_Form_Signup();
     }
 
-    /** GET /signup/verify/cid/<id>/code/<token> — activate the account, then send to sign-in. */
+    /**
+     * GET /signup/verify/cid/<id>/code/<token> — activate the account, then send to sign-in.
+     *
+     * @return void
+     */
     public function verifyAction()
     {
         $result = (new Signup_Service_Signup())->verifyEmail(

@@ -8,10 +8,17 @@
  * menus list (datatable) and the item editor: save/delete an item, delete a whole menu,
  * and reorder (the drag-drop persistence — a batch re-parent + re-sort in one txn). All
  * queries live in Tiger_Model_Menu; this service validates + shapes.
+ *
+ * @api
  */
 class Cms_Service_Menu extends Tiger_Service_Service
 {
-    /** DataTables source for the menus list: one row per (org, menu_key) with an item count. */
+    /**
+     * Return the DataTables source for the menus list: one row per (org, menu_key) with an item count.
+     *
+     * @param  array $params the DataTables request payload
+     * @return void
+     */
     public function datatable(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -44,7 +51,12 @@ class Cms_Service_Menu extends Tiger_Service_Service
         $this->_dtResponse($dt['draw'], $data['total'], $data['filtered'], $rows);
     }
 
-    /** Create or update one menu item (insert when menu_id is empty). */
+    /**
+     * Create or update one menu item (insert when menu_id is empty).
+     *
+     * @param  array $params the request payload (item fields + menu_key/org_id/parent_id)
+     * @return void
+     */
     public function save(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -93,7 +105,12 @@ class Cms_Service_Menu extends Tiger_Service_Service
         }
     }
 
-    /** Soft-delete one item and its subtree. */
+    /**
+     * Soft-delete one item and its subtree.
+     *
+     * @param  array $params the request payload (`menu_id`)
+     * @return void
+     */
     public function delete(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -107,7 +124,12 @@ class Cms_Service_Menu extends Tiger_Service_Service
         }
     }
 
-    /** Soft-delete an entire menu (every item in the org+key scope). */
+    /**
+     * Soft-delete an entire menu (every item in the org+key scope).
+     *
+     * @param  array $params the request payload (`menu_key`, `org_id`)
+     * @return void
+     */
     public function deleteMenu(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -127,6 +149,9 @@ class Cms_Service_Menu extends Tiger_Service_Service
     /**
      * Persist a drag-drop reorder: `tree` is a JSON array of
      * [{menu_id, parent_id, sort_order}, …]. Only items in the given menu are touched.
+     *
+     * @param  array $params the request payload (`menu_key`, `org_id`, `tree` JSON)
+     * @return void
      */
     public function reorder(array $params): void
     {

@@ -13,11 +13,19 @@
  *         / org_contact / user_contact)
  * verifyEmail() redeems the email_verify challenge and flips the user to 'active' — from
  * then on they can sign in as role 'user'. ACL-gated to guest (public signup).
+ *
+ * @api
  */
 class Signup_Service_Signup extends Tiger_Service_Service
 {
     const VERIFY_TTL = 86400;   // 24h
 
+    /**
+     * Validate and create the tenant graph (org/user/membership/address/contact), then email a verification link.
+     *
+     * @param  array $params the signup form payload
+     * @return void
+     */
     public function create(array $params): void
     {
         // No in-service gate needed: the /api ServiceFactory already ACL-authorized this call
@@ -66,7 +74,13 @@ class Signup_Service_Signup extends Tiger_Service_Service
         }
     }
 
-    /** Redeem an email_verify challenge and activate the account. Returns ['ok'=>bool]. */
+    /**
+     * Redeem an email_verify challenge and activate the account. Returns ['ok'=>bool].
+     *
+     * @param  string $challengeId the auth_challenge id from the emailed link
+     * @param  string $code        the single-use verification token
+     * @return array               ['ok'=>bool] and, on success, 'user_id'
+     */
     public function verifyEmail($challengeId, $code): array
     {
         $model = new Tiger_Model_AuthChallenge();

@@ -8,6 +8,8 @@
  * link kinds (a CMS page by key OR a literal url — page wins), and render/auth extras
  * (icon, css classes, dom id, target, ACL resource/privilege). menu_key / parent_id /
  * sort_order are context the editor supplies (hidden), not user-typed here.
+ *
+ * @api
  */
 class Cms_Form_MenuItem extends Tiger_Form
 {

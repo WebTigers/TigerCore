@@ -8,9 +8,17 @@
  * via Tiger_Model_Config — the live-override tier, effective next request, no deploy.
  * Config-discipline: the config store, not a settings table. ACL: admin+
  * (modules/system/configs/acl.ini).
+ *
+ * @api
  */
 class System_Service_Settings extends Tiger_Service_Service
 {
+    /**
+     * Validate the settings form and write session + auto-logout values to the config table.
+     *
+     * @param  array $params the settings form payload
+     * @return void
+     */
     public function save(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }

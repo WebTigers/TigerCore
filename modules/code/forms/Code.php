@@ -6,6 +6,8 @@
  * markup; the base adds CSRF). Only `name` is required; `code` is validated by an actual
  * `php -l` in the service (not StripTags-filtered — it's source). v1 forces language=php +
  * run_location=global in the service, so this form stays lean.
+ *
+ * @api
  */
 class Code_Form_Code extends Tiger_Form
 {

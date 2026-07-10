@@ -10,12 +10,21 @@
  */
 class System_SettingsController extends Tiger_Controller_Admin_Action
 {
-    /** Admin shell (layout) comes from the base; keep the explicit init cascade. */
+    /**
+     * Admin shell (layout) comes from the base; keep the explicit init cascade.
+     *
+     * @return void
+     */
     public function init()
     {
         parent::init();
     }
 
+    /**
+     * Render the System settings form pre-filled from live session + auto-logout config.
+     *
+     * @return void
+     */
     public function indexAction()
     {
         $cfg     = Zend_Registry::get('Zend_Config');

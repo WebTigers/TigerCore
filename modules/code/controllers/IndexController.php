@@ -13,18 +13,33 @@ class Code_IndexController extends Tiger_Controller_Admin_Action
     /** @var Tiger_Model_Code */
     protected $_code;
 
+    /**
+     * Initialize the controller and its Code model.
+     *
+     * @return void
+     */
     public function init()
     {
         parent::init();
         $this->_code = new Tiger_Model_Code();
     }
 
+    /**
+     * Render the code snippet list screen.
+     *
+     * @return void
+     */
     public function indexAction()
     {
         $this->view->title         = 'Code — Tiger Admin';
         $this->view->useDataTables = true;
     }
 
+    /**
+     * Render the snippet editor, prefilled from the requested row when editing.
+     *
+     * @return void
+     */
     public function editAction()
     {
         $id  = (string) $this->getParam('id', '');

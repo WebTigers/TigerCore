@@ -12,6 +12,11 @@
  */
 class ApiController extends Zend_Controller_Action
 {
+    /**
+     * Configure the request for a machine endpoint: no layout, no view render, JSON headers.
+     *
+     * @return void
+     */
     public function init()
     {
         $this->_helper->layout->disableLayout();
@@ -24,6 +29,11 @@ class ApiController extends Zend_Controller_Action
         @ini_set('display_errors', '0');
     }
 
+    /**
+     * Dispatch the /api message: forward in controller mode, else emit the ResponseObject as JSON.
+     *
+     * @return void
+     */
     public function indexAction()
     {
         $factory = new Tiger_Ajax_ServiceFactory($this->getRequest());

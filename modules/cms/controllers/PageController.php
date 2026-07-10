@@ -15,7 +15,11 @@ class Cms_PageController extends Tiger_Controller_Admin_Action
     /** @var Tiger_Model_Page */
     protected $_pages;
 
-    /** Every action renders inside the admin layout. */
+    /**
+     * Set up the controller — every action renders inside the admin layout.
+     *
+     * @return void
+     */
     public function init()
     {
         parent::init();
@@ -26,6 +30,8 @@ class Cms_PageController extends Tiger_Controller_Admin_Action
      * The content list — just the shell. The rows load over AJAX from the /api
      * service (Cms_Service_Page::datatable), per the client/server paradigm: the
      * server renders the page, the browser fetches the data as a Tiger Webservice.
+     *
+     * @return void
      */
     public function indexAction()
     {
@@ -33,7 +39,11 @@ class Cms_PageController extends Tiger_Controller_Admin_Action
         $this->view->useDataTables = true;   // the layout loads jQuery + DataTables when set
     }
 
-    /** Create (no id) or edit (id) — renders the form; saving is an /api call, not a post-back. */
+    /**
+     * Create (no id) or edit (id) — renders the form; saving is an /api call, not a post-back.
+     *
+     * @return void
+     */
     public function editAction()
     {
         $id   = (string) $this->getParam('id', '');
@@ -57,6 +67,8 @@ class Cms_PageController extends Tiger_Controller_Admin_Action
      * document (admin shell disabled) so the builder owns the viewport; saving goes
      * through the /api service (Cms_Service_Page::saveDesign). The canvas restores
      * losslessly from meta.builder when present, else seeds from the page's current body.
+     *
+     * @return void
      */
     public function designAction()
     {
