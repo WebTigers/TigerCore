@@ -150,8 +150,20 @@ working to-do, not a changelog (git history is the changelog).
     wizard** (cPanel path). First-run detection + an `installed` sentinel that permanently disables
     the wizard once set. Writes DB creds → `local.ini` (must be a file, pre-DB, gitignored); site
     name/domain/settings → the `config` table (live-override, per [[config-discipline]]); install
-    path auto-derived (`APPLICATION_ROOT` = `public`'s parent). Requirements pre-flight + a
-    manual-paste fallback when `local.ini` isn't writable.
+    path auto-derived (`APPLICATION_ROOT` = `public`'s parent). Requirements pre-flight (see below)
+    + a manual-paste fallback when `local.ini` isn't writable.
+  - **Requirements pre-flight page (source of truth: [`INSTALL.md`](INSTALL.md)).** The wizard's
+    FIRST screen reads the live environment — `phpversion()`, `ini_get()` for each directive
+    (`memory_limit`, `max_execution_time`, `max_input_time`, `max_input_vars`, `post_max_size`,
+    `upload_max_filesize`), `extension_loaded()` for the required set (`pdo_mysql`, `mbstring`,
+    `openssl`, `sodium`, `gd`, `curl`, `zip`, `tokenizer`, `fileinfo`), a DB-connection test, and a
+    write test on `var/` + `local.ini` — and renders **pass / warning / fail** per item with the
+    exact target value and *where to change it in cPanel* (MultiPHP INI Editor / Select PHP
+    Version). A user fixes their `php.ini` / cPanel **before** install, so no one ends up with a
+    half-finished install that dies on the first upload, migration, or module build. Fails block;
+    warnings advise. Generate the checklist FROM `INSTALL.md` so the doc and the check never drift.
+    Same pre-flight belongs on **module install/update** (a module's `requires` + the reference
+    build's needs, e.g. execution time) and should re-run **per server** in a fleet.
   - **DECIDED (2026-07-07): NO table prefix.** It only ever bought shared-DB coexistence + weak
     obscurity (never real security). Tiger covers both needs better: **multi-tenancy** (`org_id`)
     for many sites in one install, and a **separate DB schema** per genuinely-separate install
