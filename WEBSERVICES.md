@@ -221,13 +221,91 @@ Kernel services (`Tiger_Service_Auth`, …) live in `library/Tiger/Service/` and
 `/api`. App/module services (`Account_Service_*`, `Billing_Service_*`) live in their
 module and *are* the public API surface.
 
-## 9. Discovery & versioning (the open door)
+## 9. Discovery — OpenAPI without the bloat
 
-Because routing is data in the message, discovery and versioning fall out for free:
-a client can pass a `version` field to target a specific service version, or a
-metadata flag asking the gateway to describe available services and response models
-— an OpenAPI-style "discovery" without the bolt-on. Not built yet; the pattern makes
-it a small problem when a public API needs it.
+Because the routing is *data in the message*, the gateway already knows the entire
+API surface — every `module`/`service`/`method`, each service's public methods, and
+(via the ACL) who may call them. So **discovery falls out of the pattern**: reflect
+what the gateway already knows and emit an OpenAPI 3 document. No decorators on every
+route, no hand-maintained spec file to drift out of sync.
+
+### The endpoint is verb-agnostic
+
+One fact shapes the whole mapping: **`/api` ignores the HTTP verb.** The gateway resolves
+its routing fields with `getPost() ?? getQuery()` and hands the service the whole message
+as `$request->getParams()` — ZF1 merges `$_GET` + `$_POST` (+ route params) regardless of
+method (`Tiger_Ajax_ServiceFactory::_resolveParams`). So `GET /api?module=…`, `POST /api`,
+even `DELETE /api` dispatch identically. **GET** works when the payload is non-sensitive and
+small enough for a query string; **POST** when it needs a body (large, or shouldn't sit in a
+URL or a log). The verb carries no meaning — the *message* does.
+
+That's liberating for discovery: no "is this a GET or a PUT?" to agonize over. The spec
+describes each operation **canonically as `POST`** (params in the request body — always
+valid), and notes that GET-with-query is equally accepted for reads. One endpoint, any
+verb, params wherever they fit.
+
+### Mapping the message pattern onto OpenAPI
+
+OpenAPI is path+verb shaped; we bridge it with the **URL form** (§6):
+
+- Each service method → one operation: `POST /api/{module}/{service}/{method}` (e.g.
+  `POST /api/billing/invoice/create`). Browsable, one-op-per-method, "try it out" works.
+- Each operation's description notes it's equally callable as the primary message form
+  (`POST /api` with `{module, service, method, …}` in the body).
+
+*(Rejected: one `/api` POST with a `oneOf` discriminated body — legal OpenAPI, but
+Swagger UI renders it as an unbrowsable blob.)*
+
+### Where the schema comes from — reflect, don't hand-write
+
+The same "describe from the code" move as the docs reference generator, and it harvests
+the **Forms you already wrote**:
+
+| OpenAPI piece | Source |
+|---|---|
+| **Operations** | reflect each `@api` service (`extends Tiger_Service_Service`, minus reserved) + its public, non-`_` methods |
+| **Summary / description** | the method's **docblock** |
+| **Request body schema** | the **Form** — `Tiger_Form::elements()` already declares field names, types, required, validators. That *is* the input contract. |
+| **Response** | the standard envelope (`{result, data, redirect, form, messages}`) — one reusable component; `data` generic in v1, `@return`/DTO-typed later |
+| **Security** | the **ACL** — `acl.ini` (resource = service class, privilege = method) → which roles may call it |
+| **Tags** | the **module** — so Swagger groups cleanly |
+
+The Form is the killshot: you validate against a declarative element schema, so the
+request body is *already written*. An `email` element → `string`/`format:email`; a
+`NotEmpty` validator → `required`. A method points at its form (an `@apiRequest
+<FormClass>` docblock tag); form-less methods get a generic body + the docblock note.
+
+### Discovery respects the ACL
+
+The spec is **not** one fixed document — it's **generated filtered to the requester's
+role**. You only *discover* what you can *call*: a guest's `/api/openapi.json` lists
+guest-allowed operations, an admin's lists theirs, and a **scoped token**
+([ACL.md](ACL.md)) lists exactly its map's surface. Discovery and authorization are the
+*same ACL*, so the catalog can never leak an operation you aren't allowed to invoke — a
+property most OpenAPI setups don't have.
+
+### Serving it
+
+- **Spec:** `GET /api/openapi.json` (a gateway `describe` mode) returns the OpenAPI 3
+  doc — a **build artifact** (reflect at deploy → cache, like the docs `var/docs-generated`),
+  never committed.
+- **UI:** vendored **Swagger UI** at `/api/docs` — zero build, on-brand: drop the dist
+  in, point it at `openapi.json`.
+
+### Versioning
+
+The message can carry a `version` field to target a service version; the spec describes
+versioned operations when they exist. v1 can skip it — the door's open when a public API
+needs it.
+
+### Build order
+
+1. **`Tiger_OpenApi_Generator`** — reflect services → operations, the envelope component,
+   module tags, docblock summaries, and the Form→schema mapper; emits a valid `openapi.json`.
+   **(Phase 1 — built.)**
+2. Serve it: the `describe` route + vendored Swagger UI.
+3. Role-filter the spec (discovery respects the ACL).
+4. Richer `data` typing + versioning.
 
 ## 10. The point
 
