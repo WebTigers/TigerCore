@@ -13,12 +13,12 @@ working to-do, not a changelog (git history is the changelog).
    Updates*, checkbox-select **Tiger + TigerCore + modules**, click → **self-installs** (no shell, no
    Composer), with a **full step-by-step log** so any failure is diagnosable. Full design + the engine
    (detection, no-shell installer, atomic `vendor/` swap) under **Update system** in *Features* below.
-2. **API discovery — OpenAPI / Swagger for `/api`** *(homepage "Discoverable by design" claim).* The
-   TIGER message pattern already makes this a small problem ([WEBSERVICES.md](WEBSERVICES.md) §9): the
-   gateway knows every `module`/`service`/`method` and each service's public methods + ACL, so
-   generate an **OpenAPI 3** spec from the service registry (reflect param/response shapes; annotate
-   from docblocks — same "describe from the code" idea we just shipped for docs) and serve a **Swagger
-   UI**. Natural follow-on to the reference generator.
+2. **API discovery — OpenAPI / Swagger for `/api`** *(homepage "Discoverable by design" claim).*
+   **✅ Largely shipped.** `Tiger_OpenApi_Generator` reflects services + Forms → an OpenAPI 3 doc
+   ([WEBSERVICES.md](WEBSERVICES.md) §9); `GET /api/openapi` serves it opt-in (`tiger.api.discovery`);
+   and the **TigerAPIDocs** module (`WebTigers/TigerAPIDocs`) renders **Swagger UI** at `/apidocs`
+   (JSON dump when the Swagger lib is absent). *Remaining:* role-filtered discovery (Phase 3), richer
+   `data` typing, and services adopting `@apiRequest <Form>` for form-derived request schemas.
 3. **Stateless `/api` auth (token mode)** *(homepage "Stateless or stateful" claim).* Today `/api`
    authorizes via the **session** identity (stateful — right for a first-party UI). Add a **stateless**
    path: a bearer token (a `personal_access_token` `user_credential` factor) resolved to an identity +
@@ -32,6 +32,20 @@ working to-do, not a changelog (git history is the changelog).
    floor** no map can override; a token **narrows, never widens**; **fail-closed**; and — the pillar —
    an **explain/trace + admin ACL Simulator** so "why am I locked out?" is always answerable. Build
    debuggability first. Full model, invariants, storage (`acl_map` + `map_id`), and phasing in ACL.md.
+5. **Module Manager — auto-install a module's Composer deps when Composer is available.** A module
+   declares optional deps in `module.json` (a `composer` block: package ⇒ constraint); on install, if
+   the box has a usable Composer, `Tiger_Module_Installer` runs `composer require` into the **app's**
+   `vendor/` (app owns it, never tiger-core's), else it **skips and the module degrades** — the same
+   capability-gated pattern TigerAPIDocs already uses (Swagger lib present → UI, absent → JSON). Sharp
+   edges: "available" is more than a binary — needs `exec`/`proc_open` enabled (shared hosts often
+   block it), a writable `vendor/`, memory/time, and network, so **detect fail-closed** and never hang
+   an install. Do it **auto in the CLI** (`bin/tiger module:install` — real shell, no web timeout) and
+   **detect-and-advise in the web installer** (offer the copy-paste `composer require`, or queue it —
+   don't run heavy Composer synchronously inside a request). Constrain/surface the deps (supply-chain:
+   vetted registry + pinned versions, operator consent — never silently pull unbounded packages).
+   *Swagger-UI wrinkle:* Swagger UI is npm/front-end, not a Composer package, so closing the loop for
+   TigerAPIDocs means publishing a tiny `webtigers/swagger-ui-dist` Composer package that just vendors
+   the dist, which the module optionally requires and `_swaggerBase()` also looks for in `vendor/`.
 
 ## Features (planned)
 
