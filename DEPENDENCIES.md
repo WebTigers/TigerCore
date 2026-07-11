@@ -167,9 +167,13 @@ registry), so a host never fetches an unvetted, unpinned, unbounded dependency.
 ## 10. What's built vs. staged
 
 - **Built in tiger-core:** `Tiger_Vendor_Environment` (capability detection), the shared store +
-  bootstrap autoloading, and `Tiger_Vendor` provisioning (Tier 1 Composer exec; Tier 2/3 download →
-  verify → unpack → autoloader-generate). The `module.json` `dependencies` schema + the installer
-  hook.
+  bootstrap autoloading, and `Tiger_Vendor` provisioning (Tier 1 Composer exec; Tier 2 **resolved
+  through the registry index `bundles.json`** by name+constraint, or a module-declared URL; Tier 3
+  raw tarball → download → verify → unpack → autoloader-generate). The **one-version rule is
+  enforced** — a re-request reuses the single stored copy, and an incompatible version is reported as
+  a `conflict` (never double-installed). The `module.json` `dependencies` schema + the installer hook.
+  The registry URL is `tiger.vendor.registry` (config) / `TIGER_VENDOR_REGISTRY` (env), default the
+  `WebTigers/tiger-vendor-bundles` `bundles.json`.
 - **WebTigers infra (staged):** the Vendor Library Registry repo + the CI bundle-builder + the
   published AWS/Stripe/Guzzle bundles. The provisioner *consumes* these; it doesn't build them.
 - **Follow-on:** rewire TigerAPIDocs' Swagger UI to an `asset` dependency; the Billing module's

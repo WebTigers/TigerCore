@@ -14,6 +14,9 @@
  */
 class Tiger_Vendor
 {
+    /** The registry index (nightly-built bundles.json). Override via config `tiger.vendor.registry` or the TIGER_VENDOR_REGISTRY env. */
+    const REGISTRY_INDEX_URL = 'https://raw.githubusercontent.com/WebTigers/tiger-vendor-bundles/main/bundles.json';
+
     /**
      * Register the autoloader of every library already in the shared store. Call once at bootstrap
      * so `Aws\`, `Stripe\`, etc. resolve for every module. A no-op if the store is empty.
@@ -59,24 +62,48 @@ class Tiger_Vendor
         if ($name === '') {
             return self::_status(false, 'none', $name, 'No dependency name given.');
         }
+        $constraint = (string) ($dep['constraint'] ?? '');
+
+        // Already present? The store holds ONE copy per package (keyed by name), so a second module
+        // asking for the same lib reuses it — the dedup that guarantees there's only ever one Stripe.
+        // But honor the ONE-VERSION rule: reuse only if the installed version satisfies THIS module's
+        // constraint; a genuine disagreement is REPORTED, never silently double-installed. (§6)
         if (self::isInstalled($name)) {
-            return self::_status(true, 'present', $name, 'Already installed.');
+            $have = self::_installedVersion($name);
+            if ($constraint === '' || $have === null || self::_satisfies($have, $constraint)) {
+                return self::_status(true, 'present', $name, 'Already installed' . ($have !== null ? " ({$have})" : '') . '.');
+            }
+            return self::_status(false, 'conflict', $name,
+                "Version conflict: {$name} {$have} is already installed but this module needs {$constraint}. "
+                . 'Tiger keeps one shared version per install — reconcile the two modules\' constraints.');
         }
 
         // Tier 1 — Composer, only if it can genuinely run.
-        if (!empty($dep['constraint']) && Tiger_Vendor_Environment::composerUsable()) {
-            if (self::_composerRequire($name, (string) $dep['constraint'])['ok']) {
+        if ($constraint !== '' && Tiger_Vendor_Environment::composerUsable()) {
+            if (self::_composerRequire($name, $constraint)['ok']) {
                 return self::_status(true, 'composer', $name, 'Installed via Composer.');
             }
-            // fall through — try a bundle/tarball rather than failing outright
+            // fall through — try a bundle rather than failing outright
         }
 
-        // Tier 2 — pre-built, pre-resolved, checksummed bundle.
+        // Tier 2 — a pre-resolved bundle. Prefer the REGISTRY INDEX (nightly-fresh, resolved by
+        // name+constraint) so a module never pins a stale URL; fall back to a bundle URL the module
+        // declared explicitly (off-registry / air-gapped mirror).
+        if ($constraint !== '') {
+            $hit = self::_resolveFromIndex($name, $constraint);
+            if ($hit !== null && !empty($hit['url'])) {
+                $r = self::installTarball((string) $hit['url'], $name, $hit['sha256'] ?? null);
+                if ($r['ok']) {
+                    return self::_status(true, 'bundle', $name, "Installed bundle {$hit['version']} from the registry.");
+                }
+            }
+        }
         if (!empty($dep['bundle'])) {
             $r = self::installTarball((string) $dep['bundle'], $name, $dep['sha256'] ?? null);
-            return $r['ok']
-                ? self::_status(true, 'bundle', $name, 'Installed from pre-built bundle.')
-                : self::_status(false, 'bundle', $name, $r['message']);
+            if ($r['ok']) {
+                return self::_status(true, 'bundle', $name, 'Installed from the declared bundle.');
+            }
+            return self::_status(false, 'bundle', $name, $r['message']);
         }
 
         // Tier 3 — raw source tarball (only sane for a dependency-free library).
@@ -88,7 +115,200 @@ class Tiger_Vendor
         }
 
         return self::_status(false, 'none', $name,
-            'No usable Composer and no bundle/tarball source for this host — a pre-built bundle is needed.');
+            'No usable Composer, and no registry bundle or tarball source for this host — a pre-built bundle is needed.');
+    }
+
+    /**
+     * The version of an installed library — from the store bundle's `bundle.json`, or Composer's
+     * `installed.json`. Used to enforce the one-version rule. Null if unknown.
+     *
+     * @param  string $name the package name
+     * @return string|null
+     */
+    public static function installedVersion($name)
+    {
+        return self::_installedVersion($name);
+    }
+
+    // ---- registry index resolution --------------------------------------------
+
+    /**
+     * Resolve the newest published bundle for a package whose version satisfies the constraint, from
+     * the registry index (bundles.json). Returns {version, url, sha256} or null.
+     */
+    protected static function _resolveFromIndex($name, $constraint)
+    {
+        $entries = self::_registryIndex()['bundles'][$name] ?? null;
+        if (!is_array($entries)) {
+            return null;
+        }
+        $best = null;
+        foreach ($entries as $e) {
+            if (!isset($e['version'], $e['url']) || !self::_satisfies((string) $e['version'], $constraint)) {
+                continue;
+            }
+            if ($best === null || version_compare((string) $e['version'], (string) $best['version'], '>')) {
+                $best = $e;
+            }
+        }
+        return $best;
+    }
+
+    /** Fetch + cache the registry index for this request. Fails soft to an empty index. */
+    protected static function _registryIndex()
+    {
+        static $cache = null;
+        if ($cache !== null) {
+            return $cache;
+        }
+        $body = self::_httpGet(self::_registryUrl());
+        $data = is_string($body) ? json_decode($body, true) : null;
+        return $cache = (is_array($data) && isset($data['bundles'])) ? $data : ['bundles' => []];
+    }
+
+    /** The registry index URL — config `tiger.vendor.registry`, else env, else the default. */
+    protected static function _registryUrl()
+    {
+        try {
+            $u = (string) (Zend_Registry::get('Zend_Config')->tiger->vendor->registry ?? '');
+            if ($u !== '') {
+                return $u;
+            }
+        } catch (Throwable $e) {
+        }
+        $env = getenv('TIGER_VENDOR_REGISTRY');
+        return ($env !== false && $env !== '') ? $env : self::REGISTRY_INDEX_URL;
+    }
+
+    protected static function _installedVersion($name)
+    {
+        $meta = Tiger_Vendor_Environment::storeDir() . '/' . self::_slug($name) . '/bundle.json';
+        if (is_file($meta)) {
+            $j = json_decode((string) @file_get_contents($meta), true);
+            if (isset($j['version'])) {
+                return (string) $j['version'];
+            }
+        }
+        $installed = Tiger_Vendor_Environment::appRoot() . '/vendor/composer/installed.json';
+        if (is_file($installed)) {
+            $j = json_decode((string) @file_get_contents($installed), true);
+            foreach (($j['packages'] ?? $j ?? []) as $p) {
+                if (($p['name'] ?? null) === $name && isset($p['version'])) {
+                    return ltrim((string) $p['version'], 'v');
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Does a concrete version satisfy a Composer-style constraint? Supports `^`, `~`, comparators
+     * (`>= > <= < = ==`), `*`, `x.*`, comma/space AND, and `||` OR — enough for bundle matching. Not
+     * a full resolver (that's Composer's job, off-box); a genuine miss just means "no matching bundle".
+     *
+     * @param  string $version    a concrete version (e.g. "3.301.5")
+     * @param  string $constraint e.g. "^3", "~3.2", ">=3.1 <4.0", "3.*"
+     * @return bool
+     */
+    public static function satisfies($version, $constraint)
+    {
+        return self::_satisfies($version, $constraint);
+    }
+
+    protected static function _satisfies($version, $constraint)
+    {
+        $version = self::_normVersion($version);
+        foreach (preg_split('/\s*\|\|\s*/', trim((string) $constraint)) as $group) {
+            if ($group === '') {
+                continue;
+            }
+            $all = true;
+            foreach (preg_split('/\s*,\s*|\s+/', trim($group)) as $c) {
+                if ($c !== '' && !self::_satisfiesOne($version, $c)) {
+                    $all = false;
+                    break;
+                }
+            }
+            if ($all) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    protected static function _satisfiesOne($version, $c)
+    {
+        if ($c === '' || $c === '*') {
+            return true;
+        }
+        if (preg_match('/^([\^~])\s*(.+)$/', $c, $m)) {
+            $parts = explode('.', self::_normVersion($m[2]));
+            $lower = self::_pad($m[2]);
+            $upper = ($m[1] === '^') ? self::_caretUpper($parts) : self::_tildeUpper($parts);
+            return version_compare($version, $lower, '>=') && version_compare($version, $upper, '<');
+        }
+        if (preg_match('/^(>=|<=|>|<|==|=)?\s*(.+)$/', $c, $m)) {
+            $op  = ($m[1] === '' || $m[1] === '==') ? '=' : $m[1];
+            $val = self::_normVersion($m[2]);
+            if (strpos($val, '*') !== false) {              // 3.* / 3.2.*
+                $prefix = rtrim(substr($val, 0, strpos($val, '*')), '.');
+                return $prefix === '' || strpos($version, $prefix . '.') === 0 || $version === $prefix;
+            }
+            return version_compare($version, self::_pad($val), $op);
+        }
+        return false;
+    }
+
+    protected static function _normVersion($v)
+    {
+        return ltrim(trim((string) $v), 'vV');
+    }
+
+    /** Pad to 3 numeric segments so version_compare is consistent (3 → 3.0.0). */
+    protected static function _pad($v)
+    {
+        $p = explode('.', preg_replace('/[^0-9.].*$/', '', self::_normVersion($v)));
+        while (count($p) < 3) {
+            $p[] = '0';
+        }
+        return implode('.', array_slice($p, 0, 3));
+    }
+
+    /** Caret upper bound: ^3→4.0.0, ^3.2→4.0.0, ^0.3→0.4.0, ^0.0.3→0.0.4. */
+    protected static function _caretUpper(array $p)
+    {
+        $p = array_map('intval', array_pad($p, 3, 0));
+        if ($p[0] > 0) { return ($p[0] + 1) . '.0.0'; }
+        if ($p[1] > 0) { return '0.' . ($p[1] + 1) . '.0'; }
+        return '0.0.' . ($p[2] + 1);
+    }
+
+    /** Tilde upper bound: ~3→4.0.0, ~3.2→4.0.0, ~3.2.1→3.3.0. */
+    protected static function _tildeUpper(array $p)
+    {
+        $n = array_map('intval', array_pad($p, 3, 0));
+        return (count($p) >= 3) ? $n[0] . '.' . ($n[1] + 1) . '.0' : ($n[0] + 1) . '.0.0';
+    }
+
+    protected static function _httpGet($url)
+    {
+        if (strncmp($url, 'file://', 7) === 0 || (isset($url[0]) && $url[0] === '/')) {
+            $body = @file_get_contents($url);
+            return $body === false ? null : $body;
+        }
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_TIMEOUT        => 30,
+                CURLOPT_USERAGENT      => 'Tiger_Vendor',
+            ]);
+            $body = curl_exec($ch);
+            return is_string($body) ? $body : null;
+        }
+        $body = @file_get_contents($url);
+        return $body === false ? null : $body;
     }
 
     /**
