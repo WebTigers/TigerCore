@@ -300,6 +300,13 @@ working to-do, not a changelog (git history is the changelog).
 
 ## Later / maybe
 
+- **TigerDocs: resizable asides (docs full-width "Phase 2").** Phase 1 shipped in TigerDocs
+  **v0.5.0-beta** — a header Normal | Full-width toggle (3/6/3, capped prose, remembered per-browser
+  in localStorage `tigerdocs.layout`, applied pre-paint). Phase 2 = drag-resizable left/right asides:
+  refactor the doc grid to CSS-variable tracks (`grid-template-columns: var(--docs-left) minmax(0,1fr)
+  var(--docs-right)`), add splitter handles + ~50 lines of vanilla pointer-drag (clamp min/max,
+  persist the widths into the same localStorage key, restore on load), a reset control, and a mobile
+  fallback (stacked, resize disabled below `lg`). Power-user polish; not a priority.
 - **Redis session handler** — a swap-in alternative to the DB session handler for scale.
 - **Bootswatch full-look skins** — current skins are CSS-variable overlays; a per-skin full
   base-swap if a pixel-perfect Bootswatch theme is ever wanted.
