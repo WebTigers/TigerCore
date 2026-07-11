@@ -48,6 +48,7 @@ for the *why*, [WEBSERVICES.md](WEBSERVICES.md) for the `/api` message pattern,
 [AGENTS.md](AGENTS.md) for the conventions to follow when writing Tiger code (AI or human), and
 [INSTALL.md](INSTALL.md) / [UPDATING.md](UPDATING.md) for installing + keeping an app current. And
 [MANIFESTO.md](MANIFESTO.md) for the *why it's fast* thesis — the abstraction tax, and why lean wins.
+Authorization: [ACL.md](ACL.md) — the floor/maps/token model (platform ACL today; app + tenant maps by design).
 
 ---
 

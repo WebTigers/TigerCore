@@ -21,9 +21,17 @@ working to-do, not a changelog (git history is the changelog).
    UI**. Natural follow-on to the reference generator.
 3. **Stateless `/api` auth (token mode)** *(homepage "Stateless or stateful" claim).* Today `/api`
    authorizes via the **session** identity (stateful — right for a first-party UI). Add a **stateless**
-   path: a bearer token (API key / JWT) resolved to an identity + role at the gateway, running the
-   **same ACL and same services** — config-selectable per surface. Needed for public APIs + mobile
-   clients. Keep the session path as-is; this is an additive second door, not a replacement.
+   path: a bearer token (a `personal_access_token` `user_credential` factor) resolved to an identity +
+   role at the gateway, running the **same ACL and same services** — auto-detected per request
+   (`Authorization` header → stateless; session cookie → stateful; **token wins** if both;
+   **CSRF applies only in cookie mode**; token path never starts a session). Additive second door,
+   not a replacement.
+4. **App-level ACL — floor + maps + token-selected context** *(design of record: [ACL.md](ACL.md)).*
+   Extend the single platform ACL to **multiple named policy maps** (app-wide + per-tenant), selected
+   per request (by the token from #3, or the org). Hard rails: the platform ACL is an **immovable
+   floor** no map can override; a token **narrows, never widens**; **fail-closed**; and — the pillar —
+   an **explain/trace + admin ACL Simulator** so "why am I locked out?" is always answerable. Build
+   debuggability first. Full model, invariants, storage (`acl_map` + `map_id`), and phasing in ACL.md.
 
 ## Features (planned)
 
