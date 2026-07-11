@@ -69,7 +69,7 @@ class ApiController extends Zend_Controller_Action
         }
         $gen = new Tiger_OpenApi_Generator($this->_openapiInfo());
         $this->getResponse()->setHttpResponseCode(200);
-        echo json_encode($gen->generate($gen->discover($this->_serviceDirs())), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo json_encode($gen->generate($gen->discover($gen->moduleServiceDirs())), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
     /** Opt-in gate — `tiger.api.discovery` (default off). */

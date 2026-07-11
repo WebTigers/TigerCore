@@ -61,6 +61,25 @@ class Tiger_OpenApi_Generator
     }
 
     /**
+     * The `services/` dir of every discovered module (app + first-party core) — a convenience so a
+     * caller can do `generate(discover(moduleServiceDirs()))` without re-deriving module paths.
+     *
+     * @return array absolute paths to each module's `services/` directory
+     */
+    public function moduleServiceDirs()
+    {
+        $dirs = [];
+        foreach (Tiger_Module_Discovery::all() as $slug => $m) {
+            $base = ($m['area'] === 'app' && defined('APPLICATION_PATH')) ? APPLICATION_PATH
+                  : (defined('TIGER_CORE_PATH') ? TIGER_CORE_PATH : null);
+            if ($base !== null) {
+                $dirs[] = $base . '/modules/' . $slug . '/services';
+            }
+        }
+        return $dirs;
+    }
+
+    /**
      * Build the OpenAPI 3 document (as an array) for a set of service classes.
      *
      * @param  array $serviceClasses fully-qualified `Module_Service_X` class names
