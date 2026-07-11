@@ -83,20 +83,6 @@ class ApiController extends Zend_Controller_Action
         return in_array(strtolower((string) $node), ['1', 'true', 'yes', 'on'], true);
     }
 
-    /** `services/` dirs of every discovered module (app + first-party core). */
-    protected function _serviceDirs()
-    {
-        $dirs = [];
-        foreach (Tiger_Module_Discovery::all() as $slug => $m) {
-            $base = ($m['area'] === 'app' && defined('APPLICATION_PATH')) ? APPLICATION_PATH
-                  : (defined('TIGER_CORE_PATH') ? TIGER_CORE_PATH : null);
-            if ($base !== null) {
-                $dirs[] = $base . '/modules/' . $slug . '/services';
-            }
-        }
-        return $dirs;
-    }
-
     /** OpenAPI `info` — the site name as the title when configured. */
     protected function _openapiInfo()
     {
