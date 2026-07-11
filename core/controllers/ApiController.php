@@ -49,4 +49,62 @@ class ApiController extends Zend_Controller_Action
         $this->getResponse()->setHttpResponseCode(200);
         echo json_encode($factory->getResponse(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
+
+    /**
+     * GET /api/openapi.json — the self-describing OpenAPI 3 catalog of the `/api` surface, generated
+     * from the live services (`Tiger_OpenApi_Generator`). See WEBSERVICES.md §9.
+     *
+     * OPT-IN: 404 unless `tiger.api.discovery` is enabled — a shared-host CMS install shouldn't
+     * publish its API surface; a SaaS building a public API turns it on. The Swagger UI that renders
+     * this is a separate, unbundled add-on (not shipped with base Tiger).
+     *
+     * @return void
+     */
+    public function openapiAction()
+    {
+        if (!$this->_discoveryEnabled()) {
+            $this->getResponse()->setHttpResponseCode(404);
+            return;
+        }
+        $gen = new Tiger_OpenApi_Generator($this->_openapiInfo());
+        $this->getResponse()->setHttpResponseCode(200);
+        echo json_encode($gen->generate($gen->discover($this->_serviceDirs())), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    /** Opt-in gate — `tiger.api.discovery` (default off). */
+    protected function _discoveryEnabled()
+    {
+        try {
+            $node = Zend_Registry::get('Zend_Config')->tiger->api->discovery ?? null;
+        } catch (Throwable $e) {
+            return false;
+        }
+        return in_array(strtolower((string) $node), ['1', 'true', 'yes', 'on'], true);
+    }
+
+    /** `services/` dirs of every discovered module (app + first-party core). */
+    protected function _serviceDirs()
+    {
+        $dirs = [];
+        foreach (Tiger_Module_Discovery::all() as $slug => $m) {
+            $base = ($m['area'] === 'app' && defined('APPLICATION_PATH')) ? APPLICATION_PATH
+                  : (defined('TIGER_CORE_PATH') ? TIGER_CORE_PATH : null);
+            if ($base !== null) {
+                $dirs[] = $base . '/modules/' . $slug . '/services';
+            }
+        }
+        return $dirs;
+    }
+
+    /** OpenAPI `info` — the site name as the title when configured. */
+    protected function _openapiInfo()
+    {
+        $title = 'Tiger API';
+        try {
+            $name = (string) (Zend_Registry::get('Zend_Config')->tiger->site->name ?? '');
+            if ($name !== '') { $title = $name . ' API'; }
+        } catch (Throwable $e) {
+        }
+        return ['title' => $title, 'version' => Tiger_Version::VERSION];
+    }
 }

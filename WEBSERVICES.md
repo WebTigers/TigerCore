@@ -286,11 +286,13 @@ property most OpenAPI setups don't have.
 
 ### Serving it
 
-- **Spec:** `GET /api/openapi.json` (a gateway `describe` mode) returns the OpenAPI 3
-  doc — a **build artifact** (reflect at deploy → cache, like the docs `var/docs-generated`),
-  never committed.
-- **UI:** vendored **Swagger UI** at `/api/docs` — zero build, on-brand: drop the dist
-  in, point it at `openapi.json`.
+- **Spec — built.** `GET /api/openapi.json` (core `ApiController::openapiAction`) reflects the
+  **live** services and returns the OpenAPI 3 doc. **Opt-in:** 404 unless `tiger.api.discovery` is
+  enabled — a shared-host CMS install shouldn't publish its API surface; a SaaS building a public API
+  turns it on.
+- **UI — opt-in, NOT bundled.** Swagger UI's ~MB of assets do **not** ship with base Tiger — a true
+  SaaS concern, not a shared-host one. Point *any* Swagger UI at `/api/openapi.json`, or install it as
+  an add-on. Base Tiger ships only the spec endpoint.
 
 ### Versioning
 
@@ -303,7 +305,8 @@ needs it.
 1. **`Tiger_OpenApi_Generator`** — reflect services → operations, the envelope component,
    module tags, docblock summaries, and the Form→schema mapper; emits a valid `openapi.json`.
    **(Phase 1 — built.)**
-2. Serve it: the `describe` route + vendored Swagger UI.
+2. **Serve it** — `GET /api/openapi.json`, opt-in via `tiger.api.discovery`, over the live service
+   surface. Swagger UI stays an **unbundled** add-on. **(Phase 2 — built.)**
 3. Role-filter the spec (discovery respects the ACL).
 4. Richer `data` typing + versioning.
 
