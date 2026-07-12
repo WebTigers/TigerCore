@@ -12,4 +12,6 @@ return [
     'system.error.protected'    => 'That module is protected and can\'t be deactivated.',
     'system.error.unknown'      => 'No such module.',
     'system.settings.saved'     => 'Settings saved.',
+    'system.update.done'          => 'Updates applied.',
+    'system.update.none_selected' => 'Select at least one update to apply.',
 ];

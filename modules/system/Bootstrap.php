@@ -21,4 +21,17 @@ class System_Bootstrap extends Zend_Application_Module_Bootstrap
             'order'    => 20,
         ]);
     }
+
+    /** Top-level "Updates" item — the WordPress-simple one-click updater (ACL-gated in the menu). */
+    protected function _initAdminNav()
+    {
+        Tiger_Admin_Nav::register([
+            'key'      => 'system_updates',
+            'label'    => 'Updates',
+            'icon'     => 'fa-cloud-arrow-down',
+            'href'     => '/system/updates',
+            'resource' => 'System_UpdatesController',
+            'order'    => 15,
+        ]);
+    }
 }

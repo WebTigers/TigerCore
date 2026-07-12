@@ -9,10 +9,16 @@ working to-do, not a changelog (git history is the changelog).
 
 ## Priorities (next up)
 
-1. **One-click "Updates" admin screen** — the WordPress-simple self-updater: *Login → Admin →
-   Updates*, checkbox-select **Tiger + TigerCore + modules**, click → **self-installs** (no shell, no
-   Composer), with a **full step-by-step log** so any failure is diagnosable. Full design + the engine
-   (detection, no-shell installer, atomic `vendor/` swap) under **Update system** in *Features* below.
+1. **One-click "Updates" admin screen** — **✅ v1 built.** *Login → Admin → Updates* (top-level nav,
+   superadmin): one screen lists everything stale — **TigerCore + every installer-managed module** —
+   with checkboxes + **Update / Update All**, and a **live step log**. `Tiger_Update_Checker` diffs
+   installed-vs-latest (core via Packagist, modules via their GitHub latest release; cached);
+   `System_Service_Updates` applies + logs each step (also to `Tiger_Log`). **Modules self-install the
+   real no-shell way** (`Tiger_Module_Installer`). *Remaining:* **core self-update** is advisory for
+   now (Composer CLI / the roadmap pre-built release-ZIP + atomic `vendor/` swap — the no-shell core
+   path, still the biggest lift); a **persisted update-history** table (steps go to `Tiger_Log` +
+   the run response today); and CI asserting `Tiger_Version::VERSION` == the git tag. Engine detail
+   under **Update system** in *Features* below.
 2. **API discovery — OpenAPI / Swagger for `/api`** *(homepage "Discoverable by design" claim).*
    **✅ Largely shipped.** `Tiger_OpenApi_Generator` reflects services + Forms → an OpenAPI 3 doc
    ([WEBSERVICES.md](WEBSERVICES.md) §9); `GET /api/openapi` serves it opt-in (`tiger.api.discovery`);

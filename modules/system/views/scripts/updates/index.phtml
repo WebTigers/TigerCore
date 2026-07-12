@@ -1,0 +1,166 @@
+<?php
+/**
+ * Updates screen — WordPress Dashboard → Updates parity: everything stale in one list, checkboxes,
+ * Update / Update All, and a live step log. Applies over /api (System_Service_Updates); the
+ * controller only renders the detected list. Semantic Bootstrap only. See ADMIN.md.
+ */
+$updates = $this->updates ?? [];
+$pending = $this->pending ?? [];
+?>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1">Updates</h1>
+        <p class="text-body-secondary mb-0">Keep TigerCore and your modules current — one click, no shell.</p>
+    </div>
+    <div class="text-nowrap">
+        <button type="button" id="updates-refresh" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-rotate me-2"></i>Check again
+        </button>
+        <?php if ($pending): ?>
+            <button type="button" id="updates-all" class="btn btn-primary">
+                <i class="fa-solid fa-cloud-arrow-down me-2"></i>Update All
+            </button>
+        <?php endif; ?>
+    </div>
+</div>
+
+<div id="updates-feedback"></div>
+
+<?php if (!$pending): ?>
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center p-5">
+            <i class="fa-solid fa-circle-check text-success fs-1 mb-3"></i>
+            <h2 class="h5">Everything's up to date</h2>
+            <p class="text-body-secondary mb-0">TigerCore and all modules are on their latest versions.</p>
+        </div>
+    </div>
+<?php else: ?>
+    <div class="card border-0 shadow-sm">
+        <div class="card-header d-flex align-items-center gap-2">
+            <input type="checkbox" id="updates-select-all" class="form-check-input mt-0" checked
+                   aria-label="Select all updates">
+            <span class="fw-semibold"><?= count($pending) ?> update<?= count($pending) === 1 ? '' : 's' ?> available</span>
+        </div>
+        <ul class="list-group list-group-flush" id="updates-list">
+            <?php foreach ($pending as $u): ?>
+                <li class="list-group-item d-flex align-items-center gap-3"
+                    data-slug="<?= $this->escape($u['slug']) ?>" data-type="<?= $this->escape($u['type']) ?>">
+                    <input type="checkbox" class="form-check-input mt-0 update-check" checked
+                           aria-label="Update <?= $this->escape($u['name']) ?>">
+                    <i class="fa-solid fa-fw <?= $u['type'] === 'core' ? 'fa-cube text-primary' : 'fa-puzzle-piece text-body-secondary' ?>"></i>
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold">
+                            <?= $this->escape($u['name']) ?>
+                            <?php if ($u['type'] === 'core'): ?>
+                                <span class="badge text-bg-light border ms-1">platform</span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="small text-body-secondary">
+                            <span class="font-monospace"><?= $this->escape($u['installed']) ?></span>
+                            <i class="fa-solid fa-arrow-right-long mx-1"></i>
+                            <span class="font-monospace fw-semibold text-success"><?= $this->escape($u['latest']) ?></span>
+                            <?php if ($u['type'] === 'core' && $u['method'] !== 'installer'): ?>
+                                <span class="badge text-bg-warning ms-2">manual step</span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary update-one">
+                        <i class="fa-solid fa-cloud-arrow-down me-1"></i>Update
+                    </button>
+                    <span class="update-status small"></span>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+<?php endif; ?>
+
+<div id="updates-log-card" class="card border-0 shadow-sm mt-4 d-none">
+    <div class="card-header fw-semibold"><i class="fa-solid fa-list-check me-2"></i>Update log</div>
+    <div class="card-body">
+        <pre id="updates-log" class="mb-0 small overflow-auto" style="white-space:pre-wrap;max-height:24rem;"></pre>
+    </div>
+</div>
+
+<script>
+(function () {
+    var fb      = document.getElementById('updates-feedback');
+    var logCard = document.getElementById('updates-log-card');
+    var logEl   = document.getElementById('updates-log');
+
+    function post(method, body) {
+        var fd = new URLSearchParams(body || {});
+        fd.set('module', 'system'); fd.set('service', 'updates'); fd.set('method', method);
+        return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
+            .then(function (r) { return r.json().catch(function () { return {}; }); });
+    }
+    function log(line) { logEl.textContent += line + "\n"; logEl.scrollTop = logEl.scrollHeight; }
+
+    function render(data) {
+        logCard.classList.remove('d-none');
+        (data.results || []).forEach(function (item) {
+            log((item.ok ? '✓' : '✗') + ' ' + item.name);
+            (item.log || []).forEach(function (st) {
+                log('     ' + (st.ok ? '·' : '✗') + ' [' + st.step + '] ' + st.detail);
+            });
+            var li = document.querySelector('#updates-list li[data-slug="' + (window.CSS && CSS.escape ? CSS.escape(item.slug) : item.slug) + '"]');
+            if (!li) { return; }
+            var status = li.querySelector('.update-status');
+            var btn    = li.querySelector('.update-one');
+            if (item.advisory) {
+                status.innerHTML = '<span class="text-warning-emphasis"><i class="fa-solid fa-circle-info"></i> manual</span>';
+            } else if (item.ok) {
+                status.innerHTML = '<span class="text-success"><i class="fa-solid fa-circle-check"></i> done</span>';
+                if (btn) { btn.disabled = true; }
+                li.classList.add('opacity-50');
+            } else {
+                status.innerHTML = '<span class="text-danger"><i class="fa-solid fa-circle-xmark"></i> failed</span>';
+            }
+        });
+    }
+
+    function selectedSlugs() {
+        return Array.prototype.filter.call(document.querySelectorAll('#updates-list li'), function (li) {
+            var c = li.querySelector('.update-check'); return c && c.checked;
+        }).map(function (li) { return li.getAttribute('data-slug'); });
+    }
+
+    function apply(slugs, btn) {
+        if (!slugs.length) { TigerDOM.notify(fb, 'Select at least one update.', { type: 'alert' }); return; }
+        logEl.textContent = '';
+        TigerButton.run(btn, function () { return post('apply', { items: slugs.join(',') }); })
+            .then(function (res) {
+                if (res && res.result === 1) {
+                    render(res.data);
+                    var anyFail = (res.data.results || []).some(function (r) { return !r.ok; });
+                    TigerDOM.notify(fb, anyFail ? 'Some items need attention — see the log below.' : 'Updates applied.',
+                        { type: anyFail ? 'alert' : 'success' });
+                } else {
+                    (res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
+                }
+            })
+            .catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+    }
+
+    var all = document.getElementById('updates-all');
+    if (all) { all.addEventListener('click', function () { apply(selectedSlugs(), this); }); }
+
+    var selAll = document.getElementById('updates-select-all');
+    if (selAll) {
+        selAll.addEventListener('change', function () {
+            Array.prototype.forEach.call(document.querySelectorAll('.update-check'), function (c) { c.checked = selAll.checked; });
+        });
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('.update-one'), function (btn) {
+        btn.addEventListener('click', function () { apply([btn.closest('li').getAttribute('data-slug')], btn); });
+    });
+
+    var refresh = document.getElementById('updates-refresh');
+    if (refresh) {
+        refresh.addEventListener('click', function () {
+            TigerButton.run(this, function () { return post('check', { refresh: 1 }); })
+                .then(function (res) { if (res && res.result === 1) { window.location.reload(); } })
+                .catch(function () { TigerDOM.notify(fb, 'Network error.', { type: 'error' }); });
+        });
+    }
+})();
+</script>
