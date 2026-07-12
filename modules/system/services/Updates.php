@@ -67,9 +67,24 @@ class System_Service_Updates extends Tiger_Service_Service
 
         if ($u['type'] === 'core') {
             $step('resolve', true, "TigerCore {$u['installed']} → {$u['latest']}");
-            $step('advise', true, $u['method'] === 'composer'
-                ? 'Composer is available: run `composer update webtigers/tiger-core` (CLI). One-click core self-update (pre-built release ZIP + atomic vendor/ swap) is on the roadmap — see UPDATING.md.'
-                : 'This host has no Composer; the no-shell core updater (verified release-ZIP swap) is on the roadmap — see UPDATING.md.');
+            // The real no-shell path: atomically swap in a pre-resolved vendored release ZIP — when
+            // the host can do it AND a release ZIP is published for the target version.
+            if (Tiger_Update_Core::possible()) {
+                $rel = Tiger_Update_Core::resolveRelease($u['latest']);
+                if ($rel) {
+                    $res = Tiger_Update_Core::update($rel);
+                    return ['slug' => $u['slug'], 'name' => $u['name'], 'ok' => !empty($res['ok']),
+                            'version' => $res['version'] ?? null, 'log' => array_merge($log, $res['log'])];
+                }
+                $step('advise', true, 'No pre-built release ZIP is published for ' . $u['latest'] . ' yet — '
+                    . ($u['method'] === 'composer'
+                        ? 'run `composer update webtigers/tiger-core` (CLI) meanwhile.'
+                        : 'the one-click core-swap engine is ready and activates the moment a release ZIP ships.'));
+            } else {
+                $step('advise', true, $u['method'] === 'composer'
+                    ? 'This host can\'t self-swap vendor/ (not writable, or no zip/phar extractor). Run `composer update webtigers/tiger-core` on a machine that can.'
+                    : 'This host can\'t self-swap vendor/ (needs a writable vendor/ + ext-zip or ext-phar), and has no Composer — see UPDATING.md.');
+            }
             return ['slug' => $u['slug'], 'name' => $u['name'], 'ok' => true, 'advisory' => true, 'log' => $log];
         }
 

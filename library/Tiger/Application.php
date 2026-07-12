@@ -35,11 +35,42 @@ class Tiger_Application
      */
     public function run()
     {
+        if ($this->_updateInProgress()) {
+            return;   // a core self-update is swapping vendor/ — serve a brief maintenance page
+        }
         try {
             $this->boot()->run();
         } catch (\Throwable $e) {
             $this->fail($e);
         }
+    }
+
+    /**
+     * Serve a 503 "Updating…" flash while a core self-update swaps `vendor/` (the flag written by
+     * Tiger_Update_Core). Auto-expires after 120s so a crashed update can never wedge the site.
+     *
+     * @return bool true if the maintenance page was served (skip dispatch)
+     */
+    protected function _updateInProgress()
+    {
+        if (!defined('APPLICATION_ROOT')) {
+            return false;
+        }
+        $flag = APPLICATION_ROOT . '/var/update/.maintenance';
+        if (!is_file($flag) || (time() - (int) @filemtime($flag)) > 120) {
+            return false;
+        }
+        if (!headers_sent()) {
+            header('HTTP/1.1 503 Service Unavailable');
+            header('Retry-After: 20');
+            header('Content-Type: text/html; charset=UTF-8');
+        }
+        echo '<!doctype html><meta charset="utf-8"><title>Updating…</title>'
+           . '<div style="font:16px/1.6 system-ui,sans-serif;max-width:30rem;margin:14vh auto;text-align:center;padding:0 1rem">'
+           . '<h1 style="font-size:1.4rem;margin-bottom:.5rem">Updating…</h1>'
+           . '<p style="color:#555">This site is applying an update and will be back in a few moments. '
+           . 'Please refresh shortly.</p></div>';
+        return true;
     }
 
     /**

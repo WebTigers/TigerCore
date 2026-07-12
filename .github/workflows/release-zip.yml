@@ -1,0 +1,32 @@
+name: Attach vendored release ZIP
+
+# When a TigerCore release is published, build the pre-resolved vendored ZIP (Composer-resolved
+# vendor/ tree) and attach it — that's the artifact the no-shell updater (Tiger_Update_Core) swaps
+# in. Dependency resolution happens here in CI, so a shared host only downloads + unpacks.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  vendored-zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          tools: composer
+
+      - name: Build the vendored ZIP (from the release commit, no Packagist race)
+        env:
+          VERSION: ${{ github.event.release.tag_name }}
+        run: VERSION="${VERSION#v}" SOURCE_PATH="$(pwd)" bash bin/build-release-zip.sh
+
+      - name: Attach it to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/*.zip dist/*.zip.sha256 -R "${{ github.repository }}"

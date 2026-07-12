@@ -14,11 +14,15 @@ working to-do, not a changelog (git history is the changelog).
    with checkboxes + **Update / Update All**, and a **live step log**. `Tiger_Update_Checker` diffs
    installed-vs-latest (core via Packagist, modules via their GitHub latest release; cached);
    `System_Service_Updates` applies + logs each step (also to `Tiger_Log`). **Modules self-install the
-   real no-shell way** (`Tiger_Module_Installer`). *Remaining:* **core self-update** is advisory for
-   now (Composer CLI / the roadmap pre-built release-ZIP + atomic `vendor/` swap — the no-shell core
-   path, still the biggest lift); a **persisted update-history** table (steps go to `Tiger_Log` +
-   the run response today); and CI asserting `Tiger_Version::VERSION` == the git tag. Engine detail
-   under **Update system** in *Features* below.
+   real no-shell way** (`Tiger_Module_Installer`). **Core self-update is now built too** —
+   `Tiger_Update_Core` does the no-shell **atomic `vendor/` swap** (download → sha256-verify →
+   zip-slip-guarded extract → rename-swap → health-check → **rollback** on failure), gated by a
+   `var/update/.maintenance` 503 flash (auto-expires 120s); CI (`bin/build-release-zip.sh` +
+   `release-zip.yml`) attaches the **pre-resolved vendored ZIP** to each release, and the service
+   swaps it in the moment one's published (advisory fallback until then). Swap + rollback + checksum
+   guard unit-tested. *Remaining:* **publish the first vendored release ZIP** (cut a release → CI
+   attaches it → core one-click goes live); a **persisted update-history** table (steps → `Tiger_Log`
+   + the run response today); CI asserting `Tiger_Version::VERSION` == the git tag.
 2. **API discovery — OpenAPI / Swagger for `/api`** *(homepage "Discoverable by design" claim).*
    **✅ Largely shipped.** `Tiger_OpenApi_Generator` reflects services + Forms → an OpenAPI 3 doc
    ([WEBSERVICES.md](WEBSERVICES.md) §9); `GET /api/openapi` serves it opt-in (`tiger.api.discovery`);
