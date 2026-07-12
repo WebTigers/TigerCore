@@ -3,7 +3,6 @@
 .DS_Store
 .idea/
 
-# POC-only commercial theme (Porto) — licensed for 100-unit distribution, NEVER committed.
-# The generic theme-module capability lives in library/Tiger (committable); Porto itself does not.
-/themes/porto/
-/modules/theme-porto/
+# Third-party/commercial theme modules are their OWN (private) repos, never inside tiger-core.
+# They install into the app modules dir (application/modules/theme-<name>/), not here.
+/modules/theme-*/
