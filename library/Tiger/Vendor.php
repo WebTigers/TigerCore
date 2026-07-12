@@ -363,6 +363,72 @@ class Tiger_Vendor
         }
     }
 
+    /**
+     * Provision a front-end ASSET dependency (JS/CSS) into a MODULE's own assets dir — NOT the shared
+     * PHP store. Front-end libs are module-specific and have no PHP deps to resolve, so this is the
+     * simple case: download the declared tarball, extract the `include`d files, and drop them (by
+     * basename) into the module's `target`. Idempotent (skips when the files are already present) and
+     * safe to fail for an optional dep — the module degrades. See DEPENDENCIES.md §9.
+     *
+     * @param  array  $asset     {name, tarball|url, include:[relative paths/globs], target}
+     * @param  string $moduleDir the installed module's root directory
+     * @return array{ok:bool,name:string,message:string}
+     */
+    public static function installAsset(array $asset, $moduleDir)
+    {
+        $name    = (string) ($asset['name'] ?? 'asset');
+        $url     = (string) ($asset['tarball'] ?? $asset['url'] ?? '');
+        $target  = trim((string) ($asset['target'] ?? ''), '/');
+        $include = (array) ($asset['include'] ?? []);
+        if ($url === '' || $target === '' || !$include) {
+            return ['ok' => false, 'name' => $name, 'message' => 'Asset needs tarball/url, target, and include[].'];
+        }
+        $dest = rtrim($moduleDir, '/') . '/' . $target;
+
+        // Idempotent: present when every include's basename already sits in the target.
+        $present = true;
+        foreach ($include as $inc) {
+            if (!is_file($dest . '/' . basename((string) $inc))) { $present = false; break; }
+        }
+        if ($present) {
+            return ['ok' => true, 'name' => $name, 'message' => 'Already present.'];
+        }
+        if (!@mkdir($dest, 0775, true) && !is_dir($dest)) {
+            return ['ok' => false, 'name' => $name, 'message' => 'Target not writable: ' . $dest];
+        }
+
+        $tmp = rtrim($moduleDir, '/') . '/.tmp-asset-' . self::_slug($name) . '-' . getmypid();
+        self::_rrmdir($tmp);
+        if (!@mkdir($tmp, 0775, true)) {
+            return ['ok' => false, 'name' => $name, 'message' => 'Could not create a temp dir.'];
+        }
+        try {
+            $tar = $tmp . '/asset.tar.gz';
+            if (!self::_download($url, $tar)) {
+                return ['ok' => false, 'name' => $name, 'message' => 'Download failed: ' . $url];
+            }
+            $ex = $tmp . '/x';
+            @mkdir($ex, 0775, true);
+            if (!self::_extract($tar, $ex)) {
+                return ['ok' => false, 'name' => $name, 'message' => 'Could not extract the archive.'];
+            }
+            $root    = self::_singleChild($ex) ?: $ex;   // unwrap the archive's single top dir (package/ …)
+            $copied  = 0;
+            foreach ($include as $inc) {
+                foreach (glob($root . '/' . ltrim((string) $inc, '/')) ?: [] as $file) {
+                    if (is_file($file) && @copy($file, $dest . '/' . basename($file))) {
+                        $copied++;
+                    }
+                }
+            }
+            return $copied > 0
+                ? ['ok' => true,  'name' => $name, 'message' => "Provisioned {$copied} file(s) into {$target}."]
+                : ['ok' => false, 'name' => $name, 'message' => 'No files matched include[] in the archive.'];
+        } finally {
+            self::_rrmdir($tmp);
+        }
+    }
+
     // ---- tiers -----------------------------------------------------------------
 
     protected static function _composerRequire($name, $constraint)

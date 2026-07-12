@@ -109,7 +109,7 @@ class Tiger_Module_Installer
 
             self::_migrate();
             self::_publishAssets($slug, $target);
-            $deps = self::_provisionDependencies($manifest);
+            $deps = self::_provisionDependencies($manifest, $target);
 
             (new Tiger_Model_Module())->install($slug, [
                 'name'       => (string) ($manifest['name'] ?? ucfirst($slug)),
@@ -281,23 +281,30 @@ class Tiger_Module_Installer
      * are returned so the caller (admin/CLI) can surface a required-but-missing library and the fix.
      * See DEPENDENCIES.md.
      *
-     * @param  array $manifest the module.json
-     * @return array a status per dependency ({ok, tier, name, message, required})
+     * @param  array  $manifest  the module.json
+     * @param  string $moduleDir the installed module's root dir (target for `asset` deps)
+     * @return array a status per dependency ({ok, tier?, name, message, required})
      */
-    protected static function _provisionDependencies(array $manifest)
+    protected static function _provisionDependencies(array $manifest, $moduleDir)
     {
-        $deps = $manifest['dependencies']['php'] ?? null;
-        if (!is_array($deps)) {
-            return [];
-        }
-        $out = [];
-        foreach ($deps as $dep) {
-            if (!is_array($dep) || empty($dep['name'])) {
-                continue;
+        $out  = [];
+        $deps = $manifest['dependencies'] ?? [];
+
+        // PHP libraries → the shared vendor-libs/ store (Composer / bundle / tarball).
+        foreach ((is_array($deps['php'] ?? null) ? $deps['php'] : []) as $dep) {
+            if (is_array($dep) && !empty($dep['name'])) {
+                $status = Tiger_Vendor::ensure($dep);
+                $status['required'] = empty($dep['optional']);
+                $out[] = $status;
             }
-            $status = Tiger_Vendor::ensure($dep);
-            $status['required'] = empty($dep['optional']);
-            $out[] = $status;
+        }
+        // Front-end assets → the module's own assets dir.
+        foreach ((is_array($deps['asset'] ?? null) ? $deps['asset'] : []) as $asset) {
+            if (is_array($asset) && !empty($asset['name'])) {
+                $status = Tiger_Vendor::installAsset($asset, $moduleDir);
+                $status['required'] = empty($asset['optional']);
+                $out[] = $status;
+            }
         }
         return $out;
     }
