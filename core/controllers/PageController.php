@@ -108,9 +108,15 @@ class PageController extends Tiger_Controller_Action
         $this->view->pageScripts  = $scripts;
         // A theme may ship several chrome variants (layouts/scripts/<layout>.phtml) — a landing
         // header vs an inner-page header, etc. The hint's `layout` picks one (default `layout`);
-        // sanitized to a bare name so it can't escape the theme's layout dir.
+        // sanitized to a bare name so it can't escape the theme's layout dir. `layout="none"` means
+        // the partial is a COMPLETE, self-contained document (its own head/chrome) — a bespoke page
+        // (e.g. a vendor's prebuilt homepage) served verbatim with no theme layout wrapped around it.
         $layout = isset($meta['layout']) ? preg_replace('/[^a-z0-9_-]/i', '', $meta['layout']) : '';
-        $this->_helper->layout()->setLayout($layout !== '' ? $layout : 'layout');
+        if ($layout === 'none') {
+            $this->_helper->layout()->disableLayout();
+        } else {
+            $this->_helper->layout()->setLayout($layout !== '' ? $layout : 'layout');
+        }
         $this->_helper->viewRenderer->setScriptAction('view');   // reuse core/views/scripts/page/view.phtml
     }
 
