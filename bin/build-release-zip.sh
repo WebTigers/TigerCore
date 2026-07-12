@@ -24,11 +24,14 @@ for t in composer zip; do command -v "$t" >/dev/null || { echo "!! '$t' required
 
 if [ -n "${SOURCE_PATH:-}" ]; then
     SRC="$(cd "$SOURCE_PATH" && pwd)"
+    # minimum-stability=dev so the local checkout (a path package Composer may label dev-<branch>
+    # when HEAD isn't exactly a tag) resolves; prefer-stable keeps the DEPS on their stable releases.
+    # The vendored files carry the real version regardless (Version.php), which is what the ZIP ships.
     cat > "$WORK/composer.json" <<JSON
 {
   "repositories": [{ "type": "path", "url": "${SRC}", "options": { "symlink": false } }],
   "require": { "webtigers/tiger-core": "*" },
-  "minimum-stability": "beta", "prefer-stable": true,
+  "minimum-stability": "dev", "prefer-stable": true,
   "config": { "optimize-autoloader": true }
 }
 JSON

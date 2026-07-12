@@ -4,6 +4,29 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses [SemVer](https://semver.org/)
 — while `0.x`, the public API (`@api`) may still shift between minor versions.
 
+## [0.6.0-beta] — 2026-07-12
+
+The first **vendored release** — this tag ships a pre-resolved `vendor/` ZIP (attached by CI) that
+the no-shell core self-updater swaps in atomically.
+
+### Added
+- **API discovery (OpenAPI/Swagger).** `Tiger_OpenApi_Generator` reflects `@api` services + Forms into
+  an OpenAPI 3 doc; `GET /api/openapi` serves it opt-in (`tiger.api.discovery`). `/api` is verb-agnostic.
+- **Stateless `/api` auth.** `Authorization: Bearer tgr_…` (a `personal_access_token` `user_credential`
+  factor) authenticates statelessly — same ACL + services, no session/cookie; CSRF skipped in token
+  mode. `Tiger_Service_Token` mints/lists/revokes.
+- **Module dependency provisioning.** `Tiger_Vendor` (+ `Tiger_Vendor_Environment`) installs a module's
+  third-party PHP libs on no-Composer hosts (Composer / pre-resolved bundle / raw tarball → a shared
+  `vendor-libs/` autoloading store, one-version-enforced) and front-end `asset` deps into a module.
+  See [DEPENDENCIES.md](DEPENDENCIES.md).
+- **One-click Updates screen** (`/system/updates`, superadmin) — TigerCore + modules, checkboxes,
+  Update All, live step log. Modules self-install (no shell); **core self-update** via an atomic
+  `vendor/` swap (`Tiger_Update_Core`: download → verify → swap → health-check → rollback), fed by a
+  CI-built vendored release ZIP.
+- **ACL Simulator** (`/system/acl`, superadmin) — `Tiger_Acl_Acl::explain()` answers "why am I locked
+  out?" with the deciding rule (inheritance-aware) or deny-by-default. See [ACL.md](ACL.md).
+- Homepage performance + API marketing sections; `MANIFESTO.md`, `ACL.md`, `DEPENDENCIES.md`.
+
 ## [0.5.1-beta] — 2026-07-10
 
 ### Security
