@@ -11,14 +11,14 @@
 class IndexController extends Zend_Controller_Action
 {
     /**
-     * Serve the configured CMS home page at "/", else render the built-in landing.
+     * Serve the home page at "/": an admin-chosen CMS page, else the active theme's shipped
+     * home (`content/index.phtml`), else the built-in landing.
      *
      * @return void
      */
     public function indexAction()
     {
-        // If an admin picked a CMS page as the home page (tiger.site.home_page), serve
-        // it at "/" by forwarding to the CMS renderer — else the built-in landing.
+        // 1) An admin picked a CMS page as the home page (tiger.site.home_page)? Serve it.
         $homeId = $this->_homePageId();
         if ($homeId !== '') {
             $page = (new Tiger_Model_Page())->findById($homeId);
@@ -28,7 +28,14 @@ class IndexController extends Zend_Controller_Action
             }
         }
 
-        // Rendered via index/index.phtml, wrapped in the active theme's layout.
+        // 2) The active theme ships its own home (content/index.phtml)? Serve that — so "/" and the
+        //    theme's stock "/index.html" link resolve to the same page (via PageController).
+        if (Tiger_Theme::dir() !== '' && is_file(Tiger_Theme::dir() . '/content/index.phtml')) {
+            $this->_forward('theme-content', 'page', null, ['theme_content_slug' => 'index']);
+            return;
+        }
+
+        // 3) Rendered via index/index.phtml, wrapped in the active theme's layout.
         // The app Bootstrap already put theme/skin/themeAssets on the view.
         $this->view->servedBy     = __FILE__;
         $this->view->tigerVersion = Tiger_Version::VERSION;
