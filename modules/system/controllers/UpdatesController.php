@@ -29,5 +29,12 @@ class System_UpdatesController extends Tiger_Controller_Admin_Action
         $this->view->pending  = array_values(array_filter($updates, static function ($u) {
             return !empty($u['update']);
         }));
+
+        // Durable history (empty until the migration runs — never let it break the screen).
+        try {
+            $this->view->history = (new Tiger_Model_UpdateHistory())->recent(15);
+        } catch (Throwable $e) {
+            $this->view->history = [];
+        }
     }
 }

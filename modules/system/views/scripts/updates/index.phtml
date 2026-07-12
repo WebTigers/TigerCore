@@ -81,6 +81,53 @@ $pending = $this->pending ?? [];
     </div>
 </div>
 
+<?php if (!empty($this->history)): ?>
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-header fw-semibold"><i class="fa-solid fa-clock-rotate-left me-2"></i>Update history</div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0 align-middle">
+            <thead>
+                <tr class="text-body-secondary small">
+                    <th class="ps-3">When</th><th>Item</th><th>Version</th><th>Outcome</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($this->history as $i => $h):
+                    $badge = ['success' => 'text-bg-success', 'failed' => 'text-bg-danger',
+                              'rolled_back' => 'text-bg-warning', 'advisory' => 'text-bg-secondary'][$h['outcome']] ?? 'text-bg-light';
+                ?>
+                    <tr>
+                        <td class="ps-3 small text-body-secondary text-nowrap"><?= $this->escape($h['created_at']) ?></td>
+                        <td>
+                            <i class="fa-solid fa-fw me-1 text-body-secondary <?= $h['item_type'] === 'core' ? 'fa-cube' : 'fa-puzzle-piece' ?>"></i>
+                            <?= $this->escape($h['item_name'] ?: $h['item_slug']) ?>
+                        </td>
+                        <td class="small font-monospace text-body-secondary"><?= $this->escape($h['from_version']) ?> → <?= $this->escape($h['to_version']) ?></td>
+                        <td><span class="badge <?= $badge ?>"><?= $this->escape($h['outcome']) ?></span></td>
+                        <td class="pe-3 text-end">
+                            <?php if (!empty($h['log'])): ?>
+                                <button class="btn btn-sm btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#uh-<?= (int) $i ?>">log</button>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php if (!empty($h['log'])): ?>
+                        <tr class="collapse" id="uh-<?= (int) $i ?>">
+                            <td colspan="5" class="ps-3 pe-3">
+                                <pre class="small mb-2 bg-body-tertiary rounded p-2" style="white-space:pre-wrap"><?php
+                                    foreach ($h['log'] as $s) {
+                                        echo (!empty($s['ok']) ? '· ' : '✗ ') . '[' . $this->escape($s['step']) . '] ' . $this->escape($s['detail']) . "\n";
+                                    }
+                                ?></pre>
+                            </td>
+                        </tr>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+<?php endif; ?>
+
 <script>
 (function () {
     var fb      = document.getElementById('updates-feedback');

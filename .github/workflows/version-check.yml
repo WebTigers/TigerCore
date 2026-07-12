@@ -1,0 +1,24 @@
+name: Version check
+
+# Guard the source of truth: Tiger_Version::VERSION must equal the release tag. Update detection
+# (Tiger_Update_Checker) compares this constant against the newest tag on Packagist/GitHub, so if the
+# two ever disagree the whole "what has an update?" answer silently lies. Fail the tag build instead.
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  version-matches-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assert Tiger_Version::VERSION == tag
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          VER="$(grep -oE "VERSION\s*=\s*'[^']+'" library/Tiger/Version.php | grep -oE "'[^']+'" | tr -d "'")"
+          echo "tag=$TAG   Tiger_Version::VERSION=$VER"
+          if [ "$TAG" != "$VER" ]; then
+            echo "::error file=library/Tiger/Version.php::Tiger_Version::VERSION ($VER) does not match the release tag ($TAG). Bump the constant to match before tagging."
+            exit 1
+          fi
+          echo "✓ Tiger_Version matches the tag."

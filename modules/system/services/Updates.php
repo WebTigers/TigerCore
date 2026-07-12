@@ -48,7 +48,63 @@ class System_Service_Updates extends Tiger_Service_Service
                 : ['slug' => $slug, 'name' => $slug, 'ok' => false,
                    'log' => [['step' => 'resolve', 'ok' => false, 'detail' => 'Unknown or no-longer-pending item.']]];
         }
+        $this->_recordHistory($results, $index);
         $this->_success(['results' => $results], 'system.update.done');
+    }
+
+    /**
+     * The recent update-run history (durable "what ran / what broke").
+     *
+     * @param  array $params {limit?}
+     * @return void
+     */
+    public function history(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        $limit = (int) ($params['limit'] ?? 20);
+        try {
+            $this->_success(['history' => (new Tiger_Model_UpdateHistory())->recent($limit)]);
+        } catch (Throwable $e) {
+            $this->_success(['history' => []]);   // table not migrated yet
+        }
+    }
+
+    /** Persist each applied item to update_history — never lets history-writing break an update. */
+    protected function _recordHistory(array $results, array $index): void
+    {
+        $model = new Tiger_Model_UpdateHistory();
+        foreach ($results as $res) {
+            $u = $index[$res['slug']] ?? [];
+            $outcome = !empty($res['advisory'])
+                ? Tiger_Model_UpdateHistory::OUTCOME_ADVISORY
+                : (!empty($res['ok'])
+                    ? Tiger_Model_UpdateHistory::OUTCOME_SUCCESS
+                    : (self::_wasRolledBack($res['log'] ?? [])
+                        ? Tiger_Model_UpdateHistory::OUTCOME_ROLLBACK
+                        : Tiger_Model_UpdateHistory::OUTCOME_FAILED));
+            try {
+                $model->record([
+                    'item_type'    => $u['type'] ?? ($res['slug'] === 'tiger-core' ? 'core' : 'module'),
+                    'item_slug'    => $res['slug'],
+                    'item_name'    => $res['name'] ?? $res['slug'],
+                    'from_version' => $u['installed'] ?? null,
+                    'to_version'   => $res['version'] ?? ($u['latest'] ?? null),
+                    'outcome'      => $outcome,
+                    'log'          => $res['log'] ?? [],
+                ]);
+            } catch (Throwable $e) {
+                Tiger_Log::error('update.history.write_failed', ['item' => $res['slug'], 'error' => $e->getMessage()]);
+            }
+        }
+    }
+
+    /** True when the step log shows a rollback step. */
+    protected static function _wasRolledBack(array $log): bool
+    {
+        foreach ($log as $s) {
+            if (($s['step'] ?? '') === 'rollback') { return true; }
+        }
+        return false;
     }
 
     /**

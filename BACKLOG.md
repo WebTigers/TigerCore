@@ -19,10 +19,13 @@ working to-do, not a changelog (git history is the changelog).
    zip-slip-guarded extract → rename-swap → health-check → **rollback** on failure), gated by a
    `var/update/.maintenance` 503 flash (auto-expires 120s); CI (`bin/build-release-zip.sh` +
    `release-zip.yml`) attaches the **pre-resolved vendored ZIP** to each release, and the service
-   swaps it in the moment one's published (advisory fallback until then). Swap + rollback + checksum
-   guard unit-tested. *Remaining:* **publish the first vendored release ZIP** (cut a release → CI
-   attaches it → core one-click goes live); a **persisted update-history** table (steps → `Tiger_Log`
-   + the run response today); CI asserting `Tiger_Version::VERSION` == the git tag.
+   swaps it in the moment one's published. **✅ Complete:** the first vendored release (**v0.6.0-beta**)
+   is cut — CI (`release-zip.yml`) attaches the checksummed vendored ZIP, and the core one-click swap
+   is **live** (proven end to end: dev self-updated 0.5.1-beta → 0.6.0-beta). A **persisted
+   `update_history`** table (migration 0030 + `Tiger_Model_UpdateHistory`) records every run
+   (from→to, outcome, JSON step log) behind an "Update history" panel on the screen; and
+   **`version-check.yml`** asserts `Tiger_Version::VERSION` == the release tag on every tag push, so
+   detection can't silently lie.
 2. **API discovery — OpenAPI / Swagger for `/api`** *(homepage "Discoverable by design" claim).*
    **✅ Largely shipped.** `Tiger_OpenApi_Generator` reflects services + Forms → an OpenAPI 3 doc
    ([WEBSERVICES.md](WEBSERVICES.md) §9); `GET /api/openapi` serves it opt-in (`tiger.api.discovery`);
