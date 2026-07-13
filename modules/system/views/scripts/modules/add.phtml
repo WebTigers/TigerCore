@@ -48,9 +48,16 @@ $registryHasData = !empty($this->registryHasData);
         <?php if (!$registryHasData): ?>
             <p class="text-body-secondary mb-0"><i class="fa-regular fa-circle-question me-1"></i>The Vendor Registry isn't reachable yet. Install directly from a repo URL above — that always works.</p>
         <?php else: ?>
-            <div class="input-group mb-3">
-                <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
-                <input type="text" class="form-control" id="mod-search" placeholder="Search modules…">
+            <div class="d-flex gap-2 mb-3">
+                <div class="input-group flex-grow-1">
+                    <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" class="form-control" id="mod-search" placeholder="Search modules…">
+                </div>
+                <select class="form-select w-auto" id="mod-sort" aria-label="Sort results" title="Sort results">
+                    <option value="featured" selected>Featured</option>
+                    <option value="title">Title (A–Z)</option>
+                    <option value="latest">Latest</option>
+                </select>
             </div>
             <div id="mod-results" class="row row-cols-1 row-cols-md-2 g-3"></div>
         <?php endif; ?>
@@ -141,19 +148,24 @@ document.addEventListener('DOMContentLoaded', function () {
     urlEl.addEventListener('keydown', function(e){ if(e.key==='Enter'){ document.getElementById('mod-check').click(); } });
 
     // Registry search
-    var searchEl=document.getElementById('mod-search'), results=document.getElementById('mod-results'), t;
-    if (searchEl){ searchEl.addEventListener('input', function(){ clearTimeout(t); t=setTimeout(runSearch,250); }); runSearch(); }
+    var searchEl=document.getElementById('mod-search'), sortEl=document.getElementById('mod-sort'), results=document.getElementById('mod-results'), t;
+    if (searchEl){
+        searchEl.addEventListener('input', function(){ clearTimeout(t); t=setTimeout(runSearch,250); });
+        if (sortEl){ sortEl.addEventListener('change', runSearch); }
+        runSearch();
+    }
     function runSearch(){
-        api('search',{q:searchEl.value.trim()}).then(function(res){
+        api('search',{q:searchEl.value.trim(), sort:(sortEl?sortEl.value:'featured')}).then(function(res){
             if (res.result!==1) return;
             var list=(res.data&&res.data.results)||[];
             if (!list.length){ results.innerHTML='<div class="col text-body-secondary small">No modules match.</div>'; return; }
             results.innerHTML = list.map(function(m,i){
                 var free = m.pricing && m.pricing.model && m.pricing.model!=='paid';
-                return '<div class="col"><div class="card h-100"><div class="card-body d-flex gap-3">'+
+                var spon = m.sponsored?' <span class="badge text-bg-warning-subtle text-warning-emphasis border border-warning-subtle" title="Promoted placement">'+esc(m.sponsored_label||'Sponsored')+'</span>':'';
+                return '<div class="col"><div class="card h-100'+(m.sponsored?' border-warning-subtle':'')+'"><div class="card-body d-flex gap-3">'+
                     (m.logo?'<img src="'+esc(m.logo)+'" class="mod-card-logo" onerror="'+imgErr+'">':'')+
                     '<div class="flex-grow-1">'+
-                      '<h6 class="mb-0">'+esc(m.module||m.slug)+(free?' <span class="badge text-bg-success-subtle text-success-emphasis border border-success-subtle">free</span>':'')+'</h6>'+
+                      '<h6 class="mb-0">'+esc(m.module||m.slug)+(free?' <span class="badge text-bg-success-subtle text-success-emphasis border border-success-subtle">free</span>':'')+spon+'</h6>'+
                       '<div class="small text-body-secondary mb-1">'+esc(m.vendor||'')+'</div>'+
                       '<p class="small text-body-secondary mb-2">'+esc(m.description||'')+'</p>'+
                       '<button type="button" class="btn btn-sm btn-outline-primary" data-i="'+i+'">View more</button>'+

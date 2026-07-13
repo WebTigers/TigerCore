@@ -16,9 +16,13 @@
  */
 class Tiger_Module_Registry
 {
-    const DEFAULT_INDEX = 'https://raw.githubusercontent.com/WebTigers/Vendors/main/data/index.json';
-    const CACHE_TTL     = 10800;   // 3h — a few refreshes a day, per the discovery model
-    const CACHE_FILE    = 'registry-index.json';
+    const DEFAULT_INDEX     = 'https://raw.githubusercontent.com/WebTigers/Vendors/main/data/index.json';
+    const CACHE_TTL         = 10800;   // 3h — a few refreshes a day, per the discovery model
+    const CACHE_FILE        = 'registry-index.json';
+    const CACHE_FILE_SPONS  = 'registry-sponsored.json';
+
+    /** Result orderings for the directory. Default = featured (curated placement floats up). */
+    const SORTS = ['featured', 'title', 'latest'];
 
     /**
      * True if the registry index is reachable (fetch or fresh cache).
@@ -31,12 +35,15 @@ class Tiger_Module_Registry
     }
 
     /**
-     * Search the registry; [] when unavailable or no match. Matches name/slug/description/keywords.
+     * Search the registry; [] when unavailable or no match. Matches name/slug/description/
+     * keywords/vendor/type. Each hit is enriched with curated placement (priority + a `sponsored`
+     * badge) from the sponsored overlay, then ordered by $sort.
      *
      * @param  string $query the search term ('' returns all modules)
+     * @param  string $sort  'featured' (default: sponsored priority, then title), 'title', or 'latest'
      * @return array the matching module entries
      */
-    public static function search($query)
+    public static function search($query, $sort = 'featured')
     {
         $index = self::index();
         if (!$index) {
@@ -48,12 +55,101 @@ class Tiger_Module_Registry
         $out = [];
         foreach ($modules as $m) {
             if (!is_array($m)) { continue; }
-            if ($q === '') { $out[] = $m; continue; }
-            $hay = strtolower(($m['name'] ?? '') . ' ' . ($m['slug'] ?? '') . ' ' . ($m['description'] ?? '')
-                . ' ' . implode(' ', (array) ($m['keywords'] ?? [])) . ' ' . ($m['author'] ?? ''));
-            if (strpos($hay, $q) !== false) { $out[] = $m; }
+            if ($q !== '') {
+                $hay = strtolower(self::_title($m) . ' ' . ($m['slug'] ?? '') . ' ' . ($m['description'] ?? '')
+                    . ' ' . implode(' ', (array) ($m['keywords'] ?? [])) . ' ' . ($m['vendor'] ?? $m['author'] ?? '')
+                    . ' ' . ($m['type'] ?? ''));
+                if (strpos($hay, $q) === false) { continue; }
+            }
+            $out[] = self::_mergeSponsor($m);
         }
+
+        self::_sort($out, in_array($sort, self::SORTS, true) ? $sort : 'featured');
         return $out;
+    }
+
+    /**
+     * Attach curated placement to a listing from the sponsored overlay (keyed by <Org>_<Repo>,
+     * derived from the repo URL). Sets `priority` (0 when unsponsored) + a `sponsored` flag/label.
+     *
+     * @param  array $m the listing
+     * @return array the listing with placement fields
+     */
+    protected static function _mergeSponsor(array $m)
+    {
+        $m['priority'] = 0;
+        $key = preg_match('#github\.com/([^/]+)/([^/]+?)/?$#i', (string) ($m['repository'] ?? ''), $r)
+            ? $r[1] . '_' . $r[2] : '';
+        $sp = $key ? (self::sponsored()[$key] ?? null) : null;
+        if (is_array($sp)) {
+            $m['priority']        = (int) ($sp['priority'] ?? 0);
+            $m['sponsored']       = true;
+            $m['sponsored_label'] = (string) ($sp['label'] ?? 'Sponsored');
+        }
+        return $m;
+    }
+
+    /** Order results in place: featured (priority then title), title (A–Z), or latest (newest review). */
+    protected static function _sort(array &$out, $sort)
+    {
+        if ($sort === 'title') {
+            usort($out, static fn($a, $b) => strcmp(self::_title($a), self::_title($b)));
+        } elseif ($sort === 'latest') {
+            $at = static fn($m) => (string) ($m['review']['reviewed_at'] ?? '');
+            usort($out, static fn($a, $b) => strcmp($at($b), $at($a)) ?: strcmp(self::_title($a), self::_title($b)));
+        } else { // featured
+            usort($out, static fn($a, $b) => (($b['priority'] ?? 0) <=> ($a['priority'] ?? 0))
+                ?: strcmp(self::_title($a), self::_title($b)));
+        }
+    }
+
+    /** A listing's display title (the registry uses `module`; tolerate a legacy `name`). */
+    protected static function _title(array $m)
+    {
+        return strtolower((string) ($m['module'] ?? $m['name'] ?? ''));
+    }
+
+    /**
+     * The curated sponsorship overlay — a { "<Org>_<Repo>": {priority,label,until} } map fetched
+     * from data/sponsored.json alongside the index and cached like it (so placement updates need
+     * no index recompile). Expired (`until` < today) or malformed entries are dropped. [] if none.
+     *
+     * @return array the active sponsorship map
+     */
+    public static function sponsored()
+    {
+        static $mem = null;
+        if ($mem !== null) { return $mem; }
+
+        $cache = self::_cacheFile(self::CACHE_FILE_SPONS);
+        $body  = ($cache && is_file($cache) && (time() - filemtime($cache)) < self::CACHE_TTL)
+            ? (string) @file_get_contents($cache) : '';
+        if ($body === '') {
+            $fetched = Tiger_Module_Github::get(self::sponsoredUrl());
+            if ($fetched !== null) {
+                $body = $fetched;
+                if ($cache) { @file_put_contents($cache, $body); }
+            } elseif ($cache && is_file($cache)) {
+                $body = (string) @file_get_contents($cache);   // stale is fine (offline)
+            }
+        }
+
+        $j    = $body !== '' ? json_decode($body, true) : null;
+        $list = (is_array($j) && isset($j['listings']) && is_array($j['listings'])) ? $j['listings'] : [];
+        $today = gmdate('Y-m-d');
+        $mem = [];
+        foreach ($list as $k => $v) {
+            if (is_array($v) && (empty($v['until']) || $v['until'] >= $today)) { $mem[$k] = $v; }
+        }
+        return $mem;
+    }
+
+    /** The sponsored-overlay URL — the index URL with its trailing index.json → sponsored.json. */
+    public static function sponsoredUrl()
+    {
+        $url = self::indexUrl();
+        $swapped = preg_replace('#/[^/]*index\.json$#', '/sponsored.json', $url);
+        return ($swapped && $swapped !== $url) ? $swapped : $url;
     }
 
     /**
@@ -98,13 +194,13 @@ class Tiger_Module_Registry
         return $url !== '' ? $url : self::DEFAULT_INDEX;
     }
 
-    protected static function _cacheFile()
+    protected static function _cacheFile($name = self::CACHE_FILE)
     {
         $base = defined('APPLICATION_ROOT') ? rtrim(APPLICATION_ROOT, '/') : rtrim(getcwd(), '/');
         $dir  = $base . '/storage/cache';
         if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
             return null;
         }
-        return $dir . '/' . self::CACHE_FILE;
+        return $dir . '/' . $name;
     }
 }

@@ -209,6 +209,11 @@ Each is a button that runs a service; the user touches no config table, no files
 
    That's the whole payoff of *theme-as-a-path*: **activation is a config row + a symlink — no build,
    no deploy, instant.** Activating B **deactivates** A for that scope (see §5b).
+
+   > Activation also runs a **capability scan** shared with every module: if the theme ships a
+   > `migrations/` folder, its schema is applied on activate (idempotent). The *folder* triggers it,
+   > **not** the `type` — a theme that owns tables migrates like any module, and `type` stays a mere
+   > search label (see the module-taxonomy note in the registry). Capabilities are detected, not declared.
 4. **Deactivate** — remove the scope's `tiger.theme` row → the base theme (puma) resolves again. The
    installed files + symlink stay (inert), so re-activating is instant.
 5. **Import starter content** — optional, explicit, idempotent; the only step that writes CMS rows

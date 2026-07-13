@@ -247,6 +247,31 @@ class Tiger_Module_Installer
     }
 
     /**
+     * Run a module's own migrations IF it ships a migrations/ dir — capability detection, not a
+     * declared type. Activation calls this so a module (or a theme that happens to own tables)
+     * applies its schema the moment it's turned on, without the operator running the CLI. The
+     * scan is what decides, so `type` never has to: a `type:theme` with a migrations/ folder just
+     * migrates. Idempotent — the migrator skips already-applied files; a no-op when there's no
+     * migrations/ dir. Finds the module in the app OR the first-party core modules dir.
+     *
+     * @param  string $slug the module slug whose migrations to apply
+     * @return bool true if a migrations/ dir was found and run, false if there was none
+     */
+    public static function migrateModule($slug)
+    {
+        $slug = basename((string) $slug);
+        foreach (self::_moduleRoots() as $root) {
+            $dir = $root . '/' . $slug . '/migrations';
+            if (is_dir($dir)) {
+                $db = Zend_Db_Table_Abstract::getDefaultAdapter();
+                (new Tiger_Db_Migrator($db, [$dir]))->migrate();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Remove a module's published assets from public/_modules/<slug>. Called on DEACTIVATE.
      *
      * @param  string $slug the module slug whose assets to unpublish

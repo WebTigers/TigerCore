@@ -47,6 +47,11 @@ class System_Service_Modules extends Tiger_Service_Service
         try {
             $d = $discovered[$slug];
 
+            // Capability detection, not a declared type: activating anything that ships a
+            // migrations/ folder applies its schema now (idempotent; no-op without one). This is
+            // why `type` stays a mere label — a theme that owns tables migrates just like a module.
+            if ($on) { Tiger_Module_Installer::migrateModule($slug); }
+
             // Themes activate differently (THEMES.md §5a): not the module.active flag, but the
             // `tiger.theme` config (one active per scope) + the asset-base symlink. No build/deploy.
             if (($d['type'] ?? 'module') === 'theme') {
@@ -125,9 +130,11 @@ class System_Service_Modules extends Tiger_Service_Service
     public function search(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        $sort = (string) ($params['sort'] ?? 'featured');
         $this->_success([
-            'results'   => Tiger_Module_Registry::search((string) ($params['q'] ?? '')),
+            'results'   => Tiger_Module_Registry::search((string) ($params['q'] ?? ''), $sort),
             'available' => Tiger_Module_Registry::available(),
+            'sort'      => $sort,
         ]);
     }
 
