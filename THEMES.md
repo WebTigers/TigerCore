@@ -174,23 +174,74 @@ can't do this for theme-shipped files; Tiger can, because the seed is a row, not
 
 ---
 
-## 5. A theme *is* a module (marketplace lifecycle)
+## 5. A theme *is* a module — managed in the ONE Module Manager
 
-A theme ships as a **module** (already true — a theme can live in a module; ARCHITECTURE §9a),
-flagged `module.type = "theme"` in `module.ini` so the Module Manager lists it under a
-**Themes / Marketplace** filter. The lifecycle has **three distinct verbs** — conflating them is
-the WP mistake:
+A theme ships as a **module** (ARCHITECTURE §9a), flagged `type = "theme"` in its manifest
+(`theme.json` / `module.ini`) so the Module Manager lists it under a **Themes** filter.
 
-1. **Install** — download the module; register its theme path, block renderers, and any
-   contract extensions (**code/config only**). *Nothing enters the CMS.* Fully reversible.
-2. **Activate** — write the active-theme config row (`tiger.theme`). Because that's the **per-org
-   config tier** (ARCHITECTURE §5), activation is site-wide *or* per-tenant with **no new
-   machinery** — per-org theming already resolves this way. Activation also flips the asset symlink.
-3. **Import starter content** — optional, explicit, idempotent; produces app-owned rows tagged with
-   provenance (§4). This is the only step that writes CMS rows.
+**The design principle (Tiger's edge over WP):** *everything installable is managed in one place.*
+WordPress scatters management across separate screens — Plugins here, Themes there, and no story at
+all for "an app." Tiger has **one Module Manager** for every installable — **code modules, themes,
+and (later) whole apps** — same registry, same Install/Activate/Deactivate lifecycle, same
+marketplace, just a `type` filter. A theme is not a special citizen with its own admin section; it's
+a module whose `type` happens to be `theme`. One surface, one mental model.
 
-Keeping install ≠ activate ≠ import is what makes the whole thing safe: you can install ten themes
-to preview, activate one, and never import a page you didn't ask for.
+### 5a. The lifecycle verbs (all Module-Manager buttons — the user never edits config)
+
+Each is a button that runs a service; the user touches no config table, no filesystem, no SQL.
+
+1. **Install** — the MM downloads the theme's **release zip** (a *complete* artifact: code **+**
+   assets, published to the vendor's GH release by a build that runs `fetch-assets` — the same
+   vendored-release-zip model as tiger-core) and extracts it into the **app** modules dir
+   (`application/modules/theme-<name>/`). *Nothing enters the CMS.* Fully reversible (uninstall = delete).
+   > Why the release zip, not a git clone: a theme's repo gitignores its licensed/heavy `assets/`;
+   > the release artifact bundles them, so install is one download with nothing left to fetch.
+2. **Preview** — see it working *before* committing. The MM sets an **admin-only `tiger_theme`
+   cookie**; `_initTheme` honors that cookie over the config (exactly like the skin switcher's
+   `tiger_skin` cookie), so the admin browses the **live** site rendered in the theme while everyone
+   else sees the current one. Nothing global changes.
+3. **Activate** — make it live. The service does exactly two writes, both in code:
+   - **config**: `tiger.theme = <key>` via `Tiger_Model_Config` (global scope, or the current
+     **org** for multi-tenant) — the live-override tier, effective next request, no deploy.
+   - **asset symlink**: reads `assetBase` from the manifest (e.g. `/_porto`) and ensures
+     `public/<assetBase> → application/modules/theme-<name>/assets` (the MM already does symlink-on-
+     activate for module assets — themes reuse it), then clears the theme-path + docs caches.
+
+   That's the whole payoff of *theme-as-a-path*: **activation is a config row + a symlink — no build,
+   no deploy, instant.** Activating B **deactivates** A for that scope (see §5b).
+4. **Deactivate** — remove the scope's `tiger.theme` row → the base theme (puma) resolves again. The
+   installed files + symlink stay (inert), so re-activating is instant.
+5. **Import starter content** — optional, explicit, idempotent; the only step that writes CMS rows
+   (§4). Never happens on install.
+
+Keeping these distinct is what makes it safe: install ten themes to browse, **preview** any of them
+just for yourself, activate one, and never import a page you didn't ask for.
+
+### 5b. One active theme per scope — but per-org across tenants
+
+"Active" has three axes; only one of them is single-valued:
+
+| Axis | Multiple active? |
+|---|---|
+| **Per scope** (one site, or one org) | **No — one at a time**, like WP. Activating B deactivates A. |
+| **Across tenants** (multi-tenant install) | **Yes** — the active theme is a per-**org** config row, so org A runs Porto while org B runs another theme. Tiger's tenant-branding axis, for free. |
+| **Admin vs public** | The **back office is always the platform base theme**; the active theme is the **public-facing** one (§5c). |
+
+### 5c. Context-aware resolution — a public theme never touches the admin
+
+The rule that makes activation *safe*: **`_initTheme` resolves the active theme for PUBLIC requests,
+and the base theme (puma) for `/admin` + `/auth`.** Like WordPress — `wp-admin` is always WordPress
+chrome; the theme is your front-end. Consequences:
+
+- A public theme (Porto) **never has to reimplement the admin/auth layer**, and **activating it can
+  never break the back office** — the one real risk in the whole model.
+- Each theme keeps its **own** `assetBase` symlink (`/_porto`, `/_theme`, …), so multiple themes'
+  assets coexist and admin (on `/_theme` → base) is untouched while public renders on the active
+  theme's base. No repointing of a shared symlink, no collision.
+
+Implementation: branch the theme lookup on the request area (the dispatcher already knows the
+module/controller — `admin`/`auth` → base; else → the active-theme config). Small change, and it
+retires the POC workaround (a public theme borrowing puma's admin layouts).
 
 ---
 
