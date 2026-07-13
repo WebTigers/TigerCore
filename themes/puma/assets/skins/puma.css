@@ -1,6 +1,6 @@
 /*! SPDX-License-Identifier: BSD-3-Clause · © 2026 WebTigers · Tiger™/WebTigers™ are trademarks */
 /* PUMA skin: puma — derived from Bootswatch Zephyr (MIT, https://bootswatch.com).
-   A variable-level overlay on stock Bootstrap 5.3, loaded AFTER bootstrap.min.css.
+   A variable-level overlay on stock Bootstrap 5.3, loaded AFTER bootstrap.css.
    Re-declares the --bs-* color system, font, and radius for BOTH light and dark
    (data-bs-theme), so the skin keeps its identity in either mode. This captures
    Zephyr's palette/type/feel, not its full component recompile (the skin-model

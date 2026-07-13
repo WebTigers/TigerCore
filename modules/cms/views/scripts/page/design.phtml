@@ -22,7 +22,7 @@ $jf = JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JS
     <script src="<?= $this->asset($va . '/js/theme-init.js') ?>"></script>
     <link rel="stylesheet" href="<?= $this->asset($va . '/vendor/fonts/inter/inter.css') ?>">
     <link rel="stylesheet" href="<?= $this->asset($va . '/vendor/fontawesome/css/all.min.css') ?>">
-    <link rel="stylesheet" href="<?= $this->asset($va . '/css/bootstrap.min.css') ?>">
+    <link rel="stylesheet" href="<?= $this->asset($va . '/css/bootstrap.css') ?>">
     <link rel="stylesheet" href="<?= $this->asset($va . '/default.css') ?>">
 <?php if (!empty($this->skin)): ?>
     <link rel="stylesheet" href="<?= $this->asset($va . '/skins/' . $this->skin . '.css') ?>">
@@ -57,7 +57,7 @@ $jf = JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JS
             canvasCss:   <?= json_encode($this->canvasCss ?: [], $jf) ?>
         };
     </script>
-    <script src="<?= $this->asset($va . '/js/bootstrap.bundle.min.js') ?>"></script>
+    <script src="<?= $this->asset($va . '/js/bootstrap.bundle.js') ?>"></script>
     <script src="<?= $this->asset($va . '/js/tiger.media-picker.js') ?>"></script>
     <script src="<?= $this->asset($va . '/vendor/grapesjs/grapes.min.js') ?>"></script>
     <script src="<?= $this->asset($va . '/vendor/grapesjs/grapesjs-preset-webpage.js') ?>"></script>

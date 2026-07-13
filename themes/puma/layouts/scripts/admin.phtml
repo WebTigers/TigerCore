@@ -42,7 +42,7 @@ $_hasAside = !empty($this->rightAside);
     <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/vendor/fontawesome/css/all.min.css') ?>">
 
     <!-- Cascade (last wins): base Bootstrap → theme defaults → active skin. -->
-    <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/css/bootstrap.min.css') ?>">
+    <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/css/bootstrap.css') ?>">
     <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/default.css') ?>">
 <?php if (!empty($this->skin)): ?>
     <link id="tiger-skin" rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/skins/' . $this->skin . '.css') ?>">
@@ -79,7 +79,7 @@ $_hasAside = !empty($this->rightAside);
 <!-- Backdrop for the off-canvas sidebar on mobile. -->
 <div class="tiger-backdrop" data-tiger-toggle="sidebar"></div>
 
-<script src="<?= $this->asset($this->themeAssets . '/js/bootstrap.bundle.min.js') ?>"></script>
+<script src="<?= $this->asset($this->themeAssets . '/js/bootstrap.bundle.js') ?>"></script>
 <?php if (!empty($this->useDataTables)): ?>
 <!-- jQuery + DataTables: the admin's one jQuery dependency (data grids only); the
      public theme and the rest of the admin stay vanilla. Order: jQuery → core → BS5. -->
