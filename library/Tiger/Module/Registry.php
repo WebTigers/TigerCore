@@ -61,7 +61,7 @@ class Tiger_Module_Registry
                     . ' ' . ($m['type'] ?? ''));
                 if (strpos($hay, $q) === false) { continue; }
             }
-            $out[] = self::_mergeSponsor($m);
+            $out[] = self::_resolveImages(self::_mergeSponsor($m));
         }
 
         self::_sort($out, in_array($sort, self::SORTS, true) ? $sort : 'featured');
@@ -85,6 +85,37 @@ class Tiger_Module_Registry
             $m['priority']        = (int) ($sp['priority'] ?? 0);
             $m['sponsored']       = true;
             $m['sponsored_label'] = (string) ($sp['label'] ?? 'Sponsored');
+        }
+        return $m;
+    }
+
+    /**
+     * Resolve a listing's image paths to absolute raw URLs. Images live in the module's OWN repo
+     * (the registry only points at them); a listing may store repo-relative paths (e.g.
+     * "assets/screenshots/01.png") which resolve against the pinned ref
+     * (raw.githubusercontent.com/<org>/<repo>/<ref>/…) so the SAME paths are reusable in the repo's
+     * README.md. A value already starting with http(s) is passed through unchanged (back-compat with
+     * full-URL logo/hero). Covers logo, hero, and the screenshots[] gallery.
+     *
+     * @param  array $m the listing
+     * @return array the listing with absolute image URLs
+     */
+    protected static function _resolveImages(array $m)
+    {
+        if (!preg_match('#github\.com/([^/]+)/([^/]+?)/?$#i', (string) ($m['repository'] ?? ''), $r)) {
+            return $m;
+        }
+        $ref  = (string) ($m['ref'] ?? $m['version'] ?? 'main');
+        $base = "https://raw.githubusercontent.com/{$r[1]}/{$r[2]}/{$ref}/";
+        $abs  = static function ($p) use ($base) {
+            $p = (string) $p;
+            return ($p === '' || preg_match('#^https?://#i', $p)) ? $p : $base . ltrim($p, '/');
+        };
+        foreach (['logo', 'hero'] as $k) {
+            if (!empty($m[$k])) { $m[$k] = $abs($m[$k]); }
+        }
+        if (!empty($m['screenshots']) && is_array($m['screenshots'])) {
+            $m['screenshots'] = array_values(array_filter(array_map($abs, $m['screenshots'])));
         }
         return $m;
     }

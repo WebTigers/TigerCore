@@ -184,6 +184,9 @@ body {
   .mod-logo{width:44px;height:44px;object-fit:contain;border-radius:.4rem;background:var(--bs-secondary-bg);}
   .mod-card-logo{width:36px;height:36px;object-fit:contain;border-radius:.35rem;background:var(--bs-secondary-bg);flex:none;}
   .mod-hero{width:100%;max-height:220px;object-fit:cover;border-radius:.5rem;margin-bottom:1rem;}
+  .mod-shots{margin-bottom:1rem;}
+  .mod-shot{height:64px;width:auto;object-fit:cover;border-radius:.375rem;cursor:pointer;border:1px solid var(--bs-border-color);transition:opacity .15s,transform .15s;}
+  .mod-shot:hover{opacity:.85;transform:translateY(-1px);}
   .mod-readme{font-size:.95rem;line-height:1.7;}
   .mod-readme h1{font-size:1.5rem;font-weight:700;margin:1.4rem 0 .6rem;}
   .mod-readme h2{font-size:1.25rem;font-weight:700;margin:1.3rem 0 .5rem;padding-bottom:.2rem;border-bottom:1px solid var(--bs-border-color);}

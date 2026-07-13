@@ -78,6 +78,8 @@ $registryHasData = !empty($this->registryHasData);
   </div>
 </div>
 
+<link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/vendor/tiger-lightbox/tiger-lightbox.css') ?>">
+<script src="<?= $this->asset($this->themeAssets . '/vendor/tiger-lightbox/tiger-lightbox.js') ?>"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var fb = document.getElementById('mod-feedback');
@@ -117,8 +119,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         var reqBits=[]; if(req.tiger)reqBits.push('Tiger '+esc(req.tiger)); if(req.php)reqBits.push('PHP '+esc(req.php));
         var pricing = (x.pricing && x.pricing.model) || m.pricing;
+        var shots = Array.isArray(x.screenshots) ? x.screenshots : [];
+        var gallery = shots.length ? '<div class="mod-shots d-flex flex-wrap gap-2">' +
+            shots.map(function(s,i){ return '<img src="'+esc(s)+'" class="mod-shot" data-shot="'+i+'" alt="screenshot '+(i+1)+'" onerror="'+imgErr+'">'; }).join('') +
+            '</div>' : '';
         body.innerHTML =
             (x.hero ? '<img src="'+esc(x.hero)+'" class="mod-hero" onerror="'+imgErr+'">' : '') +
+            gallery +
             '<div class="mb-2">' +
               (pricing && pricing !== 'paid' ? badge('free tier','success-subtle text-success-emphasis border border-success-subtle') : (pricing==='paid'?badge('paid','secondary'):'')) +
               '<a href="'+esc(d.repo)+'" target="_blank" rel="noopener" class="badge text-bg-light text-decoration-none"><i class="fa-brands fa-github me-1"></i>'+esc(d.repo.replace('https://github.com/',''))+'@'+esc(d.ref)+'</a>' +
@@ -126,6 +133,12 @@ document.addEventListener('DOMContentLoaded', function () {
             '</div>' +
             (m.description ? '<p>'+esc(m.description)+'</p>' : '') +
             (d.description_html ? '<hr><div class="mod-readme">'+d.description_html+'</div>' : '<p class="text-body-secondary small">No TIGER.md provided.</p>');
+
+        body.querySelectorAll('[data-shot]').forEach(function(el){
+            el.addEventListener('click', function(){
+                if (window.TigerLightbox){ TigerLightbox.open(shots.map(function(s){ return { type:'image', src:s }; }), +el.getAttribute('data-shot')); }
+            });
+        });
 
         foot.innerHTML = d.installed
             ? '<span class="small text-body-secondary me-auto">Installed'+(d.installed_version?' (v'+esc(d.installed_version)+')':'')+'</span><button type="button" class="btn btn-warning" id="mod-do"><i class="fa-solid fa-arrows-rotate me-1"></i>Update to '+esc(m.version||d.ref)+'</button>'
