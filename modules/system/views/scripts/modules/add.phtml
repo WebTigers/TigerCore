@@ -119,9 +119,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
         var reqBits=[]; if(req.tiger)reqBits.push('Tiger '+esc(req.tiger)); if(req.php)reqBits.push('PHP '+esc(req.php));
         var pricing = (x.pricing && x.pricing.model) || m.pricing;
-        var shots = Array.isArray(x.screenshots) ? x.screenshots : [];
-        var gallery = shots.length ? '<div class="mod-shots d-flex flex-wrap gap-2">' +
-            shots.map(function(s,i){ return '<img src="'+esc(s)+'" class="mod-shot" data-shot="'+i+'" alt="screenshot '+(i+1)+'" onerror="'+imgErr+'">'; }).join('') +
+        var media = [];
+        if (x.video && x.video.src){ media.push({ type: x.video.type || 'video', src: x.video.src, poster: x.video.poster || x.hero || '' }); }
+        (Array.isArray(x.screenshots) ? x.screenshots : []).forEach(function(s){ media.push({ type:'image', src:s }); });
+        var gallery = media.length ? '<div class="mod-shots d-flex flex-wrap gap-2">' +
+            media.map(function(it,i){
+                if (it.type === 'video' || it.type === 'iframe'){
+                    return '<span class="mod-shot-vid" data-media="'+i+'" title="Play video">' +
+                        (it.poster ? '<img src="'+esc(it.poster)+'" alt="" onerror="'+imgErr+'">' : '') +
+                        '<i class="fa-solid fa-circle-play"></i></span>';
+                }
+                return '<img src="'+esc(it.src)+'" class="mod-shot" data-media="'+i+'" loading="lazy" alt="screenshot '+(i+1)+'" onerror="'+imgErr+'">';
+            }).join('') +
             '</div>' : '';
         body.innerHTML =
             (x.hero ? '<img src="'+esc(x.hero)+'" class="mod-hero" onerror="'+imgErr+'">' : '') +
@@ -134,9 +143,9 @@ document.addEventListener('DOMContentLoaded', function () {
             (m.description ? '<p>'+esc(m.description)+'</p>' : '') +
             (d.description_html ? '<hr><div class="mod-readme">'+d.description_html+'</div>' : '<p class="text-body-secondary small">No TIGER.md provided.</p>');
 
-        body.querySelectorAll('[data-shot]').forEach(function(el){
+        body.querySelectorAll('[data-media]').forEach(function(el){
             el.addEventListener('click', function(){
-                if (window.TigerLightbox){ TigerLightbox.open(shots.map(function(s){ return { type:'image', src:s }; }), +el.getAttribute('data-shot')); }
+                if (window.TigerLightbox){ TigerLightbox.open(media.map(function(it){ return { type: it.type, src: it.src }; }), +el.getAttribute('data-media')); }
             });
         });
 

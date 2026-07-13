@@ -96,10 +96,11 @@ class Tiger_Module_Registry
      * "assets/screenshots/01.png") which resolve against the pinned ref
      * (raw.githubusercontent.com/<org>/<repo>/<ref>/…) so the SAME paths are reusable in the repo's
      * README.md. A value already starting with http(s) is passed through unchanged (back-compat with
-     * full-URL logo/hero). Covers logo, hero, and the screenshots[] gallery.
+     * full-URL logo/hero). Covers logo, hero, the screenshots[] gallery, and the video (self-hosted
+     * mp4 → raw, YouTube/Vimeo → a click-only nocookie embed).
      *
      * @param  array $m the listing
-     * @return array the listing with absolute image URLs
+     * @return array the listing with absolute media URLs
      */
     protected static function _resolveImages(array $m)
     {
@@ -117,6 +118,31 @@ class Tiger_Module_Registry
         }
         if (!empty($m['screenshots']) && is_array($m['screenshots'])) {
             $m['screenshots'] = array_values(array_filter(array_map($abs, $m['screenshots'])));
+        }
+
+        // video: a self-hosted .mp4/.webm (repo-relative → raw, or a full CDN URL) plays inline;
+        // a YouTube/Vimeo link becomes a privacy-enhanced embed that only loads on click (the
+        // lightbox builds the iframe on open, so nothing phones home until the admin plays it).
+        // An optional repo-hosted poster avoids a third-party thumbnail.
+        if (!empty($m['video'])) {
+            $v   = is_array($m['video']) ? $m['video'] : ['src' => (string) $m['video']];
+            $src = (string) ($v['src'] ?? '');
+            if ($src === '') {
+                unset($m['video']);
+            } else {
+                if (preg_match('#(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([\w-]+)#i', $src, $y)) {
+                    $v['src']  = 'https://www.youtube-nocookie.com/embed/' . $y[1];
+                    $v['type'] = 'iframe';
+                } elseif (preg_match('#vimeo\.com/(?:video/)?(\d+)#i', $src, $vm)) {
+                    $v['src']  = 'https://player.vimeo.com/video/' . $vm[1];
+                    $v['type'] = 'iframe';
+                } else {
+                    $v['src']  = $abs($src);
+                    $v['type'] = 'video';
+                }
+                if (!empty($v['poster'])) { $v['poster'] = $abs($v['poster']); }
+                $m['video'] = $v;
+            }
         }
         return $m;
     }
