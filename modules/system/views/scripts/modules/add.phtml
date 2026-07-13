@@ -115,12 +115,12 @@ document.addEventListener('DOMContentLoaded', function () {
         head.innerHTML =
             (logo ? '<img src="'+esc(logo)+'" class="mod-logo" onerror="'+imgErr+'">' : '') +
             '<div><h5 class="modal-title mb-0">'+esc(m.name)+' '+(m.version?'<span class="text-body-secondary fs-6">v'+esc(m.version)+'</span>':'')+'</h5>'+
-            '<div class="small text-body-secondary">'+(vendor?esc(vendor)+' · ':'')+'<code>/'+esc(m.slug)+'</code>'+(m.license?' · '+esc(m.license):'')+'</div></div>';
+            '<div class="small text-body-secondary">'+(vendor?esc(vendor)+' · ':'')+'<code>/'+esc(m.slug)+'</code></div></div>';
 
         var reqBits=[]; if(req.tiger)reqBits.push('Tiger '+esc(req.tiger)); if(req.php)reqBits.push('PHP '+esc(req.php));
         var pricing = (x.pricing && x.pricing.model) || m.pricing;
         var media = [];
-        if (x.video && x.video.src){ media.push({ type: x.video.type || 'video', src: x.video.src, poster: x.video.poster || x.hero || '' }); }
+        if (x.video && x.video.src){ media.push({ type: x.video.type || 'video', src: x.video.src, poster: x.video.poster || '' }); }
         (Array.isArray(x.screenshots) ? x.screenshots : []).forEach(function(s){ media.push({ type:'image', src:s }); });
         var gallery = media.length ? '<div class="mod-shots d-flex flex-wrap gap-2">' +
             media.map(function(it,i){
@@ -136,7 +136,8 @@ document.addEventListener('DOMContentLoaded', function () {
             (x.hero ? '<img src="'+esc(x.hero)+'" class="mod-hero" onerror="'+imgErr+'">' : '') +
             gallery +
             '<div class="mb-2">' +
-              (pricing && pricing !== 'paid' ? badge('free tier','success-subtle text-success-emphasis border border-success-subtle') : (pricing==='paid'?badge('paid','secondary'):'')) +
+              ((pricing==='free'||pricing==='freemium') ? badge('free','success-subtle text-success-emphasis border border-success-subtle') : '') +
+              ((pricing==='freemium'||pricing==='paid') ? badge('pro','primary-subtle text-primary-emphasis border border-primary-subtle') : '') +
               '<a href="'+esc(d.repo)+'" target="_blank" rel="noopener" class="badge text-bg-light text-decoration-none"><i class="fa-brands fa-github me-1"></i>'+esc(d.repo.replace('https://github.com/',''))+'@'+esc(d.ref)+'</a>' +
               (reqBits.length?' <span class="small text-body-secondary ms-1">Requires '+reqBits.join(', ')+'</span>':'') +
             '</div>' +
@@ -150,9 +151,10 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         foot.innerHTML = d.installed
-            ? '<span class="small text-body-secondary me-auto">Installed'+(d.installed_version?' (v'+esc(d.installed_version)+')':'')+'</span><button type="button" class="btn btn-warning" id="mod-do"><i class="fa-solid fa-arrows-rotate me-1"></i>Update to '+esc(m.version||d.ref)+'</button>'
+            ? '<span class="text-success"><i class="fa-solid fa-circle-check me-1"></i>Installed'+(d.installed_version?' (v'+esc(d.installed_version)+')':'')+'</span>'
             : '<button type="button" class="btn btn-primary" id="mod-do"><i class="fa-solid fa-download me-1"></i>Install</button>';
-        document.getElementById('mod-do').addEventListener('click', function(){ doInstall(d.repo, d.ref, d.installed); });
+        var doBtn = document.getElementById('mod-do');
+        if (doBtn){ doBtn.addEventListener('click', function(){ doInstall(d.repo, d.ref, false); }); }
     }
 
     function doInstall(repo, ref, isUpdate){
@@ -182,12 +184,15 @@ document.addEventListener('DOMContentLoaded', function () {
             var list=(res.data&&res.data.results)||[];
             if (!list.length){ results.innerHTML='<div class="col text-body-secondary small">No modules match.</div>'; return; }
             results.innerHTML = list.map(function(m,i){
-                var free = m.pricing && m.pricing.model && m.pricing.model!=='paid';
+                var pm = (m.pricing && m.pricing.model) || '';
+                var pricingBadges =
+                    ((pm==='free'||pm==='freemium') ? ' <span class="badge text-bg-success-subtle text-success-emphasis border border-success-subtle">free</span>' : '') +
+                    ((pm==='freemium'||pm==='paid') ? ' <span class="badge text-bg-primary-subtle text-primary-emphasis border border-primary-subtle" title="Paid pro version available">pro</span>' : '');
                 var spon = m.sponsored?' <span class="badge text-bg-warning-subtle text-warning-emphasis border border-warning-subtle" title="Promoted placement">'+esc(m.sponsored_label||'Sponsored')+'</span>':'';
                 return '<div class="col"><div class="card h-100'+(m.sponsored?' border-warning-subtle':'')+'"><div class="card-body d-flex gap-3">'+
                     (m.logo?'<img src="'+esc(m.logo)+'" class="mod-card-logo" onerror="'+imgErr+'">':'')+
                     '<div class="flex-grow-1">'+
-                      '<h6 class="mb-0">'+esc(m.module||m.slug)+(free?' <span class="badge text-bg-success-subtle text-success-emphasis border border-success-subtle">free</span>':'')+spon+'</h6>'+
+                      '<h6 class="mb-0">'+esc(m.module||m.slug)+pricingBadges+spon+'</h6>'+
                       '<div class="small text-body-secondary mb-1">'+esc(m.vendor||'')+'</div>'+
                       '<p class="small text-body-secondary mb-2">'+esc(m.description||'')+'</p>'+
                       '<button type="button" class="btn btn-sm btn-outline-primary" data-i="'+i+'">View more</button>'+

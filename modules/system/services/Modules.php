@@ -185,8 +185,13 @@ class System_Service_Modules extends Tiger_Service_Service
             try { $descHtml = $this->_scrub((new Tiger_Cms_Renderer())->renderBody($tigerMd, 'markdown')); } catch (Throwable $e) {}
         }
 
-        $installed = (new Tiger_Model_Module())->bySlug($m['slug']);
-        $author    = $m['author'] ?? '';
+        // "Installed" = recorded by the installer OR simply present on disk (discovered) — the
+        // latter covers a theme/module placed manually or activated without an installer row.
+        $row        = (new Tiger_Model_Module())->bySlug($m['slug']);
+        $discovered = Tiger_Module_Discovery::all();
+        $present    = $row || isset($discovered[$m['slug']]);
+        $instVer    = $row ? $row->version : ($discovered[$m['slug']]['version'] ?? null);
+        $author     = $m['author'] ?? '';
         if (is_array($author)) { $author = $author['name'] ?? ''; }
 
         $this->_success([
@@ -203,8 +208,8 @@ class System_Service_Modules extends Tiger_Service_Service
                 'pricing'     => $m['pricing']['model'] ?? null,
             ],
             'description_html' => $descHtml,
-            'installed'        => (bool) $installed,
-            'installed_version'=> $installed ? $installed->version : null,
+            'installed'        => (bool) $present,
+            'installed_version'=> $instVer,
         ]);
     }
 
