@@ -57,7 +57,7 @@ class Media_FileController extends Tiger_Controller_Action
             ? 'public, max-age=31536000' : 'private, no-store';
         $response->setHeader('Content-Type', $mime, true)
                  ->setHeader('Content-Length', (string) $size, true)
-                 ->setHeader('Content-Disposition', 'inline; filename="' . rawurlencode((string) $media['filename']) . '"', true)
+                 ->setHeader('Content-Disposition', 'inline; filename="' . rawurlencode(Tiger_Model_Media::downloadName($media)) . '"', true)
                  ->setHeader('Cache-Control', $cache, true)
                  ->sendHeaders();
         fpassthru($stream);

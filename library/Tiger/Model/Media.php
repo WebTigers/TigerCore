@@ -135,6 +135,39 @@ class Tiger_Model_Media extends Tiger_Model_Table
     }
 
     /**
+     * Was this file stored with an OBFUSCATED key (a bare 32-hex basename)? The storage key is the
+     * ground truth — it reflects the obfuscation choice at upload time and never drifts if the
+     * setting later changes. Readable keys always carry a `-<8hex>` suffix, so they never collide
+     * with this pattern.
+     *
+     * @param  string $storageKey the media storage key
+     * @return bool
+     */
+    public static function isObfuscatedKey($storageKey)
+    {
+        $base = (string) pathinfo((string) $storageKey, PATHINFO_FILENAME);
+        return $base !== '' && (bool) preg_match('/^[0-9a-f]{32}$/', $base);
+    }
+
+    /**
+     * The filename to serve in Content-Disposition — obfuscated files download under their random
+     * stored name (nothing about the original leaks); readable files download under the original.
+     * So the download name follows the same obfuscation as the storage key / URL.
+     *
+     * @param  array $media the media row (needs storage_key; filename for the readable case)
+     * @return string the download filename
+     */
+    public static function downloadName(array $media)
+    {
+        $key = (string) ($media['storage_key'] ?? '');
+        if (self::isObfuscatedKey($key)) {
+            return basename($key);                                   // e.g. 2fbb…e1.jpg
+        }
+        $name = (string) ($media['filename'] ?? '');
+        return $name !== '' ? $name : basename($key);
+    }
+
+    /**
      * Classify an upload by extension against the configured allowlists (`media.allow.*`).
      * Returns the kind and whether it's allowed at all. `pdf` is split out of documents so
      * it gets the pdf.js preview path.

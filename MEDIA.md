@@ -147,4 +147,62 @@ webhook approves it.
    SDK-optional guard. GCS/Azure verified offline (URL/key mapping, traversal guard, and real
    V4/SAS signing); live round-trips pending cloud accounts.
 
+## 8. Recent additions & documentation notes (as of 2026-07-14)
+
+The Library UI was substantially rebuilt after §4–§6 were written. When we write the user/admin
+docs for the Media Manager, cover the following — and reconcile the **stale** lines flagged below.
+
+**Filename obfuscation (NEW — the big one).** A per-org, per-visibility setting controls how uploads
+are named in storage + URLs. `Obfuscate = Yes` → a fully random storage key (nothing about the
+original name leaks). `Obfuscate = No` → a **slugified original filename + short random suffix**
+(readable/SEO URL, still collision-safe), e.g. `annual-report-a1b2c3d4.pdf`. **Defaults: public
+readable, private obfuscated.** Resolution: org config → global config → built-in default. It applies
+to **new uploads only** (existing files keep their names — deliberate; no "you changed my filename").
+- Config keys: `tiger.media.obfuscate.public|private` (`'1'|'0'`), stored org-scoped (`SCOPE_ORG`, else
+  global) — config-discipline, no settings table.
+- Single source of truth = static helpers on `Tiger_Model_Media`: `obfuscateEnabled($vis,$org)`,
+  `storageBase($original,$obf)`, `slugify()`, `settingScope($org)`, `obfuscateDefault($vis)`.
+- **Download name follows it too:** `Content-Disposition` uses `Tiger_Model_Media::downloadName($media)`
+  — obfuscated files download under their random stored name, readable files under the original. The
+  ground truth is the **storage-key pattern** (`isObfuscatedKey()`: a bare 32-hex basename), NOT the
+  live setting, so it never drifts if the setting is changed later. (Public files are served directly
+  by the web server, so their download name is already the key basename in the URL.)
+- Admin screen: **Media → Settings** (`/media/admin/settings`, `Media_AdminController` +
+  `Media_Form_Settings` + `Media_Service_Settings`), registered in the Settings tree; built per ADMIN.md.
+- **STALE:** §2's `filename` row ("original (display + download)") — download now follows obfuscation.
+  §2's `storage_key` example (`<rand>.<ext>`) is now one of two shapes (random OR `slug-<8hex>`).
+
+**Upload rebuilt on TigerUpload (supersedes §4's per-request framing + §5's "per-file progress list").**
+Uploads now run through the **TigerUpload** engine (own public repo `WebTigers/TigerUpload`, vendored at
+`themes/puma/assets/vendor/tiger-upload/`; see [[tigerupload-component]]). It's a headless pub/sub
+engine: one upload broadcasts to **N subscribers**. The Library wires **three**: (1) the List view
+renders temp `<tr>`s with a thumbnail + progress bar; (2) the Portfolio renders temp tiles with a
+progress overlay; (3) a coordinator toasts errors and reloads each view to the server-canonical rows on
+batch end. Full-page drop (anywhere on the page, overlay), scoped drop, and click-to-browse all feed the
+one engine. The dynamic `visibility` field and the async **client-generated thumbnail** ride the engine's
+`prepare(item, fd)` hook. (The old dedicated dropzone box was removed — full-page drop covers it.)
+
+**Portfolio = CSS-columns MASONRY (supersedes §5 "CSS-grid" square tiles).** Fixed column width (the
+size selector drives `--tile`), **natural image heights** (`height:auto`, no crop). Icon/pdf tiles stay
+square. Note: CSS columns fill **column-major** (an accepted trade for zero-JS auto-reflow); Muuri is
+vendored if we ever want row-major.
+
+**Table columns:** Thumbnail (200px; image contained in a 180×180 box, bigger side wins, centered) ·
+File · Type · Size · **Dimensions** (W×H from the row) · Visibility · Actions. The built-in DataTables
+search is disabled (`layout:{topEnd:null}`) — the shared search header drives filtering. (DataTables is
+**2.3.4**; the search element is `div.dt-search`, not the 1.x `.dataTables_filter`.)
+
+**Row/tile actions + the Edit modal.** One **shared Edit modal** (both views), prefilled from the row's
+`data-*` attrs: **Title, Caption, Alt text, Visibility** — the *only* user-editable fields
+(`Media_Service_Media::update` whitelist). **Caption is the description** (there is no separate
+description or tags/keywords field — a likely doc FAQ). The modal has an in-footer red **Delete**
+(gated by `can_delete`). List Actions: **Open · Copy URL · Edit · Delete** (one-click convenience);
+Portfolio tiles: a hover **Edit** pencil (delete via the modal). **Copy URL** copies the file's absolute
+URL (clipboard API + execCommand fallback) with a small themed "Copied!" popper. Both delete paths share
+one `deleteMedia()` helper.
+
+**Doc-worthy gotchas to include:** storage keys are always tenant-isolated by the **immutable** org_id;
+public vs private serving paths differ (web-server-direct vs the ACL streamer); `scan_status=in_review`
+holds a video private until the moderation webhook; editable metadata is only the four fields above.
+
 Progress lives in the task list; this doc is the map.
