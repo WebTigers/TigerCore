@@ -19,48 +19,87 @@ $registryHasData = !empty($this->registryHasData);
 
 <div id="mod-feedback"></div>
 
-<div class="card mb-4">
-    <div class="card-header fw-semibold"><i class="fa-brands fa-github me-2"></i>Install from a GitHub repository</div>
-    <div class="card-body">
-        <p class="text-body-secondary small">Paste a <strong>public</strong> GitHub repo URL — we pull its <code>module.json</code> + <code>TIGER.md</code> so you can review it before installing. Private repos aren't supported; module code must be open for review.</p>
-        <div class="row g-2 align-items-end">
-            <div class="col-12 col-md-7">
-                <label class="form-label small" for="mod-url">Repository URL</label>
-                <input type="url" class="form-control" id="mod-url" placeholder="https://github.com/org/repo">
+<ul class="nav nav-tabs mb-4" id="mod-add-tabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-browse-btn" data-bs-toggle="tab" data-bs-target="#tab-browse" type="button" role="tab"><i class="fa-solid fa-store me-2"></i>Browse</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-url-btn" data-bs-toggle="tab" data-bs-target="#tab-url" type="button" role="tab"><i class="fa-brands fa-github me-2"></i>URL</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-upload-btn" data-bs-toggle="tab" data-bs-target="#tab-upload" type="button" role="tab"><i class="fa-solid fa-upload me-2"></i>Upload</button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- Browse the registry -->
+    <div class="tab-pane fade show active" id="tab-browse" role="tabpanel" aria-labelledby="tab-browse-btn">
+        <div class="card">
+            <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
+                <span><i class="fa-solid fa-store me-2"></i>Browse the directory</span>
+                <span class="small fw-normal <?= $registryHasData ? 'text-success' : 'text-body-secondary' ?>"><?= $registryHasData ? 'community registry' : 'registry unavailable' ?></span>
             </div>
-            <div class="col-8 col-md-3">
-                <label class="form-label small" for="mod-ref">Version <span class="text-body-secondary">(optional)</span></label>
-                <input type="text" class="form-control" id="mod-ref" placeholder="latest release">
-            </div>
-            <div class="col-4 col-md-2">
-                <button type="button" id="mod-check" class="btn btn-outline-primary w-100"><i class="fa-solid fa-magnifying-glass me-1"></i>Check</button>
+            <div class="card-body">
+                <?php if (!$registryHasData): ?>
+                    <p class="text-body-secondary mb-0"><i class="fa-regular fa-circle-question me-1"></i>The Vendor Registry isn't reachable yet. Install from a repo URL or upload a <code>.zip</code> instead — those always work.</p>
+                <?php else: ?>
+                    <div class="d-flex gap-2 mb-3">
+                        <div class="input-group flex-grow-1">
+                            <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+                            <input type="text" class="form-control" id="mod-search" placeholder="Search modules…">
+                        </div>
+                        <select class="form-select w-auto" id="mod-sort" aria-label="Sort results" title="Sort results">
+                            <option value="featured" selected>Featured</option>
+                            <option value="title">Title (A–Z)</option>
+                            <option value="latest">Latest</option>
+                        </select>
+                    </div>
+                    <div id="mod-results" class="row row-cols-1 row-cols-md-2 g-3"></div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
-</div>
 
-<div class="card">
-    <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
-        <span><i class="fa-solid fa-store me-2"></i>Browse the directory</span>
-        <span class="small fw-normal <?= $registryHasData ? 'text-success' : 'text-body-secondary' ?>"><?= $registryHasData ? 'community registry' : 'registry unavailable' ?></span>
-    </div>
-    <div class="card-body">
-        <?php if (!$registryHasData): ?>
-            <p class="text-body-secondary mb-0"><i class="fa-regular fa-circle-question me-1"></i>The Vendor Registry isn't reachable yet. Install directly from a repo URL above — that always works.</p>
-        <?php else: ?>
-            <div class="d-flex gap-2 mb-3">
-                <div class="input-group flex-grow-1">
-                    <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
-                    <input type="text" class="form-control" id="mod-search" placeholder="Search modules…">
+    <!-- Install from a GitHub URL -->
+    <div class="tab-pane fade" id="tab-url" role="tabpanel" aria-labelledby="tab-url-btn">
+        <div class="card">
+            <div class="card-header fw-semibold"><i class="fa-brands fa-github me-2"></i>Install from a GitHub repository</div>
+            <div class="card-body">
+                <p class="text-body-secondary small">Paste a <strong>public</strong> GitHub repo URL — we pull its <code>module.json</code>/<code>theme.json</code> + <code>TIGER.md</code> so you can review it before installing. Private repos aren't supported; module code must be open for review.</p>
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-md-7">
+                        <label class="form-label small" for="mod-url">Repository URL</label>
+                        <input type="url" class="form-control" id="mod-url" placeholder="https://github.com/org/repo">
+                    </div>
+                    <div class="col-8 col-md-3">
+                        <label class="form-label small" for="mod-ref">Version <span class="text-body-secondary">(optional)</span></label>
+                        <input type="text" class="form-control" id="mod-ref" placeholder="latest release">
+                    </div>
+                    <div class="col-4 col-md-2">
+                        <button type="button" id="mod-check" class="btn btn-outline-primary w-100"><i class="fa-solid fa-magnifying-glass me-1"></i>Check</button>
+                    </div>
                 </div>
-                <select class="form-select w-auto" id="mod-sort" aria-label="Sort results" title="Sort results">
-                    <option value="featured" selected>Featured</option>
-                    <option value="title">Title (A–Z)</option>
-                    <option value="latest">Latest</option>
-                </select>
             </div>
-            <div id="mod-results" class="row row-cols-1 row-cols-md-2 g-3"></div>
-        <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- Upload a .zip -->
+    <div class="tab-pane fade" id="tab-upload" role="tabpanel" aria-labelledby="tab-upload-btn">
+        <div class="card">
+            <div class="card-header fw-semibold"><i class="fa-solid fa-upload me-2"></i>Upload a module package</div>
+            <div class="card-body">
+                <p class="text-body-secondary small">Upload a module or theme <code>.zip</code> — it's unpacked into your modules folder and installed. Only upload packages you <strong>trust</strong>; the code runs in your app once active.</p>
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-md-9">
+                        <label class="form-label small" for="mod-file">Package (<code>.zip</code>)</label>
+                        <input type="file" class="form-control" id="mod-file" accept=".zip,application/zip">
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <button type="button" id="mod-upload" class="btn btn-primary w-100"><i class="fa-solid fa-upload me-1"></i>Upload &amp; install</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -170,6 +209,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.getElementById('mod-check').addEventListener('click', function(){ var u=urlEl.value.trim(); if(u){ openDetail(u, refEl.value.trim(), {}, this); } });
     urlEl.addEventListener('keydown', function(e){ if(e.key==='Enter'){ document.getElementById('mod-check').click(); } });
+
+    // Upload install (multipart — the file rides in FormData, not the URLSearchParams api() helper)
+    var uploadBtn = document.getElementById('mod-upload'), fileEl = document.getElementById('mod-file');
+    if (uploadBtn){
+        uploadBtn.addEventListener('click', function(){
+            if (!fileEl.files || !fileEl.files.length){ TigerDOM.notify(fb, 'Choose a .zip package to upload.', { type: 'alert' }); return; }
+            if (!confirm('Install this uploaded package? Its code will run in your app once active.')) { return; }
+            var fd = new FormData();
+            fd.append('module','system'); fd.append('service','modules'); fd.append('method','upload');
+            fd.append('archive', fileEl.files[0]);
+            TigerButton.run(this, function(){
+                return fetch('/api',{ method:'POST', headers:{ 'X-Requested-With':'XMLHttpRequest' }, body: fd }).then(function(r){ return r.json().catch(function(){ return {}; }); });
+            }).then(function(res){
+                if (res && res.result===1){ window.location = res.redirect || '/system/modules'; return; }
+                fb.innerHTML=''; ((res&&res.messages)||[]).forEach(function(m){ TigerDOM.notify(fb, m.message, { type: m.class, replace:false }); }); window.scrollTo({ top:0, behavior:'smooth' });
+            }).catch(function(){ TigerDOM.notify(fb, 'Upload failed — please try again.', { type:'error' }); });
+        });
+    }
 
     // Registry search
     var searchEl=document.getElementById('mod-search'), sortEl=document.getElementById('mod-sort'), results=document.getElementById('mod-results'), t;
