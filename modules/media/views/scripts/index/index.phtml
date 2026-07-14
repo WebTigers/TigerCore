@@ -105,6 +105,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var table = tigerDataTable('#media-table', {
         service: { module:'media', service:'media', action:'datatable' },
         order: [[1,'desc']],
+        layout: { topEnd: null },   // drop DataTables' built-in search — the shared search header drives it
         extraData: function(){ return { kind: kindEl.value }; },
         columns: [
             { data:null, orderable:false, className:'text-center', render:function(t,type,row){
