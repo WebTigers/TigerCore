@@ -55,7 +55,8 @@
       auto:          opts.auto !== false,          // default: upload on add
       withCredentials: !!opts.withCredentials,
       headers:       opts.headers || { 'X-Requested-With': 'XMLHttpRequest' },
-      parseResponse: opts.parseResponse || tigerParse
+      parseResponse: opts.parseResponse || tigerParse,
+      prepare:       opts.prepare || null          // fn(item, formData) → void|Promise: add per-file fields (dynamic params, a client thumbnail) before send
     };
     this.items    = [];
     this._subs    = [];
@@ -179,7 +180,15 @@
       var token = this.csrfToken();
       if (token) { fd.append(this.opts.csrfField, token); }
       fd.append(this.opts.field, item.file, item.name);
-      xhr.send(fd);
+
+      // Optional per-file prep (dynamic fields, a client-made thumbnail). May be async — if it
+      // returns a promise the send waits for it; a thrown/rejected prep still sends the base form.
+      var send = function () { xhr.send(fd); };
+      if (typeof this.opts.prepare === 'function') {
+        var out; try { out = this.opts.prepare(item, fd); } catch (e) { out = null; }
+        if (out && typeof out.then === 'function') { out.then(send, send); return; }
+      }
+      send();
     },
 
     _fail: function (item, msg) {

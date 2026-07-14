@@ -11,6 +11,7 @@
 ?>
 <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/vendor/tiger-lightbox/tiger-lightbox.css') ?>">
 <script src="<?= $this->asset($this->themeAssets . '/vendor/tiger-lightbox/tiger-lightbox.js') ?>" defer></script>
+<script src="<?= $this->asset($this->themeAssets . '/vendor/tiger-upload/tiger-upload.js') ?>"></script>
 
 <div class="d-flex align-items-center justify-content-between mb-3">
     <div>
@@ -28,9 +29,8 @@
 </div>
 
 <div id="media-drop" class="border border-2 border-dashed rounded p-4 text-center text-body-secondary mb-3">
-    <i class="fa-solid fa-cloud-arrow-up fa-2x mb-2 d-block"></i>Drop files here to upload
+    <i class="fa-solid fa-cloud-arrow-up fa-2x mb-2 d-block"></i>Drop files anywhere to upload
 </div>
-<div id="media-queue" class="mb-3"></div>
 
 <div class="card">
     <div class="card-header bg-transparent">
@@ -231,14 +231,21 @@ document.addEventListener('DOMContentLoaded', function () {
         }).then(function(){ refresh(); }).catch(function(){ refresh(); });
     });
 
-    // ---------- drag-drop upload (one XHR per file, real progress) ----------
-    var drop = document.getElementById('media-drop'), queue = document.getElementById('media-queue'), input = document.getElementById('media-input');
-    document.getElementById('media-browse').addEventListener('click', function(){ input.click(); });
-    input.addEventListener('change', function(){ upload(this.files); this.value=''; });
-    ['dragenter','dragover'].forEach(function(e){ drop.addEventListener(e, function(ev){ ev.preventDefault(); drop.classList.add('bg-body-secondary'); }); });
-    ['dragleave','drop'].forEach(function(e){ drop.addEventListener(e, function(ev){ ev.preventDefault(); drop.classList.remove('bg-body-secondary'); }); });
-    drop.addEventListener('drop', function(ev){ if(ev.dataTransfer&&ev.dataTransfer.files) upload(ev.dataTransfer.files); });
+    // ---------- upload (TigerUpload engine → BOTH views as independent subscribers) ----------
+    // One upload event, broadcast to: (1) the List renderer — temp <tr>s with a thumb + bar;
+    // (2) the Portfolio renderer — larger tiles with a bar; (3) a coordinator that toasts errors
+    // and reconciles each view with the server-canonical rows on batch end. Same engine, three views.
+    var drop = document.getElementById('media-drop'), input = document.getElementById('media-input'),
+        visEl = document.getElementById('media-vis'), listBody = document.querySelector('#media-table tbody');
+    function kindOfMime(t){ t=t||'';
+        if (/^image\//.test(t)) { return 'image'; } if (t==='application/pdf') { return 'pdf'; }
+        if (/^video\//.test(t)) { return 'video'; } if (/^audio\//.test(t)) { return 'audio'; }
+        if (/(zip|compressed|tar|rar|7z)/.test(t)) { return 'archive'; }
+        if (/^text\/|word|excel|powerpoint|officedocument|opendocument/.test(t)) { return 'document'; }
+        return 'other'; }
 
+    // Client-side thumbnail (downscaled JPEG) — kept from the previous uploader, now fed through the
+    // engine's prepare() hook so the engine owns transport while the app owns the extra field.
     function makeThumb(file, maxEdge){
         return new Promise(function(resolve){
             if (!/^image\//.test(file.type) || /svg/.test(file.type)) { resolve(null); return; }
@@ -253,34 +260,87 @@ document.addEventListener('DOMContentLoaded', function () {
             img.src = url;
         });
     }
-    function send(file, thumbBlob, row, bar, pct){
-        var fd = new FormData();
-        fd.append('module','media'); fd.append('service','media'); fd.append('method','upload');
-        fd.append('visibility', document.getElementById('media-vis').value); fd.append('file', file);
-        if (thumbBlob) { fd.append('thumbnail', thumbBlob, 'thumb.jpg'); }
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST','/api'); xhr.setRequestHeader('X-Requested-With','XMLHttpRequest');
-        xhr.upload.onprogress = function(e){ if(e.lengthComputable){ var p=Math.round(e.loaded/e.total*100); bar.style.width=p+'%'; pct.textContent=p+'%'; } };
-        xhr.onload = function(){
-            var res={}; try{ res=JSON.parse(xhr.responseText); }catch(e){}
-            if (res.result===1){ row.querySelector('.progress').classList.add('d-none'); pct.className='small text-success'; pct.textContent='Done'; bar.classList.add('bg-success'); setTimeout(function(){ row.remove(); },1500); refresh(); }
-            else { bar.classList.add('bg-danger'); pct.className='small text-danger'; pct.textContent='';
-                var msg=(res.messages&&res.messages[0])?res.messages[0].message:'Upload failed'; row.insertAdjacentHTML('beforeend','<span class="small text-danger ms-2">'+esc(msg)+'</span>'); }
-        };
-        xhr.onerror = function(){ bar.classList.add('bg-danger'); pct.className='small text-danger'; pct.textContent='Error'; };
-        xhr.send(fd);
-    }
-    function upload(files){
-        Array.prototype.forEach.call(files, function(file){
-            var row = document.createElement('div');
-            row.className = 'd-flex align-items-center gap-2 border rounded px-3 py-2 mb-1';
-            row.innerHTML = '<span class="text-truncate" style="max-width:280px;">'+esc(file.name)+'</span>'
-                + '<div class="progress flex-grow-1" style="height:6px;"><div class="progress-bar" style="width:0%"></div></div>'
-                + '<span class="small text-body-secondary" style="width:44px;text-align:right;">0%</span>';
-            queue.appendChild(row);
-            var bar = row.querySelector('.progress-bar'), pct = row.querySelector('.small');
-            if (MEDIA_CLIENT_THUMB) { makeThumb(file, MEDIA_THUMB_PX).then(function(blob){ send(file, blob, row, bar, pct); }); }
-            else { send(file, null, row, bar, pct); }
+
+    if (window.TigerUpload) {
+        var up = TigerUpload.create({
+            url: '/api', field: 'file', auto: true, concurrency: 3,
+            params: { module: 'media', service: 'media', method: 'upload' },
+            prepare: function (item, fd) {
+                fd.set('visibility', visEl.value);                       // dynamic — read at send time
+                if (MEDIA_CLIENT_THUMB && item.isImage) {
+                    return makeThumb(item.file, MEDIA_THUMB_PX).then(function (blob) { if (blob) { fd.append('thumbnail', blob, 'thumb.jpg'); } });
+                }
+            }
+        });
+        up.fromInput(input);
+        up.dropOnElement(drop, { activeClass: 'bg-body-secondary' });
+        up.dropOnWindow({ label: 'Drop to upload', sublabel: 'images · video · PDFs · documents · archives' });
+        document.getElementById('media-browse').addEventListener('click', function () { input.click(); });
+
+        // Subscriber #1 — LIST view: a temp table row with a thumbnail cell + a progress bar.
+        var listRows = {};
+        up.subscribe({
+            onAdd: function (item) {
+                var tr = document.createElement('tr'); tr.className = 'media-uploading';
+                var thumb = item.previewUrl
+                    ? '<img src="' + item.previewUrl + '" class="rounded" style="width:48px;height:48px;object-fit:cover;">'
+                    : '<span class="d-inline-flex align-items-center justify-content-center rounded bg-body-secondary text-body-secondary" style="width:48px;height:48px;">' + icon(kindOfMime(item.type)) + '</span>';
+                tr.innerHTML =
+                    '<td class="text-center">' + thumb + '</td>' +
+                    '<td><div class="fw-semibold text-truncate" style="max-width:340px;">' + esc(item.name) + '</div>' +
+                        '<div class="progress mt-1" style="height:5px;"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%"></div></div></td>' +
+                    '<td><span class="badge text-bg-info-subtle text-info-emphasis">Uploading…</span></td>' +
+                    '<td class="text-body-secondary">' + human(item.size) + '</td><td></td>' +
+                    '<td class="text-end"><span class="spinner-border spinner-border-sm text-secondary" role="status" aria-hidden="true"></span></td>';
+                if (listBody) { listBody.insertBefore(tr, listBody.firstChild); }
+                listRows[item.id] = tr;
+            },
+            onProgress: function (item) { var tr = listRows[item.id]; if (tr) { tr.querySelector('.progress-bar').style.width = item.percent + '%'; } },
+            onSuccess: function (item) { var tr = listRows[item.id]; if (!tr) { return; }
+                var b = tr.querySelector('.progress-bar'); b.style.width = '100%'; b.classList.remove('progress-bar-animated'); b.classList.add('bg-success');
+                var badge = tr.querySelector('.badge'); badge.className = 'badge text-bg-success'; badge.textContent = 'Done';
+                tr.querySelector('td:last-child').innerHTML = '<i class="fa-solid fa-circle-check text-success"></i>'; },
+            onError: function (item) { var tr = listRows[item.id]; if (!tr) { return; }
+                tr.classList.add('table-danger');
+                var b = tr.querySelector('.progress-bar'); if (b) { b.classList.remove('progress-bar-animated'); b.classList.add('bg-danger'); }
+                tr.querySelector('td:nth-child(3)').innerHTML = '<span class="small text-danger">' + esc(item.error || 'Failed') + '</span>';
+                tr.querySelector('td:last-child').innerHTML = ''; }
+        });
+
+        // Subscriber #2 — PORTFOLIO view: a larger tile with a thumbnail + a progress bar overlay.
+        var gridTiles = {};
+        up.subscribe({
+            onAdd: function (item) {
+                var d = document.createElement('div'); d.className = 'media-tile media-uploading'; d.style.position = 'relative';
+                var pic = item.previewUrl
+                    ? '<img src="' + item.previewUrl + '" alt="" style="width:100%;height:100%;object-fit:cover;">'
+                    : '<div class="media-tile-icon">' + icon(kindOfMime(item.type)) + '<span class="small text-uppercase">' + esc((item.name.split('.').pop() || '').slice(0, 4)) + '</span></div>';
+                d.innerHTML = pic +
+                    '<div class="progress" style="position:absolute;left:6px;right:6px;bottom:26px;height:5px;"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%"></div></div>' +
+                    '<div class="media-tile-name">' + esc(item.name) + '</div>';
+                grid.insertBefore(d, grid.firstChild);
+                document.getElementById('media-grid-empty').hidden = true;
+                gridTiles[item.id] = d;
+            },
+            onProgress: function (item) { var d = gridTiles[item.id]; if (d) { d.querySelector('.progress-bar').style.width = item.percent + '%'; } },
+            onSuccess: function (item) { var d = gridTiles[item.id]; if (!d) { return; }
+                var b = d.querySelector('.progress-bar'); b.style.width = '100%'; b.classList.remove('progress-bar-animated'); b.classList.add('bg-success'); },
+            onError: function (item) { var d = gridTiles[item.id]; if (!d) { return; }
+                d.classList.add('border', 'border-danger');
+                var b = d.querySelector('.progress-bar'); if (b) { b.classList.remove('progress-bar-animated'); b.classList.add('bg-danger'); } }
+        });
+
+        // Subscriber #3 — coordinator: user-facing messages + reconcile each view with the server on
+        // batch end (temp rows/tiles are optimistic; the reload swaps in the real, id'd rows).
+        var upErrors = [];
+        up.subscribe({
+            onReject: function (info) { TigerDOM.toast('“' + info.name + '” — ' + info.error, { type: 'alert' }); },
+            onError:  function (item) { upErrors.push(item.name + ' — ' + (item.error || 'failed')); },
+            onComplete: function () {
+                table.ajax.reload(null, false);                          // list: temp rows → real rows
+                if (mode === 'grid') { gridFetch(true); }                // grid (if open): temp tiles → real tiles
+                if (upErrors.length) { TigerDOM.toast(upErrors.length + ' file' + (upErrors.length > 1 ? 's' : '') + ' failed: ' + upErrors.join('; '), { type: 'error' }); upErrors = []; }
+            }
         });
     }
 });
