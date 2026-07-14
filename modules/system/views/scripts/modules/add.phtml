@@ -54,6 +54,13 @@ $registryHasData = !empty($this->registryHasData);
                             <option value="latest">Latest</option>
                         </select>
                     </div>
+                    <ul class="nav nav-pills mod-type-filter mb-3" id="mod-type-filter">
+                        <li class="nav-item"><button type="button" class="nav-link active" data-type="">All</button></li>
+                        <li class="nav-item"><button type="button" class="nav-link" data-type="theme">Themes</button></li>
+                        <li class="nav-item"><button type="button" class="nav-link" data-type="app">Apps</button></li>
+                        <li class="nav-item"><button type="button" class="nav-link" data-type="plugin">Plugins</button></li>
+                        <li class="nav-item"><button type="button" class="nav-link" data-type="code">Code</button></li>
+                    </ul>
                     <div id="mod-results" class="row row-cols-1 row-cols-md-2 g-3"></div>
                 <?php endif; ?>
             </div>
@@ -248,19 +255,36 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Registry search
-    var searchEl=document.getElementById('mod-search'), sortEl=document.getElementById('mod-sort'), results=document.getElementById('mod-results'), t;
+    // Registry search + type filter
+    var searchEl=document.getElementById('mod-search'), sortEl=document.getElementById('mod-sort'),
+        results=document.getElementById('mod-results'), typeFilter=document.getElementById('mod-type-filter'), t;
+    var allResults=[], activeType='';
     if (searchEl){
         searchEl.addEventListener('input', function(){ clearTimeout(t); t=setTimeout(runSearch,250); });
         if (sortEl){ sortEl.addEventListener('change', runSearch); }
         runSearch();
     }
+    if (typeFilter){
+        typeFilter.querySelectorAll('[data-type]').forEach(function(btn){
+            btn.addEventListener('click', function(){
+                typeFilter.querySelectorAll('.nav-link').forEach(function(b){ b.classList.remove('active'); });
+                btn.classList.add('active');
+                activeType = btn.getAttribute('data-type');
+                renderResults();
+            });
+        });
+    }
     function runSearch(){
         api('search',{q:searchEl.value.trim(), sort:(sortEl?sortEl.value:'featured')}).then(function(res){
             if (res.result!==1) return;
-            var list=(res.data&&res.data.results)||[];
-            if (!list.length){ results.innerHTML='<div class="col text-body-secondary small">No modules match.</div>'; return; }
-            results.innerHTML = list.map(function(m,i){
+            allResults=(res.data&&res.data.results)||[];
+            renderResults();
+        });
+    }
+    function renderResults(){
+        var list = activeType ? allResults.filter(function(m){ return (m.type||'plugin')===activeType; }) : allResults;
+        if (!list.length){ results.innerHTML='<div class="col text-body-secondary small">No modules'+(activeType?' of this type':'')+' match.</div>'; return; }
+        results.innerHTML = list.map(function(m,i){
                 var pm = (m.pricing && m.pricing.model) || '';
                 var pricingBadges =
                     ((pm==='free'||pm==='freemium') ? ' <span class="badge text-bg-success-subtle text-success-emphasis border border-success-subtle">free</span>' : '') +
@@ -274,10 +298,9 @@ document.addEventListener('DOMContentLoaded', function () {
                       '<p class="small text-body-secondary mb-2">'+esc(m.description||'')+'</p>'+
                       '<button type="button" class="btn btn-sm btn-outline-primary" data-i="'+i+'">View more</button>'+
                     '</div></div></div></div>';
-            }).join('');
-            results.querySelectorAll('[data-i]').forEach(function(b){
-                b.addEventListener('click', function(){ var m=list[+b.getAttribute('data-i')]; openDetail(m.repository, m.ref, m, this); });
-            });
+        }).join('');
+        results.querySelectorAll('[data-i]').forEach(function(b){
+            b.addEventListener('click', function(){ var m=list[+b.getAttribute('data-i')]; openDetail(m.repository, m.ref, m, this); });
         });
     }
 });
