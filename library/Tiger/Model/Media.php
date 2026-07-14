@@ -38,6 +38,10 @@ class Tiger_Model_Media extends Tiger_Model_Table
     const VISIBILITY_PUBLIC  = 'public';
     const VISIBILITY_PRIVATE = 'private';
 
+    // Filename obfuscation (config, org-scoped). '1' = random storage key; '0' = readable slug.
+    // Default: private obfuscated, public readable (obfuscateDefault()).
+    const CFG_OBFUSCATE = 'tiger.media.obfuscate.';   // + 'public' | 'private'
+
     const SCAN_SKIPPED   = 'skipped';
     const SCAN_PENDING   = 'pending';
     const SCAN_CLEAN     = 'clean';
@@ -45,6 +49,90 @@ class Tiger_Model_Media extends Tiger_Model_Table
     const SCAN_REJECTED  = 'rejected';
     const SCAN_IN_REVIEW = 'in_review';
     const SCAN_APPROVED  = 'approved';
+
+    /**
+     * The config scope for a tenant's media settings: per-org when the identity acts in an org,
+     * else global (single-tenant / org-less install).
+     *
+     * @param  string $orgId the acting org id ('' = global)
+     * @return array [scope, scopeId]
+     */
+    public static function settingScope($orgId)
+    {
+        return ($orgId !== '' && $orgId !== null)
+            ? [Tiger_Model_Config::SCOPE_ORG, (string) $orgId]
+            : [Tiger_Model_Config::SCOPE_GLOBAL, ''];
+    }
+
+    /**
+     * Default obfuscation when nothing is stored: private files are obfuscated (random key, no
+     * info leak), public files are readable (SEO / shareable).
+     *
+     * @param  string $visibility 'public' | 'private'
+     * @return bool true = obfuscate, false = readable slug
+     */
+    public static function obfuscateDefault($visibility)
+    {
+        return $visibility === self::VISIBILITY_PRIVATE;
+    }
+
+    /**
+     * Whether new uploads of this visibility get an obfuscated (random) storage key. Resolves the
+     * org config, then the global config, then the built-in default.
+     *
+     * @param  string $visibility 'public' | 'private'
+     * @param  string $orgId      the uploader's org id
+     * @return bool
+     */
+    public static function obfuscateEnabled($visibility, $orgId)
+    {
+        $key = self::CFG_OBFUSCATE . ($visibility === self::VISIBILITY_PRIVATE ? 'private' : 'public');
+        $cfg = new Tiger_Model_Config();
+        list($scope, $sid) = self::settingScope($orgId);
+        $val = $cfg->get($scope, $sid, $key);
+        if ($val === null && $scope !== Tiger_Model_Config::SCOPE_GLOBAL) {
+            $val = $cfg->get(Tiger_Model_Config::SCOPE_GLOBAL, '', $key);   // org falls back to global
+        }
+        if ($val === null) {
+            return self::obfuscateDefault($visibility);
+        }
+        return $val === '1' || $val === 1 || $val === 'true';
+    }
+
+    /**
+     * The storage-key basename (no folder, no extension) for an upload: a random hex when
+     * obfuscated, else a slugified original filename + a short random suffix (readable + unique).
+     *
+     * @param  string $original  the original upload filename
+     * @param  bool   $obfuscate obfuscate (random) or readable
+     * @return string the basename
+     */
+    public static function storageBase($original, $obfuscate)
+    {
+        $rand = bin2hex(random_bytes(16));
+        if ($obfuscate) {
+            return $rand;
+        }
+        $slug = substr(self::slugify((string) pathinfo($original, PATHINFO_FILENAME)), 0, 80);
+        return $slug !== '' ? ($slug . '-' . substr($rand, 0, 8)) : $rand;
+    }
+
+    /**
+     * Slugify to a lowercase, filesystem/URL-safe token ('' if nothing survives).
+     *
+     * @param  string $s the input
+     * @return string the slug
+     */
+    public static function slugify($s)
+    {
+        $s = strtolower((string) $s);
+        if (function_exists('iconv')) {
+            $t = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s);
+            if ($t !== false) { $s = $t; }
+        }
+        $s = preg_replace('/[^a-z0-9]+/', '-', $s);
+        return trim((string) $s, '-');
+    }
 
     /**
      * Classify an upload by extension against the configured allowlists (`media.allow.*`).

@@ -1,0 +1,66 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * Media settings — filename obfuscation per visibility. Standard admin screen (ADMIN.md):
+ * header + feedback + a card; the Save posts to /api (Media_Service_Settings::save).
+ */
+?>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1">Media Settings</h1>
+        <p class="text-body-secondary mb-0">How uploaded files are named in storage &amp; URLs, per visibility. <span class="badge text-bg-light">this organization</span></p>
+    </div>
+    <div class="text-nowrap">
+        <button type="button" id="media-settings-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+    </div>
+</div>
+
+<div id="media-settings-feedback"></div>
+
+<form id="media-settings-form" onsubmit="return false;" novalidate>
+    <?= $this->form->getElement('_csrf') ?>
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header fw-semibold"><i class="fa-solid fa-signature me-2"></i>Filename obfuscation</div>
+                <div class="card-body">
+                    <p class="text-body-secondary small mb-4">
+                        Every file is stored under a tenant-isolated, random-suffixed key, so names never collide and can't be guessed by counting.
+                        <strong>Obfuscate&nbsp;=&nbsp;Yes</strong> uses a fully random name — nothing about the original filename appears anywhere.
+                        <strong>Obfuscate&nbsp;=&nbsp;No</strong> keeps a readable, slugified version of the original name in the storage path and URL
+                        (friendlier for SEO and recognizable links), e.g. <code>annual-report-a1b2c3d4.pdf</code>. This applies to <em>new</em> uploads;
+                        existing files keep their names.
+                    </p>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold" for="media-obf-public"><i class="fa-solid fa-globe me-2 text-success"></i>Public files</label>
+                        <?= $this->form->getElement('obfuscate_public') ?>
+                        <div class="form-text">Public files get a shareable, cacheable URL — <strong>readable</strong> is usually best.</div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold" for="media-obf-private"><i class="fa-solid fa-lock me-2 text-secondary"></i>Private files</label>
+                        <?= $this->form->getElement('obfuscate_private') ?>
+                        <div class="form-text">Private files stream through an opaque link — <strong>obfuscated</strong> is usually best.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+document.getElementById('media-settings-save').addEventListener('click', function () {
+    var form = document.getElementById('media-settings-form');
+    var fb   = document.getElementById('media-settings-feedback');
+    var fd   = new URLSearchParams(new FormData(form));
+    fd.set('module', 'media'); fd.set('service', 'settings'); fd.set('method', 'save');
+    TigerButton.run(this, function () {
+        return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
+            .then(function (r) { return r.json().catch(function () { return {}; }); });
+    }).then(function (res) {
+        if (res && res.result === 1) { TigerDOM.notify(fb, 'Settings saved.', { type: 'success' }); return; }
+        if (res && res.form) { Object.keys(res.form).forEach(function (f) { var el = form.querySelector('[name="' + f + '"]'); if (el) { el.classList.add('is-invalid'); } }); }
+        (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
+    }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+});
+</script>

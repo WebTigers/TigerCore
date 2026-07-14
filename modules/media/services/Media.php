@@ -58,13 +58,15 @@ class Media_Service_Media extends Tiger_Service_Service
             $scanStatus = Tiger_Model_Media::SCAN_IN_REVIEW;
         }
 
-        // Tenant-namespaced, collision-free storage key: <org>/<kind>/<random>.<ext>
-        // (adapter prepends the visibility root -> public/<org>/images/<rand>.jpg).
-        // Keyed by the IMMUTABLE org_id — a slug can be renamed, which would orphan stored files.
-        $org    = preg_replace('/[^a-zA-Z0-9-]/', '', $this->_orgId()) ?: '_shared';
-        $folder = Tiger_Model_Media::kindFolder($class['kind']);
-        $key    = $org . '/' . $folder . '/'
-                . bin2hex(random_bytes(16)) . ($ext !== '' ? '.' . $ext : '');
+        // Tenant-namespaced storage key: <org>/<kind>/<base>.<ext>. The base is a random hex when
+        // this org obfuscates files of this visibility, else a slugified original filename + a short
+        // random suffix (readable/SEO URL, still collision-safe). Keyed by the IMMUTABLE org_id — a
+        // slug can be renamed, which would orphan stored files. (Adapter prepends the visibility root.)
+        $org       = preg_replace('/[^a-zA-Z0-9-]/', '', $this->_orgId()) ?: '_shared';
+        $folder    = Tiger_Model_Media::kindFolder($class['kind']);
+        $obfuscate = Tiger_Model_Media::obfuscateEnabled($visibility, $this->_orgId());
+        $key       = $org . '/' . $folder . '/'
+                   . Tiger_Model_Media::storageBase($original, $obfuscate) . ($ext !== '' ? '.' . $ext : '');
         $disk   = Tiger_Media_Storage::defaultDisk();
 
         try {

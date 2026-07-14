@@ -9,4 +9,16 @@
  */
 class Media_Bootstrap extends Zend_Application_Module_Bootstrap
 {
+    /** Register the Media settings screen into the shared admin Settings tree (ACL-filtered). */
+    protected function _initAdminSettings()
+    {
+        Tiger_Admin_Settings::register([
+            'key'      => 'media',
+            'label'    => 'Media',
+            'icon'     => 'fa-photo-film',
+            'href'     => '/media/admin/settings',
+            'resource' => 'Media_AdminController',
+            'order'    => 40,
+        ]);
+    }
 }
