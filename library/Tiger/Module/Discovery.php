@@ -29,16 +29,19 @@ class Tiger_Module_Discovery
             foreach (glob($root['path'] . '/*', GLOB_ONLYDIR) ?: [] as $dir) {
                 $slug = basename($dir);
                 if (isset($modules[$slug])) { continue; }   // app dir wins if a slug collides
-                // A code module has a Bootstrap/controllers; a THEME module has neither but ships a
-                // theme.json (it's resolved by path, not scanned as MVC). Accept either.
-                $isCode  = is_file($dir . '/Bootstrap.php') || is_dir($dir . '/controllers');
-                $isTheme = is_file($dir . '/theme.json');
-                if (!$isCode && !$isTheme) { continue; }
+                // Detect a module by what it ships (capability-detection): a ROUTED module has a
+                // Bootstrap/controllers; a THEME ships theme.json (resolved by path, not scanned as
+                // MVC); a CODE module ships module.json + a snippets/ dir (no routes at all). A
+                // module.json alone is enough — it's the manifest that declares "this is a module".
+                $isRouted   = is_file($dir . '/Bootstrap.php') || is_dir($dir . '/controllers');
+                $isTheme    = is_file($dir . '/theme.json');
+                $isSnippets = is_dir($dir . '/snippets');
+                if (!$isRouted && !$isTheme && !is_file($dir . '/module.json')) { continue; }
 
                 $m = self::_manifest($dir);
                 $author = $m['author'] ?? '';
                 if (is_array($author)) { $author = $author['name'] ?? ''; }
-                $type = (string) ($m['type'] ?? ($isTheme ? 'theme' : 'module'));
+                $type = (string) ($m['type'] ?? ($isTheme ? 'theme' : ($isSnippets ? 'code' : 'module')));
 
                 $modules[$slug] = [
                     'slug'         => $slug,
