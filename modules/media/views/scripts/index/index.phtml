@@ -179,6 +179,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 var h = '<a href="'+esc(row.url)+'" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Open"><i class="fa-solid fa-up-right-from-square"></i></a> ';
                 h += '<button type="button" class="btn btn-sm btn-outline-secondary" data-media-copy="'+esc(row.url)+'" title="Copy URL"><i class="fa-solid fa-link"></i></button> ';
                 h += '<button type="button" class="btn btn-sm btn-outline-secondary" '+editAttrs(row)+' title="Edit"><i class="fa-solid fa-pen"></i></button>';
+                if (row.can_delete) { h += ' <button type="button" class="btn btn-sm btn-outline-danger" data-media-delete="'+esc(row.media_id)+'" title="Delete"><i class="fa-solid fa-trash"></i></button>'; }
                 return h; } }
         ]
     });
@@ -311,13 +312,22 @@ document.addEventListener('DOMContentLoaded', function () {
         }).catch(function(){ TigerDOM.notify(editFb, 'Network error — please try again.', { type:'error' }); });
     });
 
-    document.getElementById('media-edit-delete').addEventListener('click', function(){
-        if (!editId) { return; }
+    function deleteMedia(id, btn, before){
+        if (!id) { return; }
         if (!confirm('Delete this file? The stored bytes are removed.')) { return; }
-        TigerButton.run(this, function(){
-            return fetch('/api', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body:new URLSearchParams({ module:'media', service:'media', method:'delete', media_id:editId }) }).then(function(r){ return r.json(); });
-        }).then(function(res){ if (editModal) { editModal.hide(); } if (res && res.result===1) { TigerDOM.toast('File deleted.', { type:'success' }); } refresh(); })
+        TigerButton.run(btn, function(){
+            return fetch('/api', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body:new URLSearchParams({ module:'media', service:'media', method:'delete', media_id:id }) }).then(function(r){ return r.json(); });
+        }).then(function(res){ if (before) { before(); } if (res && res.result===1) { TigerDOM.toast('File deleted.', { type:'success' }); } refresh(); })
           .catch(function(){ refresh(); });
+    }
+    // In-modal delete (both views) …
+    document.getElementById('media-edit-delete').addEventListener('click', function(){
+        deleteMedia(editId, this, function(){ if (editModal) { editModal.hide(); } });
+    });
+    // … plus a one-click delete straight from the table Actions (convenience for the list view).
+    document.addEventListener('click', function(e){
+        var b = e.target.closest('[data-media-delete]');
+        if (b) { deleteMedia(b.getAttribute('data-media-delete'), b); }
     });
 
     // ---------- copy URL to clipboard (delegated) — a brief "Copied!" popper over the button ----------
