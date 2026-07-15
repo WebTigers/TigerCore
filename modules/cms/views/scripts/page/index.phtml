@@ -21,6 +21,41 @@
     <a href="/cms/page/edit" class="btn btn-primary"><i class="fa-solid fa-plus me-2"></i>New Page</a>
 </div>
 
+<?php if (!empty($this->themeTemplates)): ?>
+<div class="card mb-4">
+    <div class="card-header bg-transparent d-flex flex-wrap align-items-center gap-2">
+        <i class="fa-solid fa-swatchbook text-primary"></i>
+        <span class="fw-semibold">Theme templates</span>
+        <?php if ($this->themeName): ?><span class="badge text-bg-light"><?= $this->escape($this->themeName) ?></span><?php endif; ?>
+        <span class="small text-body-secondary ms-auto">Pages the active theme serves from files — <strong>Customize</strong> makes an editable copy that overrides the file. The theme file is never changed.</span>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <?php foreach ($this->themeTemplates as $t): ?>
+            <div class="col-sm-6 col-lg-4">
+                <div class="border rounded p-3 h-100 d-flex flex-column">
+                    <div class="fw-semibold text-truncate" title="<?= $this->escape($t['title']) ?>"><?= $this->escape($t['title']) ?></div>
+                    <div class="small text-body-secondary mb-3 text-truncate">
+                        <code>/<?= $this->escape($t['slug']) ?></code>
+                        <?php if (!empty($t['layout'])): ?> <span class="ms-1" title="layout"><i class="fa-solid fa-table-columns fa-fw"></i> <?= $this->escape($t['layout']) ?></span><?php endif; ?>
+                    </div>
+                    <div class="mt-auto d-flex align-items-center gap-2">
+                        <a href="/<?= $this->escape($t['slug']) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Preview"><i class="fa-solid fa-eye"></i></a>
+                        <?php if (!empty($t['page_id'])): ?>
+                            <a href="/cms/page/edit/id/<?= $this->escape($t['page_id']) ?>" class="btn btn-sm btn-outline-primary flex-grow-1"><i class="fa-solid fa-pen me-1"></i>Edit copy</a>
+                            <span class="badge text-bg-success-subtle text-success-emphasis border border-success-subtle text-nowrap">Customized</span>
+                        <?php else: ?>
+                            <button type="button" class="btn btn-sm btn-primary flex-grow-1" data-theme-fork="<?= $this->escape($t['slug']) ?>"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Customize</button>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <div class="card">
     <div class="card-header bg-transparent">
         <div class="row g-2 align-items-end">
@@ -134,6 +169,20 @@ document.addEventListener('DOMContentLoaded', function () {
         fStatus.value = '';
         fType.value = '';
         table.ajax.reload();
+    });
+
+    // Customize a theme template: fork it into an editable page (server), then open the editor.
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-theme-fork]');
+        if (!btn) { return; }
+        var body = new URLSearchParams({ module: 'cms', service: 'page', method: 'forkTheme', slug: btn.getAttribute('data-theme-fork') });
+        TigerButton.run(btn, function () {
+            return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body }).then(function (r) { return r.json(); });
+        }).then(function (res) {
+            var url = (res && res.data && res.data.edit_url) || (res && res.redirect);
+            if (res && res.result === 1 && url) { window.location = url; return; }
+            (res && res.messages || []).forEach(function (m) { alert(m.message); });
+        }).catch(function () { alert('Could not customize that template.'); });
     });
 
     // Soft-delete via /api, then reload just the table data (no page reload).

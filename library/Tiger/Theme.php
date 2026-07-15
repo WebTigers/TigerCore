@@ -81,6 +81,73 @@ class Tiger_Theme
     }
 
     /**
+     * The active theme's page templates — every `content/**‍/*.phtml` it serves from files
+     * (THEMES.md §8a), each with its `tiger:page` hint parsed. The CMS surfaces these so an author
+     * can CUSTOMIZE one — fork it into an editable page row that overrides the file (live-override).
+     *
+     * @return array<int,array<string,string>> [{slug,title,layout,skin}] sorted by title
+     */
+    public static function pages()
+    {
+        $base = self::dir() . '/content';
+        if (self::dir() === '' || !is_dir($base)) {
+            return [];
+        }
+        $out = [];
+        try {
+            $it = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($base, FilesystemIterator::SKIP_DOTS)
+            );
+            foreach ($it as $file) {
+                if (!$file->isFile() || strtolower($file->getExtension()) !== 'phtml') { continue; }
+                $slug = str_replace('\\', '/', substr($file->getPathname(), strlen($base) + 1));
+                $slug = preg_replace('/\.phtml$/i', '', $slug);
+                $meta = self::hint((string) file_get_contents($file->getPathname()), 'tiger:page');
+                $out[] = [
+                    'slug'   => $slug,
+                    'title'  => $meta['title']  ?? ucfirst(str_replace(['-', '/'], ' ', $slug)),
+                    'layout' => $meta['layout'] ?? '',
+                    'skin'   => $meta['skin']   ?? '',
+                ];
+            }
+        } catch (Throwable $e) {
+            return $out;
+        }
+        usort($out, static function ($a, $b) { return strcasecmp($a['title'], $b['title']); });
+        return $out;
+    }
+
+    /**
+     * One page template by slug — its `tiger:page` hint + the body (hint comment stripped), ready
+     * to fork into a CMS page. null if the slug is invalid or the file is absent.
+     *
+     * @param  string $slug the content slug (may be nested)
+     * @return array<string,string>|null [{slug,title,layout,skin,body}]
+     */
+    public static function page($slug)
+    {
+        $slug = trim((string) $slug, '/');
+        // Strict, dot-free token — can never traverse out of content/ (same guard as ThemeContent).
+        if ($slug === '' || self::dir() === '' || !preg_match('#^[A-Za-z0-9][A-Za-z0-9/_-]*$#', $slug)) {
+            return null;
+        }
+        $file = self::dir() . '/content/' . $slug . '.phtml';
+        if (!is_file($file)) {
+            return null;
+        }
+        $raw  = (string) file_get_contents($file);
+        $meta = self::hint($raw, 'tiger:page');
+        $body = preg_replace('/^\s*<!--\s*tiger:page\b.*?-->\s*/s', '', $raw, 1);
+        return [
+            'slug'   => $slug,
+            'title'  => $meta['title']  ?? ucfirst(str_replace(['-', '/'], ' ', $slug)),
+            'layout' => $meta['layout'] ?? '',
+            'skin'   => $meta['skin']   ?? '',
+            'body'   => trim((string) $body),
+        ];
+    }
+
+    /**
      * Parse a leading `<!-- <tag> key="value" … -->` hint comment into an assoc array (empty if none).
      * The shared parser behind `tiger:page` (theme static pages) and `tiger:block` (components).
      *

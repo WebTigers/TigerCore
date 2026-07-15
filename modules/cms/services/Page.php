@@ -72,6 +72,62 @@ class Cms_Service_Page extends Tiger_Service_Service
     }
 
     /**
+     * Fork an ACTIVE-theme page template (served from a file) into an editable CMS page row at the
+     * same slug. That row then transparently OVERRIDES the file — ThemeContent serves the file only
+     * when no DB page claims the slug (the live-override tier). No theme file is ever modified. If a
+     * page already exists at the slug it's returned (already customized). Origin is tagged in `meta`
+     * (source/source_key) so we can later offer "revert to theme default" without a schema change.
+     *
+     * @param  array $params must carry `slug` (the theme content slug)
+     * @return void
+     */
+    public function forkTheme(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+
+        $slug = trim((string) ($params['slug'] ?? ''), '/');
+        $tpl  = Tiger_Theme::page($slug);
+        if (!$tpl) { $this->_error('That template is no longer available.'); return; }
+
+        $pm = new Tiger_Model_Page();
+        $existing = $pm->fetchRow(
+            $pm->activeSelect()->where('slug = ?', $slug)->where('type = ?', Tiger_Model_Page::TYPE_PAGE)
+        );
+        if ($existing) {
+            $url = '/cms/page/edit/id/' . $existing->page_id;
+            $this->_success(['page_id' => $existing->page_id, 'edit_url' => $url], 'cms.page.exists', $url);
+            return;
+        }
+
+        // A page body with PHP must stay phtml (trusted); pure markup forks as html so it opens
+        // cleanly in the visual builder.
+        $hasPhp = (strpos($tpl['body'], '<?php') !== false) || (strpos($tpl['body'], '<?=') !== false);
+        $data = [
+            'type'         => Tiger_Model_Page::TYPE_PAGE,
+            'page_key'     => $this->_slugify($slug),
+            'slug'         => $slug,
+            'locale'       => '',
+            'title'        => $tpl['title'],
+            'body'         => $tpl['body'],
+            'format'       => $hasPhp ? Tiger_Model_Page::FORMAT_PHTML : Tiger_Model_Page::FORMAT_HTML,
+            'layout_key'   => $tpl['layout'] !== '' ? $tpl['layout'] : null,
+            'status'       => Tiger_Model_Page::STATUS_PUBLISHED,
+            'published_at' => null,
+            'meta'         => json_encode(
+                ['source' => 'theme', 'source_key' => (string) (Tiger_Theme::manifest()['key'] ?? '')],
+                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+            ),
+        ];
+        try {
+            $id  = $pm->save($data, null);
+            $url = '/cms/page/edit/id/' . $id;
+            $this->_success(['page_id' => $id, 'edit_url' => $url], 'cms.page.forked', $url);
+        } catch (Throwable $e) {
+            $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
+        }
+    }
+
+    /**
      * Create or update a page (insert when page_id is empty).
      *
      * @param  array $params the editor form payload

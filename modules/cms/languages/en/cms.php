@@ -10,6 +10,8 @@ return [
     'cms.page.saved'    => 'Page saved.',
     'cms.page.deleted'  => 'Page deleted.',
     'cms.page.restored' => 'Page restored to the selected version.',
+    'cms.page.forked'   => 'Template customized — now editing your copy.',
+    'cms.page.exists'   => 'That template is already customized — opening it.',
 
     'cms.settings.saved' => 'Settings saved.',
 

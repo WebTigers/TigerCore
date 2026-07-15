@@ -37,6 +37,24 @@ class Cms_PageController extends Tiger_Controller_Admin_Action
     {
         $this->view->title         = 'Content — Tiger Admin';
         $this->view->useDataTables = true;   // the layout loads jQuery + DataTables when set
+
+        // The ACTIVE theme's page templates (served from files) — surfaced so an author can
+        // CUSTOMIZE one: fork it into an editable page that overrides the file. Flag which are
+        // already customized (a published/draft page row claims the slug).
+        $templates = Tiger_Theme::pages();
+        if ($templates) {
+            $bySlug = [];
+            foreach ($this->_pages->fetchAll(
+                $this->_pages->activeSelect()->where('type = ?', Tiger_Model_Page::TYPE_PAGE)
+            ) as $p) {
+                if ($p->slug !== null && $p->slug !== '') { $bySlug[$p->slug] = $p->page_id; }
+            }
+            foreach ($templates as &$t) { $t['page_id'] = $bySlug[$t['slug']] ?? ''; }
+            unset($t);
+        }
+        $man = Tiger_Theme::manifest();
+        $this->view->themeName      = (string) ($man['name'] ?? '');
+        $this->view->themeTemplates = $templates;
     }
 
     /**
