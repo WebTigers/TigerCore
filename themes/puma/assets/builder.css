@@ -23,3 +23,21 @@ body { margin: 0; display: flex; flex-direction: column; overflow: hidden; }
 
 #gjs { flex: 1 1 auto; min-height: 0; }
 .gjs-editor { height: 100%; }
+
+/* --- Reskin GrapesJS onto Tiger's palette (its default is a warm #444 + purple accents).
+   The builder doc already exposes Bootstrap's --bs-* vars, so map straight onto them. --- */
+:root {
+    --gjs-primary-color:      var(--bs-body-bg, #23272e);       /* panel backgrounds */
+    --gjs-secondary-color:    var(--bs-body-color, #c9ced8);    /* text */
+    --gjs-tertiary-color:     var(--bs-primary, #0d6efd);       /* accent / active (was purple) */
+    --gjs-quaternary-color:   #ffffff;                          /* accent text */
+    --gjs-font-color:         var(--bs-body-color, #c9ced8);
+    --gjs-font-color-active:  var(--bs-emphasis-color, #f8f9fa);
+}
+
+/* --- Uniform block tiles: the preset's SVG icons render huge (unconstrained); the Tiger blocks
+   use tiny Font Awesome <i>. Normalize both into one 36px icon slot. --- */
+.gjs-block__media { height: 36px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+.gjs-block__media svg { width: 30px !important; height: 30px !important; }
+.gjs-block__media i   { font-size: 28px; line-height: 1; }
+.gjs-block-label { font-size: .72rem; }
