@@ -18,9 +18,7 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
 <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/vendor/codemirror/theme-dark.css') ?>">
 <script src="<?= $this->asset($this->themeAssets . '/vendor/codemirror/codemirror.bundle.js') ?>"></script>
 <script src="<?= $this->asset($this->themeAssets . '/js/tiger.code-editor.js') ?>"></script>
-<script src="<?= $this->asset($this->themeAssets . '/vendor/js-beautify/beautify.min.js') ?>"></script>
-<script src="<?= $this->asset($this->themeAssets . '/vendor/js-beautify/beautify-css.min.js') ?>"></script>
-<script src="<?= $this->asset($this->themeAssets . '/vendor/js-beautify/beautify-html.min.js') ?>"></script>
+<script src="<?= $this->asset($this->themeAssets . '/vendor/js-beautify/beautify.bundle.js') ?>"></script>
 
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
@@ -181,6 +179,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (reformatBtn) {
         reformatBtn.addEventListener('click', function () {
             if (!cm) { return; }
+            if (typeof window.html_beautify !== 'function') {
+                TigerDOM.toast('Formatter not loaded — hard-refresh the page (⌘⇧R / Ctrl-F5) and try again.', { type: 'alert' });
+                return;
+            }
             var f = fmt ? fmt.value : 'html', src = cm.getValue(), out;
             try {
                 if (f === 'html' || f === 'phtml') {
@@ -247,7 +249,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.getElementById('cms-save').addEventListener('click', function () {
         clearErrors();
-        post(this, { method: 'save' }, function (res) { window.location = res.redirect || '/cms/page'; });
+        post(this, { method: 'save' }, function (res) {
+            // Stay in the editor — never navigate away on save. For a brand-new page, adopt the
+            // returned id (hidden field + URL) so the next save UPDATES rather than inserting a dupe.
+            var pid = res && res.data && res.data.page_id;
+            var idInput = form.querySelector('[name="page_id"]');
+            if (pid && idInput && !idInput.value) {
+                idInput.value = pid;
+                if (window.history && history.replaceState) { history.replaceState(null, '', '/cms/page/edit/id/' + encodeURIComponent(pid)); }
+            }
+            var msg = (res.messages && res.messages[0] && res.messages[0].message) || 'Page saved.';
+            TigerDOM.notify(fb, msg, { type: 'success' });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
     });
 
     document.querySelectorAll('[data-cms-restore]').forEach(function (btn) {
