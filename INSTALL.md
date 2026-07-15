@@ -48,7 +48,6 @@ anything else. No cPanel? A `php.ini` (or `.user.ini` under PHP-FPM) in the docr
 | `pdo_mysql` (or `mysqli`) | database (ZF1 `Zend_Db`) |
 | `mbstring` | UTF-8 text handling throughout |
 | `openssl` | HTTPS/TLS, secure tokens |
-| `sodium` (libsodium) | secret encryption at rest + TOTP 2FA (`Tiger_Crypto`, `Tiger_Security`) |
 | `gd` (or `imagick`) | image/media processing |
 | `curl` | outbound HTTP — module install from GitHub, Location/mail/reCAPTCHA providers |
 | `zip` | module-install archive extraction |
@@ -62,6 +61,7 @@ anything else. No cPanel? A `php.ini` (or `.user.ini` under PHP-FPM) in the docr
 |---|---|
 | `opcache` | performance; the docs build cache is opcache-friendly |
 | `intl` | best localized country/locale names (falls back to CLDR without it) |
+| `sodium` (libsodium) | **native-speed** secret encryption + TOTP 2FA (`Tiger_Crypto`). A pure-PHP polyfill (`paragonie/sodium_compat`) is **bundled**, so Tiger runs without the extension — but the native one is faster. |
 
 On cPanel, toggle these in **Select PHP Version → Extensions**.
 
