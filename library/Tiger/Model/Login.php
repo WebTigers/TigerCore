@@ -81,6 +81,39 @@ class Tiger_Model_Login extends Tiger_Model_Table
     }
 
     /**
+     * The most-targeted accounts by failed sign-ins over a window — the "who is being brute-forced"
+     * view (a dashboard/anomaly signal). `existing` is true when the identifier ever matched a real user
+     * (the log stores user_id = NULL for a miss), so you can tell a spray at real accounts from noise.
+     *
+     * @param  int $sinceSeconds look-back window (default 7 days)
+     * @param  int $limit        max rows
+     * @return array<int,array{identifier:string, attempts:int, existing:bool}>
+     */
+    public function topFailures($sinceSeconds = 604800, $limit = 5)
+    {
+        $db    = $this->getAdapter();
+        $since = date('Y-m-d H:i:s', time() - max(60, (int) $sinceSeconds));
+        $rows  = $db->fetchAll(
+            $db->select()
+                ->from($this->_name, [
+                    'identifier',
+                    'attempts' => new Zend_Db_Expr('COUNT(*)'),
+                    'existing' => new Zend_Db_Expr('MAX(user_id IS NOT NULL)'),
+                ])
+                ->where('result <> ?', self::RESULT_SUCCESS)
+                ->where('created_at >= ?', $since)
+                ->where('identifier IS NOT NULL')
+                ->where("identifier <> ''")
+                ->group('identifier')
+                ->order(new Zend_Db_Expr('COUNT(*) DESC'))
+                ->limit(max(1, (int) $limit))
+        );
+        return array_map(function ($r) {
+            return ['identifier' => (string) $r['identifier'], 'attempts' => (int) $r['attempts'], 'existing' => (bool) $r['existing']];
+        }, $rows);
+    }
+
+    /**
      * Retention: delete log rows older than N days. Call on a schedule (GDPR).
      *
      * @param  int $days the age threshold in days
