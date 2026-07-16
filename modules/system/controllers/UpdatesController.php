@@ -24,11 +24,19 @@ class System_UpdatesController extends Tiger_Controller_Admin_Action
     {
         $updates = Tiger_Update_Checker::all();
 
-        $this->view->title    = 'Updates — Tiger Admin';
-        $this->view->updates  = $updates;
-        $this->view->pending  = array_values(array_filter($updates, static function ($u) {
+        $pending = array_values(array_filter($updates, static function ($u) {
             return !empty($u['update']);
         }));
+        // Attach each offered version's changelog section ("what's in this update"). Fetched from the
+        // repo at the new ref, file-cached; fail-soft to null (the card falls back to version numbers).
+        foreach ($pending as &$u) {
+            try { $u['notes'] = Tiger_Update_Checker::notes($u); } catch (Throwable $e) { $u['notes'] = null; }
+        }
+        unset($u);
+
+        $this->view->title    = 'Updates — Tiger Admin';
+        $this->view->updates  = $updates;
+        $this->view->pending  = $pending;
 
         // Durable history (empty until the migration runs — never let it break the screen).
         try {

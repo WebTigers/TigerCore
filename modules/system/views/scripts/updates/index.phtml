@@ -63,6 +63,16 @@ $pending = $this->pending ?? [];
                                 <span class="badge text-bg-warning ms-2">manual step</span>
                             <?php endif; ?>
                         </div>
+                        <?php if (!empty($u['notes'])): $nid = 'notes-' . preg_replace('/[^a-z0-9]+/i', '-', $u['slug']); ?>
+                            <button type="button" class="btn btn-link btn-sm p-0 mt-1 text-decoration-none small"
+                                    data-bs-toggle="collapse" data-bs-target="#<?= $nid ?>"
+                                    aria-expanded="false" aria-controls="<?= $nid ?>">
+                                <i class="fa-solid fa-scroll me-1"></i>What's new in <?= $this->escape($u['latest']) ?>
+                            </button>
+                            <div class="collapse" id="<?= $nid ?>">
+                                <pre class="small text-body-secondary bg-body-tertiary rounded p-3 mt-2 mb-0" style="white-space:pre-wrap;max-height:20rem;overflow:auto;"><?= $this->escape($u['notes']) ?></pre>
+                            </div>
+                        <?php endif; ?>
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-primary update-one">
                         <i class="fa-solid fa-cloud-arrow-down me-1"></i>Update

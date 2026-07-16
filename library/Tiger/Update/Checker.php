@@ -17,9 +17,10 @@
  */
 class Tiger_Update_Checker
 {
-    const CORE_PACKAGE = 'webtigers/tiger-core';
-    const PACKAGIST    = 'https://repo.packagist.org/p2/%s.json';
-    const CACHE_TTL    = 10800;   // 3h
+    const CORE_PACKAGE  = 'webtigers/tiger-core';
+    const PACKAGIST     = 'https://repo.packagist.org/p2/%s.json';
+    const CACHE_TTL     = 10800;   // 3h
+    const CHANGELOG     = 'CHANGELOG.md';   // the Keep-a-Changelog file every Tiger repo maintains
 
     /**
      * Every checkable item (core + installer-managed modules), each with an `update` flag.
@@ -101,6 +102,68 @@ class Tiger_Update_Checker
             );
         }
         return $out;
+    }
+
+    /**
+     * "What's in this update?" — the offered version's CHANGELOG section, as raw markdown, or null.
+     *
+     * Reads the target's `CHANGELOG.md` from its repo AT THE NEW REF (not the installed copy, which
+     * only describes the version you already have) and slices out the `## [<version>]` section. Same
+     * single source of truth every module already keeps; degrades to null (→ version numbers only) when
+     * a repo ships no changelog or the section can't be found. File-cached by version, so re-opening the
+     * screen doesn't re-fetch. Pass a descriptor from all()/available().
+     *
+     * @param  array $u       an update descriptor (needs repository; ref for modules, latest for core)
+     * @param  bool  $refresh bypass the cache and re-fetch now
+     * @return string|null the changelog section (markdown), or null if unavailable
+     */
+    public static function notes(array $u, $refresh = false)
+    {
+        $parsed = !empty($u['repository']) ? Tiger_Module_Github::parseRepo((string) $u['repository']) : null;
+        $version = self::_stripV((string) ($u['latest'] ?? ''));
+        if (!$parsed || $version === '') {
+            return null;
+        }
+        // Modules carry the exact release tag in `ref`; core (Packagist) doesn't, so try v<ver> then <ver>.
+        $refs = !empty($u['ref']) ? [(string) $u['ref']] : ['v' . $version, $version];
+
+        return self::_cached('notes-' . ($u['slug'] ?? 'x') . '-' . $version, $refresh, static function () use ($parsed, $refs, $version) {
+            foreach ($refs as $ref) {
+                $md = Tiger_Module_Github::fetchRaw($parsed['org'], $parsed['repo'], $ref, self::CHANGELOG);
+                if ($md === null || $md === '') {
+                    continue;
+                }
+                $section = self::_sliceChangelog($md, $version);
+                if ($section !== null) {
+                    return $section;
+                }
+            }
+            return null;
+        });
+    }
+
+    /**
+     * Extract the `## [<version>]` section (up to the next `##` heading) from Keep-a-Changelog markdown.
+     * The leading `## [x] — date` heading is dropped (the card already shows the version). Null if absent.
+     */
+    protected static function _sliceChangelog($markdown, $version)
+    {
+        $lines = preg_split('/\r\n|\r|\n/', (string) $markdown);
+        $head  = '/^##\s+\[?v?' . preg_quote($version, '/') . '\]?(?:\s|$)/i';
+        $out   = null;
+        foreach ($lines as $line) {
+            if ($out === null) {
+                if (preg_match($head, $line)) { $out = []; }   // found it — start collecting AFTER this heading
+                continue;
+            }
+            if (preg_match('/^##\s+/', $line)) { break; }       // next version section — stop
+            $out[] = $line;
+        }
+        if ($out === null) {
+            return null;
+        }
+        $text = trim(implode("\n", $out));
+        return $text === '' ? null : $text;
     }
 
     // ---- helpers ---------------------------------------------------------------

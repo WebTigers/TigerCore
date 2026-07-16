@@ -4,6 +4,17 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses [SemVer](https://semver.org/)
 — while `0.x`, the public API (`@api`) may still shift between minor versions.
 
+## [Unreleased]
+
+### Added
+- **Update screen — "What's new" per update.** The Updates screen now shows each offered version's
+  changelog section beside the version bump. `Tiger_Update_Checker::notes()` fetches the target's
+  `CHANGELOG.md` from its repo **at the new release ref** (not the installed copy) and slices out the
+  `## [<version>]` section; the controller attaches it to each pending item and the view renders it in a
+  collapsible "What's new in x.y.z". File-cached by version, fail-soft to version-numbers-only when a
+  repo ships no changelog or the section isn't found. One source of truth — the `CHANGELOG.md` every
+  Tiger repo already maintains (no separate release-notes file).
+
 ## [0.6.0-beta] — 2026-07-12
 
 The first **vendored release** — this tag ships a pre-resolved `vendor/` ZIP (attached by CI) that
