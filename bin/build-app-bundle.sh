@@ -87,6 +87,12 @@ rm -rf "$APP/.git" "$APP/.github" "$APP/.idea" "$APP/node_modules"
 rm -f  "$APP/application/configs/local.ini"
 [ -d "$APP/var" ] && find "$APP/var" -mindepth 1 -type f ! -name '.gitkeep' -delete 2>/dev/null || true
 
+# Strip VCS metadata from vendored packages. A package's DIST never contains .git — it only appears
+# when Composer falls back to a SOURCE install (e.g. a just-tagged version whose dist zipball isn't
+# ready yet). Removing it makes the tree match the dist; it is NOT pruning a package's code (that's
+# the ownership rule above), just deleting an install-mode artifact that bloats the bundle.
+find "$APP/vendor" -type d -name '.git' -prune -exec rm -rf {} + 2>/dev/null || true
+
 # --- 4) Zip the whole app (zip root = app root: application/ vendor/ public/ …) --
 mkdir -p "$OUT"; ABS_OUT="$(cd "$OUT" && pwd)"
 ZIP="${ABS_OUT}/tiger-${VERSION}.zip"
