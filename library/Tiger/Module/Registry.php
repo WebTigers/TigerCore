@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
- * Tiger_Module_Registry — the client for the open Vendor Registry (WebTigers/Vendors).
+ * Tiger_Module_Registry — the client for the open Vendor Registry (WebTigers/TigerVendors).
  *
  * The registry is just a public git repo: one JSON file per module under /data, compiled by
  * CI into a single `index.json` search index Tiger fetches + caches (a few times/day). No
@@ -16,8 +16,8 @@
  */
 class Tiger_Module_Registry
 {
-    const DEFAULT_INDEX     = 'https://raw.githubusercontent.com/WebTigers/Vendors/main/data/index.json';
-    const DEFAULT_SPONSORS  = 'https://raw.githubusercontent.com/WebTigers/Sponsors/main/sponsors.json';
+    const DEFAULT_INDEX     = 'https://raw.githubusercontent.com/WebTigers/TigerVendors/main/data/index.json';
+    const DEFAULT_SPONSORS  = 'https://raw.githubusercontent.com/WebTigers/TigerSponsors/main/sponsors.json';
     const CACHE_TTL         = 10800;   // 3h — a few refreshes a day, per the discovery model
     const CACHE_FILE        = 'registry-index.json';
     const CACHE_FILE_SPONS  = 'registry-sponsored.json';
@@ -203,7 +203,7 @@ class Tiger_Module_Registry
     }
 
     /**
-     * The sponsors-overlay URL — the curated placement map. Its own repo (WebTigers/Sponsors), not a
+     * The sponsors-overlay URL — the curated placement map. Its own repo (WebTigers/TigerSponsors), not a
      * file in the open Vendors registry, so access control is just repo permissions. Overridable via
      * `tiger.modules.sponsors` (a fork can disable placement or point at its own file).
      *

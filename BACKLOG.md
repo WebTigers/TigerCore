@@ -103,14 +103,14 @@ working to-do, not a changelog (git history is the changelog).
   free tier for every module**. First end-to-end test: the **`docs` module** (WebTigers/tiger-docs).
 
   - **STATUS (2026-07-11): the core is BUILT.** `Tiger_Module_Installer` (tarball install/update),
-    `Tiger_Module_Github`, `Tiger_Module_Registry` (fetch/cache `WebTigers/Vendors/index.json`), the
+    `Tiger_Module_Github`, `Tiger_Module_Registry` (fetch/cache `WebTigers/TigerVendors/index.json`), the
     `module` table, the CLI (`module:install|remove|list|activate|deactivate`), and the **Module
     Manager admin screen** (`system` module: installed list + Add New/registry search + Install-from-URL
     + per-module "Update to vX") all ship. Remaining = proactive update badges + the unified Updates
     screen + core self-update + logs (see the **Update system** item below). The bullets here are the
     design of record; treat the shipped pieces as done.
 
-  - **Discovery — the Vendor Registry (`WebTigers/Vendors` repo).** The registry IS a git repo (no
+  - **Discovery — the Vendor Registry (`WebTigers/TigerVendors` repo).** The registry IS a git repo (no
     server to run/scale). A vendor opens a PR adding their listing; our **AI reviews open PRs a few
     times/day** — manifest schema valid, repo public + exists, license present, the claimed release
     tag exists, module layout conforms, basic safety heuristics — then opens a **response PR on the
@@ -253,7 +253,7 @@ working to-do, not a changelog (git history is the changelog).
     rollback. No silent steps — a failure names itself, its input, and the rollback taken.
   - **Already built** (don't re-scope): `composer update` for core/platform; and for modules the full
     engine + UI — `Tiger_Module_Installer` (tarball → migrate → publish → record in the `module`
-    table), the **Vendor Registry** (`Tiger_Module_Registry` fetch/cache of `WebTigers/Vendors/
+    table), the **Vendor Registry** (`Tiger_Module_Registry` fetch/cache of `WebTigers/TigerVendors/
     index.json`), a **Module Manager admin screen** (`system` module: installed list + Add New /
     registry search + Install-from-URL), **per-module update via the UI** ("Update to vX" = forced
     re-install), and `bin/tiger module:install|remove|list|activate|deactivate`. The gaps:

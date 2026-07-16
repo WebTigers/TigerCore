@@ -77,7 +77,7 @@ vendor/bin/tiger module:remove <slug>                # remove files + assets + t
 **The Module Manager (admin).** The `system` module ships a WP-style Module Manager: an **installed
 list** (`ModulesController::index` — activate / deactivate, source / license / free-tier badges) and
 an **Add New** screen backed by the **Vendor Registry** (`Tiger_Module_Registry` fetches +
-TTL-caches `WebTigers/Vendors/index.json`, offline-resilient) plus **Install from URL**. It drives
+TTL-caches `WebTigers/TigerVendors/index.json`, offline-resilient) plus **Install from URL**. It drives
 the same `Tiger_Module_Installer` engine — **no shell, no Composer** (the cPanel-native path).
 
 **Updating a module, today:**
