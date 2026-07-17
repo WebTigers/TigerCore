@@ -161,3 +161,17 @@ jobs:
             exit 1
           fi
           echo "All HTTP smoke checks passed."
+
+  # A single, stable check for branch protection to require — green only if EVERY matrix cell passed.
+  # Gating on this (not "smoke (8.1)" etc.) means changing the PHP matrix never silently breaks the rule.
+  smoke-passed:
+    needs: smoke
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assert the whole smoke matrix passed
+        run: |
+          if [ "${{ needs.smoke.result }}" != "success" ]; then
+            echo "smoke matrix did not pass (result: ${{ needs.smoke.result }})"; exit 1
+          fi
+          echo "smoke matrix passed on every PHP version"
