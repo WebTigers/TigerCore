@@ -11,9 +11,11 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
   changelog section beside the version bump. `Tiger_Update_Checker::notes()` fetches the target's
   `CHANGELOG.md` from its repo **at the new release ref** (not the installed copy) and slices out the
   `## [<version>]` section; the controller attaches it to each pending item and the view renders it in a
-  collapsible "What's new in x.y.z". File-cached by version, fail-soft to version-numbers-only when a
-  repo ships no changelog or the section isn't found. One source of truth — the `CHANGELOG.md` every
-  Tiger repo already maintains (no separate release-notes file).
+  collapsible "What's new in x.y.z". Tries the tag first, then the default branch (`main`/`master`) — a
+  tag's tree can predate its changelog entry, and the offered version always sits at the top of the
+  branch. File-cached by version, fail-soft to version-numbers-only when a repo ships no changelog or the
+  section isn't found. One source of truth — the `CHANGELOG.md` every Tiger repo already maintains (no
+  separate release-notes file).
 
 ## [0.11.1-beta] — 2026-07-16
 

@@ -113,6 +113,10 @@ class Tiger_Update_Checker
      * a repo ships no changelog or the section can't be found. File-cached by version, so re-opening the
      * screen doesn't re-fetch. Pass a descriptor from all()/available().
      *
+     * The tag is tried first, then the default branch (`main`/`master`) as a fallback — a release tag's
+     * tree can predate its changelog entry (notes written or backfilled after the tag), and the offered
+     * version's section always sits at the top of the branch, so the fallback recovers those cleanly.
+     *
      * @param  array $u       an update descriptor (needs repository; ref for modules, latest for core)
      * @param  bool  $refresh bypass the cache and re-fetch now
      * @return string|null the changelog section (markdown), or null if unavailable
@@ -125,7 +129,10 @@ class Tiger_Update_Checker
             return null;
         }
         // Modules carry the exact release tag in `ref`; core (Packagist) doesn't, so try v<ver> then <ver>.
+        // Then fall back to the default branch, whose changelog is authoritative + current.
         $refs = !empty($u['ref']) ? [(string) $u['ref']] : ['v' . $version, $version];
+        $refs[] = 'main';
+        $refs[] = 'master';
 
         return self::_cached('notes-' . ($u['slug'] ?? 'x') . '-' . $version, $refresh, static function () use ($parsed, $refs, $version) {
             foreach ($refs as $ref) {
