@@ -4,7 +4,7 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses [SemVer](https://semver.org/)
 — while `0.x`, the public API (`@api`) may still shift between minor versions.
 
-## [Unreleased]
+## [0.13.0-beta] — 2026-07-17
 
 ### Added
 - **Customize the dashboard — hide/show widgets per user (WP "Screen Options" style).** A **Customize**
