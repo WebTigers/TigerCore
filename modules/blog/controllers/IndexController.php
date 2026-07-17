@@ -69,7 +69,10 @@ class Blog_IndexController extends Tiger_Controller_Action
         // it calls the resolver directly, guarded so the blog never hard-depends on the SEO module. The
         // excerpt is the description fallback when the author set no SEO description.
         if (class_exists('Seo_Service_Head')) {
-            Seo_Service_Head::forRow($post, $this->getRequest(), ['description' => $article['excerpt']]);
+            Seo_Service_Head::forRow($post, $this->getRequest(), [
+                'description'  => $article['excerpt'],
+                'og_image_id'  => isset($article['feature']['id']) ? (string) $article['feature']['id'] : '',
+            ]);
         }
     }
 
