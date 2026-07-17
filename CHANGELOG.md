@@ -4,7 +4,7 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses [SemVer](https://semver.org/)
 — while `0.x`, the public API (`@api`) may still shift between minor versions.
 
-## [Unreleased]
+## [0.13.1-beta] — 2026-07-17
 
 ### Fixed
 - **Dashboard "Customize" button did nothing.** The dashboard's inline script runs at parse time, but
