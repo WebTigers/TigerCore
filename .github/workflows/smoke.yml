@@ -163,6 +163,19 @@ jobs:
             echo "FAIL  TigerSEO head tags missing"; fail=1
           fi
 
+          # sitemap.xml + robots.txt are ROUTES (not files). The sitemap must list the seeded page (the
+          # pages provider), and robots must point crawlers at the sitemap.
+          check "sitemap.xml route"    200 "http://127.0.0.1:8000/sitemap.xml"
+          check "robots.txt route"     200 "http://127.0.0.1:8000/robots.txt"
+          curl -s "http://127.0.0.1:8000/sitemap.xml" >sitemap.xml.out || true
+          curl -s "http://127.0.0.1:8000/robots.txt"  >robots.txt.out  || true
+          if grep -q "<urlset" sitemap.xml.out && grep -q "ci-smoke-page" sitemap.xml.out; then
+            echo "PASS  sitemap lists the published page"
+          else
+            echo "FAIL  sitemap missing urlset/page"; echo "  body: $(head -c 300 sitemap.xml.out)"; fail=1
+          fi
+          if grep -q "Sitemap:" robots.txt.out; then echo "PASS  robots points at the sitemap"; else echo "FAIL  robots missing Sitemap:"; fail=1; fi
+
           # the /api gateway must answer with the JSON envelope contract (result key present), even for
           # an empty/refused message — proves the webservice layer is wired, not just returning a page.
           curl -s "http://127.0.0.1:8000/api" >api.json || true
