@@ -7,6 +7,15 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 ## [Unreleased]
 
 ### Added
+- **TigerSEO — sitemap + robots (public-URL mapping).** `/sitemap.xml` and `/robots.txt` are now served
+  as **routes** (PHP-layer `Tiger_Routing_Overrides`, never docroot files — a physical file would shadow
+  the route under cPanel's real-file-first `.htaccess`). A new core registry **`Tiger_Sitemap`** lets any
+  module declare its public (guest) URLs from its Bootstrap — CMS pages and blog articles map themselves
+  (each owns its URL form; the resolver never learns content types), and TigerDocs / a marketplace / any
+  module registers its own. The registry is core (like `Tiger_Dashboard`), so declaring public URLs never
+  depends on the SEO module. `robots.txt` disallows the non-public app paths (`tiger.seo.robots.disallow`,
+  per-org config) and points crawlers at the sitemap. Org-scoped, guest-readable, fail-soft. (Per-request
+  build for now; a fingerprint cache is the scale follow-up.)
 - **TigerSEO — Phase 2 (Open Graph + Twitter).** `Seo_Service_Head` now emits `og:title` / `description` /
   `type` (article vs website) / `url` / `site_name`, `article:published_time`/`modified_time`, and a
   `twitter:card` (large-image when there's an image; Twitter reads the `og:*` for the rest — no

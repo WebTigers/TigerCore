@@ -41,4 +41,24 @@ class Blog_Bootstrap extends Zend_Application_Module_Bootstrap
         $router->addRoute('blog_admin', new Zend_Controller_Router_Route(
             'blog/post', ['module' => 'blog', 'controller' => 'post', 'action' => 'index']));
     }
+
+    /** Contribute published articles to the sitemap — the blog owns the /blog/<slug> URL form. */
+    protected function _initBlogSitemap()
+    {
+        if (!class_exists('Tiger_Sitemap')) {
+            return;   // a core too old for the sitemap registry — nothing to contribute to
+        }
+        Tiger_Sitemap::register('blog', function (array $ctx) {
+            $posts = (new Blog_Model_Post())->published([
+                'locale' => (string) ($ctx['locale'] ?? 'en'),
+                'orgId'  => (string) ($ctx['orgId'] ?? ''),
+                'limit'  => 10000,
+            ]);
+            $urls = [];
+            foreach ($posts as $p) {
+                $urls[] = ['loc' => '/blog/' . $p->slug, 'lastmod' => $p->updated_at ?: $p->published_at];
+            }
+            return $urls;
+        });
+    }
 }
