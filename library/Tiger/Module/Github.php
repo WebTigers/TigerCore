@@ -136,7 +136,8 @@ class Tiger_Module_Github
         curl_setopt_array($ch, $opts);
         $res  = curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        // No curl_close(): on PHP 8+ the CurlHandle is freed by GC when $ch falls out of scope, and the
+        // call is a deprecated no-op as of 8.5.
         if ($fh) { fclose($fh); }
 
         if ($code < 200 || $code >= 300) {
