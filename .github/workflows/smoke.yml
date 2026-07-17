@@ -156,6 +156,13 @@ jobs:
             echo "FAIL  org-scoped CMS page body not found (org write/read mismatch?)"; echo "  body: $(head -c 300 page.html)"; fail=1
           fi
 
+          # TigerSEO renders into the head registry — the seeded page must carry og:* + a canonical.
+          if grep -q 'property="og:title"' page.html && grep -q 'rel="canonical"' page.html; then
+            echo "PASS  TigerSEO head (og:title + canonical) rendered"
+          else
+            echo "FAIL  TigerSEO head tags missing"; fail=1
+          fi
+
           # the /api gateway must answer with the JSON envelope contract (result key present), even for
           # an empty/refused message — proves the webservice layer is wired, not just returning a page.
           curl -s "http://127.0.0.1:8000/api" >api.json || true

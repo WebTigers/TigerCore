@@ -4,6 +4,18 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses [SemVer](https://semver.org/)
 — while `0.x`, the public API (`@api`) may still shift between minor versions.
 
+## [Unreleased]
+
+### Added
+- **TigerSEO — Phase 2 (Open Graph + Twitter).** `Seo_Service_Head` now emits `og:title` / `description` /
+  `type` (article vs website) / `url` / `site_name`, `article:published_time`/`modified_time`, and a
+  `twitter:card` (large-image when there's an image; Twitter reads the `og:*` for the rest — no
+  duplication). **`og:image` is resolved through the `media` row** to a real absolute URL + true
+  `og:image:width`/`height`/`type`/`alt`. Source precedence: the page's own `meta.seo.og_image_id`, else —
+  for a blog article — its **hero/feature image** (folded in via the resolver's `$overrides` seam), else a
+  site-wide fallback (`tiger.seo.og_image`, per-org via config). Fail-soft: an unresolvable image just
+  omits the tag. (Also fixed an implicit-nullable `$request` deprecation on PHP 8.4+.)
+
 ## [0.14.0-beta] — 2026-07-17
 
 ### Changed
