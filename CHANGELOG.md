@@ -6,6 +6,8 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [0.18.0-beta] — 2026-07-17
+
 ### Added
 - **TigerSEO — Article + BreadcrumbList JSON-LD (per-content rich results).** Completes the structured-
   data layer: every CMS page now emits a **BreadcrumbList** (Home → each path segment, the leaf labelled
