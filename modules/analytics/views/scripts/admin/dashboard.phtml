@@ -5,6 +5,10 @@
  * Analytics dashboard — in-app GA4 reports. Thin shell (per client/server): the data arrives over
  * /api (Analytics_Service_Reports::summary) and Chart.js (vendored in the admin layout) draws it.
  * Semantic Bootstrap only; the chart reads --bs-* tokens so it tracks the theme + skin.
+ *
+ * Empty/unavailable-data is a first-class state, not an error: the client renders a full ZEROED
+ * scaffold (0 tiles, a flat chart over the window, "No data yet" tables) and shows a calm INFO
+ * note — a fresh GA4 property with no traffic should look intentional, never a red failure.
  */
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
@@ -78,56 +82,90 @@
     var muted   = tok('--bs-secondary-color', '#6c757d');
     var grid    = tok('--bs-border-color', '#dee2e6');
     function num(n) { return Math.round(n || 0).toLocaleString(); }
+    function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
 
     function rows(el, data) {
-        if (!data || !data.length) { el.innerHTML = '<tr><td class="text-body-secondary small">No data yet.</td></tr>'; return; }
+        if (!data || !data.length) { el.innerHTML = '<tr><td class="text-body-secondary small py-3">No data yet.</td></tr>'; return; }
         el.innerHTML = data.map(function (r) {
             return '<tr><td class="text-truncate" style="max-width:1px;">' + esc(r.label) + '</td>'
                  + '<td class="text-end fw-semibold">' + num(r.value) + '</td></tr>';
         }).join('');
     }
-    function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+
+    // A zeroed summary so the whole dashboard renders (0 tiles, a flat chart over the window, empty
+    // tables) instead of gray boxes when there's no data yet or the API is momentarily unavailable.
+    function zeroSeries(days) {
+        var out = [], d = new Date();
+        d.setDate(d.getDate() - (days - 1));
+        for (var i = 0; i < days; i++) {
+            var mm = ('0' + (d.getMonth() + 1)).slice(-2), dd = ('0' + d.getDate()).slice(-2);
+            out.push({ date: d.getFullYear() + '-' + mm + '-' + dd, users: 0, views: 0 });
+            d.setDate(d.getDate() + 1);
+        }
+        return out;
+    }
+    function zeroSummary() { return { totals: [0, 0, 0], series: zeroSeries(28), top_pages: [], top_sources: [] }; }
+    function hasData(s) {
+        var t = s.totals || [];
+        return !!((t[0] || t[1] || t[2]) || (s.top_pages && s.top_pages.length)
+            || (s.series || []).some(function (p) { return p.users || p.views; }));
+    }
+
+    var chart = null;
+    function render(s) {
+        var t = s.totals || [];
+        document.getElementById('ga-users').textContent    = num(t[0]);
+        document.getElementById('ga-sessions').textContent = num(t[1]);
+        document.getElementById('ga-views').textContent    = num(t[2]);
+        rows(document.getElementById('ga-pages'),   s.top_pages);
+        rows(document.getElementById('ga-sources'), s.top_sources);
+
+        var series = s.series || [];
+        if (chart) { chart.destroy(); }
+        chart = new Chart(document.getElementById('ga-chart'), {
+            type: 'line',
+            data: {
+                labels: series.map(function (p) { return (p.date || '').slice(5); }),
+                datasets: [
+                    { label: 'Users', data: series.map(function (p) { return p.users; }),
+                      borderColor: primary, backgroundColor: 'rgba(13,110,253,0.08)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
+                    { label: 'Page views', data: series.map(function (p) { return p.views; }),
+                      borderColor: muted, backgroundColor: 'transparent', fill: false, tension: 0.3, pointRadius: 0, borderWidth: 1.5 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { labels: { color: muted, boxWidth: 12, usePointStyle: true } } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: muted, maxTicksLimit: 8, autoSkip: true } },
+                    y: { grid: { color: grid }, ticks: { color: muted, precision: 0 }, beginAtZero: true, suggestedMax: 10 }
+                }
+            }
+        });
+    }
+
+    function note(msg) { TigerDOM.notify(document.getElementById('ga-feedback'), msg, { type: 'info' }); }
 
     var fd = new URLSearchParams({ module: 'analytics', service: 'reports', method: 'summary', days: '28' });
     fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
         .then(function (r) { return r.json().catch(function () { return {}; }); })
         .then(function (res) {
-            if (!res || res.result !== 1 || !res.data || !res.data.summary) {
-                var msg = (res && res.messages && res.messages[0] && res.messages[0].message) || 'Could not load Analytics data.';
-                TigerDOM.notify(document.getElementById('ga-feedback'), msg, { type: 'error' });
+            if (res && res.result === 1 && res.data && res.data.summary) {
+                render(res.data.summary);
+                if (!hasData(res.data.summary)) {
+                    note('No traffic recorded in the last 28 days yet — new data usually appears within a day of connecting.');
+                }
                 return;
             }
-            var s = res.data.summary, t = s.totals || [];
-            document.getElementById('ga-users').textContent    = num(t[0]);
-            document.getElementById('ga-sessions').textContent = num(t[1]);
-            document.getElementById('ga-views').textContent    = num(t[2]);
-            rows(document.getElementById('ga-pages'),   s.top_pages);
-            rows(document.getElementById('ga-sources'), s.top_sources);
-
-            var series = s.series || [];
-            new Chart(document.getElementById('ga-chart'), {
-                type: 'line',
-                data: {
-                    labels: series.map(function (p) { return p.date.slice(5); }),
-                    datasets: [
-                        { label: 'Users', data: series.map(function (p) { return p.users; }),
-                          borderColor: primary, backgroundColor: 'rgba(13,110,253,0.08)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
-                        { label: 'Page views', data: series.map(function (p) { return p.views; }),
-                          borderColor: muted, backgroundColor: 'transparent', fill: false, tension: 0.3, pointRadius: 0, borderWidth: 1.5 }
-                    ]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: { legend: { labels: { color: muted, boxWidth: 12, usePointStyle: true } } },
-                    scales: {
-                        x: { grid: { display: false }, ticks: { color: muted, maxTicksLimit: 8, autoSkip: true } },
-                        y: { grid: { color: grid }, ticks: { color: muted, precision: 0 }, beginAtZero: true }
-                    }
-                }
-            });
+            // Couldn't load — still render the zero scaffold, and explain calmly (with the usual cause).
+            render(zeroSummary());
+            note('No Analytics data to show yet. If you just connected, it can take up to a day — otherwise make sure the Google Analytics Data API is enabled for your Google project.');
         })
-        .catch(function () { TigerDOM.notify(document.getElementById('ga-feedback'), 'Network error loading Analytics.', { type: 'error' }); });
+        .catch(function () {
+            render(zeroSummary());
+            note('Couldn’t reach Analytics just now — showing zeros. Please try again shortly.');
+        });
 })();
 </script>
 <?php endif; ?>

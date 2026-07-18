@@ -39,9 +39,11 @@ class Analytics_Service_Analytics extends Tiger_Service_Service
                 $cfg->set($scope, $scopeId, 'tiger.analytics.ga4.measurement_id',  $id);
                 $cfg->set($scope, $scopeId, 'tiger.analytics.exclude_signed_in',   !empty($params['exclude_signed_in']) ? '1' : '0');
 
-                // Reporting: the BYO Google OAuth client creds + GA4 property id (secret encrypted;
-                // blank secret keeps the current one). The Connect flow reads these afterward.
+                // Reporting: the connect mode (broker | byo), the GA4 property id, and — for BYO — the
+                // Google OAuth client creds (secret encrypted; blank secret keeps the current one).
+                // The Connect flow reads these afterward. Broker mode needs no client creds locally.
                 if (class_exists('Tiger_Google_Analytics')) {
+                    Tiger_Google_Analytics::saveMode((string) ($params['oauth_mode'] ?? ''));
                     Tiger_Google_Analytics::saveOauthConfig(
                         (string) ($params['oauth_client_id']     ?? ''),
                         (string) ($params['oauth_client_secret'] ?? ''),

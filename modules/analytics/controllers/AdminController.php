@@ -49,6 +49,7 @@ class Analytics_AdminController extends Tiger_Controller_Admin_Action
         $this->view->ga = [
             'connected'    => Tiger_Google_Analytics::isConnected(),
             'configurable' => Tiger_Google_Analytics::isConfigurable(),
+            'mode'         => Tiger_Google_Analytics::mode(),
             'client_id'    => Tiger_Google_Analytics::clientId(),
             'property_id'  => Tiger_Google_Analytics::propertyId(),
             'redirect_uri' => $this->_redirectUri(),
@@ -66,18 +67,35 @@ class Analytics_AdminController extends Tiger_Controller_Admin_Action
         $this->_helper->layout()->disableLayout();
         $this->_helper->viewRenderer->setNoRender(true);
         if (!Tiger_Google_Analytics::isConfigurable()) {
-            $this->_flash('Enter your OAuth client ID, secret, and GA4 property ID first, then Save.', 'error');
+            $msg = Tiger_Google_Analytics::mode() === Tiger_Google_Analytics::MODE_BROKER
+                ? 'Enter your GA4 property ID first, then connect.'
+                : 'Enter your OAuth client ID, secret, and GA4 property ID first, then connect.';
+            $this->_flash($msg, 'error');
             $this->_redirect('/analytics/admin');
             return;
         }
-        $state = bin2hex(random_bytes(16));
         $ns = new Zend_Session_Namespace('AnalyticsOauth');
+
+        if (Tiger_Google_Analytics::mode() === Tiger_Google_Analytics::MODE_BROKER) {
+            // PKCE: keep the verifier server-side; only its challenge travels to the broker.
+            $verifier     = bin2hex(random_bytes(32));
+            $ns->verifier = $verifier;
+            unset($ns->state);
+            $this->_redirect(Tiger_Google_Analytics::brokerAuthUrl(
+                $this->_redirectUri(), Tiger_Google_Analytics::pkceChallenge($verifier)));
+            return;
+        }
+
+        // BYO: run Google's consent flow directly against the operator's own OAuth client.
+        $state     = bin2hex(random_bytes(16));
         $ns->state = $state;
+        unset($ns->verifier);
         $this->_redirect(Tiger_Google_Analytics::authUrl($this->_redirectUri(), $state));
     }
 
     /**
-     * `/analytics/admin/callback` — Google redirects here with ?code & ?state; exchange for tokens.
+     * `/analytics/admin/callback` — the connect flow redirects back here: the broker with ?handoff
+     * (broker mode), or Google with ?code & ?state (BYO mode). Complete the token exchange.
      *
      * @return void
      */
@@ -87,9 +105,26 @@ class Analytics_AdminController extends Tiger_Controller_Admin_Action
         $this->_helper->viewRenderer->setNoRender(true);
         $req = $this->getRequest();
         $ns  = new Zend_Session_Namespace('AnalyticsOauth');
+
+        if (Tiger_Google_Analytics::mode() === Tiger_Google_Analytics::MODE_BROKER) {
+            $verifier = (string) ($ns->verifier ?? '');
+            unset($ns->verifier);
+            $handoff  = (string) $req->getParam('handoff');
+            if ((string) $req->getParam('error') !== '') {
+                $this->_flash('Google authorization was cancelled or denied.', 'error');
+            } elseif ($verifier === '' || $handoff === '') {
+                $this->_flash('The connection request expired. Please try again.', 'error');
+            } else {
+                $res = Tiger_Google_Analytics::exchangeHandoff($handoff, $verifier);
+                $this->_flash($res['ok'] ? 'Connected to Google Analytics.' : ('Could not connect: ' . $res['error']), $res['ok'] ? 'success' : 'error');
+            }
+            $this->_redirect('/analytics/admin');
+            return;
+        }
+
+        // BYO: Google redirected back with ?code & ?state.
         $expected = (string) ($ns->state ?? '');
         unset($ns->state);
-
         if ((string) $req->getParam('error') !== '') {
             $this->_flash('Google authorization was cancelled or denied.', 'error');
         } elseif ($expected === '' || !hash_equals($expected, (string) $req->getParam('state'))) {

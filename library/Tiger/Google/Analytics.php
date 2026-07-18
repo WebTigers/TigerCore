@@ -5,14 +5,25 @@
  * Tiger_Google_Analytics — a tiny, dependency-free client for the Google Analytics 4 **reporting**
  * side (pulling stats back for the in-app dashboard). Pure HTTPS (curl) — no Google SDK, no JWT.
  *
- * Auth is **bring-your-own OAuth client**: the operator registers their own Google Cloud OAuth
- * credentials (works on any self-hosted domain, no phone-home). We store `client_id` + an encrypted
- * `client_secret` + the numeric `property_id` in config, run the OAuth consent flow once to get a
- * long-lived **refresh token** (stored encrypted), and exchange it for short-lived access tokens on
- * demand to call the GA4 Data API (`runReport`). Report results are file-cached (GA has quotas).
+ * Auth has **two modes**, chosen by `tiger.analytics.oauth.mode`:
  *
- * Config (tiger.analytics.*): oauth.client_id, oauth.client_secret_enc, property_id,
- * oauth.refresh_token_enc. Secrets are encrypted at rest via Tiger_Crypto (like Tiger_Recaptcha).
+ *  - **broker** (default) — one-click "Connect with Google" via the WebTigers-hosted OAuth broker
+ *    (`connect.webtigers.com`, see the TigerConnect Lambda). The install never registers a Google
+ *    Cloud project: it bounces the admin to the broker, which runs the consent flow with WebTigers'
+ *    own OAuth client and hands the **refresh token** back over a single-use, PKCE-bound handoff.
+ *    The install stores that refresh token (encrypted) and mints access tokens through the broker's
+ *    `/google/token` endpoint. GA report data is fetched **directly** from Google — never via the
+ *    broker.
+ *  - **byo** — bring-your-own OAuth client: the operator registers their own Google Cloud OAuth
+ *    credentials (self-hosted, no phone-home). We store `client_id` + an encrypted `client_secret`
+ *    and refresh tokens ourselves against Google's token endpoint.
+ *
+ * Either way the refresh token is long-lived, stored encrypted (Tiger_Crypto, like Tiger_Recaptcha),
+ * and exchanged for short-lived access tokens on demand to call the GA4 Data API (`runReport`).
+ * Report results are file-cached (GA has quotas).
+ *
+ * Config (tiger.analytics.*): oauth.mode, connect.base_url (broker), oauth.client_id,
+ * oauth.client_secret_enc (byo), property_id, oauth.refresh_token_enc.
  *
  * @api
  */
@@ -24,6 +35,10 @@ class Tiger_Google_Analytics
     const DATA_URL  = 'https://analyticsdata.googleapis.com/v1beta/properties/%s:runReport';
     const CACHE_TTL = 1800;   // 30 min — GA data isn't real-time and the API is quota-limited
 
+    const MODE_BROKER = 'broker';   // one-click via the WebTigers broker (default)
+    const MODE_BYO    = 'byo';      // bring-your-own Google OAuth client
+    const DEFAULT_BROKER_BASE = 'https://connect.webtigers.com';
+
     /** @var string|null memoized access token for this request */
     private static $_access = null;
 
@@ -31,20 +46,45 @@ class Tiger_Google_Analytics
     //  Connection state + config
     // =====================================================================================
 
-    /** Is the reporting side fully wired (client creds + property + a stored refresh token)? */
+    /** The connect mode: MODE_BROKER (default) or MODE_BYO. */
+    public static function mode()
+    {
+        return self::_config('analytics.oauth.mode', self::MODE_BROKER) === self::MODE_BYO
+            ? self::MODE_BYO : self::MODE_BROKER;
+    }
+
+    /** The WebTigers connect broker base URL (broker mode), trailing slash stripped. */
+    public static function brokerBase()
+    {
+        $base = trim((string) self::_config('analytics.connect.base_url', self::DEFAULT_BROKER_BASE));
+        return rtrim($base !== '' ? $base : self::DEFAULT_BROKER_BASE, '/');
+    }
+
+    /** Is the reporting side fully wired (a property + a stored refresh token, + client creds in BYO)? */
     public static function isConnected()
     {
-        return self::clientId() !== '' && self::_clientSecret() !== ''
-            && self::propertyId() !== '' && self::_refreshToken() !== '';
+        if (self::propertyId() === '' || self::_refreshToken() === '') {
+            return false;
+        }
+        if (self::mode() === self::MODE_BROKER) {
+            return true;                          // the broker holds the OAuth client
+        }
+        return self::clientId() !== '' && self::_clientSecret() !== '';
     }
 
-    /** True once the OAuth client creds + property id are set (ready to run the Connect flow). */
+    /** True once the connect flow can produce a usable connection (property set; + client creds in BYO). */
     public static function isConfigurable()
     {
-        return self::clientId() !== '' && self::_clientSecret() !== '' && self::propertyId() !== '';
+        if (self::propertyId() === '') {
+            return false;                         // need the property id to report, either mode
+        }
+        if (self::mode() === self::MODE_BROKER) {
+            return true;                          // the broker supplies the OAuth client
+        }
+        return self::clientId() !== '' && self::_clientSecret() !== '';
     }
 
-    /** The OAuth client id (public). */
+    /** The OAuth client id (public) — BYO mode only. */
     public static function clientId()
     {
         return trim((string) self::_config('analytics.oauth.client_id', ''));
@@ -57,7 +97,20 @@ class Tiger_Google_Analytics
     }
 
     /**
-     * Persist the OAuth client creds + property id (secret encrypted; blank secret keeps the current).
+     * Persist the connect mode (broker | byo).
+     *
+     * @param  string $mode
+     * @return void
+     */
+    public static function saveMode($mode)
+    {
+        $mode = ($mode === self::MODE_BYO) ? self::MODE_BYO : self::MODE_BROKER;
+        (new Tiger_Model_Config())->set(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.analytics.oauth.mode', $mode);
+    }
+
+    /**
+     * Persist the BYO OAuth client creds + property id (secret encrypted; blank secret keeps the
+     * current). Property id is saved in both modes; the client creds are only used in BYO mode.
      *
      * @param  string $clientId
      * @param  string $clientSecret blank = keep existing
@@ -85,12 +138,69 @@ class Tiger_Google_Analytics
     }
 
     // =====================================================================================
-    //  OAuth flow
+    //  OAuth flow — broker mode
+    // =====================================================================================
+
+    /** PKCE S256 challenge for a verifier: base64url(sha256(verifier)), unpadded. */
+    public static function pkceChallenge($verifier)
+    {
+        return rtrim(strtr(base64_encode(hash('sha256', (string) $verifier, true)), '+/', '-_'), '=');
+    }
+
+    /**
+     * The broker consent URL to send the admin to (broker mode). The broker runs the Google consent
+     * flow with WebTigers' OAuth client and redirects back to $callbackUrl with a one-time ?handoff.
+     *
+     * @param  string $callbackUrl where the broker redirects back (the install's callback action)
+     * @param  string $challenge   the PKCE S256 challenge (pkceChallenge() of a secret verifier)
+     * @return string
+     */
+    public static function brokerAuthUrl($callbackUrl, $challenge)
+    {
+        return self::brokerBase() . '/google/start?' . http_build_query([
+            'callback'  => (string) $callbackUrl,
+            'challenge' => (string) $challenge,
+        ]);
+    }
+
+    /**
+     * Redeem a broker handoff (broker mode): POST it + the PKCE verifier to the broker's /google/exchange
+     * server-to-server, and store the returned refresh token (encrypted).
+     *
+     * @param  string $handoff  the one-time code from the broker's redirect
+     * @param  string $verifier the PKCE verifier whose challenge started the flow
+     * @return array{ok:bool,error:?string}
+     */
+    public static function exchangeHandoff($handoff, $verifier)
+    {
+        $res = self::_http(self::brokerBase() . '/google/exchange', [
+            'method'  => 'POST',
+            'headers' => ['Content-Type: application/x-www-form-urlencoded'],
+            'body'    => http_build_query(['handoff' => (string) $handoff, 'verifier' => (string) $verifier]),
+        ]);
+        if ($res === null) {
+            return ['ok' => false, 'error' => 'Could not complete the connection — the request may have expired. Please try again.'];
+        }
+        $data = json_decode($res, true);
+        if (!is_array($data) || empty($data['refresh_token'])) {
+            return ['ok' => false, 'error' => 'The connect service did not return a token. Please try again.'];
+        }
+        if (class_exists('Tiger_Crypto') && Tiger_Crypto::isConfigured()) {
+            (new Tiger_Model_Config())->set(Tiger_Model_Config::SCOPE_GLOBAL, '',
+                'tiger.analytics.oauth.refresh_token_enc', (string) Tiger_Crypto::encrypt((string) $data['refresh_token']));
+        }
+        self::$_access = null;
+        @unlink(self::_cacheFile());
+        return ['ok' => true, 'error' => null];
+    }
+
+    // =====================================================================================
+    //  OAuth flow — BYO mode
     // =====================================================================================
 
     /**
-     * The Google consent URL to send the admin to (offline access, forced consent so a refresh token
-     * is always returned).
+     * The Google consent URL to send the admin to (BYO mode: offline access, forced consent so a
+     * refresh token is always returned).
      *
      * @param  string $redirectUri must EXACTLY match the URI registered in the Google OAuth client
      * @param  string $state       an anti-CSRF token (verified in the callback)
@@ -111,7 +221,7 @@ class Tiger_Google_Analytics
     }
 
     /**
-     * Exchange the authorization code for tokens and store the refresh token (encrypted).
+     * Exchange the authorization code for tokens and store the refresh token (encrypted) — BYO mode.
      *
      * @param  string $code        the ?code from Google's redirect
      * @param  string $redirectUri the same URI used in authUrl()
@@ -142,7 +252,7 @@ class Tiger_Google_Analytics
         return ['ok' => true, 'error' => null];
     }
 
-    /** A fresh access token (refreshed from the stored refresh token), or '' if unavailable. */
+    /** A fresh access token (from the stored refresh token, via the broker or Google), or '' if unavailable. */
     public static function accessToken()
     {
         if (self::$_access !== null) {
@@ -151,6 +261,16 @@ class Tiger_Google_Analytics
         $refresh = self::_refreshToken();
         if ($refresh === '') {
             return '';
+        }
+        if (self::mode() === self::MODE_BROKER) {
+            $res = self::_http(self::brokerBase() . '/google/token', [
+                'method'  => 'POST',
+                'headers' => ['Content-Type: application/x-www-form-urlencoded'],
+                'body'    => http_build_query(['refresh_token' => $refresh]),
+            ]);
+            $decoded = ($res !== null) ? json_decode($res, true) : null;
+            self::$_access = (is_array($decoded) && !empty($decoded['access_token'])) ? $decoded['access_token'] : '';
+            return (string) self::$_access;
         }
         $res = self::_tokenRequest([
             'refresh_token' => $refresh,
@@ -235,6 +355,70 @@ class Tiger_Google_Analytics
         return is_array($decoded) ? $decoded : null;
     }
 
+    /**
+     * Run a live connection self-test: mint a token and make one small GA4 report call, translating the
+     * outcome into a plain diagnosis for the Troubleshooting UI — ok / ok_empty / not_connected /
+     * no_token / api_disabled / permission / reauth / quota / other.
+     *
+     * @return array{ok:bool,code:string,message:string,hint?:string,detail?:string}
+     */
+    public static function testConnection()
+    {
+        if (!self::isConnected()) {
+            return ['ok' => false, 'code' => 'not_connected',
+                'message' => 'Not connected yet.',
+                'hint'    => 'Enter your GA4 Property ID above and click "Connect Google Analytics".'];
+        }
+        $token = self::accessToken();
+        if ($token === '') {
+            return ['ok' => false, 'code' => 'no_token',
+                'message' => 'Connected, but Google would not issue an access token.',
+                'hint'    => 'Click Disconnect, then Connect again to refresh the authorization.'];
+        }
+
+        [$code, $body] = self::_probeReport($token);
+        $decoded = json_decode((string) $body, true);
+        $gErr    = (is_array($decoded) && isset($decoded['error']['message'])) ? (string) $decoded['error']['message'] : '';
+
+        if ($code === 200) {
+            $hasRows = is_array($decoded) && !empty($decoded['rows']);
+            return ['ok' => true, 'code' => $hasRows ? 'ok' : 'ok_empty',
+                'message' => $hasRows
+                    ? 'Success — Google Analytics is connected and returning data.'
+                    : 'Success — connected. No traffic has been recorded for this property yet (normal for a new property; numbers appear within about a day of your first visitors).'];
+        }
+        if ($code === 403 && (stripos($gErr, 'has not been used') !== false || stripos($gErr, 'is disabled') !== false || stripos($gErr, 'SERVICE_DISABLED') !== false)) {
+            return ['ok' => false, 'code' => 'api_disabled',
+                'message' => 'The Google Analytics Data API is not enabled for the Google project.',
+                'hint'    => 'Google Cloud Console → APIs & Services → Library → search "Google Analytics Data API" → Enable, then test again.',
+                'detail'  => $gErr];
+        }
+        if ($code === 403) {
+            return ['ok' => false, 'code' => 'permission',
+                'message' => 'Google denied access to property ' . self::propertyId() . '.',
+                'hint'    => 'Two usual causes: (1) that number is the Stream ID, not the Property ID — use Admin → Property Settings → Property ID. (2) The connected Google account needs Viewer access under Admin → Property Access Management.',
+                'detail'  => $gErr];
+        }
+        if ($code === 401) {
+            return ['ok' => false, 'code' => 'reauth',
+                'message' => 'Google rejected the authorization.',
+                'hint'    => 'Click Disconnect, then Connect again to re-authorize.',
+                'detail'  => $gErr];
+        }
+        if ($code === 429) {
+            return ['ok' => false, 'code' => 'quota',
+                'message' => 'Google Analytics is rate-limiting requests right now.',
+                'hint'    => 'Wait a few minutes and try again.',
+                'detail'  => $gErr];
+        }
+        return ['ok' => false, 'code' => 'http_' . $code,
+            'message' => 'Google returned HTTP ' . $code . '.',
+            'hint'    => ($code === 400 || $code === 404)
+                ? 'Double-check the Property ID, and make sure the Google Analytics Data API is enabled for the project.'
+                : 'Please try again shortly.',
+            'detail'  => $gErr];
+    }
+
     // =====================================================================================
     //  Response shaping
     // =====================================================================================
@@ -279,7 +463,7 @@ class Tiger_Google_Analytics
     //  HTTP + config helpers
     // =====================================================================================
 
-    /** POST form params to the token endpoint; returns the decoded JSON or null. */
+    /** POST form params to Google's token endpoint; returns the decoded JSON or null. */
     private static function _tokenRequest(array $params)
     {
         $res = self::_http(self::TOKEN_URL, [
@@ -313,7 +497,25 @@ class Tiger_Google_Analytics
         return ($body !== false && $code >= 200 && $code < 300) ? $body : null;
     }
 
-    /** The decrypted OAuth client secret, or ''. */
+    /** One minimal GA4 runReport for the connection test — returns [httpCode, body] (body KEPT on error). */
+    private static function _probeReport($token)
+    {
+        $ch = curl_init(sprintf(self::DATA_URL, self::propertyId()));
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => json_encode(['dateRanges' => [['startDate' => '7daysAgo', 'endDate' => 'today']], 'metrics' => [['name' => 'activeUsers']]]),
+            CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . $token, 'Content-Type: application/json'],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 12,
+            CURLOPT_CONNECTTIMEOUT => 6,
+        ]);
+        $body = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        return [$code, $body === false ? '' : (string) $body];
+    }
+
+    /** The decrypted OAuth client secret, or '' — BYO mode. */
     private static function _clientSecret()
     {
         return self::_decryptConfig('analytics.oauth.client_secret_enc');
