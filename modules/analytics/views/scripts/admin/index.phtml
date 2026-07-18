@@ -102,8 +102,8 @@ $el   = function ($name) use ($form) { return $form->getElement($name); };
                     </div>
                     <div class="d-flex flex-wrap gap-2 align-items-center mt-3">
                         <?php if ($this->ga['connected']): ?>
+                            <a href="/analytics/admin/dashboard" class="btn btn-primary"><i class="fa-solid fa-chart-line me-2"></i>View dashboard</a>
                             <a href="/analytics/admin/disconnect" class="btn btn-outline-danger"><i class="fa-solid fa-plug-circle-xmark me-2"></i>Disconnect</a>
-                            <span class="small text-body-secondary"><i class="fa-solid fa-circle-check text-success me-1"></i>Ready &mdash; the reports dashboard arrives in the next update.</span>
                         <?php else: ?>
                             <a href="/analytics/admin/connect" class="btn btn-primary"><i class="fa-brands fa-google me-2"></i>Connect Google Analytics</a>
                             <span class="small text-body-secondary">Save your credentials first, then connect.</span>

@@ -115,6 +115,18 @@ class Analytics_AdminController extends Tiger_Controller_Admin_Action
         $this->_redirect('/analytics/admin');
     }
 
+    /**
+     * `/analytics/admin/dashboard` — the in-app GA reports dashboard. Thin: renders the shell; the data
+     * arrives over /api (Analytics_Service_Reports) and Chart.js draws it.
+     *
+     * @return void
+     */
+    public function dashboardAction()
+    {
+        $this->view->title     = 'Analytics — Dashboard';
+        $this->view->connected = Tiger_Google_Analytics::isConnected();
+    }
+
     /** The OAuth redirect URI (must match the one registered in the Google OAuth client). */
     private function _redirectUri()
     {

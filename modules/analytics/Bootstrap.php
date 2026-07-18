@@ -38,6 +38,29 @@ class Analytics_Bootstrap extends Zend_Application_Module_Bootstrap
         ]);
     }
 
+    /**
+     * Register the "Traffic" dashboard widget (GA reports). Also teaches the module autoloader the
+     * `widgets/` resource type so Analytics_Widget_* resolves. ACL-gated + activation-gated for free.
+     */
+    protected function _initAnalyticsWidget()
+    {
+        if (method_exists($this, 'getResourceLoader') && $this->getResourceLoader()) {
+            $this->getResourceLoader()->addResourceType('widget', 'widgets', 'Widget');
+        }
+        if (class_exists('Tiger_Dashboard')) {
+            Tiger_Dashboard::registerWidget([
+                'id'       => 'analytics.traffic',
+                'module'   => 'analytics',
+                'title'    => 'Traffic',
+                'icon'     => 'fa-chart-line',
+                'widget'   => 'Analytics_Widget_Ga',
+                'resource' => 'Analytics_AdminController',
+                'width'    => 2,
+                'order'    => 30,
+            ]);
+        }
+    }
+
     /** List Analytics under the admin Settings tree (ACL-gated to Analytics_AdminController). */
     protected function _initAdminSettings()
     {

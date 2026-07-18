@@ -86,6 +86,8 @@ $_hasAside = !empty($this->rightAside);
 <script src="<?= $this->asset($this->themeAssets . '/vendor/jquery/jquery.min.js') ?>"></script>
 <script src="<?= $this->asset($this->themeAssets . '/vendor/datatables/dataTables.min.js') ?>"></script>
 <script src="<?= $this->asset($this->themeAssets . '/vendor/datatables/dataTables.bootstrap5.min.js') ?>"></script>
+<!-- Chart.js (vendored, MIT) — the shared charting lib for dashboard widgets + reports. -->
+<script src="<?= $this->asset($this->themeAssets . '/vendor/chartjs/chart.umd.min.js') ?>"></script>
 <!-- Tiger's shared grid helper: /api-sourced DataTables + envelope unwrap. -->
 <script src="<?= $this->asset($this->themeAssets . '/js/tiger.datatable.js') ?>"></script>
 <?php endif; ?>

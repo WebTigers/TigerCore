@@ -6,5 +6,7 @@
  * core strings by the translate cascade; API response messages resolve these in the caller's locale.
  */
 return [
-    'analytics.saved' => 'Analytics settings saved.',
+    'analytics.saved'                  => 'Analytics settings saved.',
+    'analytics.reports.not_connected'  => 'Google Analytics is not connected yet.',
+    'analytics.reports.error'          => 'Could not load Analytics data right now — please try again shortly.',
 ];
