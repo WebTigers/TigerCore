@@ -171,6 +171,8 @@ class Tiger_Application
         );
 
         foreach ([
+            TIGER_CORE_PATH . '/configs/routes.ini',   // core route aliases (resources.router.routes.*)
+            APPLICATION_PATH . '/configs/routes.ini',   // app route aliases (optional)
             APPLICATION_PATH . '/configs/application.ini',
             APPLICATION_PATH . '/configs/local.ini',
         ] as $file) {

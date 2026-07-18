@@ -63,6 +63,47 @@ class IndexController extends Zend_Controller_Action
         // view: index/agency.phtml
     }
 
+    /**
+     * `/developers` — the open-source / builder story (free, BSD, extend via modules). Shipped marketing.
+     *
+     * @return void
+     */
+    public function developersAction()
+    {
+        // view: index/developers.phtml
+    }
+
+    /**
+     * `/creators` — the plugin/theme creator story (build for the marketplace, keep your license).
+     *
+     * @return void
+     */
+    public function creatorsAction()
+    {
+        // view: index/creators.phtml
+    }
+
+    /**
+     * `/hosting` — the hosting-partner story (add Tiger to the stack, zero licensing fees).
+     *
+     * @return void
+     */
+    public function hostingAction()
+    {
+        // view: index/hosting.phtml
+    }
+
+    /**
+     * `/features` — the full feature catalog: sectioned cards drawn from across the audience pages.
+     * A shipped marketing page; the view owns its content.
+     *
+     * @return void
+     */
+    public function featuresAction()
+    {
+        // view: index/features.phtml
+    }
+
     /** The configured home-page id (tiger.site.home_page), or '' for the built-in landing. */
     protected function _homePageId()
     {

@@ -18,14 +18,58 @@
  */
 $identity   = Zend_Auth::getInstance()->hasIdentity() ? Zend_Auth::getInstance()->getIdentity() : null;
 $authRegion = $this->placeholder('tigerHeaderAuth');
+
+// Solutions mega-menu cards: [icon, title, tagline, href, description]. Static content.
+$mega = [
+    ['fa-wand-magic-sparkles', 'Build Killer Websites',      'No WordPress&reg; required',
+        '/cms',        'Install Tiger and start building in minutes. Full CMS, drag-and-drop page builder, themes, and 10ms page loads — no plugins required.'],
+    ['fa-people-group',        'Agency Friendly',            'Host hundreds of sites',
+        '/agency',     'Multi-tenant by design. One install, unlimited client sites, each with their own branding, users, and permissions — your agency scales without your server costs scaling with it.'],
+    ['fa-rocket',              'Vibe SaaS Startups',         'A secure MVP in minutes, not days',
+        '/vibe',       'Auth, billing, ACL, tenant isolation, and database sessions — all included. Tell your AI what to build and Tiger handles the architecture. Ship your MVP before lunch.'],
+    ['fa-code',                'Developers &amp; Open Source','Free, BSD-licensed, yours to extend',
+        '/developers', 'Fork it. Extend it. Build modules. Sell them under YOUR license. AI-native docs, clean architecture, and a module marketplace that respects your code and your revenue.'],
+    ['fa-puzzle-piece',        'Plugin &amp; Theme Creators', 'Your code. Your license. Not GPL.',
+        '/creators',   'Build modules and themes for Tiger&rsquo;s marketplace and sell them under your own terms. No forced copyleft. No GPL clubs reselling your work for $5. Your intellectual property stays yours.'],
+    ['fa-server',              'Hosting Partners',            'Add Tiger to your stack. Zero licensing fees.',
+        '/hosting',    'Tiger installs faster, runs leaner, and generates fewer support tickets than WordPress. Add it to your cPanel or Softaculous stack at no cost — we only ask 5% on the customers we send you.'],
+];
 ?>
 <style>
-/* Solutions mega-menu: a wide two-up card panel on desktop; stacks inside the collapsed nav on mobile. */
-.tiger-mega .mega-card { transition: background-color .12s ease, transform .12s ease; }
-.tiger-mega .mega-card:hover { background: var(--bs-tertiary-bg); }
-.tiger-mega .mega-card-ghost { border: 1px dashed var(--bs-border-color); }
-.tiger-mega .mega-card-ghost:hover { background: var(--bs-tertiary-bg); }
-@media (min-width: 992px) { .tiger-mega .dropdown-menu { width: 620px; } }
+/* Solutions mega-menu. Panel stays light; the cards sit a touch darker so they read as cards. On
+   desktop it's a full-width panel that opens on HOVER; on mobile it stacks inside the collapsed nav. */
+.tiger-mega .dropdown-menu { background: var(--bs-body-bg); }
+.tiger-mega .mega-card {
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color-translucent);
+    transition: background-color .12s ease, border-color .12s ease;
+}
+.tiger-mega .mega-card:hover { background: var(--bs-secondary-bg); border-color: var(--bs-primary); }
+
+@media (min-width: 992px) {
+    .navbar > .container { position: relative; }   /* anchor the full-width panel */
+    .tiger-mega { position: static; }
+    .tiger-mega .dropdown-menu {
+        left: 0; right: 0;                  /* span the container width */
+        margin-top: 0;
+        display: block;                     /* out of display:none so we can fade it */
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(.4rem);
+        transition: opacity .14s ease, transform .14s ease, visibility 0s linear .14s;
+        pointer-events: none;
+    }
+    .tiger-mega:hover > .dropdown-menu,
+    .tiger-mega:focus-within > .dropdown-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        transition-delay: 0s;
+        pointer-events: auto;
+    }
+    .tiger-mega .dropdown-toggle::after { transition: transform .14s ease; }
+    .tiger-mega:hover .dropdown-toggle::after { transform: rotate(180deg); }
+}
 </style>
 <nav class="navbar navbar-expand-lg border-bottom sticky-top" style="background: var(--bs-body-bg);">
     <div class="container">
@@ -42,57 +86,27 @@ $authRegion = $this->placeholder('tigerHeaderAuth');
             <ul class="navbar-nav mb-2 mb-lg-0">
                 <!-- Solutions: a static mega-menu — HTML injected into the first dropdown. -->
                 <li class="nav-item dropdown tiger-mega">
-                    <a class="nav-link dropdown-toggle" href="#" id="tigerSolutions" role="button" data-bs-toggle="dropdown" aria-expanded="false">Solutions</a>
-                    <div class="dropdown-menu border-0 shadow-lg p-3" aria-labelledby="tigerSolutions">
-                        <div class="row g-2">
-                            <div class="col-12 col-lg-6">
-                                <a class="mega-card d-block h-100 text-decoration-none text-body rounded-3 p-3" href="/cms">
+                    <a class="nav-link dropdown-toggle" href="#" id="tigerSolutions" role="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">Solutions</a>
+                    <div class="dropdown-menu border-0 shadow-lg p-3 p-lg-4" aria-labelledby="tigerSolutions">
+                        <div class="row g-3">
+<?php foreach ($mega as $m): ?>
+                            <div class="col-12 col-md-6 col-lg-4">
+                                <a class="mega-card d-block h-100 text-decoration-none text-body rounded-3 p-3" href="<?= $m[3] ?>">
                                     <div class="d-flex gap-3">
-                                        <i class="fa-solid fa-wand-magic-sparkles text-primary fs-4 mt-1"></i>
+                                        <i class="fa-solid <?= $m[0] ?> text-primary fs-4 mt-1"></i>
                                         <div>
-                                            <div class="fw-semibold">Build Killer Websites</div>
-                                            <div class="small text-secondary">No WordPress&reg; required</div>
+                                            <div class="fw-semibold"><?= $m[1] ?></div>
+                                            <div class="small text-primary-emphasis fw-semibold mb-1"><?= $m[2] ?></div>
+                                            <p class="small text-secondary mb-0"><?= $m[4] ?></p>
                                         </div>
                                     </div>
                                 </a>
                             </div>
-                            <div class="col-12 col-lg-6">
-                                <a class="mega-card d-block h-100 text-decoration-none text-body rounded-3 p-3" href="/agency">
-                                    <div class="d-flex gap-3">
-                                        <i class="fa-solid fa-people-group text-primary fs-4 mt-1"></i>
-                                        <div>
-                                            <div class="fw-semibold">Agency Friendly</div>
-                                            <div class="small text-secondary">Host hundreds of sites</div>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-                            <div class="col-12 col-lg-6">
-                                <a class="mega-card d-block h-100 text-decoration-none text-body rounded-3 p-3" href="/vibe">
-                                    <div class="d-flex gap-3">
-                                        <i class="fa-solid fa-rocket text-primary fs-4 mt-1"></i>
-                                        <div>
-                                            <div class="fw-semibold">Vibe SaaS Startups</div>
-                                            <div class="small text-secondary">A secure MVP in minutes, not days</div>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-                            <div class="col-12 col-lg-6">
-                                <a class="mega-card mega-card-ghost d-block h-100 text-decoration-none text-secondary rounded-3 p-3" href="#">
-                                    <div class="d-flex gap-3">
-                                        <i class="fa-solid fa-circle-plus fs-4 mt-1"></i>
-                                        <div>
-                                            <div class="fw-semibold">What else could go here&hellip;?</div>
-                                            <div class="small">Your next audience</div>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
+<?php endforeach; ?>
                         </div>
                     </div>
                 </li>
-                <li class="nav-item"><a class="nav-link" href="/#features">Features</a></li>
+                <li class="nav-item"><a class="nav-link" href="/features">Features</a></li>
                 <li class="nav-item"><a class="nav-link" href="/docs">Docs</a></li>
                 <li class="nav-item"><a class="nav-link" href="https://github.com/WebTigers/Tiger" target="_blank" rel="noopener">GitHub</a></li>
             </ul>

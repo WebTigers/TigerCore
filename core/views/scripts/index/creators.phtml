@@ -1,0 +1,75 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /creators — the plugin & theme creator story: build for the marketplace, sell on your own terms.
+ * Rendered inside the PUMA public layout; Bootstrap + --bs-* tokens (restyles live with theme + skin).
+ */
+$this->title = 'Plugin & Theme Creators — your code, your license, not GPL | Tiger';
+
+$points = [
+    ['fa-scale-balanced', 'Your license, not GPL',      'No forced copyleft. Ship your modules and themes under whatever terms you choose — closed, commercial, or open. Tiger is BSD; what you build on it is yours.'],
+    ['fa-sack-dollar',    'Sell on your own terms',     'Price it, license it, and support it your way. No GPL clubs reselling your work for $5 — your intellectual property stays yours, and so does the revenue.'],
+    ['fa-store',          'A marketplace with reach',   'List in the Tiger marketplace and reach every install through the one-click Module Manager — the same install path first-party modules use.'],
+    ['fa-plug',           'A clean surface to build on','Modules, themes, blocks, and a message-based /api — extend by adding, never patching. Predictable conventions mean less glue and more product.'],
+];
+?>
+<!-- Hero -->
+<section class="py-5">
+    <div class="container text-center py-lg-5">
+        <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+            <i class="fa-solid fa-puzzle-piece me-1"></i> For plugin &amp; theme creators
+        </span>
+        <h1 class="display-4 fw-bold mb-3">Your code. Your license. Not GPL.</h1>
+        <p class="lead text-secondary mx-auto mb-4" style="max-width: 720px;">
+            Build modules and themes for Tiger&rsquo;s marketplace and sell them under your own terms. No
+            forced copyleft, no GPL clubs reselling your work for $5 &mdash; your intellectual property
+            stays yours.
+        </p>
+        <div class="d-flex flex-wrap gap-2 justify-content-center">
+            <a href="/docs" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-book me-2"></i>Start building</a>
+            <a href="/developers" class="btn btn-outline-secondary btn-lg px-4">The developer story</a>
+        </div>
+    </div>
+</section>
+
+<!-- Points -->
+<section class="pb-2">
+    <div class="container">
+        <div class="row g-4">
+<?php foreach ($points as $p): ?>
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body d-flex gap-3 p-4">
+                        <div class="flex-shrink-0 d-inline-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary-emphasis" style="width:48px;height:48px;">
+                            <i class="fa-solid <?= $p[0] ?> fs-5"></i>
+                        </div>
+                        <div>
+                            <h2 class="h6 fw-semibold mb-1"><?= $this->escape($p[1]) ?></h2>
+                            <p class="small text-secondary mb-0"><?= $this->escape($p[2]) ?></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="py-5">
+    <div class="container">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="fw-bold mb-3">Build it once. Sell it your way.</h2>
+                <p class="text-secondary mb-4">Scaffold a module in seconds and list it when you&rsquo;re ready.</p>
+                <div class="bg-body-tertiary border rounded-3 d-inline-block px-4 py-3 mb-4 text-start font-monospace small">
+                    <span class="text-secondary">$</span> vendor/bin/tiger make:module my-plugin
+                </div>
+                <div>
+                    <a href="/docs" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-book me-2"></i>Read the docs</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

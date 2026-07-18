@@ -19,12 +19,26 @@ Billing_InvoiceController::viewAction ->  /billing/invoice/view/id/42
 what everything else points at. Trailing `key/value` pairs fold into `getParam()` automatically
 (`/billing/invoice/view/id/42` → `id=42`). No query strings for navigation (see AGENTS.md).
 
-## 2. Pretty routes are *overrides*, never hand-added `addRoute` calls
+## 2. Pretty routes are *config*, never hand-added `addRoute` calls
 
-A vanity URL like `/docs` (instead of `/docs/index/docs`) is an **optional alias**. Declare it —
-don't imperatively `$router->addRoute()` in your module Bootstrap. Declaring puts every alias
-through one ordering authority; hand-adding routes scatters precedence across bootstraps and
-makes you fight Zend's route stack.
+A vanity URL is an **optional alias** — the canonical `<module>/<controller>/<action>` path always
+works automagically via the default route, so you only add an alias for a nicer URL. **Never
+`$router->addRoute()` in a Bootstrap** (`_init*`) — routes are config, and hardcoding them scatters
+precedence across bootstraps and makes you fight Zend's route stack. Two homes, by layer:
+
+- **Core / default-namespace aliases → `configs/routes.ini`.** ZF1-native `resources.router.routes.*`,
+  folded into the config cascade by `Tiger_Application::buildConfig`; the standard Router resource
+  applies them — no route code anywhere. Example (`/vibe` → `IndexController::vibeAction`):
+  ```ini
+  [production]
+  resources.router.routes.vibe.type              = "Zend_Controller_Router_Route_Static"
+  resources.router.routes.vibe.route             = "vibe"
+  resources.router.routes.vibe.defaults.controller = "index"
+  resources.router.routes.vibe.defaults.action     = "vibe"
+  ```
+- **Module aliases → a `Tiger_Routing_Overrides` declaration** (below), so one authority owns ordering.
+
+A module declares its default alias from its Bootstrap:
 
 A module declares its default alias from its Bootstrap:
 
