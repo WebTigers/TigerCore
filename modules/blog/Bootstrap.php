@@ -56,7 +56,18 @@ class Blog_Bootstrap extends Zend_Application_Module_Bootstrap
             ]);
             $urls = [];
             foreach ($posts as $p) {
-                $urls[] = ['loc' => '/blog/' . $p->slug, 'lastmod' => $p->updated_at ?: $p->published_at];
+                // `title`/`desc` are optional sitemap fields that let this same provider feed /llms.txt.
+                $desc = '';
+                $meta = json_decode((string) $p->meta, true);
+                if (is_array($meta)) {
+                    $desc = (string) ($meta['excerpt'] ?? $meta['subtitle'] ?? ($meta['seo']['description'] ?? ''));
+                }
+                $urls[] = [
+                    'loc'     => '/blog/' . $p->slug,
+                    'lastmod' => $p->updated_at ?: $p->published_at,
+                    'title'   => (string) $p->title,
+                    'desc'    => $desc,
+                ];
             }
             return $urls;
         });

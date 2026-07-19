@@ -13,7 +13,9 @@
  * A provider is `fn(array $context): array`, returning a list of URL entries. $context carries `locale`
  * and `orgId` (the current site's org — see Tiger_Model_Org::siteOrgId()) so a provider scopes itself.
  * Each entry: ['loc' => '/path' (site-relative — the consumer absolutizes), 'lastmod' => datetime|null,
- * 'changefreq' => string|null, 'priority' => float|null]. A throwing provider is skipped (fail-soft).
+ * 'changefreq' => string|null, 'priority' => float|null]. Two OPTIONAL fields let the SAME provider also
+ * feed /llms.txt: 'title' (a human label) and 'desc' (a one-line summary). The XML sitemap ignores them;
+ * grouped() preserves them. A throwing provider is skipped (fail-soft).
  *
  * @api
  */
@@ -77,5 +79,47 @@ class Tiger_Sitemap
             }
         }
         return $urls;
+    }
+
+    /**
+     * Like collect(), but GROUPED by provider key and preserving each entry's optional `title` +
+     * `desc` — the shape /llms.txt needs (a section per content type, with human labels). The XML
+     * sitemap uses collect(); the LLM index uses this.
+     *
+     * @param  array $context passed to each provider (expects `locale`, `orgId`)
+     * @return array<string,array<int,array{loc:string,lastmod:?string,title:string,desc:string}>>
+     */
+    public static function grouped(array $context = [])
+    {
+        $out = [];
+        foreach (self::$_providers as $key => $provider) {
+            try {
+                $set = $provider($context);
+            } catch (Throwable $e) {
+                continue;
+            }
+            if (!is_array($set)) {
+                continue;
+            }
+            $rows = [];
+            $seen = [];
+            foreach ($set as $entry) {
+                $loc = isset($entry['loc']) ? (string) $entry['loc'] : '';
+                if ($loc === '' || isset($seen[$loc])) {
+                    continue;
+                }
+                $seen[$loc] = true;
+                $rows[] = [
+                    'loc'     => $loc,
+                    'lastmod' => $entry['lastmod'] ?? null,
+                    'title'   => isset($entry['title']) ? (string) $entry['title'] : '',
+                    'desc'    => isset($entry['desc'])  ? (string) $entry['desc']  : '',
+                ];
+            }
+            if ($rows) {
+                $out[(string) $key] = $rows;
+            }
+        }
+        return $out;
     }
 }
