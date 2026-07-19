@@ -27,8 +27,12 @@ if (!in_array($_pref, ['browser', 'light', 'dark'], true)) { $_pref = 'browser';
 $_mode = ($_pref === 'dark') ? 'dark' : 'light';
 $_lang = defined('LANG') ? LANG : 'en';
 $_hasAside = !empty($this->rightAside);
+// The TigerAgent rail is app-shell-wide + permission-managed: it renders on every admin
+// screen when the agent is available to this viewer (feature on + provider connected + role
+// allowed). See TIGERAGENT.md §4.
+$_hasAgent = class_exists('Tiger_Agent') && Tiger_Agent::isAvailable();
 ?><!doctype html>
-<html lang="<?= $this->escape($_lang) ?>" data-bs-theme="<?= $_mode ?>" class="tiger-admin<?= $_hasAside ? ' has-right-aside' : '' ?>">
+<html lang="<?= $this->escape($_lang) ?>" data-bs-theme="<?= $_mode ?>" class="tiger-admin<?= $_hasAside ? ' has-right-aside' : '' ?><?= $_hasAgent ? ' has-agent' : '' ?>">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -74,6 +78,10 @@ $_hasAside = !empty($this->rightAside);
 <?php endif; ?>
     </div>
 
+<?php if ($_hasAgent): ?>
+    <?= $this->render('_partials/agent-aside.phtml') ?>
+<?php endif; ?>
+
 </div>
 
 <!-- Backdrop for the off-canvas sidebar on mobile. -->
@@ -99,6 +107,10 @@ $_hasAside = !empty($this->rightAside);
 <script src="<?= $this->asset($this->themeAssets . '/js/tiger.admin-nav.js') ?>" defer></script>
 <!-- Reusable "choose media" modal (TigerMediaPicker + the mediaField() helper). -->
 <script src="<?= $this->asset($this->themeAssets . '/js/tiger.media-picker.js') ?>" defer></script>
+<?php if ($_hasAgent): ?>
+<!-- TigerAgent aside client (vanilla, zero deps) — only when the agent is available here. -->
+<script src="<?= $this->asset($this->themeAssets . '/js/tiger.agent.js') ?>" defer></script>
+<?php endif; ?>
 <?php
 // Auto-logout: only ship the poller when the feature is on (so a disabled install never
 // polls). The browser is server-authoritative — it learns time-left from /auth/session.
