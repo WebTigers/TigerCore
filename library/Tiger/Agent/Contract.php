@@ -61,6 +61,7 @@ class Tiger_Agent_Contract
     const READ_TREE      = 'read.tree';         // list file/dir names under a scoped path
     const READ_FILE      = 'read.file';         // one file's contents (bounded)
     const READ_GREP      = 'read.grep';         // search files + Code-Area snippets for a string
+    const READ_GUIDE     = 'read.guide';        // a module's AGENTS.md (or the platform conventions)
 
     /** Client tools (the DOM) — executed in the BROWSER by tiger.agent.js, not on the server. The
      *  page declares editable TARGETS (`data-agent-target`); the model reads/writes them by name. */
@@ -70,12 +71,12 @@ class Tiger_Agent_Contract
     /** The Forge (write) action types. */
     const WRITE_TYPES = [self::ACTION_API, self::ACTION_CODE, self::ACTION_FILE, self::ACTION_MODULE];
     /** The Scout (read) action types. */
-    const READ_TYPES = [self::READ_INVENTORY, self::READ_TREE, self::READ_FILE, self::READ_GREP];
+    const READ_TYPES = [self::READ_INVENTORY, self::READ_TREE, self::READ_FILE, self::READ_GREP, self::READ_GUIDE];
     /** The client (browser-executed) action types. */
     const CLIENT_TYPES = [self::DOM_READ, self::DOM_WRITE];
     /** Every action type the parser accepts. */
     const TYPES = [self::ACTION_API, self::ACTION_CODE, self::ACTION_FILE, self::ACTION_MODULE,
-                   self::READ_INVENTORY, self::READ_TREE, self::READ_FILE, self::READ_GREP,
+                   self::READ_INVENTORY, self::READ_TREE, self::READ_FILE, self::READ_GREP, self::READ_GUIDE,
                    self::DOM_READ, self::DOM_WRITE];
 
     /**
@@ -231,6 +232,10 @@ class Tiger_Agent_Contract
                     return null;
                 }
                 return ['type' => $type, 'query' => (string) $a['query'], 'path' => (string) ($a['path'] ?? ''), 'reason' => $reason];
+
+            case self::READ_GUIDE:
+                // module optional — empty means "the platform conventions".
+                return ['type' => $type, 'module' => preg_replace('/[^a-z0-9]/', '', strtolower((string) ($a['module'] ?? ''))), 'reason' => $reason];
 
             case self::DOM_READ:
                 if (empty($a['target'])) {

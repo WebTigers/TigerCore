@@ -113,6 +113,13 @@ leaps* — exactly how a human developer works:
 - `read.tree {path}` — file/dir **names** under a scoped path (Glob).
 - `read.file {path}` — one file's contents, bounded (Read).
 - `read.grep {query}` — search files **and** the Code-Area snippets (*"does this JS already exist?"*).
+- `read.guide {module?}` — a module's **`AGENTS.md`** (how to work on THAT module), or — with no module
+  — the **platform conventions** (root `AGENTS.md`) plus pointers to the deeper reference docs. This is
+  the "read the guide before you touch the code" tool: the system prompt orients the AI to *what Tiger
+  is* and *that these guides exist*, and it pulls the relevant one on demand — we never ship all the
+  AGENTS.md eagerly (map eager, guides lazy). `read.inventory` flags which modules have a guide.
+  **Convention:** every module should carry an `AGENTS.md`; where one's missing, `read.guide` falls back
+  to the platform conventions with a note. (Authoring an `AGENTS.md` per first-party module is backlog.)
 
 Read scope is **deliberately wider than write scope**: the Scout can read app modules + themes AND
 read-only into `vendor/webtigers/tiger-core` (so it learns house style — read `tiger.button.js` to match

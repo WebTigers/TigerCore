@@ -22,6 +22,7 @@
 class Tiger_Agent_Scout
 {
     const MAX_FILE_BYTES   = 24000;   // one read.file is bounded (context budget)
+    const GUIDE_MAX_BYTES  = 40000;   // a guide (AGENTS.md) is meant to be read whole — a bit larger
     const MAX_TREE_ENTRIES = 400;
     const MAX_GREP_HITS    = 60;
     const MAX_GREP_FILES   = 4000;
@@ -54,6 +55,7 @@ class Tiger_Agent_Scout
             case Tiger_Agent_Contract::READ_TREE:      return $this->_tree($action);
             case Tiger_Agent_Contract::READ_FILE:      return $this->_file($action);
             case Tiger_Agent_Contract::READ_GREP:      return $this->_grep($action);
+            case Tiger_Agent_Contract::READ_GUIDE:     return $this->_guide($action);
         }
         return $this->_entry($action, 'error', 'Unknown read action.');
     }
@@ -82,9 +84,15 @@ class Tiger_Agent_Scout
             $inactive = array_flip((array) (new Tiger_Model_Module())->inactiveSlugs());
             $mods = [];
             foreach (Tiger_Module_Discovery::all() as $slug => $m) {
-                $mods[] = $slug . '(' . ($m['area'] ?? '?') . (isset($inactive[$slug]) ? ',inactive' : '') . ')';
+                $area  = $m['area'] ?? '?';
+                $base  = ($area === 'app' && defined('MODULES_PATH')) ? MODULES_PATH
+                       : (defined('TIGER_CORE_PATH') ? TIGER_CORE_PATH . '/modules' : '');
+                $guide = ($base !== '' && is_file($base . '/' . $slug . '/AGENTS.md')) ? ',guide' : '';
+                $mods[] = $slug . '(' . $area . (isset($inactive[$slug]) ? ',inactive' : '') . $guide . ')';
             }
             $lines[] = 'MODULES: ' . implode(', ', $mods);
+            $lines[] = 'GUIDES: before you write code, run read.guide (no module) for the platform conventions, '
+                     . 'and read.guide {module} for any module marked "guide" above — don\'t guess Tiger\'s patterns.';
         } catch (Throwable $e) {}
 
         // Code-Area snippets (module files + local rows) — where JS/PHP plugins live.
@@ -314,6 +322,66 @@ class Tiger_Agent_Scout
             ? 'GREP "' . $query . '" — ' . count($hits) . " match(es):\n  " . implode("\n  ", $hits)
             : 'GREP "' . $query . '" — no matches. (Safe to create it — nothing like this exists.)';
         return $this->_entry($action, 'done', count($hits) . ' match(es) for "' . $query . '".', $body);
+    }
+
+    // ----- read.guide --------------------------------------------------------
+
+    /**
+     * Return a module's AGENTS.md (how to work on THAT module) or — with no module — the platform
+     * conventions (the root AGENTS.md) plus pointers to the deeper reference docs. This is the
+     * "read the guide before you touch the code" tool: the AI is told these guides exist in its
+     * orientation, and pulls the relevant one on demand rather than us shipping them all eagerly.
+     *
+     * Unlike read.file this reads CURATED doc files (AGENTS.md, the reference docs) by a sanitized
+     * slug, so it doesn't need the read-root sandbox — a module slug can't escape a fixed filename.
+     *
+     * @param  array $action the read.guide action (optional `module`)
+     * @return array
+     */
+    protected function _guide(array $action)
+    {
+        if (!$this->_allowed('read')) {
+            return $this->_entry($action, 'denied', 'Reading a guide requires the superadmin role or higher.');
+        }
+        $module = (string) ($action['module'] ?? '');
+
+        if ($module !== '') {
+            foreach ([
+                defined('MODULES_PATH')    ? MODULES_PATH . '/' . $module . '/AGENTS.md'         : null,
+                defined('TIGER_CORE_PATH') ? TIGER_CORE_PATH . '/modules/' . $module . '/AGENTS.md' : null,
+            ] as $path) {
+                if ($path !== null && is_file($path)) {
+                    return $this->_entry($action, 'done', 'Read the "' . $module . '" module guide (AGENTS.md).',
+                        'GUIDE for module "' . $module . "\" (AGENTS.md):\n\n" . $this->_readBounded($path));
+                }
+            }
+            // No module-specific guide yet — fall back to the platform conventions with a note.
+            return $this->_entry($action, 'done', 'No AGENTS.md for "' . $module . '" — returning the platform conventions.',
+                "(module \"$module\" has no AGENTS.md yet — follow the platform conventions below)\n\n" . $this->_platformGuide());
+        }
+
+        return $this->_entry($action, 'done', 'Read the platform conventions (AGENTS.md).', $this->_platformGuide());
+    }
+
+    /** The root AGENTS.md (house conventions) + pointers to the deeper reference docs. */
+    protected function _platformGuide()
+    {
+        $agents = defined('TIGER_CORE_PATH') ? TIGER_CORE_PATH . '/AGENTS.md' : '';
+        $body   = ($agents !== '' && is_file($agents)) ? $this->_readBounded($agents) : '(platform AGENTS.md not found)';
+        $refs   = 'DEEPER REFERENCES (read.file to open, under vendor/webtigers/tiger-core/): '
+                . 'ARCHITECTURE.md (the why), CODE.md (Code Area), WEBSERVICES.md (the /api model), '
+                . 'ROUTING.md (URLs), ADMIN.md (admin screens), THEMES.md (theming).';
+        return "PLATFORM CONVENTIONS (AGENTS.md):\n\n" . $body . "\n\n" . $refs;
+    }
+
+    /** Read a doc file up to the guide bound, noting truncation. */
+    protected function _readBounded($path)
+    {
+        $data = (string) file_get_contents($path, false, null, 0, self::GUIDE_MAX_BYTES);
+        if ((int) filesize($path) > self::GUIDE_MAX_BYTES) {
+            $data .= "\n…(truncated)";
+        }
+        return $data;
     }
 
     // ----- scope + helpers ---------------------------------------------------
