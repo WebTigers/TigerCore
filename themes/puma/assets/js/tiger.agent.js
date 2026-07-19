@@ -296,8 +296,12 @@
             clientHops++;
             busy(true, 'Working…');
             api('resume', { conversation_id: activeCid(), results: JSON.stringify(results), context: pageContext(), mode: getMode() })
-                .then(function (res) { busy(false); if (res && res.result === 1 && res.data) { onTurn(res.data); } })
-                .catch(function () { busy(false); });
+                .then(function (res) {
+                    busy(false);
+                    if (res && res.result === 1 && res.data) { onTurn(res.data); return; }
+                    addBubble('assistant', (res && res.messages && res.messages[0] && res.messages[0].message) || 'The agent stopped unexpectedly — please try again.');
+                })
+                .catch(function () { busy(false); addBubble('assistant', 'Network error — please try again.'); });
             return;
         }
         handleNavigate(wrap, data.navigate);
