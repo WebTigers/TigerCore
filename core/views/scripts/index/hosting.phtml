@@ -1,0 +1,74 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /hosting — the hosting-partner story: add Tiger to your stack, free. Rendered inside the PUMA public
+ * layout; Bootstrap + --bs-* tokens (restyles live with theme + skin).
+ */
+$this->title = 'Hosting Partners — add Tiger to your stack | Tiger';
+
+$points = [
+    ['fa-feather',       'Leaner than WordPress',   'Tiger runs on a tiny footprint with no plugin sprawl — fewer resources per site means more sites per box and healthier margins.'],
+    ['fa-headset',       'Fewer support tickets',   'No plugin-conflict roulette, no update-broke-my-site tickets. A predictable core generates far less support load than a WordPress install.'],
+    ['fa-bolt',          'Faster installs',         'Zero build step, one-click provisioning. Add it to your cPanel or Softaculous stack and customers are running in seconds.'],
+    ['fa-handshake',     'On your terms, not ours', 'Free to add — no Tiger fees, no new contracts. When we refer customers to you, it\'s through the referral program you already run.'],
+];
+?>
+<!-- Hero -->
+<section class="py-5">
+    <div class="container text-center py-lg-5">
+        <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+            <i class="fa-solid fa-server me-1"></i> For hosting partners
+        </span>
+        <h1 class="display-4 fw-bold mb-3">Add Tiger to your stack. Free.</h1>
+        <p class="lead text-secondary mx-auto mb-4" style="max-width: 720px;">
+            Tiger installs faster, runs leaner, and generates fewer support tickets than WordPress. It&rsquo;s
+            free to add to your cPanel or Softaculous stack &mdash; and when we send customers your way, we
+            do it through the referral program you already run.
+        </p>
+        <div class="d-flex flex-wrap gap-2 justify-content-center">
+            <a href="https://github.com/WebTigers/Tiger" class="btn btn-primary btn-lg px-4" target="_blank" rel="noopener">
+                <i class="fa-brands fa-github me-2"></i>See how it runs
+            </a>
+            <a href="/docs" class="btn btn-outline-secondary btn-lg px-4">Read the docs</a>
+        </div>
+    </div>
+</section>
+
+<!-- Points -->
+<section class="pb-2">
+    <div class="container">
+        <div class="row g-4">
+<?php foreach ($points as $p): ?>
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body d-flex gap-3 p-4">
+                        <div class="flex-shrink-0 d-inline-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary-emphasis" style="width:48px;height:48px;">
+                            <i class="fa-solid <?= $p[0] ?> fs-5"></i>
+                        </div>
+                        <div>
+                            <h2 class="h6 fw-semibold mb-1"><?= $this->escape($p[1]) ?></h2>
+                            <p class="small text-secondary mb-0"><?= $this->escape($p[2]) ?></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="py-5">
+    <div class="container">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="fw-bold mb-3">Offer your customers something leaner</h2>
+                <p class="text-secondary mb-4">Free to add. We help grow your business through the referral program you already have.</p>
+                <a href="https://github.com/WebTigers/Tiger" class="btn btn-primary btn-lg px-4" target="_blank" rel="noopener">
+                    <i class="fa-brands fa-github me-2"></i>View on GitHub
+                </a>
+            </div>
+        </div>
+    </div>
+</section>

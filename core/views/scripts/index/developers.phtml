@@ -1,0 +1,131 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /developers — the open-source / builder story: free, BSD-licensed, extend via modules. Rendered
+ * inside the PUMA public layout; Bootstrap + --bs-* tokens (restyles live with theme + skin).
+ */
+$this->title = 'Developers & Open Source — free, BSD-licensed, yours to extend | Tiger';
+
+$build = [
+    ['fa-cubes',          'Everything is a module',    'Drop a folder in application/modules and it plugs in — controllers, an /api service, models, migrations, views, ACL, routes. No core edits, ever.'],
+    ['fa-arrows-to-dot',  'One message-based /api',    'No REST-by-URL zoo. The message names a service + method; add a method and it\'s live. The pattern even describes itself as OpenAPI.'],
+    ['fa-terminal',       'A real CLI',                'make:module scaffolds a live feature; migrate, install:admin, and crypto/secret rotation are built in. No hidden magic to reverse-engineer.'],
+    ['fa-book-open',      'Docs in the code',          'Docblocks generate the API reference; an AGENTS.md documents the conventions. The codebase is written to be read — by humans and AIs.'],
+];
+?>
+<!-- Hero -->
+<section class="py-5">
+    <div class="container text-center py-lg-5">
+        <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+            <i class="fa-solid fa-scale-balanced me-1"></i> BSD-3-Clause · open source
+        </span>
+        <h1 class="display-4 fw-bold mb-3">Free, open, and yours to extend.</h1>
+        <p class="lead text-secondary mx-auto mb-4" style="max-width: 720px;">
+            Tiger is BSD-licensed and built on TigerZF (ZendFramework 1, modernized for PHP 8.1&ndash;8.5).
+            No license fee, no lock-in, no black boxes — clone it, extend it with modules, and own your stack
+            top to bottom.
+        </p>
+        <div class="d-flex flex-wrap gap-2 justify-content-center">
+            <a href="https://github.com/WebTigers/Tiger" class="btn btn-primary btn-lg px-4" target="_blank" rel="noopener">
+                <i class="fa-brands fa-github me-2"></i>Star on GitHub
+            </a>
+            <a href="/docs" class="btn btn-outline-secondary btn-lg px-4">Read the docs</a>
+        </div>
+    </div>
+</section>
+
+<!-- Build on it -->
+<section class="pb-2">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">Built to be built on</h2>
+            <p class="text-secondary mx-auto mb-0" style="max-width:640px;">
+                Extend by <em>adding</em>, never by patching. Your code lives outside the framework, so
+                <code>composer update</code> can never clobber it.
+            </p>
+        </div>
+        <div class="row g-4">
+<?php foreach ($build as $b): ?>
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body d-flex gap-3 p-4">
+                        <div class="flex-shrink-0 d-inline-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary-emphasis" style="width:48px;height:48px;">
+                            <i class="fa-solid <?= $b[0] ?> fs-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="h6 fw-semibold mb-1"><?= $b[1] ?></h3>
+                            <p class="small text-secondary mb-0"><?= $b[2] ?></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- Own your stack -->
+<section class="py-5 mt-4" style="background: var(--bs-tertiary-bg);">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="fa-solid fa-scale-balanced text-primary fs-2 mb-3"></i>
+                        <h3 class="h5 fw-bold">Permissive license</h3>
+                        <p class="text-secondary small mb-0">
+                            BSD-3-Clause — build commercial products on it, ship closed-source modules, no copyleft
+                            strings. The framework is a dependency in <code>vendor/</code>, never copied into your app.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="fa-solid fa-server text-primary fs-2 mb-3"></i>
+                        <h3 class="h5 fw-bold">Self-host anywhere</h3>
+                        <p class="text-secondary small mb-0">
+                            cPanel, a $5 VPS, or a fleet behind a load balancer — zero build step, no vendor cloud
+                            required. Your data and your deploy stay yours.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="fa-solid fa-code-branch text-primary fs-2 mb-3"></i>
+                        <h3 class="h5 fw-bold">Contribute &amp; share</h3>
+                        <p class="text-secondary small mb-0">
+                            Open issues and PRs on GitHub, or publish your own modules and themes — the same registry
+                            and one-click Module Manager everyone else installs from.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="py-5">
+    <div class="container">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="fw-bold mb-3">Clone it and make it yours</h2>
+                <p class="text-secondary mb-4">One command scaffolds a running app you fully control — then extend it with a module.</p>
+                <div class="bg-body-tertiary border rounded-3 d-inline-block px-4 py-3 mb-4 text-start font-monospace small">
+                    <span class="text-secondary">$</span> composer create-project webtigers/tiger my-app<br>
+                    <span class="text-secondary">$</span> cd my-app &amp;&amp; vendor/bin/tiger make:module hello
+                </div>
+                <div>
+                    <a href="https://github.com/WebTigers/Tiger" class="btn btn-primary btn-lg px-4" target="_blank" rel="noopener">
+                        <i class="fa-brands fa-github me-2"></i>View on GitHub
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

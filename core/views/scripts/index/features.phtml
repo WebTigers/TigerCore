@@ -1,0 +1,124 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /features — the full feature catalog. A sectioned grid of cards drawn from across the audience
+ * pages (/cms, /vibe, /agency, /developers, …) into one place. Classy notes for now — a placeholder
+ * that still looks finished; the deep detail lives on the audience pages. Rendered in the PUMA public
+ * layout; Bootstrap + --bs-* tokens, so it restyles live with the theme + skin.
+ */
+$this->title = 'Features — everything Tiger ships | Tiger';
+
+// [section title, section subtitle, [ [icon, name, note], … ] ]
+$sections = [
+    ['Foundation', 'The substrate every app stands on', [
+        ['fa-building',      'Multi-tenant core',    'Orgs, users, and memberships out of the box — roles live on the membership, not the user.'],
+        ['fa-bolt',          'Zero build toolchain', 'No npm, no webpack, no Sass. <code>composer install</code> and the UI renders.'],
+        ['fa-layer-group',   'Front-end agnostic',   'Server-rendered <code>.phtml</code> or any SPA — all against one JSON <code>/api</code>.'],
+        ['fa-gauge-high',    'Built for speed',      'A lean, OPcache-tuned core — ~10ms pages, even on a $5 shared host.'],
+        ['fa-server',        'Self-host anywhere',   'cPanel, a $5 VPS, or a fleet behind a load balancer. No vendor cloud required.'],
+    ]],
+    ['Authentication &amp; security', 'Enterprise-grade, wired from commit one', [
+        ['fa-fingerprint',  'Credentials &amp; 2FA',    'Password policy, lockout, email codes, and TOTP — identity kept separate from credentials.'],
+        ['fa-user-shield',  'Deny-by-default ACL',      'Every request authorized before it runs; roles resolved live, per tenant.'],
+        ['fa-user-clock',   'Sessions &amp; auto-logout','DB-backed sessions with a server-authoritative idle timeout and lock screen.'],
+        ['fa-list-check',   'Login audit log',          'Every sign-in attempt recorded — the substrate for rate-limiting and anomaly detection.'],
+        ['fa-key',          'Zero-downtime rotation',   'Rotate the encryption key and password pepper with no forced resets.'],
+    ]],
+    ['Content &amp; theming', 'A CMS that doesn&rsquo;t lock you in', [
+        ['fa-file-lines',      'Database CMS',              'Pages, layouts, and partials as rows — edit content without a deploy.'],
+        ['fa-object-group',    'Visual builder',            'GrapesJS drag-and-drop, plus Markdown, HTML, or trusted PHTML bodies.'],
+        ['fa-bars-staggered',  'Custom menus',              'Admin-authored, tenant-cascading navigation with a drag-drop builder.'],
+        ['fa-clock-rotate-left','Versioning &amp; scheduling','Every save snapshots a version; a future publish date schedules go-live.'],
+        ['fa-palette',         'Themes &amp; skins, live',  'Light/dark and swappable skins that hot-swap with no reload — per user or per org.'],
+        ['fa-id-badge',        'Site identity',             'Name, logo, favicon, and socials — editable, and wired into the page head.'],
+    ]],
+    ['Web services &mdash; the <code>/api</code> pattern', 'REST without the bloat', [
+        ['fa-arrows-to-dot', 'One endpoint',      'A single <code>/api</code>; the message names the service + method. Add a method, it&rsquo;s live.'],
+        ['fa-lock',          'Secured by ACL',    'Authorized before it runs — resource = the service, privilege = the method.'],
+        ['fa-table',         'DataTables built in','Server-side grids fetch rows from <code>/api</code>, never server-rendered HTML.'],
+        ['fa-compass',       'Self-describing',   'Because routing is data, an OpenAPI catalog falls out of the pattern.'],
+    ]],
+    ['Developer experience', 'Built to be built on', [
+        ['fa-cubes',          'Everything is a module', 'Drop a folder — controllers, services, models, migrations, views, ACL — it plugs in.'],
+        ['fa-terminal',       'Batteries-included CLI', '<code>make:module</code> scaffolds a live feature; migrate, install:admin, and secret rotation ship in.'],
+        ['fa-book-open',      'Docs in the code',       'Docblocks generate the API reference; an <code>AGENTS.md</code> guides your AI before it writes.'],
+        ['fa-scale-balanced', 'BSD-licensed',           'No copyleft — build commercial products and ship closed-source modules.'],
+        ['fa-database',       'Additive migrations',    'A dependency-free runner scans core, app, and every module for schema changes.'],
+    ]],
+    ['International &amp; configurable', 'Change it in production, no deploy', [
+        ['fa-sliders',        'Live config overrides', 'Any setting overridable at request time — global or per-org — with no deploy.'],
+        ['fa-language',       'Live translations',     'Override or add any string at request time; semantic, owner-prefixed keys.'],
+        ['fa-earth-americas', 'Localized URLs',        '<code>/es/</code> works on every route; resolution and persistence are built in.'],
+    ]],
+    ['SEO &amp; marketing', 'Findable by default', [
+        ['fa-hashtag',         'Head registry',          'title, description, canonical, and robots — contributed, never hardcoded.'],
+        ['fa-share-nodes',     'Open Graph &amp; Twitter','Rich share cards, with the hero image resolved to real dimensions.'],
+        ['fa-sitemap',         'Sitemap &amp; robots',   'Every public URL mapped and served as a route — pages, blog, and docs.'],
+        ['fa-diagram-project', 'JSON-LD structured data','Organization, WebSite, Breadcrumb, and Article for rich results.'],
+    ]],
+];
+?>
+<!-- Hero -->
+<section class="py-5">
+    <div class="container text-center py-lg-4">
+        <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+            The whole toolbox
+        </span>
+        <h1 class="display-4 fw-bold mb-3">Everything Tiger ships</h1>
+        <p class="lead text-secondary mx-auto mb-0" style="max-width: 720px;">
+            The boring-but-essential substrate every site and SaaS needs — auth, multi-tenancy, a CMS, a
+            clean <code>/api</code>, i18n, and more — already built. A tour of what&rsquo;s in the box.
+        </p>
+    </div>
+</section>
+
+<?php foreach ($sections as $i => $s): $alt = ($i % 2 === 1); ?>
+<section class="py-5"<?= $alt ? ' style="background: var(--bs-tertiary-bg);"' : '' ?>>
+    <div class="container">
+        <div class="mb-4">
+            <h2 class="fw-bold h3 mb-1"><?= $s[0] ?></h2>
+            <p class="text-secondary mb-0"><?= $s[1] ?></p>
+        </div>
+        <div class="row g-4">
+<?php foreach ($s[2] as $f): ?>
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body d-flex gap-3 p-4">
+                        <div class="flex-shrink-0 d-inline-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary-emphasis" style="width:44px;height:44px;">
+                            <i class="fa-solid <?= $f[0] ?> fs-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="h6 fw-semibold mb-1"><?= $f[1] ?></h3>
+                            <p class="small text-secondary mb-0"><?= $f[2] ?></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<?php endforeach; ?>
+        </div>
+    </div>
+</section>
+<?php endforeach; ?>
+
+<!-- CTA -->
+<section class="py-5">
+    <div class="container">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="fw-bold mb-3">See it running</h2>
+                <p class="text-secondary mb-4">One command scaffolds a running, themed, multi-tenant app with all of the above.</p>
+                <div class="bg-body-tertiary border rounded-3 d-inline-block px-4 py-3 mb-4 text-start font-monospace small">
+                    <span class="text-secondary">$</span> composer create-project webtigers/tiger my-app<br>
+                    <span class="text-secondary">$</span> cd my-app &amp;&amp; vendor/bin/tiger install:admin
+                </div>
+                <div>
+                    <a href="https://github.com/WebTigers/Tiger" class="btn btn-primary btn-lg px-4" target="_blank" rel="noopener">
+                        <i class="fa-brands fa-github me-2"></i>View on GitHub
+                    </a>
+                    <a href="/docs" class="btn btn-outline-secondary btn-lg px-4 ms-2">Read the docs</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

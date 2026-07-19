@@ -287,9 +287,16 @@ a bootstrap `_init*`. See `Tiger_Model_Config` / `Tiger_Model_Translation`.
 - Don't hardcode user-facing strings, roles, or config — use keys, ACL data, and config.
 - Don't put logic in controllers, or run mutations without a form-validate + transaction.
 - Don't build REST-by-URL endpoints — use the `/api` message pattern.
-- Don't `addRoute` a pretty alias in a module Bootstrap — declare a `Tiger_Routing_Overrides`
-  override so one authority owns ordering (see ROUTING.md). Reach features at their canonical
-  `<module>/<controller>/<action>` path; don't register a route for it.
+- **Don't put routes in a Bootstrap — that's cruft.** Routes are *config*, not code. Prefer **automagic
+  default MVC**: name the controller/action so the URL falls out (`/foo` → `FooController::indexAction`,
+  `/index/vibe` → `IndexController::vibeAction`) and register **nothing**. When a *pretty alias* is
+  genuinely needed, it goes in a **`.ini`**, never a Bootstrap `_init`/`addRoute`:
+  - **Core / default-namespace** aliases → **`configs/routes.ini`** (ZF1-native
+    `resources.router.routes.*`, folded into the config cascade; the Router resource applies them).
+  - **Module** pretty aliases → a **`Tiger_Routing_Overrides`** override (one authority owns ordering;
+    see ROUTING.md).
+  Reach a feature at its canonical `<module>/<controller>/<action>` path by default; only add a route
+  for a nicer URL.
 - Don't page-POST forms to controllers or server-render list/table data — the UI is a client
   that calls `/api`; controllers render the initial shell only (see the client/server section).
 - Don't hand-roll a button spinner/busy flag or `innerHTML = '<div class="alert">'` — use

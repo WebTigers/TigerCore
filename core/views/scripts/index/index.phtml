@@ -2,120 +2,37 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
- * Public home page. Rendered inside the PUMA public layout (header + footer). Bootstrap +
- * --bs-* tokens, so it restyles live with the theme (light/dark) and the active skin.
- *
- * A deliberately lean "surface the major points" home — a placeholder for a fuller redesign.
- * It positions Tiger, points at the three audience pages (/cms, /vibe, /agency), and shows the
- * core feature grid. The audience cards mirror the header's Solutions mega-menu.
+ * Public home page — a deliberately minimal Tiger placeholder for now (the full home gets designed
+ * later). Rendered inside the PUMA public layout; Bootstrap + --bs-* tokens, so it restyles live with
+ * the theme (light/dark) and the active skin. The real marketing lives on the Solutions pages
+ * (/cms, /vibe, /agency, /developers, …) reachable from the header menu.
  */
-$this->title = 'Tiger — one platform: sites, SaaS, and client work';
-
-$paths = [
-    ['fa-wand-magic-sparkles', 'Build killer websites', 'No WordPress&reg; required',      '/cms',    'A database-driven CMS with layouts, menus, versioning, and a visual builder — themeable, multi-tenant, fast.'],
-    ['fa-rocket',              'Vibe SaaS startups',     'A secure MVP in minutes, not days','/vibe',   'Auth, orgs, roles, and a clean /api from the first commit — so you and your AI pair ship product, not plumbing.'],
-    ['fa-people-group',        'Agency friendly',        'Host hundreds of sites',           '/agency', 'One install, many tenants. Jumpstart every client project and run them all from a single back office.'],
-];
-
-$features = [
-    ['fa-layer-group',   'Front-end agnostic',      'Server-rendered .phtml or any SPA against one JSON /api. The core ships no UI framework.'],
-    ['fa-building',      'Multi-tenant by default', 'Orgs, users, and memberships out of the box — roles live on the membership, not the user.'],
-    ['fa-bolt',          'Zero build toolchain',    'No npm, no webpack, no Sass. composer install and the UI renders. Assets are vendored.'],
-    ['fa-shield-halved', 'Auth & ACL included',     'Password policy, lockout, DB sessions, an audit log, and a deny-by-default, per-tenant ACL.'],
-    ['fa-language',      'i18n + live overrides',   'Semantic keys, /es/ URLs, and any string or config changed in production with no deploy.'],
-    ['fa-gauge-high',    'Built for speed',         'A lean core — OPcache-tuned, tiny footprint. Flies on a $5 shared host, not just a big server.'],
-    ['fa-palette',       'Live theming & skins',    'Light/dark and swappable skins that hot-swap with no reload — per user and per org.'],
-    ['fa-terminal',      'Batteries-included CLI',  'bin/tiger migrate, install:admin, make:module — scaffold a live module in seconds.'],
-];
+$this->title = 'Tiger — a 1-click SaaS platform on TigerZF';
 ?>
-<!-- Hero -->
 <section class="py-5">
-    <div class="container text-center py-lg-5">
-        <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
-            Built on TigerZF · ZendFramework 1 for modern PHP
-        </span>
-        <h1 class="display-4 fw-bold mb-3">One platform. Sites, SaaS, and client work.</h1>
-        <p class="lead text-secondary mx-auto mb-4" style="max-width: 720px;">
-            Tiger is a 1-click, multi-tenant foundation for PHP — auth, orgs, roles, a CMS, theming,
-            i18n, and a clean <code>/api</code>. Whether you're building a website, a SaaS, or a hundred
-            client sites, you start with product, not plumbing.
-        </p>
-        <div class="d-flex flex-wrap gap-2 justify-content-center">
-            <a href="https://github.com/WebTigers/Tiger" class="btn btn-primary btn-lg px-4" target="_blank" rel="noopener">
-                <i class="fa-brands fa-github me-2"></i>Get started
-            </a>
-            <a href="#features" class="btn btn-outline-secondary btn-lg px-4">See features</a>
-        </div>
-        <p class="small text-secondary mt-3 mb-0">
-            <i class="fa-solid fa-wand-magic-sparkles me-1"></i>
-            Flip <strong>light/dark</strong> or the <strong>skin</strong> in the header — this page restyles live, no reload.
-        </p>
-    </div>
-</section>
-
-<!-- Audience paths (mirror the Solutions mega-menu) -->
-<section class="pb-2">
     <div class="container">
-        <div class="row g-4">
-<?php foreach ($paths as $p): ?>
-            <div class="col-md-4">
-                <a href="<?= $p[3] ?>" class="card h-100 border-0 border-top border-primary border-3 shadow-sm text-decoration-none text-body">
-                    <div class="card-body p-4">
-                        <i class="fa-solid <?= $p[0] ?> text-primary fs-2 mb-3"></i>
-                        <h2 class="h5 fw-bold mb-1"><?= $p[1] ?></h2>
-                        <div class="small text-primary-emphasis fw-semibold mb-2"><?= $p[2] ?></div>
-                        <p class="text-secondary small mb-3"><?= $p[4] ?></p>
-                        <span class="small fw-semibold text-primary">Explore <i class="fa-solid fa-arrow-right ms-1"></i></span>
-                    </div>
+        <div class="text-center py-lg-5" style="max-width: 760px; margin: 0 auto;">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-primary-subtle text-primary mb-4" style="width:84px;height:84px;">
+                <i class="fa-solid fa-paw" style="font-size:2.5rem;"></i>
+            </div>
+            <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+                Built on TigerZF · ZendFramework 1 for modern PHP
+            </span>
+            <h1 class="display-4 fw-bold mb-3">One platform. Sites, SaaS, and client work.</h1>
+            <p class="lead text-secondary mb-4">
+                Tiger is a 1-click, multi-tenant foundation for PHP — auth, orgs, roles, a CMS, theming,
+                i18n, and a clean <code>/api</code>, so you start with product, not plumbing.
+            </p>
+            <div class="d-flex flex-wrap gap-2 justify-content-center">
+                <a href="https://github.com/WebTigers/Tiger" class="btn btn-primary btn-lg px-4" target="_blank" rel="noopener">
+                    <i class="fa-brands fa-github me-2"></i>Get started
                 </a>
+                <a href="/docs" class="btn btn-outline-secondary btn-lg px-4">Read the docs</a>
             </div>
-<?php endforeach; ?>
-        </div>
-    </div>
-</section>
-
-<!-- Features -->
-<section id="features" class="py-5 mt-4" style="background: var(--bs-tertiary-bg);">
-    <div class="container">
-        <div class="text-center mb-5">
-            <h2 class="fw-bold">Everything a SaaS needs, none of the busywork</h2>
-            <p class="text-secondary mb-0">The boring-but-essential substrate, done right.</p>
-        </div>
-        <div class="row g-4">
-<?php foreach ($features as $f): ?>
-            <div class="col-md-6 col-lg-3">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body">
-                        <div class="d-inline-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary-emphasis mb-3" style="width:48px;height:48px;">
-                            <i class="fa-solid <?= $f[0] ?> fs-5"></i>
-                        </div>
-                        <h3 class="h6 fw-semibold"><?= $this->escape($f[1]) ?></h3>
-                        <p class="small text-secondary mb-0"><?= $this->escape($f[2]) ?></p>
-                    </div>
-                </div>
-            </div>
-<?php endforeach; ?>
-        </div>
-    </div>
-</section>
-
-<!-- CTA -->
-<section class="py-5">
-    <div class="container">
-        <div class="card border-0 shadow-sm text-center">
-            <div class="card-body p-4 p-lg-5">
-                <h2 class="fw-bold mb-3">Spin up your app in minutes</h2>
-                <p class="text-secondary mb-4">One command scaffolds a running, themed, multi-tenant app.</p>
-                <div class="bg-body-tertiary border rounded-3 d-inline-block px-4 py-3 mb-4 text-start font-monospace small">
-                    <span class="text-secondary">$</span> composer create-project webtigers/tiger my-app<br>
-                    <span class="text-secondary">$</span> cd my-app &amp;&amp; vendor/bin/tiger install:admin
-                </div>
-                <div>
-                    <a href="https://github.com/WebTigers/Tiger" class="btn btn-primary btn-lg px-4" target="_blank" rel="noopener">
-                        <i class="fa-brands fa-github me-2"></i>View on GitHub
-                    </a>
-                </div>
-            </div>
+            <p class="small text-secondary mt-4 mb-0">
+                <i class="fa-solid fa-arrow-up me-1"></i>
+                Explore what Tiger's for under <strong>Solutions</strong> in the menu.
+            </p>
         </div>
     </div>
 </section>
