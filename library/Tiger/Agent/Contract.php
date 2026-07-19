@@ -62,13 +62,21 @@ class Tiger_Agent_Contract
     const READ_FILE      = 'read.file';         // one file's contents (bounded)
     const READ_GREP      = 'read.grep';         // search files + Code-Area snippets for a string
 
+    /** Client tools (the DOM) — executed in the BROWSER by tiger.agent.js, not on the server. The
+     *  page declares editable TARGETS (`data-agent-target`); the model reads/writes them by name. */
+    const DOM_READ  = 'dom.read';    // read a registered page target's current content
+    const DOM_WRITE = 'dom.write';   // write content into a registered page target (HTML welcome here)
+
     /** The Forge (write) action types. */
     const WRITE_TYPES = [self::ACTION_API, self::ACTION_CODE, self::ACTION_FILE, self::ACTION_MODULE];
     /** The Scout (read) action types. */
     const READ_TYPES = [self::READ_INVENTORY, self::READ_TREE, self::READ_FILE, self::READ_GREP];
+    /** The client (browser-executed) action types. */
+    const CLIENT_TYPES = [self::DOM_READ, self::DOM_WRITE];
     /** Every action type the parser accepts. */
     const TYPES = [self::ACTION_API, self::ACTION_CODE, self::ACTION_FILE, self::ACTION_MODULE,
-                   self::READ_INVENTORY, self::READ_TREE, self::READ_FILE, self::READ_GREP];
+                   self::READ_INVENTORY, self::READ_TREE, self::READ_FILE, self::READ_GREP,
+                   self::DOM_READ, self::DOM_WRITE];
 
     /**
      * Is this a Scout (read) action — auto-run, no approval, handed to Tiger_Agent_Scout?
@@ -79,6 +87,19 @@ class Tiger_Agent_Contract
     public static function isRead($type)
     {
         return in_array($type, self::READ_TYPES, true);
+    }
+
+    /**
+     * Is this a CLIENT action — the server can't execute it; it's returned to tiger.agent.js,
+     * which reads/writes the DOM target and posts results back to `resume` (the client leg of the
+     * loop, TIGERAGENT.md §5c).
+     *
+     * @param  string $type an action type
+     * @return bool
+     */
+    public static function isClient($type)
+    {
+        return in_array($type, self::CLIENT_TYPES, true);
     }
 
     /**
@@ -210,6 +231,24 @@ class Tiger_Agent_Contract
                     return null;
                 }
                 return ['type' => $type, 'query' => (string) $a['query'], 'path' => (string) ($a['path'] ?? ''), 'reason' => $reason];
+
+            case self::DOM_READ:
+                if (empty($a['target'])) {
+                    return null;
+                }
+                return ['type' => $type, 'target' => (string) $a['target'], 'reason' => $reason];
+
+            case self::DOM_WRITE:
+                if (empty($a['target']) || !array_key_exists('value', $a)) {
+                    return null;
+                }
+                return [
+                    'type'   => $type,
+                    'target' => (string) $a['target'],
+                    'value'  => (string) $a['value'],   // HTML is intentional here — a registered editor target
+                    'kind'   => (string) ($a['kind'] ?? ''),
+                    'reason' => $reason,
+                ];
         }
         return null;
     }

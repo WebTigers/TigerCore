@@ -216,9 +216,84 @@ class Agent_Service_Agent extends Tiger_Service_Service
             $raw = is_array($decoded) ? $decoded : [];
         }
         $path = (string) ($raw['path'] ?? '');
+
+        // The page's declared editable targets (data-agent-target) — sanitized names + kinds.
+        $targets = [];
+        foreach ((array) ($raw['targets'] ?? []) as $t) {
+            if (!is_array($t) || empty($t['name'])) { continue; }
+            $targets[] = [
+                'name'  => preg_replace('/[^a-zA-Z0-9_.\-]/', '', (string) $t['name']),
+                'label' => mb_substr((string) ($t['label'] ?? ''), 0, 80),
+                'kind'  => in_array(($t['kind'] ?? ''), ['text', 'html', 'code'], true) ? (string) $t['kind'] : 'text',
+            ];
+            if (count($targets) >= 40) { break; }
+        }
+
         return [
-            'path' => (preg_match('#^/[\w\-/.]*$#', $path) ? $path : ''),
+            'path'    => (preg_match('#^/[\w\-/.]*$#', $path) ? $path : ''),
+            'targets' => $targets,
         ];
+    }
+
+    /**
+     * Resume a turn with the browser's DOM results (the client leg of the loop, TIGERAGENT.md §5c):
+     * tiger.agent.js executed a dom.read/dom.write and posts the outcome here; we feed it to the
+     * model so it can continue (e.g. read → rewrite).
+     *
+     * @param  array $params conversation_id, results (JSON), context, mode
+     * @return void
+     */
+    public function resume(array $params): void
+    {
+        if (!$this->_ready()) { return; }
+
+        $form = new Agent_Form_Resume();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+
+        $conv = (new Tiger_Model_AgentConversation())->ownedById((string) $params['conversation_id'], (string) $this->_user_id);
+        if (!$conv) { $this->_error('agent.error.run_missing'); return; }
+
+        $mode     = Tiger_Agent::clampMode((string) ($params['mode'] ?? 'ask'));
+        $context  = $this->_context($params);
+        $feedback = $this->_domFeedback($params['results'] ?? '');
+
+        try {
+            $loop   = new Tiger_Agent_Loop($this->_role(), (string) $this->_user_id, (string) $this->_org_id);
+            $result = $loop->followUp($conv, $feedback, $context, $mode);
+            $this->_success(array_merge($result, ['conversation_id' => (string) $conv->conversation_id]), 'agent.turn.ok');
+        } catch (Throwable $e) {
+            $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'agent.error.provider');
+        }
+    }
+
+    /**
+     * Turn the browser's DOM results into the model-facing feedback text.
+     *
+     * @param  mixed $raw the posted results (JSON string or array)
+     * @return string
+     */
+    protected function _domFeedback($raw): string
+    {
+        $results = is_string($raw) ? json_decode($raw, true) : $raw;
+        if (!is_array($results)) { return "[DOM results]\n(none)"; }
+
+        $lines = [];
+        foreach ($results as $r) {
+            if (!is_array($r)) { continue; }
+            $target = (string) ($r['target'] ?? '?');
+            if (empty($r['ok'])) {
+                $lines[] = 'target "' . $target . '": FAILED — ' . (string) ($r['error'] ?? 'not found on the page');
+                continue;
+            }
+            if (array_key_exists('content', $r)) {
+                $content = (string) $r['content'];
+                if (mb_strlen($content) > 20000) { $content = mb_substr($content, 0, 20000) . "\n…(truncated)"; }
+                $lines[] = 'target "' . $target . '" (' . (string) ($r['kind'] ?? 'text') . ") current content:\n```\n" . $content . "\n```";
+            } else {
+                $lines[] = 'target "' . $target . '": updated in the editor.';
+            }
+        }
+        return "[DOM results — act on these, then continue or finish]\n\n" . implode("\n\n", $lines);
     }
 
     /**

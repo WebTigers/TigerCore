@@ -35,6 +35,9 @@
         return sel ? sel.value : 'ask';
     }
 
+    var clientHops = 0;             // guards against a DOM read/write ping-pong within one message
+    var MAX_CLIENT_HOPS = 6;
+
     // ----- UI state (persists across navigation) -----------------------------
 
     function setOpen(open) {
@@ -117,10 +120,11 @@
         if (t === 'read.file' || t === 'read.tree') { return act.path || t; }
         if (t === 'read.grep') { return '"' + (act.query || '') + '"'; }
         if (t === 'read.inventory') { return 'system map'; }
+        if (t === 'dom.read' || t === 'dom.write') { return act.target || t; }
         return t;
     }
 
-    function renderActions(host, actions, runId) {
+    function renderActions(host, actions, runId, undos) {
         if (!actions || !actions.length) { return; }
         var box = document.createElement('div');
         box.className = 'agent-actions';
@@ -129,7 +133,8 @@
             el.className = 'agent-action';
             el.setAttribute('data-status', a.status || 'done');
             var icon = ({ done: 'fa-circle-check text-success', error: 'fa-circle-xmark text-danger',
-                          denied: 'fa-ban text-danger', proposed: 'fa-clock text-warning' })[a.status] || 'fa-circle';
+                          denied: 'fa-ban text-danger', proposed: 'fa-clock text-warning',
+                          client: 'fa-wand-magic-sparkles text-primary' })[a.status] || 'fa-circle';
             el.innerHTML =
                 '<div class="a-head"><i class="fa-solid ' + icon + '"></i>' +
                 '<span class="a-type">' + escapeHtml(a.type) + '</span>' +
@@ -143,6 +148,18 @@
                 btn.innerHTML = '<i class="fa-solid fa-check me-1"></i>Approve';
                 btn.addEventListener('click', function () { approve(runId, i, el, box); });
                 el.appendChild(btn);
+            }
+
+            // A DOM write was applied to the editor — offer a one-click Undo (restores the prev value).
+            if (a.type === 'dom.write' && undos && undos[i]) {
+                var ub = document.createElement('button');
+                ub.className = 'btn btn-sm btn-outline-secondary mt-2';
+                ub.innerHTML = '<i class="fa-solid fa-rotate-left me-1"></i>Undo';
+                ub.addEventListener('click', function () {
+                    var u = undos[i], tgt = findTarget(u.target);
+                    if (tgt) { writeTarget(tgt, u.prev); ub.disabled = true; ub.innerHTML = 'Undone'; }
+                });
+                el.appendChild(ub);
             }
             box.appendChild(el);
         });
@@ -182,24 +199,20 @@
         input.value = '';
         addBubble('user', text);
         busy(true);
+        clientHops = 0;
 
         api('send', {
             conversation_id: activeCid(),
             message: text,
-            context: { path: location.pathname },
+            context: pageContext(),
             mode: getMode()
         }).then(function (res) {
             busy(false);
             if (!res || res.result !== 1 || !res.data) {
-                var m = (res && res.messages && res.messages[0] && res.messages[0].message) || 'Something went wrong.';
-                addBubble('assistant', m);
+                addBubble('assistant', (res && res.messages && res.messages[0] && res.messages[0].message) || 'Something went wrong.');
                 return;
             }
-            var d = res.data;
-            if (d.conversation_id) { setActiveCid(d.conversation_id); }
-            var wrap = addBubble('assistant', d.say || '');
-            renderActions(wrap, d.actions, d.run_id);
-            handleNavigate(wrap, d.navigate);
+            onTurn(res.data);
         }).catch(function () {
             busy(false);
             addBubble('assistant', 'Network error — please try again.');
@@ -208,7 +221,8 @@
 
     function approve(runId, index, chipEl, box) {
         busy(true, 'Running…');
-        api('approve', { run_id: runId, indexes: JSON.stringify([index]), mode: getMode() }).then(function (res) {
+        clientHops = 0;
+        api('approve', { run_id: runId, indexes: JSON.stringify([index]), context: pageContext(), mode: getMode() }).then(function (res) {
             busy(false);
             if (!res || res.result !== 1 || !res.data) { return; }
             // Re-render the whole ledger for this run in place (statuses now updated).
@@ -216,19 +230,109 @@
             box.remove();
             renderActions(parent, res.data.actions, runId);
             // The AI's closing word (or next step) after the approval.
-            if (res.data.follow) { renderFollow(res.data.follow); }
+            if (res.data.follow) { onTurn(res.data.follow); }
         }).catch(function () { busy(false); });
     }
 
-    // Render a follow-up turn (the AI reporting back / continuing after an approval).
-    function renderFollow(f) {
-        if (!f) { return; }
-        var wrap = null;
-        if (f.say || (f.actions && f.actions.length)) {
-            wrap = addBubble('assistant', f.say || '');
-            renderActions(wrap, f.actions, f.run_id);
+    // ----- the turn handler + the client (DOM) leg ---------------------------
+
+    // Render a turn AND execute any client (DOM) actions it carries, then — if the AI needs the
+    // result of a read, or isn't done — post the outcome back to `resume` so the loop continues.
+    // This is the browser half of the ReAct loop (TIGERAGENT.md §5c).
+    function onTurn(data) {
+        if (!data) { return; }
+        if (data.conversation_id) { setActiveCid(data.conversation_id); }
+
+        var actions = data.actions || [];
+        actions.forEach(function (a, i) { a._i = i; });
+        var client = actions.filter(function (a) { return a.type === 'dom.read' || a.type === 'dom.write'; });
+
+        // Execute DOM actions in the browser, capturing prev values so a write can be undone.
+        var results = [];
+        var undos = {};
+        client.forEach(function (a) {
+            var r = execClientAction(a);
+            results.push(r);
+            if (a.type === 'dom.write' && r.ok && r.hasOwnProperty('prev')) {
+                undos[a._i] = { target: (a.action || {}).target, prev: r.prev };
+            }
+        });
+
+        var wrap = (data.say || actions.length) ? addBubble('assistant', data.say || '') : null;
+        if (wrap) { renderActions(wrap, actions, data.run_id, undos); }
+
+        // Continue when the browser produced info the AI needs (a read) or the AI isn't done.
+        var needResume = client.some(function (a) { return a.type === 'dom.read'; }) || data.done === false;
+        if (client.length && needResume && clientHops < MAX_CLIENT_HOPS) {
+            clientHops++;
+            busy(true, 'Working…');
+            api('resume', { conversation_id: activeCid(), results: JSON.stringify(results), context: pageContext(), mode: getMode() })
+                .then(function (res) { busy(false); if (res && res.result === 1 && res.data) { onTurn(res.data); } })
+                .catch(function () { busy(false); });
+            return;
         }
-        handleNavigate(wrap, f.navigate);
+        handleNavigate(wrap, data.navigate);
+    }
+
+    // Execute one DOM action against a registered target; returns a result the server feeds back.
+    function execClientAction(a) {
+        var act = a.action || {};
+        var t = findTarget(act.target);
+        if (!t) { return { target: act.target, ok: false, error: 'target not found on this page' }; }
+        if (a.type === 'dom.read') {
+            return { target: act.target, kind: t.kind, ok: true, content: readTarget(t) };
+        }
+        // dom.write — HTML is intentional here (a registered editor target, the user's own content).
+        var prev = readTarget(t);
+        writeTarget(t, act.value != null ? act.value : '');
+        return { target: act.target, kind: t.kind, ok: true, applied: true, prev: prev };
+    }
+
+    // ----- target registry + editor adapters ---------------------------------
+
+    // The page declares editable surfaces with data-agent-target / -label / -kind (text|html|code).
+    function discoverTargets() {
+        return Array.prototype.slice.call(document.querySelectorAll('[data-agent-target]')).map(function (el) {
+            return {
+                name:  el.getAttribute('data-agent-target'),
+                label: el.getAttribute('data-agent-label') || el.getAttribute('data-agent-target'),
+                kind:  el.getAttribute('data-agent-kind') || 'text'
+            };
+        });
+    }
+    function pageContext() { return { path: location.pathname, targets: discoverTargets() }; }
+
+    function findTarget(name) {
+        if (!name) { return null; }
+        var sel = '[data-agent-target="' + (window.CSS && CSS.escape ? CSS.escape(name) : name.replace(/["\\]/g, '')) + '"]';
+        var el = document.querySelector(sel);
+        return el ? { name: name, el: el, kind: el.getAttribute('data-agent-kind') || 'text' } : null;
+    }
+    // CodeMirror 5 stores its instance on the wrapper div (el.CodeMirror) that follows the textarea.
+    function cmOf(el) {
+        if (el.CodeMirror) { return el.CodeMirror; }
+        var sib = el.nextElementSibling;
+        return (sib && sib.CodeMirror) ? sib.CodeMirror : null;
+    }
+    function readTarget(t) {
+        var cm = t.kind === 'code' ? cmOf(t.el) : null;
+        if (cm) { return cm.getValue(); }
+        if (t.el.tagName === 'TEXTAREA' || t.el.tagName === 'INPUT') { return t.el.value; }
+        if (t.kind === 'html') { return t.el.innerHTML; }
+        return t.el.textContent;
+    }
+    function writeTarget(t, val) {
+        var cm = t.kind === 'code' ? cmOf(t.el) : null;
+        if (cm) { cm.setValue(val); return; }
+        if (t.el.tagName === 'TEXTAREA' || t.el.tagName === 'INPUT') {
+            t.el.value = val;
+            // Notify any listeners (validation, autosave, framework binding) that the value changed.
+            t.el.dispatchEvent(new Event('input',  { bubbles: true }));
+            t.el.dispatchEvent(new Event('change', { bubbles: true }));
+            return;
+        }
+        if (t.kind === 'html') { t.el.innerHTML = val; return; }   // HTML injection is the point here
+        t.el.textContent = val;
     }
 
     // ----- history / threads -------------------------------------------------

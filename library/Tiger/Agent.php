@@ -145,6 +145,7 @@ class Tiger_Agent
         return [
             'inventory' => self::allowed(self::RESOURCE_SCOUT, 'inventory'), // the system map (admin+)
             'read'      => self::allowed(self::RESOURCE_SCOUT, 'read'),      // tree/file/grep (superadmin+)
+            'dom'       => self::userCanChat(),                             // read/write page editor targets (client-side)
             'api'       => self::userCanChat(),                             // reach the /api surface (per-call ACL)
             'code'      => self::allowed('Code_Service_Code', 'save'),      // executable PHP (superadmin+)
             'file'      => self::allowed(self::RESOURCE_FORGE, 'file'),     // write public-module files (superadmin+)

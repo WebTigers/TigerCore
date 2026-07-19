@@ -48,8 +48,14 @@ class Tiger_Agent_Tools
                 continue;
             }
             [, $module, $service, $method] = $parts;
-            $class = ucfirst($module) . '_Service_' . ucfirst($service);
 
+            // The agent never calls its OWN plumbing (send/resume/approve/…) — exclude it so the
+            // model can't recurse into itself or get confused by its own service surface.
+            if ($module === 'agent') {
+                continue;
+            }
+
+            $class = ucfirst($module) . '_Service_' . ucfirst($service);
             if (!$acl->has($class) || !$acl->isAllowed($role, $class, $method)) {
                 continue;   // the role can't call it → the model never sees it
             }
@@ -81,11 +87,39 @@ class Tiger_Agent_Tools
         $caps = [];
         if (!empty($capabilities['inventory'])) { $caps[] = 'inspect the system (inventory)'; }
         if (!empty($capabilities['read']))      { $caps[] = 'read the file tree, files, and search (Scout)'; }
+        if (!empty($capabilities['dom']))       { $caps[] = 'read + rewrite editable content on the page'; }
         if (!empty($capabilities['api']))       { $caps[] = 'call /api services (bounded by your ACL)'; }
         if (!empty($capabilities['code']))      { $caps[] = 'author executable PHP snippets (Code Area)'; }
         if (!empty($capabilities['file']))      { $caps[] = 'write files into public app modules'; }
         if (!empty($capabilities['module']))    { $caps[] = 'scaffold new modules'; }
         $capsLine = $caps ? implode('; ', $caps) : 'answer questions and guide the user';
+
+        // DOM tools — advertised only when the current page actually exposes targets (the browser
+        // sends the list in the context each turn). The model reads/writes them by name.
+        $domBlock = '';
+        $targets  = (isset($context['targets']) && is_array($context['targets'])) ? $context['targets'] : [];
+        if (!empty($capabilities['dom']) && $targets) {
+            $rows = [];
+            foreach ($targets as $t) {
+                if (!is_array($t) || empty($t['name'])) { continue; }
+                $rows[] = '  - ' . $t['name'] . ' [' . ($t['kind'] ?? 'text') . '] ' . ($t['label'] ?? '');
+            }
+            if ($rows) {
+                $list = implode("\n", $rows);
+                $domBlock = <<<DOM
+
+
+THE CURRENT PAGE HAS EDITABLE TARGETS you can read + rewrite in place (an article body, a title, a
+code editor…). Read one before rewriting it, then write the improved content back:
+- Read a target:  { "type":"dom.read",  "target":"<name>", "reason":"see the current text" }
+- Write a target: { "type":"dom.write", "target":"<name>", "value":"<new text or HTML>", "reason":"..." }
+For a target of kind "html" the value IS HTML — that's expected, it's the user's own editor; "text" is
+plain text; "code" is source. Set done:false after a dom.read so you receive the content and continue.
+TARGETS on this page:
+$list
+DOM;
+            }
+        }
 
         // The read-tool block is only shown when the role has the read/inventory capability.
         $readBlock = '';
@@ -137,7 +171,7 @@ WRITE ACTIONS (only use types your capabilities allow; every action needs a shor
 - Write module file:{ "type":"file", "path":"modules/<mod>/views/scripts/...", "contents":"...", "reason":"..." }
 - Executable PHP:   { "type":"code", "name":"...", "language":"php", "code":"<?php ...", "reason":"..." }
 - Scaffold module:  { "type":"module", "name":"<slug>", "reason":"..." }
-{$readBlock}
+{$readBlock}{$domBlock}
 
 RULES:
 - Prefer "api" actions over files — the services already validate + secure the write. Only write

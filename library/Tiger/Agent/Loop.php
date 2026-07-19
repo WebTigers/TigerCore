@@ -145,11 +145,19 @@ class Tiger_Agent_Loop
 
             $feedback = [];
             $proposed = false;
+            $clientPending = false;
             foreach ($c['actions'] as $action) {
                 if (Tiger_Agent_Contract::isRead($action['type'])) {
                     $entry = $scout->execute($action);
                     $ledger[] = $entry;
                     $feedback[] = $entry;
+                    continue;
+                }
+                if (Tiger_Agent_Contract::isClient($action['type'])) {
+                    // The server can't touch the DOM — hand this to the browser, which reads/writes
+                    // the target and posts results to `resume` to continue the loop (the client leg).
+                    $ledger[] = $this->_clientEntry($action);
+                    $clientPending = true;
                     continue;
                 }
                 // A write: auto-approve it when the mode's rank clears the action's tier.
@@ -163,8 +171,8 @@ class Tiger_Agent_Loop
                 else { $feedback[] = $entry; }
             }
 
-            // A write is waiting on the human — stop the loop and surface it.
-            if ($proposed) { break; }
+            // A write awaits the human, or a DOM op awaits the browser — hand off either way.
+            if ($proposed || $clientPending) { break; }
             // Still gathering/acting and something to report back → feed results + continue.
             if ($feedback && !$done && $step < self::MAX_STEPS - 1) {
                 $working[] = ['role' => 'assistant', 'content' => $res['text']];
@@ -225,6 +233,32 @@ class Tiger_Agent_Loop
         } else {
             $working[] = ['role' => 'user', 'content' => $envelope];
         }
+    }
+
+    /**
+     * A ledger entry for a DOM action the browser must execute. Carries `value` (what to write)
+     * so tiger.agent.js can apply it; status `client` signals "browser, your turn".
+     *
+     * @param  array $action a normalized dom.read / dom.write action
+     * @return array
+     */
+    protected function _clientEntry(array $action)
+    {
+        $type   = (string) $action['type'];
+        $target = (string) ($action['target'] ?? '');
+        $summary = ($type === Tiger_Agent_Contract::DOM_READ ? 'Read ' : 'Update ') . ($target !== '' ? $target : 'the page');
+        return [
+            'type'    => $type,
+            'reason'  => $action['reason'] ?? '',
+            'status'  => 'client',
+            'summary' => $summary,
+            'action'  => [
+                'type'   => $type,
+                'target' => $target,
+                'value'  => (string) ($action['value'] ?? ''),   // the browser applies this
+                'kind'   => (string) ($action['kind'] ?? ''),
+            ],
+        ];
     }
 
     /** Compose the model-facing text block from a step's read/exec results. */

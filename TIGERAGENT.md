@@ -260,6 +260,36 @@ transcript we choose to resend — and keeping the window small is our job, not 
 **Roadmap:** rolling summarization of old turns (resend a compact summary, not the verbatim tail),
 token-based (not message-count) windowing, and caching the conversation prefix for very long threads.
 
+### 5c. The client leg — DOM tools (read/write the page the user is editing)
+
+The Forge/Scout are the server's hands/eyes; **the browser is the agent's hands/eyes on the DOM.**
+Use case: *"this article sucks, rewrite it."* The model can't see the editor from the server, so the
+loop grows a **client leg** — and because the AI key is server-side (BYO), the browser never calls the
+model; it only executes DOM ops the server relays:
+
+```
+aside → Server → AI:  "rewrite the article"
+AI → Server → aside:  dom.read "article-body"   (done:false)     ← browser's turn
+aside reads the editor → resume → Server → AI:  "<current HTML>"
+AI → Server → aside:  dom.write "article-body", value:"<better…>"  (done:true)
+aside sets the editor. AI's "say" → user.
+```
+
+- **Registered targets, not arbitrary DOM.** A page declares editable surfaces with
+  `data-agent-target="name" data-agent-label="…" data-agent-kind="text|html|code"`. `tiger.agent.js`
+  discovers them and sends the list up as context each turn; the model reads/writes them **by name**
+  (`dom.read` / `dom.write`). Editor **adapters** handle each kind: `<textarea>`/`<input>` → `.value`
+  (fires `input`/`change`), `contenteditable` → `.innerHTML`, CodeMirror → `getValue/setValue`.
+- **HTML injection is intentional here** — a target is the user's *own* editor, so `dom.write` sets
+  `innerHTML`/`setValue` **unsanitized**. This is the opposite of the chat bubble, which stays
+  hard-escaped. The safety gate isn't the DOM write (reversible, unsaved) — it's the **Save**, which
+  runs the normal validated `/api` service. Each write also gets a one-click **Undo** in the aside.
+- **Mechanics.** The Loop returns a DOM action as a `client` ledger entry and stops (like an approval
+  pause). The browser executes it, then POSTs the outcome to `Agent_Service_Agent::resume`, which
+  feeds it back via `Loop::followUp`. A client-side hop cap (6) plus the server `MAX_STEPS` bound the
+  ping-pong. `dom` capability is gated at chat level (you're editing your own screen). *Deferred:*
+  iframes / GrapesJS (need `postMessage` plumbing).
+
 ## 6. Data model
 
 Standard-columns tables (ARCHITECTURE §7a), tenant- + user-scoped:

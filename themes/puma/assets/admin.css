@@ -296,6 +296,7 @@ body {
 .agent-action[data-status="error"]    { border-left: 3px solid var(--bs-danger); }
 .agent-action[data-status="denied"]   { border-left: 3px solid var(--bs-danger); opacity: .8; }
 .agent-action[data-status="proposed"] { border-left: 3px solid var(--bs-warning); }
+.agent-action[data-status="client"]   { border-left: 3px solid var(--bs-info); }
 
 .tiger-agent-foot { flex: 0 0 auto; border-top: 1px solid var(--bs-border-color); padding: .6rem; }
 .tiger-agent-foot textarea { resize: none; font-size: .86rem; }
