@@ -1,0 +1,69 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * PUMA — TigerAgent aside (MIT, Tiger-original).
+ *
+ * The persistent, app-shell-wide agent rail. Rendered by the admin layout ONLY when
+ * Tiger_Agent::isAvailable() (feature on + provider connected + the viewer's role may chat),
+ * so it's permission-managed and present on every admin screen — surviving navigation via a
+ * server-persisted conversation + localStorage UI state (TIGERAGENT.md §4). All behavior lives
+ * in tiger.agent.js; this is just the shell + a CSRF token + the mode selector.
+ */
+$agentCsrf = '';
+try {
+    $agentCsrf = (new Agent_Form_Send())->getElement('_csrf');   // hidden <input name="_csrf">
+} catch (Throwable $e) { /* no token → the JS falls back to a page reload prompt */ }
+$agentModel = Tiger_Agent::model();
+
+// The mode selector offers levels up to the install ceiling (Tiger_Agent::modeMax()); the user
+// can dial DOWN but never past it. Labels are translate keys.
+$modeMax  = Tiger_Agent::modeMax();
+$modeRank = Tiger_Agent::MODES[$modeMax] ?? 1;
+$modeOpts = [];
+foreach (Tiger_Agent::MODES as $m => $rank) {
+    if ($rank <= $modeRank) { $modeOpts[$m] = $this->_t('agent.mode.' . $m); }
+}
+?>
+<aside id="tiger-agent" class="tiger-agent tiger-agent-aside" aria-label="AI Agent" data-mode-max="<?= $this->escape($modeMax) ?>">
+    <div class="tiger-agent-resize" data-agent-resize aria-hidden="true"></div>
+
+    <div class="tiger-agent-head">
+        <i class="fa-solid fa-robot text-primary"></i>
+        <span class="title flex-grow-1">Agent</span>
+        <span class="badge text-bg-secondary" title="Model"><?= $this->escape($agentModel) ?></span>
+        <button type="button" class="btn btn-sm btn-link text-secondary p-1" data-agent-new title="New chat">
+            <i class="fa-solid fa-plus"></i>
+        </button>
+        <button type="button" class="btn btn-sm btn-link text-secondary p-1" data-agent-close title="Close">
+            <i class="fa-solid fa-angles-right"></i>
+        </button>
+    </div>
+
+    <div class="tiger-agent-log" data-agent-log>
+        <div class="tiger-agent-empty">Start a conversation — the agent acts with your permissions.</div>
+    </div>
+
+    <div class="tiger-agent-foot">
+        <form data-agent-form onsubmit="return false;">
+            <?= $agentCsrf ?>
+            <textarea class="form-control" rows="2" data-agent-input
+                      placeholder="Ask the agent to build, change, or explain something…"></textarea>
+            <div class="d-flex align-items-center mt-2 gap-2">
+                <select class="form-select form-select-sm w-auto" data-agent-mode title="Automation level">
+                    <?php foreach ($modeOpts as $m => $label): ?>
+                        <option value="<?= $this->escape($m) ?>"><?= $this->escape($label) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <small class="text-body-secondary flex-grow-1 text-truncate" data-agent-status>&nbsp;</small>
+                <button type="submit" class="btn btn-sm btn-primary" data-agent-send>
+                    <i class="fa-solid fa-paper-plane me-1"></i>Send
+                </button>
+            </div>
+        </form>
+    </div>
+</aside>
+
+<button type="button" class="tiger-agent-launcher" data-agent-open title="Open the AI agent">
+    <i class="fa-solid fa-robot"></i>
+</button>

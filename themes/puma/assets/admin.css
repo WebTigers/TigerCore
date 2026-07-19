@@ -237,3 +237,81 @@ body {
 /* "Copied!" confirmation popper (Copy-URL action) — floats just above the button, fades out */
 .media-copied-pop { position:absolute; transform:translate(-50%,-100%); margin-top:-6px; background:var(--bs-emphasis-color); color:var(--bs-body-bg); font-size:.72rem; font-weight:500; line-height:1; padding:.3rem .5rem; border-radius:.35rem; white-space:nowrap; pointer-events:none; opacity:0; transition:opacity .15s ease, margin-top .15s ease; z-index:2000; box-shadow:0 2px 8px rgba(0,0,0,.25); }
 .media-copied-pop.show { opacity:1; margin-top:-10px; }
+
+/* ============================================================================
+   TigerAgent — the persistent AI aside (app-shell-wide, resizable, non-overlay).
+   Rendered by the admin layout whenever Tiger_Agent::isAvailable(). It RESERVES
+   space (pushes .tiger-content) rather than overlaying, and its width + open state
+   persist in localStorage so it survives navigation. See TIGERAGENT.md §4.
+   ============================================================================ */
+:root { --tiger-agent-w: 380px; }
+
+/* Reserve the rail only while open — mirrors .has-right-aside so the dashboard is
+   never covered. The width var is set inline on <html> by tiger.agent.js. */
+.agent-open .tiger-content { margin-right: var(--tiger-agent-w); }
+
+.tiger-agent-aside {
+    position: fixed; top: var(--tiger-header-h); bottom: 0; right: 0;
+    width: var(--tiger-agent-w); display: flex; flex-direction: column;
+    background: var(--bs-body-bg); border-left: 1px solid var(--bs-border-color);
+    z-index: 1030; transform: translateX(100%); transition: transform .18s ease;
+}
+.agent-open .tiger-agent-aside { transform: translateX(0); }
+
+/* Drag-to-resize handle on the aside's left edge. */
+.tiger-agent-resize {
+    position: absolute; left: -3px; top: 0; bottom: 0; width: 6px; cursor: col-resize; z-index: 2;
+}
+.tiger-agent-resize:hover { background: var(--bs-primary-bg-subtle); }
+
+.tiger-agent-head {
+    display: flex; align-items: center; gap: .5rem; padding: .5rem .75rem;
+    border-bottom: 1px solid var(--bs-border-color); flex: 0 0 auto;
+}
+.tiger-agent-head .title { font-weight: 600; font-size: .9rem; }
+.tiger-agent-head .badge { font-weight: 500; }
+
+.tiger-agent-log {
+    flex: 1 1 auto; overflow-y: auto; padding: .85rem; display: flex; flex-direction: column; gap: .75rem;
+}
+.tiger-agent-empty { color: var(--bs-secondary-color); font-size: .85rem; margin: auto; text-align: center; padding: 1rem; }
+
+.agent-msg { max-width: 100%; }
+.agent-msg .bubble { border-radius: .6rem; padding: .5rem .7rem; font-size: .86rem; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+.agent-msg.user   { align-self: flex-end; max-width: 88%; }
+.agent-msg.user   .bubble { background: var(--bs-primary); color: #fff; }
+.agent-msg.assistant .bubble { background: var(--bs-secondary-bg); color: var(--bs-body-color); }
+
+/* Action chips — one per proposed/executed Forge action. */
+.agent-actions { display: flex; flex-direction: column; gap: .4rem; margin-top: .5rem; }
+.agent-action {
+    border: 1px solid var(--bs-border-color); border-radius: .5rem; padding: .45rem .6rem;
+    font-size: .78rem; background: var(--bs-body-bg);
+}
+.agent-action .a-head { display: flex; align-items: center; gap: .4rem; }
+.agent-action .a-type { font-family: var(--bs-font-monospace); font-size: .72rem; text-transform: uppercase; letter-spacing: .02em; }
+.agent-action .a-reason { color: var(--bs-secondary-color); margin: .2rem 0 .35rem; }
+.agent-action .a-summary { color: var(--bs-body-color); }
+.agent-action[data-status="done"]     { border-left: 3px solid var(--bs-success); }
+.agent-action[data-status="error"]    { border-left: 3px solid var(--bs-danger); }
+.agent-action[data-status="denied"]   { border-left: 3px solid var(--bs-danger); opacity: .8; }
+.agent-action[data-status="proposed"] { border-left: 3px solid var(--bs-warning); }
+
+.tiger-agent-foot { flex: 0 0 auto; border-top: 1px solid var(--bs-border-color); padding: .6rem; }
+.tiger-agent-foot textarea { resize: none; font-size: .86rem; }
+
+/* Collapsed launcher — a floating button bottom-right when the aside is closed. */
+.tiger-agent-launcher {
+    position: fixed; right: 1rem; bottom: 1rem; z-index: 1030;
+    width: 3rem; height: 3rem; border-radius: 50%; border: 0;
+    background: var(--bs-primary); color: #fff; font-size: 1.15rem;
+    box-shadow: var(--bs-box-shadow); display: none;
+}
+.tiger-agent .tiger-agent-launcher { display: none; }
+html:not(.agent-open) .tiger-agent-launcher { display: inline-flex; align-items: center; justify-content: center; }
+
+@media (max-width: 991.98px) {
+    /* On small screens the aside overlays (like the contextual right aside). */
+    .agent-open .tiger-content { margin-right: 0 !important; }
+    .tiger-agent-aside { width: min(92vw, 420px); }
+}
