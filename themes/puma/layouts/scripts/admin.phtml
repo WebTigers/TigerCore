@@ -69,6 +69,7 @@ $_hasAgent = class_exists('Tiger_Agent') && Tiger_Agent::isAvailable();
 <?= $this->codeInject('head') ?>
 </head>
 <body>
+<a href="#tiger-main" class="visually-hidden-focusable position-absolute top-0 start-0 m-2 btn btn-primary btn-sm" style="z-index:3000;">Skip to content</a>
 <div class="tiger-shell">
 
     <?= $this->render('_partials/admin-header.phtml') ?>
@@ -76,7 +77,7 @@ $_hasAgent = class_exists('Tiger_Agent') && Tiger_Agent::isAvailable();
     <div class="tiger-body">
         <?= $this->render('_partials/admin-sidebar-left.phtml') ?>
 
-        <main class="tiger-content" role="main">
+        <main id="tiger-main" class="tiger-content" role="main">
             <?= $this->layout()->content ?>
         </main>
 

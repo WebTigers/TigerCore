@@ -91,11 +91,11 @@ $av = (string) $this->avatarUrl;
 
 <!-- Crop modal: static image, a movable + resizable square crop box (mouse: drag to move, corner to
      resize, wheel to zoom). -->
-<div class="modal fade" id="avatar-crop-modal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="avatar-crop-modal" tabindex="-1" aria-hidden="true" aria-labelledby="avatar-crop-title" role="dialog">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><?= $t('profile.avatar.adjust') ?></h5>
+                <h5 class="modal-title" id="avatar-crop-title"><?= $t('profile.avatar.adjust') ?></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">

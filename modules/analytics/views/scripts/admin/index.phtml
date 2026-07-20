@@ -126,7 +126,7 @@ $mode = ($this->ga['mode'] === 'byo') ? 'byo' : 'broker';
                 </div>
                 <div class="mt-3">
                     <label class="form-label small mb-1">Authorized redirect URI <span class="text-body-secondary fw-normal">&mdash; add this to your Google OAuth client</span></label>
-                    <input type="text" class="form-control form-control-sm font-monospace" value="<?= $this->escape($this->ga['redirect_uri']) ?>" readonly onclick="this.select()">
+                    <input type="text" class="form-control form-control-sm font-monospace" value="<?= $this->escape($this->ga['redirect_uri']) ?>" readonly onclick="this.select()" aria-label="OAuth redirect URI">
                 </div>
                 <details class="mt-3 small">
                     <summary class="text-primary" style="cursor:pointer;">How do I get these? (one-time Google setup)</summary>

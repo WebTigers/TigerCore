@@ -82,12 +82,12 @@
 </div>
 
 <!-- Shared Edit modal — used by BOTH the list and portfolio views (prefilled from the row's data-* attrs). -->
-<div class="modal fade" id="media-edit-modal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="media-edit-modal" tabindex="-1" aria-hidden="true" aria-labelledby="media-edit-title" role="dialog">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
         <div class="me-3" style="min-width:0;">
-          <h5 class="modal-title mb-0">Edit media</h5>
+          <h5 class="modal-title mb-0" id="media-edit-title">Edit media</h5>
           <div class="small text-body-secondary text-truncate" id="media-edit-name"></div>
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -411,7 +411,7 @@ document.addEventListener('DOMContentLoaded', function () {
             onAdd: function (item) {
                 var tr = document.createElement('tr'); tr.className = 'media-uploading';
                 var thumb = item.previewUrl
-                    ? '<img src="' + item.previewUrl + '" class="rounded" style="width:48px;height:48px;object-fit:cover;">'
+                    ? '<img src="' + item.previewUrl + '" alt="" class="rounded" style="width:48px;height:48px;object-fit:cover;">'
                     : '<span class="d-inline-flex align-items-center justify-content-center rounded bg-body-secondary text-body-secondary" style="width:48px;height:48px;">' + icon(kindOfMime(item.type)) + '</span>';
                 tr.innerHTML =
                     '<td class="text-center">' + thumb + '</td>' +

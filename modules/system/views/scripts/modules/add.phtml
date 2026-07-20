@@ -115,7 +115,7 @@ $registryHasData = !empty($this->registryHasData);
 </div>
 
 <!-- Detail modal (the "View more" -> TIGER.md view) -->
-<div class="modal fade" id="mod-detail" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="mod-detail" tabindex="-1" aria-hidden="true" aria-label="Module details" role="dialog">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var logo = x.logo || '';
         var vendor = x.vendor || m.author || '';
         head.innerHTML =
-            (logo ? '<img src="'+esc(logo)+'" class="mod-logo" onerror="'+imgErr+'">' : '') +
+            (logo ? '<img src="'+esc(logo)+'" alt="" class="mod-logo" onerror="'+imgErr+'">' : '') +
             '<div><h5 class="modal-title mb-0">'+esc(m.name)+' '+(m.version?'<span class="text-body-secondary fs-6">v'+esc(m.version)+'</span>':'')+'</h5>'+
             '<div class="small text-body-secondary">'+(vendor?esc(vendor)+' · ':'')+'<code>/'+esc(m.slug)+'</code></div></div>';
 
@@ -185,7 +185,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }).join('') +
             '</div>' : '';
         body.innerHTML =
-            (x.hero ? '<img src="'+esc(x.hero)+'" class="mod-hero" onerror="'+imgErr+'">' : '') +
+            (x.hero ? '<img src="'+esc(x.hero)+'" alt="" class="mod-hero" onerror="'+imgErr+'">' : '') +
             gallery +
             '<div class="mb-2">' +
               ((pricing==='free'||pricing==='freemium') ? badge('free','success-subtle text-success-emphasis border border-success-subtle') : '') +
@@ -319,7 +319,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return '<div class="mod-grid-item" data-type="'+esc(type)+'"><div class="mod-grid-item-content card'+(m.sponsored?' border-warning-subtle':'')+'">'+
             hero +
             '<div class="card-body d-flex gap-3">'+
-              (m.logo?'<img src="'+esc(m.logo)+'" class="mod-card-logo" onerror="'+imgErr+'">':'')+
+              (m.logo?'<img src="'+esc(m.logo)+'" alt="" class="mod-card-logo" onerror="'+imgErr+'">':'')+
               '<div class="flex-grow-1">'+
                 '<h6 class="mb-0">'+esc(m.module||m.slug)+typeBadge+pricingBadges+spon+'</h6>'+
                 '<div class="small text-body-secondary mb-1">'+esc(m.vendor||'')+'</div>'+

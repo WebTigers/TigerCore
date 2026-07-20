@@ -35,7 +35,8 @@ $_lang = defined('LANG') ? LANG : 'en';
     <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/custom.css') ?>">
 </head>
 <body class="tiger-auth-body">
-    <main class="tiger-auth-wrap<?= !empty($this->authWide) ? ' tiger-auth-wrap-wide' : '' ?>">
+    <a href="#tiger-main" class="visually-hidden-focusable position-absolute top-0 start-0 m-2 btn btn-primary btn-sm" style="z-index:3000;">Skip to content</a>
+    <main id="tiger-main" class="tiger-auth-wrap<?= !empty($this->authWide) ? ' tiger-auth-wrap-wide' : '' ?>">
         <div class="tiger-auth-card">
             <?= $this->layout()->content ?>
         </div>

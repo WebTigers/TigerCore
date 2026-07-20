@@ -143,14 +143,14 @@ $collect($this->tree);
 </div>
 
 <!-- Properties modal -->
-<div class="modal fade" id="menuItemModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="menuItemModal" tabindex="-1" aria-hidden="true" aria-labelledby="menuItemModalTitle" role="dialog">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <form id="menu-item-form" novalidate>
         <input type="hidden" name="menu_id" id="mi-menu-id">
         <input type="hidden" name="menu_key" id="mi-menu-key-hidden">
         <div class="modal-header"><h5 class="modal-title" id="menuItemModalTitle">Item properties</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
         <div class="modal-body">
           <div id="mi-errors"></div>
           <div class="mb-3"><label class="form-label" for="mi-label">Label <span class="text-danger">*</span></label><?= $f->getElement('label') ?>
