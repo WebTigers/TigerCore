@@ -55,9 +55,10 @@ $_lang = defined('LANG') ? LANG : 'en';
 <?= $this->pageHead ?? '' ?><?php /* per-page raw head from the CMS page meta (admin-authored) — the escape hatch */ ?>
 </head>
 <body>
+<a href="#tiger-main" class="visually-hidden-focusable position-absolute top-0 start-0 m-2 btn btn-primary btn-sm" style="z-index:3000;">Skip to content</a>
 <?= $this->render('_partials/public-header.phtml') ?>
 
-<main>
+<main id="tiger-main">
 <?= $this->layout()->content ?>
 </main>
 

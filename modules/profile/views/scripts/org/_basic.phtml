@@ -66,11 +66,11 @@ $lg  = (string) $this->logoUrl;
 </div>
 
 <!-- Logo crop modal -->
-<div class="modal fade" id="logo-crop-modal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="logo-crop-modal" tabindex="-1" aria-hidden="true" aria-labelledby="logo-crop-title" role="dialog">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><?= $t('profile.org.logo.adjust') ?></h5>
+                <h5 class="modal-title" id="logo-crop-title"><?= $t('profile.org.logo.adjust') ?></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">

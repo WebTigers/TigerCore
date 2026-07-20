@@ -62,11 +62,11 @@ $t  = function ($s) use ($tr) { return $tr ? $tr->translate($s) : $s; };
     </div>
 
     <!-- Customize: switch widgets on/off (per-user). Lists every widget the user is allowed to see. -->
-    <div class="modal fade" id="dash-customize-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="dash-customize-modal" tabindex="-1" aria-hidden="true" aria-labelledby="dash-customize-title" role="dialog">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fa-solid fa-sliders me-2"></i>Customize dashboard</h5>
+                    <h5 class="modal-title" id="dash-customize-title"><i class="fa-solid fa-sliders me-2"></i>Customize dashboard</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
