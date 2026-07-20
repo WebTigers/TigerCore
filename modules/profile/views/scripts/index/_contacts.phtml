@@ -170,8 +170,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     '<span>' + esc(c.kind === 'phone' ? fmtPhone(c.value, c.type) : c.value) + '</span>' +
                 '</div>' +
                 '<div class="text-nowrap">' +
-                    '<button type="button" class="btn btn-sm btn-link text-body p-1 js-edit" title="Edit"><i class="fa-solid fa-pen"></i></button>' +
-                    '<button type="button" class="btn btn-sm btn-link text-danger p-1 js-del" title="Delete"><i class="fa-solid fa-trash"></i></button>' +
+                    '<button type="button" class="btn btn-sm btn-link text-body p-1 js-edit" title="Edit" aria-label="Edit"><i class="fa-solid fa-pen"></i></button>' +
+                    '<button type="button" class="btn btn-sm btn-link text-danger p-1 js-del" title="Delete" aria-label="Delete"><i class="fa-solid fa-trash"></i></button>' +
                 '</div>';
             el.querySelector('.js-edit').addEventListener('click', function () { edit(c); });
             el.querySelector('.js-del').addEventListener('click', function (e) { del(c.link_id, e.currentTarget); });

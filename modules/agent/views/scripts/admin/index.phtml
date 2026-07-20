@@ -61,7 +61,7 @@ $t = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
                             <select class="form-select" id="agent-model" name="model">
                                 <option value="<?= $this->escape($this->model) ?>"><?= $this->escape($this->model) ?></option>
                             </select>
-                            <button type="button" class="btn btn-outline-secondary" id="agent-model-refresh" title="Refresh the model list">
+                            <button type="button" class="btn btn-outline-secondary" id="agent-model-refresh" title="Refresh the model list" aria-label="Refresh the model list">
                                 <i class="fa-solid fa-rotate"></i>
                             </button>
                         </div>

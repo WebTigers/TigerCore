@@ -105,18 +105,18 @@ document.addEventListener('DOMContentLoaded', function () {
             { data: null, orderable: false, searchable: false, className: 'text-end text-nowrap', render: function (t, type, row) {
                 var h = '';
                 if (row.can_view) {
-                    h += '<button type="button" class="btn btn-sm btn-outline-secondary" data-code-view="' + esc(row.code_id) + '" title="View source"><i class="fa-solid fa-code"></i></button> ';
+                    h += '<button type="button" class="btn btn-sm btn-outline-secondary" data-code-view="' + esc(row.code_id) + '" title="View source" aria-label="View source"><i class="fa-solid fa-code"></i></button> ';
                 }
                 if (row.can_edit) {
-                    h += '<a href="/code/index/edit/id/' + encodeURIComponent(row.code_id) + '" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="fa-solid fa-pen"></i></a> ';
+                    h += '<a href="/code/index/edit/id/' + encodeURIComponent(row.code_id) + '" class="btn btn-sm btn-outline-secondary" title="Edit" aria-label="Edit"><i class="fa-solid fa-pen"></i></a> ';
                 }
                 if (row.active) {
-                    h += '<button type="button" class="btn btn-sm btn-outline-warning" data-code-toggle="deactivate" data-id="' + esc(row.code_id) + '" title="Deactivate"><i class="fa-solid fa-pause"></i></button> ';
+                    h += '<button type="button" class="btn btn-sm btn-outline-warning" data-code-toggle="deactivate" data-id="' + esc(row.code_id) + '" title="Deactivate" aria-label="Deactivate"><i class="fa-solid fa-pause"></i></button> ';
                 } else {
-                    h += '<button type="button" class="btn btn-sm btn-outline-success" data-code-toggle="activate" data-id="' + esc(row.code_id) + '" title="Activate"><i class="fa-solid fa-play"></i></button> ';
+                    h += '<button type="button" class="btn btn-sm btn-outline-success" data-code-toggle="activate" data-id="' + esc(row.code_id) + '" title="Activate" aria-label="Activate"><i class="fa-solid fa-play"></i></button> ';
                 }
                 if (row.can_delete) {
-                    h += '<button type="button" class="btn btn-sm btn-outline-danger" data-code-delete="' + esc(row.code_id) + '" title="Delete"><i class="fa-solid fa-trash"></i></button>';
+                    h += '<button type="button" class="btn btn-sm btn-outline-danger" data-code-delete="' + esc(row.code_id) + '" title="Delete" aria-label="Delete"><i class="fa-solid fa-trash"></i></button>';
                 }
                 return h || '<span class="text-body-secondary">—</span>';
             } }

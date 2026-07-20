@@ -34,10 +34,10 @@ foreach (Tiger_Agent::MODES as $m => $rank) {
         <i class="fa-solid fa-robot text-primary"></i>
         <span class="title flex-grow-1">Agent</span>
         <span class="badge text-bg-secondary" title="Model"><?= $this->escape($agentModel) ?></span>
-        <button type="button" class="btn btn-sm btn-link text-secondary p-1" data-agent-new title="New chat">
+        <button type="button" class="btn btn-sm btn-link text-secondary p-1" data-agent-new title="New chat" aria-label="New chat">
             <i class="fa-solid fa-plus"></i>
         </button>
-        <button type="button" class="btn btn-sm btn-link text-secondary p-1" data-agent-close title="Close">
+        <button type="button" class="btn btn-sm btn-link text-secondary p-1" data-agent-close title="Close" aria-label="Close">
             <i class="fa-solid fa-angles-right"></i>
         </button>
     </div>
@@ -66,6 +66,6 @@ foreach (Tiger_Agent::MODES as $m => $rank) {
     </div>
 </aside>
 
-<button type="button" class="tiger-agent-launcher" data-agent-open title="Open the AI agent">
+<button type="button" class="tiger-agent-launcher" data-agent-open title="Open the AI agent" aria-label="Open the AI agent">
     <i class="fa-solid fa-robot"></i>
 </button>

@@ -155,15 +155,15 @@ document.addEventListener('DOMContentLoaded', function () {
             { data: null, orderable: false, searchable: false, className: 'text-end text-nowrap', render: function (t, type, row) {
                 var html = '';
                 if (row.can_edit) {
-                    html += '<a href="/cms/page/edit/id/' + encodeURIComponent(row.page_id) + '" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="fa-solid fa-pen"></i></a> ';
+                    html += '<a href="/cms/page/edit/id/' + encodeURIComponent(row.page_id) + '" class="btn btn-sm btn-outline-secondary" title="Edit" aria-label="Edit"><i class="fa-solid fa-pen"></i></a> ';
                     if (row.type === 'page') {
-                        html += '<a href="/cms/page/design/id/' + encodeURIComponent(row.page_id) + '" class="btn btn-sm btn-outline-primary" title="Design visually"><i class="fa-solid fa-panorama"></i></a> ';
+                        html += '<a href="/cms/page/design/id/' + encodeURIComponent(row.page_id) + '" class="btn btn-sm btn-outline-primary" title="Design visually" aria-label="Design visually"><i class="fa-solid fa-panorama"></i></a> ';
                     }
                 }
                 if (row.can_delete) {
-                    html += '<button type="button" class="btn btn-sm btn-outline-danger" data-cms-delete="' + esc(row.page_id) + '" title="Delete"><i class="fa-solid fa-trash"></i></button>';
+                    html += '<button type="button" class="btn btn-sm btn-outline-danger" data-cms-delete="' + esc(row.page_id) + '" title="Delete" aria-label="Delete"><i class="fa-solid fa-trash"></i></button>';
                 } else {
-                    html += '<button type="button" class="btn btn-sm btn-outline-danger" disabled title="Not permitted"><i class="fa-solid fa-trash"></i></button>';
+                    html += '<button type="button" class="btn btn-sm btn-outline-danger" disabled title="Not permitted" aria-label="Not permitted"><i class="fa-solid fa-trash"></i></button>';
                 }
                 return html || '<span class="text-body-secondary">—</span>';
             } }
@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function () {
                  + '<div class="small text-body-secondary mb-3 text-truncate"><code>/' + esc(t.slug) + '</code>'
                  +   (t.layout ? ' <span class="ms-1"><i class="fa-solid fa-table-columns fa-fw"></i> ' + esc(t.layout) + '</span>' : '') + '</div>'
                  + '<div class="mt-auto d-flex align-items-center gap-2">'
-                 +   '<a href="/' + esc(t.slug) + '" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Preview"><i class="fa-solid fa-eye"></i></a>'
+                 +   '<a href="/' + esc(t.slug) + '" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Preview" aria-label="Preview"><i class="fa-solid fa-eye"></i></a>'
                  +   actions + '</div></div></div>';
         }
         function render() {
