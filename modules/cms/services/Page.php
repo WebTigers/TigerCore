@@ -188,6 +188,10 @@ class Cms_Service_Page extends Tiger_Service_Service
         unset($meta['description']);
         $meta['head_html']    = (string) ($v['head_html'] ?? '');
         $meta['body_scripts'] = (string) ($v['body_scripts'] ?? '');
+        // Custom field groups (Tiger_Fields): merge posted, declared-only values into meta.fields.
+        if (class_exists('Tiger_Fields') && isset($params['fields']) && is_array($params['fields'])) {
+            Tiger_Fields::applyToMeta($meta, (string) $v['type'], $params['fields']);
+        }
         $data['meta'] = json_encode($meta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
         try {

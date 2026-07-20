@@ -1,0 +1,60 @@
+<?php
+/**
+ * Custom field groups (Tiger_Fields) for the CMS page editor. Renders one card per registered group
+ * that applies to this page's type, each field prefilled from the page's meta.fields.<group>. Inputs
+ * are named `fields[<group>][<field>]` so they post inside the main form and PHP nests them; the save
+ * service merges them via Tiger_Fields::applyToMeta(). No bespoke CSS — semantic Bootstrap only.
+ *
+ * Vars: $this->page (the page row being edited, or null for a new page).
+ */
+$page = $this->page ?? null;
+$type = $page && isset($page->type) ? (string) $page->type : 'page';
+$groups = Tiger_Fields::forType($type);
+if (!$groups) { return; }
+$e = fn($s) => $this->escape((string) $s);
+?>
+<?php foreach ($groups as $group): $gk = $group['key']; $vals = Tiger_Fields::valuesFor($page, $gk); ?>
+    <div class="card mt-4">
+        <div class="card-header fw-semibold"><i class="fa-solid fa-sliders me-2"></i><?= $e($group['label']) ?></div>
+        <div class="card-body">
+            <?php foreach ($group['fields'] as $i => $f):
+                $fk    = $f['key'];
+                $name  = 'fields[' . $gk . '][' . $fk . ']';
+                $id    = 'field-' . $gk . '-' . $fk;
+                $val   = $vals[$fk] ?? '';
+                $req   = $f['required'] ? ' required' : '';
+                $ph    = $f['placeholder'] !== '' ? ' placeholder="' . $e($f['placeholder']) . '"' : '';
+                $last  = $i === count($group['fields']) - 1;
+                $wrap  = 'mb-' . ($last ? '0' : '3');
+            ?>
+                <?php if ($f['type'] === 'checkbox'): ?>
+                    <div class="form-check form-switch <?= $wrap ?>">
+                        <input class="form-check-input" type="checkbox" role="switch" id="<?= $e($id) ?>" name="<?= $e($name) ?>" value="1"<?= !empty($val) ? ' checked' : '' ?>>
+                        <label class="form-check-label" for="<?= $e($id) ?>"><?= $e($f['label']) ?></label>
+                        <?php if ($f['help']): ?><div class="form-text"><?= $e($f['help']) ?></div><?php endif; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="<?= $wrap ?>">
+                        <label class="form-label" for="<?= $e($id) ?>"><?= $e($f['label']) ?><?= $f['required'] ? ' <span class="text-danger">*</span>' : '' ?></label>
+                        <?php if ($f['type'] === 'textarea'): ?>
+                            <textarea class="form-control" id="<?= $e($id) ?>" name="<?= $e($name) ?>" rows="3"<?= $ph . $req ?>><?= $e($val) ?></textarea>
+                        <?php elseif ($f['type'] === 'select'): ?>
+                            <select class="form-select" id="<?= $e($id) ?>" name="<?= $e($name) ?>"<?= $req ?>>
+                                <option value="">— choose —</option>
+                                <?php foreach ($f['options'] as $opt): ?>
+                                    <option value="<?= $e($opt) ?>"<?= (string) $val === (string) $opt ? ' selected' : '' ?>><?= $e($opt) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        <?php else:
+                            $inputType = ['number' => 'number', 'url' => 'url', 'date' => 'date'][$f['type']] ?? 'text';
+                        ?>
+                            <input type="<?= $e($inputType) ?>" class="form-control" id="<?= $e($id) ?>" name="<?= $e($name) ?>" value="<?= $e($val) ?>"<?= $ph . $req ?>>
+                            <?php if ($f['type'] === 'media'): ?><div class="form-text">Media ID.</div><?php endif; ?>
+                        <?php endif; ?>
+                        <?php if ($f['help'] && $f['type'] !== 'media'): ?><div class="form-text"><?= $e($f['help']) ?></div><?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        </div>
+    </div>
+<?php endforeach; ?>
