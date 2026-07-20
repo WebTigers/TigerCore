@@ -23,7 +23,7 @@ class Profile_Form_Contact extends Tiger_Form
     protected function elements(): array
     {
         return [
-            ['hidden', 'user_contact_id', ['filters' => ['StringTrim']]],
+            ['hidden', 'link_id', ['filters' => ['StringTrim']]],   // the owner↔contact link PK (user_contact_id | org_contact_id)
             ['text', 'type', [
                 'required' => true,
                 'filters'  => ['StringTrim'],

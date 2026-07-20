@@ -32,7 +32,7 @@ class Profile_Service_Contact extends Profile_Service_Base
         if (!array_key_exists($type, $types)) { $this->_error('profile.contact.bad_type', ['field' => 'type']); return; }
         $value   = trim((string) $form->getValue('value'));
         $primary = (bool) $form->getValue('is_primary');
-        $ucId    = trim((string) $form->getValue('user_contact_id'));
+        $ucId    = trim((string) $form->getValue('link_id'));
 
         // Phone: the browser sends canonical E.164 in `value` (intl-tel-input getNumber()) plus the
         // picked ISO-3166 country in `phone_country`. Validate the E.164 shape and stash the ISO on
@@ -64,7 +64,7 @@ class Profile_Service_Contact extends Profile_Service_Base
                     $keepId    = $link->insert(['user_id' => $userId, 'contact_id' => $contactId, 'is_primary' => $primary ? 1 : 0]);
                 }
                 if ($primary) {
-                    $this->_soloPrimary($link, 'user_contact_id', $userId, (string) $keepId);
+                    $this->_soloPrimary($link, 'user_contact_id', 'user_id', $userId, (string) $keepId);
                 }
             });
             $this->_ok($userId, 'profile.contact.saved');
@@ -84,7 +84,7 @@ class Profile_Service_Contact extends Profile_Service_Base
         $userId = (string) $this->_user_id;
         if ($userId === '') { $this->_error('core.api.error.not_allowed'); return; }
         if (!$this->_validCsrf(Profile_Form_Contact::class, $params)) { $this->_error('core.api.error.csrf'); return; }
-        $ucId = trim((string) ($params['user_contact_id'] ?? ''));
+        $ucId = trim((string) ($params['link_id'] ?? ''));
 
         try {
             $this->_transaction(function () use ($userId, $ucId) {

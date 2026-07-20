@@ -40,7 +40,7 @@ class Tiger_Model_UserContact extends Tiger_Model_Table
         $db = $this->getAdapter();
         return $db->fetchAll(
             $db->select()
-               ->from(['uc' => 'user_contact'], ['user_contact_id', 'label', 'is_primary'])
+               ->from(['uc' => 'user_contact'], ['link_id' => 'user_contact_id', 'label', 'is_primary'])
                ->joinLeft(['c' => 'contact'], 'c.contact_id = uc.contact_id', ['kind', 'type', 'value'])
                ->where('uc.user_id = ?', (string) $userId)
                ->where('uc.deleted = ?', 0)

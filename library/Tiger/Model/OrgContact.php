@@ -26,4 +26,25 @@ class Tiger_Model_OrgContact extends Tiger_Model_Table
     {
         return $this->fetchAll($this->activeSelect()->where('org_id = ?', $orgId));
     }
+
+    /**
+     * An org's contacts joined to the underlying channel — the render/read shape. Primary first, then
+     * oldest. The link PK is aliased to the generic `link_id` so the shared Contacts view/service work
+     * for a user or an org unchanged. Each row: link_id, label, is_primary, kind, type, value.
+     *
+     * @param  string $orgId
+     * @return array<int,array<string,mixed>>
+     */
+    public function withContact($orgId)
+    {
+        $db = $this->getAdapter();
+        return $db->fetchAll(
+            $db->select()
+               ->from(['oc' => 'org_contact'], ['link_id' => 'org_contact_id', 'label', 'is_primary'])
+               ->joinLeft(['c' => 'contact'], 'c.contact_id = oc.contact_id', ['kind', 'type', 'value'])
+               ->where('oc.org_id = ?', (string) $orgId)
+               ->where('oc.deleted = ?', 0)
+               ->order(['oc.is_primary DESC', 'oc.created_at ASC'])
+        );
+    }
 }

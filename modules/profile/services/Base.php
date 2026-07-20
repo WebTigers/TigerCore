@@ -56,20 +56,23 @@ abstract class Profile_Service_Base extends Tiger_Service_Service
     }
 
     /**
-     * Enforce a single primary within a user's collection: clear is_primary on every link but $keepId.
+     * Enforce a single primary within an owner's collection: clear is_primary on every link but
+     * $keepId. Owner-agnostic — pass the owner column so the same rule serves a user's contacts
+     * ($ownerCol = 'user_id') and an org's ($ownerCol = 'org_id').
      *
-     * @param  Tiger_Model_Table $linkModel the user_contact / user_address model
+     * @param  Tiger_Model_Table $linkModel the user_/org_ contact/address link model
      * @param  string            $pkColumn  its primary-key column
-     * @param  string            $userId    the owner
+     * @param  string            $ownerCol  the owning-scope column ('user_id' | 'org_id')
+     * @param  string            $ownerId   the owner id
      * @param  string            $keepId    the link that stays primary
      * @return void
      */
-    protected function _soloPrimary($linkModel, $pkColumn, $userId, $keepId)
+    protected function _soloPrimary($linkModel, $pkColumn, $ownerCol, $ownerId, $keepId)
     {
         $db = $linkModel->getAdapter();
         $linkModel->update(
             ['is_primary' => 0],
-            $db->quoteInto('user_id = ?', (string) $userId) . ' AND ' . $db->quoteInto($pkColumn . ' <> ?', (string) $keepId)
+            $db->quoteInto($ownerCol . ' = ?', (string) $ownerId) . ' AND ' . $db->quoteInto($pkColumn . ' <> ?', (string) $keepId)
         );
     }
 }

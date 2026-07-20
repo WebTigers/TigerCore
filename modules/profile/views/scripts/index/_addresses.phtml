@@ -16,7 +16,7 @@ $groupLabels = ['priority' => 'Frequent', 'rest' => 'All countries'];
 
         <form id="address-form" onsubmit="return false;" novalidate>
             <?= $this->addressForm->getElement('_csrf') ?>
-            <input type="hidden" name="user_address_id" id="addr-id" value="">
+            <input type="hidden" name="link_id" id="addr-id" value="">
             <input type="hidden" name="latitude" id="addr-lat" value="">
             <input type="hidden" name="longitude" id="addr-lng" value="">
             <div class="row">
@@ -116,6 +116,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var cancelBtn = document.getElementById('address-cancel');
 
     var TYPES = <?= json_encode($this->addressTypes, JSON_UNESCAPED_UNICODE) ?>;
+    var SVC   = <?= json_encode($this->addressSvc ?: 'address', JSON_UNESCAPED_UNICODE) ?>;   // 'address' (user) | 'OrgAddress' (org) — exact case, ucfirst-only
     var STR = {
         add:    <?= json_encode($t('profile.address.add'), JSON_UNESCAPED_UNICODE) ?>,
         update: <?= json_encode($t('profile.address.update'), JSON_UNESCAPED_UNICODE) ?>,
@@ -155,7 +156,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     '<button type="button" class="btn btn-sm btn-link text-danger p-1 js-del" title="Delete"><i class="fa-solid fa-trash"></i></button>' +
                 '</div>';
             el.querySelector('.js-edit').addEventListener('click', function () { edit(a); });
-            el.querySelector('.js-del').addEventListener('click', function (e) { del(a.user_address_id, e.currentTarget); });
+            el.querySelector('.js-del').addEventListener('click', function (e) { del(a.link_id, e.currentTarget); });
             host.appendChild(el);
         });
     }
@@ -168,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function () {
         form.querySelectorAll('.is-invalid').forEach(function (x) { x.classList.remove('is-invalid'); });
     }
     function edit(a) {
-        idInput.value = a.user_address_id;
+        idInput.value = a.link_id;
         // Carry the stored geocode; it persists on save unless the user retypes the street
         // (tiger.address.js clears these on a manual edit).
         latInput.value = a.latitude == null ? '' : a.latitude;
@@ -182,7 +183,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function post(method, extra, btn) {
         var fd = extra ? new URLSearchParams(extra) : new URLSearchParams(new FormData(form));
-        fd.set('module', 'profile'); fd.set('service', 'address'); fd.set('method', method);
+        fd.set('module', 'profile'); fd.set('service', SVC); fd.set('method', method);
         if (extra) { fd.set('_csrf', csrfInput.value); }
         return TigerButton.run(btn, function () {
             return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
@@ -207,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function del(id, btn) {
         if (!window.confirm(STR.confirm)) { return; }
-        post('delete', { user_address_id: id }, btn).then(function (res) {
+        post('delete', { link_id: id }, btn).then(function (res) {
             if (res && res.result === 1 && res.data) {
                 render(res.data.addresses || []);
                 if (res.data._csrf) { csrfInput.value = res.data._csrf; }

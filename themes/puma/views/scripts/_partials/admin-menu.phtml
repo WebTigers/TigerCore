@@ -34,8 +34,14 @@ $nav = $this->nav ?? array_merge([
     ['key' => 'articles',  'label' => 'Articles',      'href' => '/blog/post',      'icon' => 'fa-feather-pointed', 'match' => '/blog/post',     'resource' => 'Blog_PostController'],
     ['key' => 'menus',     'label' => 'Menus',         'href' => '/cms/menu',       'icon' => 'fa-bars',            'match' => '/cms/menu',      'resource' => 'Cms_MenuController'],
     ['key' => 'media',     'label' => 'Media',         'href' => '/media',          'icon' => 'fa-photo-film',      'match' => '/media',         'resource' => 'Media_IndexController'],
-    ['key' => 'users',     'label' => 'Users',         'href' => '/access/user',    'icon' => 'fa-users',           'match' => '/access/user',   'resource' => 'Access_UserController'],
-    ['key' => 'orgs',      'label' => 'Organizations', 'href' => '/access/org',     'icon' => 'fa-building',        'match' => '/access/org',    'resource' => 'Access_OrgController'],
+    ['key' => 'users',     'label' => 'Users',         'icon' => 'fa-users', 'children' => [
+        ['key' => 'users_all',  'label' => 'Admin Users',    'href' => '/access/user',  'match' => '/access/user',  'resource' => 'Access_UserController'],
+        ['key' => 'users_mine', 'label' => 'My User Profile', 'href' => '/user/profile', 'match' => '/user/profile', 'resource' => 'Profile_IndexController'],
+    ]],
+    ['key' => 'orgs',      'label' => 'Organizations', 'icon' => 'fa-building', 'children' => [
+        ['key' => 'orgs_all',  'label' => 'All Organizations', 'href' => '/access/org',  'match' => '/access/org',  'resource' => 'Access_OrgController'],
+        ['key' => 'orgs_mine', 'label' => 'My Organization',   'href' => '/profile/org', 'match' => '/profile/org', 'resource' => 'Profile_OrgController'],
+    ]],
     ['key' => 'code',      'label' => 'Code',          'href' => '/code',           'icon' => 'fa-code',            'match' => '/code',          'resource' => 'Code_IndexController'],
     ['key' => 'modules',   'label' => 'Modules',       'href' => '/system/modules', 'icon' => 'fa-puzzle-piece',    'match' => '/system/modules','resource' => 'System_ModulesController'],
 ], Tiger_Admin_Nav::items(), [

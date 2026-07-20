@@ -1,0 +1,200 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * Org Basic tab — the organization's logo (pick/drop → crop → upload, org-scoped) + identity
+ * (name + URL-safe slug), one field per row. Saves via /api (profile/org/save + profile/orglogo).
+ * Deliberately thin: the product-builder decides what else an "organization" carries.
+ *
+ * The logo uploader mirrors the user-avatar pattern (TigerUpload → Cropper.js → /api) but is
+ * self-contained here and points at the org-scoped Profile_Service_OrgLogo. Free-aspect crop (a logo
+ * isn't a square headshot) and a PNG export so transparency survives.
+ */
+$t   = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
+$lg  = (string) $this->logoUrl;
+?>
+<div class="card">
+    <div class="card-body">
+
+        <!-- Logo -->
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <div class="flex-shrink-0 border rounded bg-body-tertiary d-flex align-items-center justify-content-center"
+                 style="width:160px;height:96px;overflow:hidden;">
+                <img id="logo-img" src="<?= $this->escape($lg) ?>" alt="Logo"
+                     class="mw-100 mh-100 <?= $lg === '' ? 'd-none' : '' ?>" style="object-fit:contain;">
+                <i id="logo-placeholder" class="fa-solid fa-building fa-2x text-secondary <?= $lg === '' ? '' : 'd-none' ?>"></i>
+            </div>
+            <div>
+                <button type="button" id="logo-change" class="btn btn-outline-primary btn-sm">
+                    <i class="fa-solid fa-image me-2"></i><?= $t('profile.org.logo.change') ?>
+                </button>
+                <button type="button" id="logo-remove" class="btn btn-link btn-sm text-danger <?= $lg === '' ? 'd-none' : '' ?>">
+                    <?= $t('profile.org.logo.remove') ?>
+                </button>
+                <div class="form-text mb-0"><?= $t('profile.org.logo.hint') ?></div>
+            </div>
+        </div>
+        <input type="file" id="logo-file" accept="image/png,image/jpeg,image/webp" class="d-none">
+
+        <hr class="my-4">
+
+        <!-- Identity -->
+        <form id="org-basic-form" onsubmit="return false;" novalidate>
+            <?= $this->form->getElement('_csrf') ?>
+            <div class="row">
+                <div class="col-xl-6 col-lg-8">
+                    <div class="mb-3">
+                        <label class="form-label" for="org-name"><?= $t('profile.org.name') ?></label>
+                        <input type="text" class="form-control" id="org-name" name="name" maxlength="255"
+                               value="<?= $this->escape($this->orgName) ?>">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="org-slug"><?= $t('profile.org.slug') ?></label>
+                        <input type="text" class="form-control" id="org-slug" name="slug" maxlength="191"
+                               value="<?= $this->escape($this->orgSlug) ?>">
+                        <div class="form-text"><?= $t('profile.org.slug_help') ?></div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="card-footer text-end">
+        <button type="button" id="org-basic-save" class="btn btn-primary">
+            <i class="fa-solid fa-floppy-disk me-2"></i><?= $t('profile.org.save') ?>
+        </button>
+    </div>
+</div>
+
+<!-- Logo crop modal -->
+<div class="modal fade" id="logo-crop-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><?= $t('profile.org.logo.adjust') ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <img id="logo-crop-image" alt="" style="display:block;max-width:100%;max-height:60vh;margin:0 auto;">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal"><?= $t('profile.address.cancel') ?></button>
+                <button type="button" class="btn btn-primary" id="logo-crop-save">
+                    <i class="fa-solid fa-check me-2"></i><?= $t('profile.org.logo.save') ?>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var fb = document.getElementById('profile-feedback');
+
+    // ----- Basic (name + slug) save -----
+    var form = document.getElementById('org-basic-form');
+    document.getElementById('org-basic-save').addEventListener('click', function () {
+        var fd = new URLSearchParams(new FormData(form));
+        fd.set('module', 'profile'); fd.set('service', 'org'); fd.set('method', 'save');
+        TigerButton.run(this, function () {
+            return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
+                .then(function (r) { return r.json().catch(function () { return {}; }); });
+        }).then(function (res) {
+            form.querySelectorAll('.is-invalid').forEach(function (x) { x.classList.remove('is-invalid'); });
+            if (res && res.result === 1) {
+                if (res.data && res.data.slug) { document.getElementById('org-slug').value = res.data.slug; }
+                TigerDOM.notify(fb, (res.messages && res.messages[0]) ? res.messages[0].message : 'Saved.', { type: 'success' });
+                return;
+            }
+            if (res && res.form) { Object.keys(res.form).forEach(function (f) { var el = form.querySelector('[name="' + f + '"]'); if (el) { el.classList.add('is-invalid'); } }); }
+            if (res && res.data && res.data.field) { var el = form.querySelector('[name="' + res.data.field + '"]'); if (el) { el.classList.add('is-invalid'); } }
+            (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
+        }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+    });
+
+    // ----- Logo: pick / drop (TigerUpload) -> crop (Cropper.js) -> upload (org-scoped) -----
+    var input   = document.getElementById('logo-file');
+    var modalEl = document.getElementById('logo-crop-modal');
+    var cropImg = document.getElementById('logo-crop-image');
+    var modalObj = null, cropper = null, pendingSrc = null;
+
+    function bust(url) { return url + (url.indexOf('?') < 0 ? '?' : '&') + 't=' + Date.now(); }
+    function getModal() { if (!modalObj) { modalObj = bootstrap.Modal.getOrCreateInstance(modalEl); } return modalObj; }
+    function destroyCropper() { if (cropper) { cropper.destroy(); cropper = null; } }
+    function showLogo(url) {
+        var img = document.getElementById('logo-img');
+        img.src = bust(url); img.classList.remove('d-none');
+        document.getElementById('logo-placeholder').classList.add('d-none');
+        document.getElementById('logo-remove').classList.remove('d-none');
+    }
+
+    var up = TigerUpload.create({
+        url: '/api', field: 'file', auto: false,
+        params: { module: 'profile', service: 'OrgLogo', method: 'upload' }
+    });
+    up.dropOnWindow({ label: 'Drop your logo', sublabel: 'to set your organization logo',
+        onDrop: function (files) { openCropper(files && files[0]); } });
+    up.subscribe({
+        onSuccess: function (item) {
+            if (item.response && item.response.url) { showLogo(bust(item.response.url)); }
+            getModal().hide();
+            TigerDOM.notify(fb, 'Logo updated.', { type: 'success' });
+        },
+        onError: function (item) { TigerDOM.notify(fb, (item && item.error) || 'Upload failed — please try again.', { type: 'error' }); }
+    });
+
+    document.getElementById('logo-change').addEventListener('click', function () { input.click(); });
+    input.addEventListener('change', function () { openCropper(input.files && input.files[0]); input.value = ''; });
+
+    function openCropper(file) {
+        if (!file || !/^image\//.test(file.type)) { return; }
+        var reader = new FileReader();
+        reader.onload = function (e) { pendingSrc = e.target.result; getModal().show(); };
+        reader.readAsDataURL(file);
+    }
+
+    // Init Cropper only once the modal is shown AND the image has loaded — both must hold or Cropper
+    // measures a zero-size box and renders nothing.
+    modalEl.addEventListener('shown.bs.modal', function () {
+        destroyCropper();
+        cropImg.onload = function () {
+            cropImg.onload = null;
+            try {
+                cropper = new Cropper(cropImg, { viewMode: 1, autoCropArea: 0.9, responsive: true, background: true });
+            } catch (err) {
+                TigerDOM.notify(fb, 'Could not start the cropper: ' + (err && err.message ? err.message : err), { type: 'error' });
+            }
+        };
+        cropImg.src = pendingSrc;
+    });
+    modalEl.addEventListener('hidden.bs.modal', function () { destroyCropper(); });
+
+    document.getElementById('logo-crop-save').addEventListener('click', function () {
+        if (!cropper) { return; }
+        var canvas = cropper.getCroppedCanvas({ maxWidth: 1024, maxHeight: 1024, imageSmoothingQuality: 'high' });
+        if (!canvas) { return; }
+        canvas.toBlob(function (blob) {
+            var file = new File([blob], 'logo.png', { type: 'image/png' });   // PNG keeps transparency
+            up.clear();          // drop any raw file the window-drop queued
+            up.add([file]);
+            up.start();
+        }, 'image/png');
+    });
+
+    document.getElementById('logo-remove').addEventListener('click', function () {
+        var fd = new URLSearchParams();
+        fd.set('module', 'profile'); fd.set('service', 'OrgLogo'); fd.set('method', 'remove');
+        TigerButton.run(this, function () {
+            return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
+                .then(function (r) { return r.json().catch(function () { return {}; }); });
+        }).then(function (res) {
+            if (res && res.result === 1) {
+                var img = document.getElementById('logo-img');
+                img.classList.add('d-none'); img.src = '';
+                document.getElementById('logo-placeholder').classList.remove('d-none');
+                this.classList.add('d-none');
+                TigerDOM.notify(fb, (res.messages && res.messages[0]) ? res.messages[0].message : 'Logo removed.', { type: 'success' });
+            }
+        }.bind(this)).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+    });
+});
+</script>
