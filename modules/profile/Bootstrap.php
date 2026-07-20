@@ -36,5 +36,18 @@ class Profile_Bootstrap extends Zend_Application_Module_Bootstrap
         Tiger_Profile_Tabs::register(Tiger_Profile_Tabs::CONTEXT_USER, [
             'key' => 'addresses', 'label' => 'profile.tab.addresses', 'icon' => 'fa-location-dot', 'order' => 30, 'view' => 'index/_addresses',
         ]);
+
+        // Org profile (/profile/org, role admin). Basic ships now; contacts/addresses follow (reusing
+        // the same collection pattern, org-scoped).
+        Tiger_Profile_Tabs::register(Tiger_Profile_Tabs::CONTEXT_ORG, [
+            'key' => 'basic', 'label' => 'profile.org.tab.basic', 'icon' => 'fa-building', 'order' => 10, 'view' => 'org/_basic',
+        ]);
+        // Contacts + Addresses reuse the shared collection views (context-neutral, org-scoped services).
+        Tiger_Profile_Tabs::register(Tiger_Profile_Tabs::CONTEXT_ORG, [
+            'key' => 'contacts', 'label' => 'profile.tab.contacts', 'icon' => 'fa-address-book', 'order' => 20, 'view' => 'index/_contacts',
+        ]);
+        Tiger_Profile_Tabs::register(Tiger_Profile_Tabs::CONTEXT_ORG, [
+            'key' => 'addresses', 'label' => 'profile.tab.addresses', 'icon' => 'fa-location-dot', 'order' => 30, 'view' => 'index/_addresses',
+        ]);
     }
 }

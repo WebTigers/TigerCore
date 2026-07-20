@@ -20,7 +20,7 @@ $t = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
 
         <form id="contact-form" onsubmit="return false;" novalidate>
             <?= $this->contactForm->getElement('_csrf') ?>
-            <input type="hidden" name="user_contact_id" id="contact-id" value="">
+            <input type="hidden" name="link_id" id="contact-id" value="">
             <input type="hidden" name="value" id="contact-value-hidden" value="">
             <input type="hidden" name="phone_country" id="contact-phone-country" value="">
             <div class="row g-2 align-items-end">
@@ -82,6 +82,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var cancelBtn = document.getElementById('contact-cancel');
 
     var TYPES = <?= json_encode($this->contactTypes, JSON_UNESCAPED_UNICODE) ?>;
+    var SVC   = <?= json_encode($this->contactSvc ?: 'contact', JSON_UNESCAPED_UNICODE) ?>;   // 'contact' (user) | 'OrgContact' (org) — exact case, ucfirst-only
     var PHONE_DEFAULT = <?= json_encode(strtolower((string) $this->phoneDefault), JSON_UNESCAPED_UNICODE) ?>;
     var STR = {
         add:    <?= json_encode($t('profile.contact.add'), JSON_UNESCAPED_UNICODE) ?>,
@@ -150,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var phone = isPhone();
         phoneWrap.classList.toggle('d-none', !phone);
         valueWrap.classList.toggle('d-none', phone);
-        valueEl.type = (typeEl.value === 'email') ? 'email' : 'text';
+        valueEl.type = (typeEl.value === 'email') ? 'email' : (typeEl.value === 'website') ? 'url' : 'text';
         if (phone) { initIti(); }
     }
     typeEl.addEventListener('change', toggleType);
@@ -173,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     '<button type="button" class="btn btn-sm btn-link text-danger p-1 js-del" title="Delete"><i class="fa-solid fa-trash"></i></button>' +
                 '</div>';
             el.querySelector('.js-edit').addEventListener('click', function () { edit(c); });
-            el.querySelector('.js-del').addEventListener('click', function (e) { del(c.user_contact_id, e.currentTarget); });
+            el.querySelector('.js-del').addEventListener('click', function (e) { del(c.link_id, e.currentTarget); });
             host.appendChild(el);
         });
     }
@@ -185,7 +186,7 @@ document.addEventListener('DOMContentLoaded', function () {
         form.querySelectorAll('.is-invalid').forEach(function (x) { x.classList.remove('is-invalid'); });
     }
     function edit(c) {
-        idInput.value = c.user_contact_id; typeEl.value = c.kind; primEl.checked = !!Number(c.is_primary);
+        idInput.value = c.link_id; typeEl.value = c.kind; primEl.checked = !!Number(c.is_primary);
         toggleType();
         if (c.kind === 'phone') { initIti(); if (iti) { try { iti.setNumber(c.value || ''); } catch (e) {} } }
         else { valueEl.value = c.value || ''; valueEl.focus(); }
@@ -205,7 +206,7 @@ document.addEventListener('DOMContentLoaded', function () {
             ccHidden.value  = '';
         }
         var fd = new URLSearchParams(new FormData(form));
-        fd.set('module', 'profile'); fd.set('service', 'contact'); fd.set('method', 'save');
+        fd.set('module', 'profile'); fd.set('service', SVC); fd.set('method', 'save');
         TigerButton.run(this, function () {
             return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
                 .then(function (r) { return r.json().catch(function () { return {}; }); });
@@ -226,8 +227,8 @@ document.addEventListener('DOMContentLoaded', function () {
     function del(id, btn) {
         if (!window.confirm(STR.confirm)) { return; }
         var fd = new URLSearchParams();
-        fd.set('module', 'profile'); fd.set('service', 'contact'); fd.set('method', 'delete');
-        fd.set('user_contact_id', id); fd.set('_csrf', csrfInput.value);
+        fd.set('module', 'profile'); fd.set('service', SVC); fd.set('method', 'delete');
+        fd.set('link_id', id); fd.set('_csrf', csrfInput.value);
         TigerButton.run(btn, function () {
             return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
                 .then(function (r) { return r.json().catch(function () { return {}; }); });

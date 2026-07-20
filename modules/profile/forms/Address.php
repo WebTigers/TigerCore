@@ -22,7 +22,7 @@ class Profile_Form_Address extends Tiger_Form
     {
         $line = ['filters' => ['StringTrim'], 'attribs' => ['class' => 'form-control']];
         return [
-            ['hidden', 'user_address_id', ['filters' => ['StringTrim']]],
+            ['hidden', 'link_id', ['filters' => ['StringTrim']]],   // the owner↔address link PK (user_address_id | org_address_id)
             ['text', 'type',    ['required' => true, 'filters' => ['StringTrim'], 'attribs' => ['class' => 'form-select']]],
             ['text', 'country', ['required' => true, 'filters' => ['StringTrim'], 'attribs' => ['class' => 'form-select']]],
             ['text', 'line1',   ['required' => true, 'filters' => ['StringTrim'], 'validators' => [['StringLength', true, ['min' => 1, 'max' => 191]]], 'attribs' => ['class' => 'form-control']]],

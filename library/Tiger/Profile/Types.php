@@ -19,7 +19,7 @@ class Tiger_Profile_Types
 {
     const CONTACT_KEY     = 'tiger.profile.contact.types';
     const ADDRESS_KEY     = 'tiger.profile.address.types';
-    const CONTACT_DEFAULT = 'Phone,Email,Other';
+    const CONTACT_DEFAULT = 'Phone,Email,Website,Other';
     const ADDRESS_DEFAULT = 'Home,Office,Mailing';
 
     /** @return array<string,string> value(slug) => label for contact types */

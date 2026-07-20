@@ -45,7 +45,7 @@ class Profile_Service_Address extends Profile_Service_Base
             'longitude' => $this->_coord($form->getValue('longitude'), 180.0),
         ];
         $primary = (bool) $form->getValue('is_primary');
-        $uaId    = trim((string) $form->getValue('user_address_id'));
+        $uaId    = trim((string) $form->getValue('link_id'));
 
         try {
             $this->_transaction(function () use ($userId, $type, $loc, $primary, $uaId) {
@@ -63,7 +63,7 @@ class Profile_Service_Address extends Profile_Service_Base
                     $keepId    = $link->insert(['user_id' => $userId, 'address_id' => $addressId, 'label' => $type, 'is_primary' => $primary ? 1 : 0]);
                 }
                 if ($primary) {
-                    $this->_soloPrimary($link, 'user_address_id', $userId, (string) $keepId);
+                    $this->_soloPrimary($link, 'user_address_id', 'user_id', $userId, (string) $keepId);
                 }
             });
             $this->_ok($userId, 'profile.address.saved');
@@ -83,7 +83,7 @@ class Profile_Service_Address extends Profile_Service_Base
         $userId = (string) $this->_user_id;
         if ($userId === '') { $this->_error('core.api.error.not_allowed'); return; }
         if (!$this->_validCsrf(Profile_Form_Address::class, $params)) { $this->_error('core.api.error.csrf'); return; }
-        $uaId = trim((string) ($params['user_address_id'] ?? ''));
+        $uaId = trim((string) ($params['link_id'] ?? ''));
 
         try {
             $this->_transaction(function () use ($userId, $uaId) {

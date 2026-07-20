@@ -139,6 +139,14 @@ abstract class Tiger_Service_Service
         try {
             $this->{$action}($params);
         } catch (Throwable $e) {
+            // The client gets a safe, generic message (production) — but the REAL exception is always
+            // recorded, so a swallowed error is never invisible to an operator. See Tiger_Log sink.
+            Tiger_Log::error('api.service.exception', [
+                'service' => static::class,
+                'action'  => $action,
+                'error'   => $e->getMessage(),
+                'where'   => $e->getFile() . ':' . $e->getLine(),
+            ]);
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
         }
     }

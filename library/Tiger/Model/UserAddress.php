@@ -39,7 +39,7 @@ class Tiger_Model_UserAddress extends Tiger_Model_Table
         $db = $this->getAdapter();
         return $db->fetchAll(
             $db->select()
-               ->from(['ua' => 'user_address'], ['user_address_id', 'label', 'is_primary'])
+               ->from(['ua' => 'user_address'], ['link_id' => 'user_address_id', 'label', 'is_primary'])
                ->joinLeft(['a' => 'address'], 'a.address_id = ua.address_id',
                    ['line1', 'line2', 'city', 'region', 'postal', 'country', 'latitude', 'longitude'])
                ->where('ua.user_id = ?', (string) $userId)
