@@ -139,6 +139,8 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
             </div>
         </div>
     </div>
+    <?php /* Custom field groups (Tiger_Fields) — module/app-declared, stored in meta.fields, versioned. */ ?>
+    <?= $this->render('page/_field-groups.phtml') ?>
 </form>
 
 <?php if ($isEdit && count($versions)): ?>
