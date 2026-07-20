@@ -34,8 +34,8 @@ $chip = function ($n) {
     $h .= ' <code class="menu-chip-hint">' . $this->escape($hint) . '</code>';
     if (($n['status'] ?? '') === 'draft') { $h .= ' <span class="badge text-bg-secondary">Draft</span>'; }
     $h .= '<span class="menu-chip-actions ms-auto">'
-       .  '<button type="button" class="btn btn-sm btn-outline-secondary" data-open title="Properties"><i class="fa-solid fa-sliders"></i></button> '
-       .  '<button type="button" class="btn btn-sm btn-outline-danger" data-del title="Remove"><i class="fa-solid fa-trash"></i></button>'
+       .  '<button type="button" class="btn btn-sm btn-outline-secondary" data-open title="Properties" aria-label="Properties"><i class="fa-solid fa-sliders"></i></button> '
+       .  '<button type="button" class="btn btn-sm btn-outline-danger" data-del title="Remove" aria-label="Remove"><i class="fa-solid fa-trash"></i></button>'
        .  '</span></div>';
     return $h;
 };
@@ -222,8 +222,8 @@ document.addEventListener('DOMContentLoaded', function () {
             + '<span class="menu-chip-label">' + esc(d.label || '(no label)') + '</span>'
             + ' <code class="menu-chip-hint">' + esc(hint) + '</code>' + draft
             + '<span class="menu-chip-actions ms-auto">'
-            + '<button type="button" class="btn btn-sm btn-outline-secondary" data-open title="Properties"><i class="fa-solid fa-sliders"></i></button> '
-            + '<button type="button" class="btn btn-sm btn-outline-danger" data-del title="Remove"><i class="fa-solid fa-trash"></i></button>'
+            + '<button type="button" class="btn btn-sm btn-outline-secondary" data-open title="Properties" aria-label="Properties"><i class="fa-solid fa-sliders"></i></button> '
+            + '<button type="button" class="btn btn-sm btn-outline-danger" data-del title="Remove" aria-label="Remove"><i class="fa-solid fa-trash"></i></button>'
             + '</span></div>';
     }
     function toggleEmpty() { document.getElementById('menu-empty').hidden = root.querySelector('li.menu-item') !== null; }

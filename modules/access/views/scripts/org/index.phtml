@@ -89,12 +89,12 @@ document.addEventListener('DOMContentLoaded', function () {
             { data: null, orderable: false, searchable: false, className: 'text-end text-nowrap', render: function (t, type, row) {
                 var html = '';
                 if (row.can_edit) {
-                    html += '<a href="/access/org/edit/id/' + encodeURIComponent(row.org_id) + '" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="fa-solid fa-pen"></i></a> ';
+                    html += '<a href="/access/org/edit/id/' + encodeURIComponent(row.org_id) + '" class="btn btn-sm btn-outline-secondary" title="Edit" aria-label="Edit"><i class="fa-solid fa-pen"></i></a> ';
                 }
                 if (row.can_delete) {
-                    html += '<button type="button" class="btn btn-sm btn-outline-danger" data-org-delete="' + esc(row.org_id) + '" title="Delete"><i class="fa-solid fa-trash"></i></button>';
+                    html += '<button type="button" class="btn btn-sm btn-outline-danger" data-org-delete="' + esc(row.org_id) + '" title="Delete" aria-label="Delete"><i class="fa-solid fa-trash"></i></button>';
                 } else {
-                    html += '<button type="button" class="btn btn-sm btn-outline-danger" disabled title="Your active organization can\'t be deleted"><i class="fa-solid fa-trash"></i></button>';
+                    html += '<button type="button" class="btn btn-sm btn-outline-danger" disabled title="Your active organization can\'t be deleted" aria-label="Your active organization can\'t be deleted"><i class="fa-solid fa-trash"></i></button>';
                 }
                 return html || '<span class="text-body-secondary">—</span>';
             } }

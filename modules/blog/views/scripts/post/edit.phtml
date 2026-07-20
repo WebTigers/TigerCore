@@ -23,7 +23,7 @@ $body = $form->getElement('body')->getValue();   // raw HTML into the contentEdi
 <script src="<?= $this->asset($this->themeAssets . '/js/tiger.code-editor.js') ?>"></script>
 
 <div class="ed-topbar">
-    <a href="/blog/post" class="btn btn-sm btn-outline-secondary" title="Back to articles"><i class="fa-solid fa-angle-left"></i></a>
+    <a href="/blog/post" class="btn btn-sm btn-outline-secondary" title="Back to articles" aria-label="Back to articles"><i class="fa-solid fa-angle-left"></i></a>
     <div class="me-auto">
         <span class="fw-semibold"><?= $isEdit ? 'Edit article' : 'New article' ?></span>
         <span id="ed-savestate" class="small text-body-secondary ms-2"></span>
@@ -81,18 +81,18 @@ $body = $form->getElement('body')->getValue();   // raw HTML into the contentEdi
         <div class="ed-toolbar" role="toolbar" aria-label="Formatting">
             <button type="button" class="btn btn-sm btn-light" data-cmd="formatBlock" data-val="h2" title="Heading">H2</button>
             <button type="button" class="btn btn-sm btn-light" data-cmd="formatBlock" data-val="h3" title="Subheading">H3</button>
-            <button type="button" class="btn btn-sm btn-light" data-cmd="formatBlock" data-val="p" title="Body text"><i class="fa-solid fa-paragraph"></i></button>
+            <button type="button" class="btn btn-sm btn-light" data-cmd="formatBlock" data-val="p" title="Body text" aria-label="Body text"><i class="fa-solid fa-paragraph"></i></button>
             <span class="vr mx-1"></span>
-            <button type="button" class="btn btn-sm btn-light" data-cmd="bold" title="Bold"><i class="fa-solid fa-bold"></i></button>
-            <button type="button" class="btn btn-sm btn-light" data-cmd="italic" title="Italic"><i class="fa-solid fa-italic"></i></button>
-            <button type="button" class="btn btn-sm btn-light" data-cmd="formatBlock" data-val="blockquote" title="Quote"><i class="fa-solid fa-quote-right"></i></button>
-            <button type="button" class="btn btn-sm btn-light" data-cmd="insertUnorderedList" title="Bullet list"><i class="fa-solid fa-list-ul"></i></button>
-            <button type="button" class="btn btn-sm btn-light" data-cmd="insertOrderedList" title="Numbered list"><i class="fa-solid fa-list-ol"></i></button>
+            <button type="button" class="btn btn-sm btn-light" data-cmd="bold" title="Bold" aria-label="Bold"><i class="fa-solid fa-bold"></i></button>
+            <button type="button" class="btn btn-sm btn-light" data-cmd="italic" title="Italic" aria-label="Italic"><i class="fa-solid fa-italic"></i></button>
+            <button type="button" class="btn btn-sm btn-light" data-cmd="formatBlock" data-val="blockquote" title="Quote" aria-label="Quote"><i class="fa-solid fa-quote-right"></i></button>
+            <button type="button" class="btn btn-sm btn-light" data-cmd="insertUnorderedList" title="Bullet list" aria-label="Bullet list"><i class="fa-solid fa-list-ul"></i></button>
+            <button type="button" class="btn btn-sm btn-light" data-cmd="insertOrderedList" title="Numbered list" aria-label="Numbered list"><i class="fa-solid fa-list-ol"></i></button>
             <span class="vr mx-1"></span>
-            <button type="button" class="btn btn-sm btn-light" data-ed-link title="Link"><i class="fa-solid fa-link"></i></button>
-            <button type="button" class="btn btn-sm btn-light" data-ed-image title="Insert image"><i class="fa-solid fa-image"></i></button>
+            <button type="button" class="btn btn-sm btn-light" data-ed-link title="Link" aria-label="Link"><i class="fa-solid fa-link"></i></button>
+            <button type="button" class="btn btn-sm btn-light" data-ed-image title="Insert image" aria-label="Insert image"><i class="fa-solid fa-image"></i></button>
             <span class="vr mx-1"></span>
-            <button type="button" class="btn btn-sm btn-light" data-ed-code title="Edit HTML source"><i class="fa-solid fa-code"></i></button>
+            <button type="button" class="btn btn-sm btn-light" data-ed-code title="Edit HTML source" aria-label="Edit HTML source"><i class="fa-solid fa-code"></i></button>
         </div>
 
         <div id="ed-body" class="ed-body" contenteditable="true"

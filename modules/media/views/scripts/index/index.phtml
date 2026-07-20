@@ -55,8 +55,8 @@
             </div>
             <div class="col-auto">
                 <div class="btn-group btn-group-sm" role="group" aria-label="View">
-                    <button type="button" class="btn btn-outline-secondary active" id="media-view-list" title="List"><i class="fa-solid fa-list"></i></button>
-                    <button type="button" class="btn btn-outline-secondary" id="media-view-grid" title="Portfolio"><i class="fa-solid fa-table-cells"></i></button>
+                    <button type="button" class="btn btn-outline-secondary active" id="media-view-list" title="List" aria-label="List"><i class="fa-solid fa-list"></i></button>
+                    <button type="button" class="btn btn-outline-secondary" id="media-view-grid" title="Portfolio" aria-label="Portfolio"><i class="fa-solid fa-table-cells"></i></button>
                 </div>
             </div>
         </div>
@@ -176,10 +176,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 return (row.width && row.height) ? (row.width+' &times; '+row.height) : '<span class="text-body-secondary">—</span>'; } },
             { data:'visibility', render:function(t,type){ return type!=='display'?t:'<span class="badge text-bg-'+(t==='public'?'success':'secondary')+'">'+esc(t)+'</span>'; } },
             { data:null, orderable:false, searchable:false, className:'text-end text-nowrap', render:function(t,type,row){
-                var h = '<a href="'+esc(row.url)+'" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Open"><i class="fa-solid fa-up-right-from-square"></i></a> ';
-                h += '<button type="button" class="btn btn-sm btn-outline-secondary" data-media-copy="'+esc(row.url)+'" title="Copy URL"><i class="fa-solid fa-link"></i></button> ';
-                h += '<button type="button" class="btn btn-sm btn-outline-secondary" '+editAttrs(row)+' title="Edit"><i class="fa-solid fa-pen"></i></button>';
-                if (row.can_delete) { h += ' <button type="button" class="btn btn-sm btn-outline-danger" data-media-delete="'+esc(row.media_id)+'" title="Delete"><i class="fa-solid fa-trash"></i></button>'; }
+                var h = '<a href="'+esc(row.url)+'" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Open" aria-label="Open"><i class="fa-solid fa-up-right-from-square"></i></a> ';
+                h += '<button type="button" class="btn btn-sm btn-outline-secondary" data-media-copy="'+esc(row.url)+'" title="Copy URL" aria-label="Copy URL"><i class="fa-solid fa-link"></i></button> ';
+                h += '<button type="button" class="btn btn-sm btn-outline-secondary" '+editAttrs(row)+' title="Edit" aria-label="Edit"><i class="fa-solid fa-pen"></i></button>';
+                if (row.can_delete) { h += ' <button type="button" class="btn btn-sm btn-outline-danger" data-media-delete="'+esc(row.media_id)+'" title="Delete" aria-label="Delete"><i class="fa-solid fa-trash"></i></button>'; }
                 return h; } }
         ]
     });
@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var gRows = [], gOffset = 0, gTotal = 0, GLEN = 60, gBusy = false;
     function variantSrc(row){ var m={thumbnail:'thumb',small:'small',medium:'medium',large:'large'}; return row[m[sizeEl.value]] || row.thumb || row.url; }
     function tile(row){
-        var del = '<button class="media-tile-edit" '+editAttrs(row)+' title="Edit"><i class="fa-solid fa-pen"></i></button>';
+        var del = '<button class="media-tile-edit" '+editAttrs(row)+' title="Edit" aria-label="Edit"><i class="fa-solid fa-pen"></i></button>';
         var name = '<div class="media-tile-name" title="'+esc(row.filename||'')+'">'+esc(row.title||row.filename||'')+'</div>';
         if (row.kind==='image'){
             return '<div class="media-tile" data-media-id="'+esc(row.media_id)+'">'
