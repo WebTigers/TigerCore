@@ -1,0 +1,167 @@
+<?php
+/**
+ * TigerAlly — nominal accessibility inspector. Scan a CMS page, paste HTML, or roll up every page.
+ * Read-only: it reports, it never edits. Results come from Ally_Service_Scan over /api. Semantic
+ * Bootstrap only. See ADMIN.md.
+ */
+?>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1"><i class="fa-solid fa-universal-access me-2"></i>Accessibility</h1>
+        <p class="text-body-secondary mb-0">Scan pages for nominal ADA / WCAG-A gaps. Inspector only — it reports, it never changes your content.</p>
+    </div>
+</div>
+
+<div id="ally-feedback"></div>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header fw-semibold"><i class="fa-solid fa-magnifying-glass me-2"></i>Scan</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label" for="ally-page">A content page</label>
+                    <div class="input-group">
+                        <select id="ally-page" class="form-select"><option value="">Loading pages…</option></select>
+                        <button type="button" id="ally-scan-page" class="btn btn-primary"><i class="fa-solid fa-play me-1"></i>Scan</button>
+                    </div>
+                </div>
+                <button type="button" id="ally-scan-all" class="btn btn-outline-secondary btn-sm mb-3">
+                    <i class="fa-solid fa-list-check me-1"></i>Scan all pages
+                </button>
+                <hr>
+                <div class="mb-2">
+                    <label class="form-label" for="ally-html">…or paste HTML</label>
+                    <textarea id="ally-html" class="form-control font-monospace" rows="6" placeholder="<div>…</div>"></textarea>
+                </div>
+                <button type="button" id="ally-scan-html" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-code me-1"></i>Scan HTML</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header fw-semibold"><i class="fa-solid fa-clipboard-check me-2"></i>Report</div>
+            <div class="card-body">
+                <div id="ally-report"><p class="text-body-secondary small mb-0">Pick a page (or paste HTML) and scan.</p></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var fb     = document.getElementById('ally-feedback');
+    var pageEl = document.getElementById('ally-page');
+    var htmlEl = document.getElementById('ally-html');
+    var report = document.getElementById('ally-report');
+
+    var RULE_ICON = { 'img-alt': 'fa-image', 'link-name': 'fa-link', 'button-name': 'fa-hand-pointer',
+        'input-label': 'fa-i-cursor', 'heading-order': 'fa-heading', 'heading-empty': 'fa-heading',
+        'table-headers': 'fa-table', 'duplicate-id': 'fa-clone', 'doc-lang': 'fa-language',
+        'positive-tabindex': 'fa-arrow-down-1-9' };
+
+    function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+
+    function api(method, extra, btn) {
+        var fd = new URLSearchParams(extra || {});
+        fd.set('module', 'ally'); fd.set('service', 'scan'); fd.set('method', method);
+        var task = function () {
+            return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
+                .then(function (r) { return r.json().catch(function () { return {}; }); });
+        };
+        return btn ? TigerButton.run(btn, task) : task();
+    }
+
+    function loadPages() {
+        api('pages').then(function (res) {
+            if (!res || res.result !== 1) { return; }
+            var list = (res.data && res.data.pages) || [];
+            pageEl.innerHTML = '<option value="">— choose a page —</option>';
+            list.forEach(function (p) {
+                var o = document.createElement('option');
+                o.value = p.page_id;
+                o.textContent = (p.title || p.slug || p.page_id) + '  (/' + (p.slug || '') + (p.locale ? ' · ' + p.locale : '') + ')';
+                pageEl.appendChild(o);
+            });
+            if (!list.length) { pageEl.innerHTML = '<option value="">(no content pages yet)</option>'; }
+        });
+    }
+
+    function badge(sev, n) {
+        var cls = sev === 'error' ? 'text-bg-danger' : 'text-bg-warning';
+        return '<span class="badge ' + cls + ' me-1">' + n + ' ' + sev + (n === 1 ? '' : 's') + '</span>';
+    }
+
+    function renderReport(res) {
+        if (!res || res.result !== 1 || !res.data) {
+            (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
+            return;
+        }
+        var d = res.data;
+        var src = d.source ? ('<div class="small text-body-secondary mb-2">Source: <strong>' + esc(d.source.title || d.source.slug) + '</strong> <span class="badge text-bg-light">' + esc(d.source.format) + '</span></div>') : '<div class="small text-body-secondary mb-2">Source: pasted HTML</div>';
+        var head;
+        if (d.passed && d.summary.warning === 0) {
+            head = '<div class="alert alert-success mb-3"><i class="fa-solid fa-circle-check me-2"></i><strong>Nominal.</strong> No accessibility gaps found.</div>';
+        } else {
+            head = '<div class="mb-3">' + (d.summary.error ? badge('error', d.summary.error) : '') + (d.summary.warning ? badge('warning', d.summary.warning) : '') +
+                (d.passed ? ' <span class="text-success small">no blocking errors</span>' : '') + '</div>';
+        }
+        var body = '';
+        (d.findings || []).forEach(function (f) {
+            var icon = RULE_ICON[f.rule] || 'fa-triangle-exclamation';
+            var sevcls = f.severity === 'error' ? 'border-danger' : 'border-warning';
+            body += '<div class="border-start border-3 ' + sevcls + ' ps-3 mb-3">' +
+                '<div class="fw-medium"><i class="fa-solid ' + icon + ' me-2 text-body-secondary"></i>' + esc(f.message) +
+                ' <span class="badge text-bg-secondary">' + f.count + '</span></div>';
+            (f.samples || []).forEach(function (s) {
+                body += '<pre class="small bg-body-tertiary rounded p-2 mt-1 mb-0" style="white-space:pre-wrap;overflow:auto;">' + esc(s) + '</pre>';
+            });
+            body += '</div>';
+        });
+        report.innerHTML = src + head + body;
+    }
+
+    function renderAll(res) {
+        if (!res || res.result !== 1 || !res.data) { return; }
+        var t = res.data.totals, rows = res.data.results || [];
+        var html = '<div class="mb-3"><span class="badge text-bg-secondary me-1">' + t.pages + ' pages</span>' +
+            '<span class="badge text-bg-success me-1">' + t.passed + ' nominal</span>' +
+            (t.error ? badge('error', t.error) : '') + (t.warning ? badge('warning', t.warning) : '') + '</div>';
+        html += '<div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Page</th><th class="text-center">Status</th><th class="text-end">Errors</th><th class="text-end">Warnings</th></tr></thead><tbody>';
+        rows.forEach(function (r) {
+            var status = r.skipped ? '<span class="badge text-bg-light">skipped</span>'
+                : (r.passed ? '<span class="badge text-bg-success">nominal</span>' : '<span class="badge text-bg-danger">issues</span>');
+            html += '<tr style="cursor:pointer;" data-scan-page="' + esc(r.page_id) + '"><td>' + esc(r.title || r.slug) +
+                ' <span class="text-body-secondary small">/' + esc(r.slug || '') + '</span></td>' +
+                '<td class="text-center">' + status + '</td>' +
+                '<td class="text-end">' + (r.error || 0) + '</td><td class="text-end">' + (r.warning || 0) + '</td></tr>';
+        });
+        html += '</tbody></table></div>';
+        report.innerHTML = html;
+        report.querySelectorAll('[data-scan-page]').forEach(function (tr) {
+            tr.addEventListener('click', function () {
+                pageEl.value = this.getAttribute('data-scan-page');
+                api('scan', { page_id: this.getAttribute('data-scan-page') }).then(renderReport);
+            });
+        });
+    }
+
+    document.getElementById('ally-scan-page').addEventListener('click', function () {
+        if (!pageEl.value) { TigerDOM.notify(fb, 'Choose a page to scan.', { type: 'info' }); return; }
+        api('scan', { page_id: pageEl.value }, this).then(renderReport)
+            .catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+    });
+    document.getElementById('ally-scan-html').addEventListener('click', function () {
+        if (!htmlEl.value.trim()) { TigerDOM.notify(fb, 'Paste some HTML first.', { type: 'info' }); return; }
+        api('scan', { html: htmlEl.value }, this).then(renderReport)
+            .catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+    });
+    document.getElementById('ally-scan-all').addEventListener('click', function () {
+        api('scanAll', {}, this).then(renderAll)
+            .catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+    });
+
+    loadPages();
+});
+</script>

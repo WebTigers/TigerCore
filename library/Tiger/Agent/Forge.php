@@ -33,6 +33,7 @@ class Tiger_Agent_Forge
     const READ_VERBS = [
         'get', 'list', 'datatable', 'search', 'find', 'view', 'show', 'read',
         'test', 'options', 'discover', 'history', 'conversations', 'load', 'preview', 'count',
+        'scan', 'inspect', 'report',
     ];
 
     /**
