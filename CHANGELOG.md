@@ -6,6 +6,20 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [0.37.0-beta] — 2026-07-22
+
+### Changed
+- **CMS pages can now override shipped routes.** `Tiger_Controller_Plugin_PageDispatch` no longer only
+  fills 404s — a published `page` whose slug matches a request now *wins*, even over a static route such
+  as the `/vibe` marketing alias. This lets an admin replace any built-in landing page with real,
+  editable, SEO'd CMS content just by giving a page that slug — no code, no route edit. The one guard is
+  a reserved blacklist: every registered **module** namespace (`/admin`, `/api`, `/docs`, `/pay`, …) plus
+  the core default-module system controllers stay off-limits, so a page can never shadow application
+  routes. The reserved set is built per request from the live module list, so newly installed modules are
+  protected automatically. The root `/` is unchanged (IndexController still serves the admin-chosen home
+  page); unmatched slugs still 301 via `page_redirect` or fall through to a clean 404. Fail-open: a broken
+  lookup never takes down routing.
+
 ## [0.36.0-beta] — 2026-07-21
 
 ### Added
