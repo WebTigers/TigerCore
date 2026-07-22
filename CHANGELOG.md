@@ -6,6 +6,12 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [0.39.1-beta] — 2026-07-22
+
+### Added
+- **"Why Tiger" in the public nav.** The PUMA public header now leads with a `/why-tiger` link
+  (before the Solutions mega-menu), pointing at the Why Tiger marketing page.
+
 ## [0.39.0-beta] — 2026-07-22
 
 ### Added
