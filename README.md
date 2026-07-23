@@ -58,4 +58,4 @@ no-Composer shared hosting via pre-resolved bundles + a shared autoloading store
 
 ---
 
-Built by WebTigers. Licensed under `(MIT AND BSD-3-Clause)`.
+Built by WebTigers. Licensed under `BSD-3-Clause`.
