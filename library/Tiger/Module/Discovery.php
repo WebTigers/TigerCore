@@ -66,6 +66,26 @@ class Tiger_Module_Discovery
         return $modules;
     }
 
+    /**
+     * The full manifest (module.json / theme.json) for an INSTALLED module slug, or null. The app modules
+     * dir wins over the first-party core one on a slug collision.
+     *
+     * @param  string $slug the module slug
+     * @return array|null the decoded manifest, or null when not found
+     */
+    public static function manifestFor($slug)
+    {
+        $slug = basename((string) $slug);
+        foreach ([defined('APPLICATION_PATH') ? APPLICATION_PATH . '/modules' : null,
+                  defined('TIGER_CORE_PATH')  ? TIGER_CORE_PATH  . '/modules' : null] as $base) {
+            if ($base && is_dir($base . '/' . $slug)) {
+                $m = self::_manifest($base . '/' . $slug);
+                if ($m) { return $m; }
+            }
+        }
+        return null;
+    }
+
     protected static function _manifest($dir)
     {
         // A code module's manifest is module.json; a theme's is theme.json (same shape).
