@@ -139,7 +139,7 @@ consumers (DataTables, Select2) may return their own shapes — this is the defa
 
 **DataTables (server-side processing) is built in.** A grid is client/server like
 everything else: the view renders an empty `<table id>`, and rows are fetched from an
-`/api` service — never server-rendered. The pattern (modeled on AskLevi):
+`/api` service — never server-rendered. The pattern (modeled on our reference app):
 
 - The service exposes a `datatable(array $params)` action. `Tiger_Service_Service`
   provides the two helpers: **`_dtParams()`** normalizes the DataTables request
