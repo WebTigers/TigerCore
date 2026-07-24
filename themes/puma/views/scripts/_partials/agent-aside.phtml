@@ -30,6 +30,13 @@ foreach (Tiger_Agent::MODES as $m => $rank) {
 <aside id="tiger-agent" class="tiger-agent tiger-agent-aside" aria-label="AI Agent" data-mode-max="<?= $this->escape($modeMax) ?>">
     <div class="tiger-agent-resize" data-agent-resize aria-hidden="true"></div>
 
+    <!-- Drop overlay: shown ONLY while a file is dragged over THIS aside. The JS scopes the drop to
+         the aside and stops the event bubbling, so a page with its own window-level drop handler
+         (e.g. the Media library) never also receives a file dropped here. -->
+    <div class="tiger-agent-drop" data-agent-drop aria-hidden="true">
+        <div><i class="fa-solid fa-arrow-up-from-bracket"></i><span>Drop files to attach</span></div>
+    </div>
+
     <div class="tiger-agent-head">
         <i class="fa-solid fa-robot text-primary"></i>
         <span class="title flex-grow-1">Agent</span>
@@ -47,11 +54,18 @@ foreach (Tiger_Agent::MODES as $m => $rank) {
     </div>
 
     <div class="tiger-agent-foot">
+        <div class="tiger-agent-pending d-none" data-agent-pending></div>
         <form data-agent-form onsubmit="return false;">
             <?= $agentCsrf ?>
             <textarea class="form-control" rows="2" data-agent-input
                       placeholder="Ask the agent to build, change, or explain something…"></textarea>
             <div class="d-flex align-items-center mt-2 gap-2">
+                <button type="button" class="btn btn-sm btn-link text-secondary p-1" data-agent-attach
+                        title="Attach a file" aria-label="Attach a file">
+                    <i class="fa-solid fa-paperclip"></i>
+                </button>
+                <input type="file" class="d-none" data-agent-file multiple
+                       accept=".txt,.text,.md,.markdown,.csv,.tsv,.json,.log,.xml,.yaml,.yml,.html,.htm,.ini,.conf,.env,.php,.js,.ts,.jsx,.tsx,.css,.scss,.py,.rb,.java,.c,.cpp,.h,.hpp,.go,.rs,.sql,.sh,.bash,.pdf,.docx,.png,.jpg,.jpeg,.gif,.webp,.epub,.mobi,.zip">
                 <select class="form-select form-select-sm w-auto" data-agent-mode title="Automation level">
                     <?php foreach ($modeOpts as $m => $label): ?>
                         <option value="<?= $this->escape($m) ?>"><?= $this->escape($label) ?></option>

@@ -35,15 +35,104 @@ class Agent_Service_Agent extends Tiger_Service_Service
             $conversation = $this->_resolveConversation((string) ($params['conversation_id'] ?? ''));
             $context      = $this->_context($params);
             $mode         = Tiger_Agent::clampMode((string) ($params['mode'] ?? 'ask'));
+            $attach       = $this->_takeAttachments($params);   // dropped files: images (vision) + docs (text)
 
             $loop   = new Tiger_Agent_Loop($this->_role(), (string) $this->_user_id, (string) $this->_org_id);
-            $result = $loop->run($conversation, $text, $context, $mode);
+            $result = $loop->run($conversation, $text, $context, $mode, $attach['loop']);
+
+            // Bind the sent attachments to this conversation + the user message that carried them, so
+            // they leave the pending pool and re-render on reload (owner-scoped inside the model).
+            if ($attach['ids']) {
+                (new Agent_Model_Attachment())->linkToMessage(
+                    $attach['ids'],
+                    (string) $conversation->conversation_id,
+                    (string) ($result['user_message_id'] ?? ''),
+                    (string) $this->_user_id
+                );
+            }
+            unset($result['user_message_id']);   // internal to the link step; not part of the client contract
 
             $this->_success(array_merge($result, [
                 'conversation_id' => (string) $conversation->conversation_id,
             ]), 'agent.turn.ok');
         } catch (Throwable $e) {
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'agent.error.provider');
+        }
+    }
+
+    /**
+     * Store a file the user dropped onto the aside (or picked with the paperclip), so a following
+     * `send` can attach it to the turn. Images ride to a multimodal model as native vision input;
+     * documents are text-extracted and folded into the turn context. Rides `/api` as multipart
+     * (`$_FILES['file']`). The row starts unlinked (no conversation yet — a new chat has none) and
+     * is bound to the conversation + message on send. Owner-scoped: the caller owns what they upload.
+     *
+     * @param  array $params (the file arrives in $_FILES['file'], not $params)
+     * @return void
+     */
+    public function uploadFile(array $params): void
+    {
+        if (!$this->_ready()) { return; }
+
+        $f = $_FILES['file'] ?? null;
+        if (!is_array($f) || ((int) ($f['error'] ?? UPLOAD_ERR_NO_FILE)) !== UPLOAD_ERR_OK
+            || !is_uploaded_file((string) ($f['tmp_name'] ?? ''))) {
+            $this->_error('agent.file.failed');
+            return;
+        }
+
+        $original = (string) ($f['name'] ?? 'file');
+        if (!Agent_Model_Attachment::accepted($original)) { $this->_error('agent.file.type'); return; }
+
+        $tmp  = (string) $f['tmp_name'];
+        $size = (int) ($f['size'] ?? 0);
+        $kind = Agent_Model_Attachment::kindFor($original);
+        $cap  = $kind === 'image' ? Agent_Model_Attachment::IMAGE_MAX_BYTES : Agent_Model_Attachment::MAX_BYTES;
+        if ($size <= 0 || $size > $cap) { $this->_error('agent.file.too_large'); return; }
+
+        $ext  = strtolower(pathinfo($original, PATHINFO_EXTENSION));
+        $mime = $this->_mime($tmp, $ext);
+        $disk = Tiger_Media_Storage::defaultDisk();
+
+        try {
+            // Insert first so the storage key can be keyed by the immutable attachment id, then write
+            // the bytes to the private prefix, then cache any extracted text. (Object storage isn't
+            // transactional; a failed write leaves a keyless row that soft-deletes harmlessly.)
+            $am    = new Agent_Model_Attachment();
+            $attId = $am->insert([
+                'conversation_id' => null,
+                'message_id'      => null,
+                'user_id'         => (string) $this->_user_id,
+                'org_id'          => (string) $this->_org_id,
+                'disk'            => $disk,
+                'filename'        => $original,
+                'mime_type'       => $mime,
+                'file_size'       => $size,
+                'kind'            => $kind,
+            ]);
+
+            $key = 'agent/' . (string) $this->_org_id . '/' . (string) $this->_user_id . '/' . $attId . ($ext !== '' ? '.' . $ext : '');
+            Tiger_Media_Storage::disk($disk)->put($key, $tmp, 'private', $mime);
+
+            $extract = null;
+            if ($kind !== 'image') {
+                try { $extract = Agent_Model_Attachment::extractText($original, $mime, (string) @file_get_contents($tmp)); } catch (Throwable $e) {}
+            }
+            $am->update(
+                ['storage_key' => $key, 'extract' => $extract],
+                $am->getAdapter()->quoteInto('attachment_id = ?', $attId)
+            );
+
+            $this->_success(['attachment' => [
+                'attachment_id' => $attId,
+                'filename'      => $original,
+                'mime'          => $mime,
+                'kind'          => $kind,
+                'size'          => $size,
+                'readable'      => $kind === 'image' ? true : ($extract !== null && $extract !== ''),
+            ]], 'agent.file.attached');
+        } catch (Throwable $e) {
+            $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'agent.file.failed');
         }
     }
 
@@ -183,6 +272,60 @@ class Agent_Service_Agent extends Tiger_Service_Service
     protected function _role(): string
     {
         return (string) ($this->_identity->role ?? 'guest');
+    }
+
+    /**
+     * Resolve the `attachment_ids` the client is sending into (a) the id list to link and (b) the
+     * provider-neutral descriptors the Loop consumes (filename/mime/kind/size + disk/key for a lazy
+     * image read, + cached extract text for a document). Owner-scoped: only the caller's own
+     * still-pending rows resolve — an id you don't own or already sent is silently dropped.
+     *
+     * @param  array $params the request (reads `attachment_ids`, a CSV)
+     * @return array{ids:array<int,string>,loop:array<int,array>}
+     */
+    protected function _takeAttachments(array $params): array
+    {
+        $raw = trim((string) ($params['attachment_ids'] ?? ''));
+        if ($raw === '') { return ['ids' => [], 'loop' => []]; }
+        $ids = array_values(array_filter(array_map('trim', explode(',', $raw))));
+        if (!$ids) { return ['ids' => [], 'loop' => []]; }
+
+        $rows = (new Agent_Model_Attachment())->pendingForUser($ids, (string) $this->_user_id);
+        $okIds = [];
+        $loop  = [];
+        foreach ($rows as $r) {
+            $okIds[] = (string) $r['attachment_id'];
+            $loop[]  = [
+                'attachment_id' => (string) $r['attachment_id'],
+                'filename'      => (string) $r['filename'],
+                'mime'          => (string) $r['mime_type'],
+                'kind'          => (string) $r['kind'],
+                'size'          => (int) $r['file_size'],
+                'disk'          => (string) $r['disk'],
+                'storage_key'   => (string) $r['storage_key'],
+                'extract'       => (string) ($r['extract'] ?? ''),
+            ];
+        }
+        return ['ids' => $okIds, 'loop' => $loop];
+    }
+
+    /** Detect an uploaded file's mime — finfo first, then an extension map for the types we accept. */
+    protected function _mime($tmp, $ext): string
+    {
+        $detected = '';
+        if (function_exists('finfo_open') && ($fi = @finfo_open(FILEINFO_MIME_TYPE))) {
+            $detected = (string) @finfo_file($fi, $tmp);
+            @finfo_close($fi);
+        }
+        if ($detected !== '' && $detected !== 'application/octet-stream') { return $detected; }
+        $map = [
+            'txt' => 'text/plain', 'text' => 'text/plain', 'md' => 'text/markdown', 'markdown' => 'text/markdown',
+            'csv' => 'text/csv', 'tsv' => 'text/tab-separated-values', 'json' => 'application/json',
+            'xml' => 'application/xml', 'html' => 'text/html', 'htm' => 'text/html', 'pdf' => 'application/pdf',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp',
+        ];
+        return $map[$ext] ?? ($detected !== '' ? $detected : 'application/octet-stream');
     }
 
     /**

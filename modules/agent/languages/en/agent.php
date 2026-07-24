@@ -35,6 +35,12 @@ return [
     'agent.turn.ok'             => 'Done.',
     'agent.approve.ok'          => 'Actions completed.',
 
+    // Attachments (drag-drop / paperclip)
+    'agent.file.attached'       => 'File attached.',
+    'agent.file.type'           => 'That file type isn’t supported.',
+    'agent.file.too_large'      => 'That file is too large.',
+    'agent.file.failed'         => 'The file couldn’t be attached. Please try again.',
+
     // Errors
     'agent.error.empty'         => 'Type a message for the agent.',
     'agent.error.unconfigured'  => 'The AI agent isn’t connected yet. Add an API key under Settings → AI Agent.',

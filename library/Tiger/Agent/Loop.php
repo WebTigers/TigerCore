@@ -62,21 +62,38 @@ class Tiger_Agent_Loop
      * @param  string                     $userText     the human's message
      * @param  array                      $context      request context (path, …)
      * @param  string                     $mode         ask | auto | yolo
+     * @param  array                      $attachments  provider-neutral file descriptors the caller
+     *                                                   resolved: each `{filename, mime, kind, size}`
+     *                                                   plus `extract` (document text) or
+     *                                                   `disk`/`storage_key` (an image, read lazily
+     *                                                   for vision). Core stays app-agnostic — it
+     *                                                   never touches the module's attachment model.
      * @return array{run_id:string,say:string,actions:array,navigate:?string,done:bool,status:string,mode:string}
      * @throws RuntimeException on a provider failure
      */
-    public function run($conversation, $userText, array $context = [], $mode = 'ask')
+    public function run($conversation, $userText, array $context = [], $mode = 'ask', array $attachments = [])
     {
         $conversationId = (string) $conversation->conversation_id;
         $messages = new Tiger_Model_AgentMessage();
 
-        $messages->append($conversationId, Tiger_Model_AgentMessage::ROLE_USER, $userText);
+        // Persist a lean attachment sidecar on the user message so the chips re-render on reload
+        // (filenames + kinds only — never the bytes or extracted text).
+        $meta = $attachments ? ['attachments' => $this->_attachmentMeta($attachments)] : null;
+        $userMessageId = $messages->append($conversationId, Tiger_Model_AgentMessage::ROLE_USER, $userText, $meta);
         $this->_touch($conversation, $userText);
 
         $working = $this->_transcriptToNeutral($messages->transcript($conversationId));
-        $this->_enrichLastUserTurn($working, $userText, $context, $mode);
 
-        return $this->_converse($conversation, $working, $context, $mode);
+        // Fold attachments into the turn: a text manifest into the context envelope (so the agent
+        // knows what was shared and can act on it with its tools), and — when the model is
+        // multimodal — the image bytes onto the trailing user turn as native vision input.
+        if ($attachments) { $context['attachments'] = $this->_attachmentManifest($attachments); }
+        $this->_enrichLastUserTurn($working, $userText, $context, $mode);
+        if ($attachments) { $this->_attachImages($working, $conversation, $attachments); }
+
+        $result = $this->_converse($conversation, $working, $context, $mode);
+        $result['user_message_id'] = $userMessageId;   // lets the caller bind attachment rows to it
+        return $result;
     }
 
     /**
@@ -237,6 +254,73 @@ class Tiger_Agent_Loop
         } else {
             $working[] = ['role' => 'user', 'content' => $envelope];
         }
+    }
+
+    /** The lean sidecar stored on the user message (for history re-render) — no bytes, no text. */
+    protected function _attachmentMeta(array $attachments)
+    {
+        $out = [];
+        foreach ($attachments as $a) {
+            $out[] = [
+                'attachment_id' => (string) ($a['attachment_id'] ?? ''),
+                'filename'      => (string) ($a['filename'] ?? 'file'),
+                'kind'          => (($a['kind'] ?? 'file') === 'image') ? 'image' : 'file',
+                'size'          => (int) ($a['size'] ?? 0),
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * The model-facing manifest folded into the turn context: what the user attached, plus any
+     * readable text for a document. An image carries no text here — it rides as native vision input
+     * (below) when the model can see, and is noted otherwise so the model never guesses at bytes.
+     */
+    protected function _attachmentManifest(array $attachments)
+    {
+        $out = [];
+        foreach ($attachments as $a) {
+            $kind = (($a['kind'] ?? 'file') === 'image') ? 'image' : 'file';
+            $item = [
+                'filename' => (string) ($a['filename'] ?? 'file'),
+                'mime'     => (string) ($a['mime'] ?? ''),
+                'kind'     => $kind,
+                'size'     => (int) ($a['size'] ?? 0),
+            ];
+            if ($kind === 'file') {
+                $extract = (string) ($a['extract'] ?? '');
+                $item['text'] = $extract !== ''
+                    ? $extract
+                    : '[no readable text could be extracted — treat as a stored file the user wants you to act on]';
+            }
+            $out[] = $item;
+        }
+        return $out;
+    }
+
+    /**
+     * Attach image bytes to the trailing user turn as native vision input, but ONLY when the
+     * conversation's provider+model is multimodal (Factory::supportsVision). A text-only model gets
+     * the manifest note instead of an image it can't read — never a hard provider failure. Bytes are
+     * read lazily from the shared media disk here, so a non-vision turn never pays to encode them.
+     */
+    protected function _attachImages(array &$working, $conversation, array $attachments)
+    {
+        if (!$working || $working[count($working) - 1]['role'] !== 'user') { return; }
+        if (!Tiger_Agent_Provider_Factory::supportsVision((string) $conversation->provider, (string) $conversation->model)) { return; }
+
+        $images = [];
+        foreach ($attachments as $a) {
+            if (($a['kind'] ?? '') !== 'image' || empty($a['storage_key'])) { continue; }
+            try {
+                $bytes = Tiger_Media_Storage::disk((string) ($a['disk'] ?? 'local'))->get((string) $a['storage_key'], 'private');
+            } catch (Throwable $e) {
+                continue;
+            }
+            if ($bytes === null || $bytes === '') { continue; }
+            $images[] = ['mime' => (string) ($a['mime'] ?? 'image/png'), 'data' => base64_encode($bytes)];
+        }
+        if ($images) { $working[count($working) - 1]['images'] = $images; }
     }
 
     /**

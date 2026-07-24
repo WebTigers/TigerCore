@@ -38,6 +38,7 @@
 
     var clientHops = 0;             // guards against a DOM read/write ping-pong within one message
     var MAX_CLIENT_HOPS = 6;
+    var pending = [];               // files staged for the next send (attachment descriptors)
 
     // ----- UI state (persists across navigation) -----------------------------
 
@@ -219,17 +220,151 @@
         thinking(!!on);
     }
 
+    // ----- attachments (drag-drop + paperclip) -------------------------------
+
+    function fmtSize(n) {
+        n = +n || 0;
+        if (n < 1024) { return n + ' B'; }
+        if (n < 1048576) { return (n / 1024).toFixed(0) + ' KB'; }
+        return (n / 1048576).toFixed(1) + ' MB';
+    }
+    function fileIconClass(a) {
+        if ((a.kind || '') === 'image') { return 'fa-image'; }
+        var n = (a.filename || '').toLowerCase();
+        if (/\.pdf$/.test(n))            { return 'fa-file-pdf'; }
+        if (/\.docx?$/.test(n))          { return 'fa-file-word'; }
+        if (/\.(csv|tsv)$/.test(n))      { return 'fa-file-csv'; }
+        if (/\.(zip|epub)$/.test(n))     { return 'fa-file-zipper'; }
+        if (/\.(png|jpe?g|gif|webp)$/.test(n)) { return 'fa-image'; }
+        return 'fa-file-lines';
+    }
+
+    // The composer's staged chips (removable while composing).
+    function renderPending() {
+        var box = aside.querySelector('[data-agent-pending]');
+        if (!box) { return; }
+        if (!pending.length) { box.innerHTML = ''; box.classList.add('d-none'); return; }
+        box.classList.remove('d-none');
+        box.innerHTML = pending.map(function (a, i) {
+            var loading = a.uploading;
+            return '<span class="agent-chip' + (loading ? ' loading' : '') + '" title="' + escapeHtml(a.filename || 'file') + '">'
+                + '<i class="fa-solid ' + (loading ? 'fa-spinner fa-spin' : fileIconClass(a)) + '"></i>'
+                + '<span class="agent-chip-name">' + escapeHtml(a.filename || 'file') + '</span>'
+                + (loading ? '' : '<button type="button" class="agent-chip-x" data-rm="' + i + '" title="Remove" aria-label="Remove">&times;</button>')
+                + '</span>';
+        }).join('');
+    }
+
+    // Static chips rendered inside a sent (or reloaded) user bubble.
+    function appendAttachmentsTo(wrap, list) {
+        if (!wrap || !list || !list.length) { return; }
+        var box = document.createElement('div');
+        box.className = 'agent-atts';
+        box.innerHTML = list.map(function (a) {
+            return '<span class="agent-chip static" title="' + escapeHtml(a.filename || 'file') + '">'
+                + '<i class="fa-solid ' + fileIconClass(a) + '"></i>'
+                + '<span class="agent-chip-name">' + escapeHtml(a.filename || 'file') + '</span></span>';
+        }).join('');
+        wrap.appendChild(box);
+        scrollDown();
+    }
+
+    // Upload each file to agent/agent/uploadFile; the returned descriptor replaces its "uploading"
+    // slot. (No CSRF token is sent/adopted here — uploadFile is ACL-gated + owner-scoped and does not
+    // rotate the turn token, so concurrent uploads never race the token the next `send` will use.)
+    function uploadFiles(files) {
+        if (!files || !files.length) { return; }
+        Array.prototype.forEach.call(files, function (file) {
+            var slot = { filename: file.name, uploading: true, kind: /\.(png|jpe?g|gif|webp)$/i.test(file.name) ? 'image' : 'file' };
+            pending.push(slot); renderPending();
+
+            var fd = new FormData();
+            fd.append('module', 'agent'); fd.append('service', 'agent'); fd.append('method', 'uploadFile');
+            fd.append('file', file);
+            fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
+                .then(function (r) { return r.json().catch(function () { return { result: 0 }; }); })
+                .then(function (res) {
+                    var i = pending.indexOf(slot);
+                    if (res && res.result === 1 && res.data && res.data.attachment) {
+                        if (i >= 0) { pending[i] = res.data.attachment; }
+                    } else {
+                        if (i >= 0) { pending.splice(i, 1); }
+                        status.textContent = (res && res.messages && res.messages[0] && res.messages[0].message) || ('Could not attach ' + file.name + '.');
+                    }
+                    renderPending();
+                })
+                .catch(function () {
+                    var i = pending.indexOf(slot); if (i >= 0) { pending.splice(i, 1); } renderPending();
+                    status.textContent = 'Upload failed.';
+                });
+        });
+    }
+
+    function draggingFiles(e) {
+        var dt = e.dataTransfer;
+        if (!dt) { return false; }
+        if (dt.types) {
+            for (var i = 0; i < dt.types.length; i++) { if (dt.types[i] === 'Files') { return true; } }
+            return false;
+        }
+        return true;
+    }
+
+    // The dropzone is the aside ELEMENT — never the window. Every handler stopPropagation()s, so a
+    // file dropped on the aside (or a dragover across it) never ALSO reaches a page's own
+    // window-level drag-drop handler (e.g. the Media library dropping anywhere on the page). When the
+    // aside is closed we don't preventDefault/stopPropagation at all, so the page behaves normally.
+    // Net: two dropzones coexist — drop on the aside → the agent; drop anywhere else → the page.
+    function wireDrop() {
+        var depth = 0;   // dragenter/leave fire per descendant; count to know when we truly left
+        function overlay(on) { aside.classList.toggle('agent-dragging', !!on); }
+        function active() { return root.classList.contains('agent-open'); }
+
+        aside.addEventListener('dragenter', function (e) {
+            if (!active() || !draggingFiles(e)) { return; }
+            e.preventDefault(); e.stopPropagation();
+            depth++; overlay(true);
+        });
+        aside.addEventListener('dragover', function (e) {
+            if (!active() || !draggingFiles(e)) { return; }
+            e.preventDefault(); e.stopPropagation();          // preventDefault enables the drop; stopPropagation isolates it
+            if (e.dataTransfer) { e.dataTransfer.dropEffect = 'copy'; }
+        });
+        aside.addEventListener('dragleave', function (e) {
+            if (!active() || !draggingFiles(e)) { return; }
+            e.stopPropagation();
+            depth = Math.max(0, depth - 1);
+            if (depth === 0) { overlay(false); }
+        });
+        aside.addEventListener('drop', function (e) {
+            if (!active() || !draggingFiles(e)) { return; }
+            e.preventDefault(); e.stopPropagation();          // the file lands HERE, never on the page behind
+            depth = 0; overlay(false);
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+                uploadFiles(e.dataTransfer.files);
+            }
+        });
+    }
+
+    // ----- send --------------------------------------------------------------
+
     function send() {
-        var text = (input.value || '').trim();
-        if (!text) { return; }
+        var text  = (input.value || '').trim();
+        var ready = pending.filter(function (a) { return a.attachment_id && !a.uploading; });
+        if (pending.some(function (a) { return a.uploading; })) { status.textContent = 'Waiting for attachments to finish…'; return; }
+        if (!text && !ready.length) { return; }
         input.value = '';
-        addBubble('user', text);
+        var wrap = addBubble('user', text);
+        if (ready.length) { appendAttachmentsTo(wrap, ready); }
+        var ids = ready.map(function (a) { return a.attachment_id; }).join(',');
+        pending = []; renderPending();
         busy(true);
         clientHops = 0;
 
         api('send', {
             conversation_id: activeCid(),
             message: text,
+            attachment_ids: ids,
             context: pageContext(),
             mode: getMode()
         }).then(function (res) {
@@ -376,6 +511,7 @@
             logEl.innerHTML = '';
             res.data.messages.forEach(function (m) {
                 var wrap = addBubble(m.role, m.content);
+                if (m.meta && m.meta.attachments) { appendAttachmentsTo(wrap, m.meta.attachments); }
                 if (m.meta && m.meta.actions) {
                     // find the run id from any proposed action so re-approval still works
                     renderActions(wrap, m.meta.actions, runIdOf(m.meta));
@@ -440,6 +576,24 @@
         input.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
         });
+
+        // Attachments: paperclip → file picker, a removable staged-chip row, and drag-drop onto the aside.
+        var attachBtn = aside.querySelector('[data-agent-attach]');
+        var fileInput = aside.querySelector('[data-agent-file]');
+        var pendingEl = aside.querySelector('[data-agent-pending]');
+        if (attachBtn && fileInput) {
+            attachBtn.addEventListener('click', function () { fileInput.click(); });
+            fileInput.addEventListener('change', function () {
+                if (this.files && this.files.length) { uploadFiles(this.files); this.value = ''; }
+            });
+        }
+        if (pendingEl) {
+            pendingEl.addEventListener('click', function (e) {
+                var x = e.target.closest('[data-rm]');
+                if (x) { pending.splice(+x.getAttribute('data-rm'), 1); renderPending(); }
+            });
+        }
+        wireDrop();
 
         // Restore the chosen automation mode (only if it's still an offered option — the install
         // ceiling may have tightened since last visit).
