@@ -97,9 +97,16 @@ class Tiger_Update_Checker
             $ref = self::_cached('mod-' . $slug, $refresh, static function () use ($parsed) {
                 return (string) Tiger_Module_Github::latestRef($parsed['org'], $parsed['repo']);
             });
-            $out[] = self::_descriptor(
+            $desc = self::_descriptor(
                 'module', (string) ($row->name ?: $slug), $slug, $installed, self::_stripV($ref), 'installer', $repo, $ref
             );
+            // Licensed module: annotate with the last-known license verdict (cached — no network in a list
+            // build). The fresh verify + gate happens at apply time (System_Service_Updates::_applyOne).
+            $manifest = Tiger_Module_Discovery::manifestFor($slug);
+            if ($manifest && Tiger_Module_Pricing::isLicensed($manifest)) {
+                $desc['license'] = Tiger_License_Checker::status($slug);
+            }
+            $out[] = $desc;
         }
         return $out;
     }

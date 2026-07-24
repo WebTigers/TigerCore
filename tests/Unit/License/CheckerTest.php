@@ -167,6 +167,36 @@ final class CheckerTest extends UnitTestCase
         $this->assertSame(Tiger_License_Checker::VALID, Tiger_License_Checker::status('shop')['state']);
         $this->assertSame(Tiger_License_Checker::UNLICENSED, Tiger_License_Checker::status('never')['state']);
     }
+
+    #[Test]
+    public function gateIgnoresANonLicensedModule(): void
+    {
+        $g = Tiger_License_Checker::gate(['pricing' => ['model' => 'free']], 'shop');
+        $this->assertFalse($g['licensed']);
+        $this->assertFalse($g['blocked']);
+        $this->assertNull($g['verdict']);
+    }
+
+    #[Test]
+    public function gateBlocksALicensedModuleWithALapsedLicense(): void
+    {
+        $this->store->put('shop', $this->license());
+        $this->respondsSigned(['valid' => false, 'ttl' => 3600]);
+        $g = Tiger_License_Checker::gate(['pricing' => ['model' => 'licensed', 'authority' => 'https://a', 'vendor' => 'a/b']], 'shop');
+        $this->assertTrue($g['licensed']);
+        $this->assertTrue($g['blocked']);
+        $this->assertSame(Tiger_License_Checker::LAPSED, $g['verdict']['state']);
+    }
+
+    #[Test]
+    public function gateAllowsALicensedModuleWithAValidLicense(): void
+    {
+        $this->store->put('shop', $this->license());
+        $this->respondsSigned(['valid' => true, 'ttl' => 3600]);
+        $g = Tiger_License_Checker::gate(['pricing' => ['model' => 'licensed', 'authority' => 'https://a', 'vendor' => 'a/b']], 'shop');
+        $this->assertTrue($g['licensed']);
+        $this->assertFalse($g['blocked']);
+    }
 }
 
 /** In-memory license store for the unit tests (no DB). */

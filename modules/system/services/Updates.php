@@ -154,6 +154,16 @@ class System_Service_Updates extends Tiger_Service_Service
         // Module — the real one-click, no-shell path.
         try {
             $step('resolve', true, "{$u['name']} {$u['installed']} → {$u['latest']}  ({$u['repository']})");
+
+            // Licensed module whose license is definitively LAPSED: withhold the update — nag, never disable.
+            // The installed version keeps running; renewing the license lets the update proceed next time.
+            $manifest = Tiger_Module_Discovery::manifestFor($u['slug']);
+            if ($manifest && Tiger_License_Checker::gate($manifest, $u['slug'])['blocked']) {
+                $step('license', false, 'License lapsed — renew to update this module. The installed version keeps running.');
+                Tiger_Log::info('update.license.withheld', ['item' => $u['slug']]);
+                return ['slug' => $u['slug'], 'name' => $u['name'], 'ok' => false, 'log' => $log];
+            }
+
             $step('apply', true, 'Downloading the release, extracting, running migrations, republishing assets…');
             $r = Tiger_Module_Installer::installFromUrl($u['repository'], $u['ref'] ?: null, ['force' => true]);
             foreach (($r['dependencies'] ?? []) as $d) {

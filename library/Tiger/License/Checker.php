@@ -181,6 +181,24 @@ class Tiger_License_Checker
     }
 
     /**
+     * Decide whether a module's UPDATE should proceed, given its manifest — the one call the update flow
+     * makes. A non-licensed module is never gated; a licensed one is blocked only on a definitive `lapsed`
+     * verdict (nag-never-disable: the installed version keeps running, only the update is withheld).
+     *
+     * @param  array  $manifest the module's module.json (read for pricing.model)
+     * @param  string $slug     the module slug
+     * @return array{licensed:bool,verdict:?array,blocked:bool}
+     */
+    public static function gate(array $manifest, string $slug): array
+    {
+        if (!Tiger_Module_Pricing::isLicensed($manifest)) {
+            return ['licensed' => false, 'verdict' => null, 'blocked' => false];
+        }
+        $verdict = self::verify($slug);
+        return ['licensed' => true, 'verdict' => $verdict, 'blocked' => $verdict['state'] === self::LAPSED];
+    }
+
+    /**
      * The last cached verdict for a module — NO network (for UI badges). Unknown if never checked.
      *
      * @param  string $slug the module slug
