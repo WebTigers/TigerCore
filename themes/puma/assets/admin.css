@@ -301,6 +301,37 @@ body {
 .tiger-agent-foot { flex: 0 0 auto; border-top: 1px solid var(--bs-border-color); padding: .6rem; }
 .tiger-agent-foot textarea { resize: none; font-size: .86rem; }
 
+/* Attachment chips — staged in the composer (removable) and echoed inside a sent user bubble. */
+.tiger-agent-pending { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .5rem; }
+.agent-atts { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .4rem; }
+.agent-chip {
+    display: inline-flex; align-items: center; gap: .35rem; max-width: 100%;
+    border: 1px solid var(--bs-border-color); border-radius: 999px;
+    padding: .18rem .5rem; font-size: .75rem; background: var(--bs-body-bg); line-height: 1.3;
+}
+.agent-chip.static { background: rgba(255, 255, 255, .14); border-color: rgba(255, 255, 255, .28); }
+.agent-msg.user .agent-chip.static { color: #fff; }
+.agent-chip.loading { opacity: .75; }
+.agent-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 11rem; }
+.agent-chip-x {
+    border: 0; background: transparent; color: inherit; cursor: pointer;
+    font-size: 1rem; line-height: 1; padding: 0 0 0 .1rem; opacity: .6;
+}
+.agent-chip-x:hover { opacity: 1; }
+
+/* Drop overlay — visible ONLY while a file is dragged over this aside (JS toggles .agent-dragging).
+   Because the JS scopes + stops the drag events on the aside, this overlay and any page-level
+   whole-window drop overlay never light up at the same time for the same drag. */
+.tiger-agent-drop {
+    position: absolute; inset: 0; z-index: 5; display: none;
+    align-items: center; justify-content: center; padding: 1rem;
+    background: color-mix(in srgb, var(--bs-primary) 12%, var(--bs-body-bg));
+    border: 3px dashed var(--bs-primary);
+}
+.tiger-agent.agent-dragging .tiger-agent-drop { display: flex; }
+.tiger-agent-drop > div { display: flex; flex-direction: column; align-items: center; gap: .5rem; color: var(--bs-primary); font-weight: 600; }
+.tiger-agent-drop i { font-size: 1.6rem; }
+
 /* Collapsed launcher — a floating button bottom-right when the aside is closed. */
 .tiger-agent-launcher {
     position: fixed; right: 1rem; bottom: 1rem; z-index: 1030;

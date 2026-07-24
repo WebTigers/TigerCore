@@ -6,6 +6,21 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [0.40.0-beta] — 2026-07-24
+
+### Added
+- **File & image drag-drop for the TigerAgent aside.** Drop a file onto the agent rail (or use the
+  paperclip) to attach it to your next message: images ride to a multimodal model as native vision
+  input (via 0.36's `supportsVision`), documents (txt/md/csv/json/html/pdf/docx…) are text-extracted and
+  folded into the turn, and store-only types (epub/mobi/zip) are handed to the agent to act on — the
+  "here's my cover + epub" flow. New `agent/agent/uploadFile` endpoint + `agent_attachment` store (bytes
+  on the shared media disk, private prefix, owner-scoped); attachments persist in the user message so
+  chips re-render on reload.
+- **Scoped dropzone (no window-drop collision).** The aside's drag-drop is bound to the aside element
+  and `stopPropagation()`s its drag events, so a file dropped on the agent never also fires a page's own
+  window-level drop handler (e.g. the Media library) — the two dropzones coexist unambiguously. When the
+  aside is closed it doesn't intercept at all, so pages behave normally.
+
 ## [0.39.1-beta] — 2026-07-22
 
 ### Added
