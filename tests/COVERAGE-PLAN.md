@@ -626,6 +626,30 @@ blog/signup/search/schedule controllers 90-100%). ~167 tests; combined suite **1
   `vendor/` swap on a dev box (covered at guard level only); `is_uploaded_file()` uploads; live-model agent turns;
   render-only `.phtml` leaves; `pcov` under-reports module `elements()` forms (multi-line-array-literal artifact).
 
+### Wave 7 — reachable kernel + module remainders (LANDED 2026-07-25) → coverage 70.0% → 74.4%
+4 parallel agents mopping up reachable-but-uncovered branches (commit-and-push-incrementally, after a
+session-limit restart wiped the first attempt's exploration). 177 tests; combined suite green. Moved:
+`Tiger_Backup` 47→82 · `Controller_Plugin_Authorization` 43→88 · `Cms_Renderer` 69→100 · `Location` 79→95 ·
+`Code_Runtime` 82→90 · `Vendor` 80→87 · `Module_Installer` 68→74 · `Acl` 89→93 · `License_Checker` 82→91 ·
+Media cluster 40→75 (Storage 100, Filesystem 97, Azure/Gcs/ClamAv/Rekognition unlocked from 0 — they were
+exercised but not `#[CoversClass]`-attributed) · `Tiger_Application` 60→74 · `Vendor_Environment` 0→84 ·
+`Update_Composer` 0→57 · `Google_Analytics` 29→47 · `Compat`→100 · Seo/Code/Backup module services →95-97.
+Network classes covered WITHOUT network (dead-localhost curl → fail-soft, primed caches, probe subclasses,
+`_run` with echo/exit). No behavioral bugs. CI floor 66 → 72.
+- **Minor robustness finding (characterized, not fixed):** `Tiger_Media_Storage_Azure::put()/write()` surface a
+  raw `\Error` (not the friendly `RuntimeException` S3/GCS give) when the Azure SDK is absent — `_create()`
+  constructs the SDK class BEFORE its guarded try/catch. Small consistency fix available.
+
+### The path from 74.4% to 80% (~800 more covered lines)
+The remaining 3,673 uncovered is now dominated by genuinely-hard I/O: **kernel boot** (`Tiger_Application_Bootstrap::_init*`
++ `Application::run/boot`, ~200-400 lines — needs an IN-PROCESS APP-BOOT HARNESS, the one big reachable chunk),
+`is_uploaded_file()` uploads (profile/media/agent modules ~250), composer/`vendor`-swap (system/update ~200, UNSAFE
+to run), live network (google/analytics/authority ~200), ClamAv/Rekognition/AWS-SDK (~150). 80% requires the boot
+harness + mopping the last scattered branches; below that is functional/live-test territory, honestly out of unit/
+integration scope. Wave 8 = build the boot harness (a fixture app skeleton + `new Tiger_Application($root)` against
+the test DB) → cover the `_init*` cascade.
+
+### Next waves (priority order) — the drive to 90%
 ### Next waves (priority order) — the drive to 90%
 ### Next waves (priority order) — the drive to 90%
 - **Wave 6 — the remaining MODULES:** `agent` module (462 @ 5% — needs a provider-adapter stub, but the `Tiger_Agent_*`
