@@ -71,10 +71,11 @@
             data: {
                 labels: series.map(function (p) { return (p.date || '').slice(5); }),
                 datasets: [
-                    { label: 'Users', data: series.map(function (p) { return p.users; }),
-                      borderColor: primary, backgroundColor: rgba(primary, 0.3), fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
+                    // Page views first (drawn beneath); Users last so its blue line + fill sit on top.
                     { label: 'Page views', data: series.map(function (p) { return p.views; }),
-                      borderColor: muted, backgroundColor: rgba(muted, 0.3), fill: true, tension: 0.3, pointRadius: 0, borderWidth: 1.5 }
+                      borderColor: muted, backgroundColor: rgba(muted, 0.3), fill: true, tension: 0.3, pointRadius: 0, borderWidth: 1.5 },
+                    { label: 'Users', data: series.map(function (p) { return p.users; }),
+                      borderColor: primary, backgroundColor: rgba(primary, 0.3), fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 }
                 ]
             },
             options: {
@@ -98,7 +99,7 @@
                                         hidden: false,          // never render the label struck-through
                                         datasetIndex: i
                                     };
-                                });
+                                }).reverse();   // Users listed first even though it's drawn last (on top)
                             }
                         },
                         onClick: function (e, item, legend) {
