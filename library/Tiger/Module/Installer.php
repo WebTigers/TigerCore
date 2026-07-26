@@ -252,6 +252,93 @@ class Tiger_Module_Installer
         return true;
     }
 
+    /**
+     * NUCLEAR delete of an APP module (`application/modules/<slug>`): roll back its own migrations to
+     * DROP its tables + data, hard-delete its scoped `config`/`option` rows, unpublish its assets, drop
+     * its install-tracking row, then delete its files. Scoped to the app modules dir, so a bundled/core
+     * module (which lives in the package) can never be reached here. **Irreversible** — the caller is
+     * responsible for confirmation + dependency checks.
+     *
+     * @param  string $slug the app-module slug to purge
+     * @return void
+     * @throws RuntimeException if the slug is invalid or is not an app module
+     */
+    public static function purge($slug)
+    {
+        $slug = self::_validSlug($slug);
+        $target = self::modulesDir() . '/' . $slug;
+        if (!is_dir($target) && !is_link($target)) {
+            throw new RuntimeException("'{$slug}' is not an app module — refusing to delete.");
+        }
+
+        // Resolve the manifest key while the files still exist (themes namespace config by KEY, not slug).
+        $disc = Tiger_Module_Discovery::all();
+        $key  = isset($disc[$slug]) ? (string) ($disc[$slug]['key'] ?? $slug) : $slug;
+
+        $db = Zend_Db_Table_Abstract::getDefaultAdapter();
+
+        // 1) Destroy data: roll back the module's own migrations (their `down` DROPs its tables). The
+        //    ledger is shared, so a big step count walks all applied versions, reversing only this
+        //    module's (others have no file in this path and are skipped). Best-effort.
+        $mig = $target . '/migrations';
+        if ($db && is_dir($mig)) {
+            try { (new Tiger_Db_Migrator($db, [$mig]))->rollback(1000000); } catch (Throwable $e) { /* leave orphaned tables rather than half-die */ }
+        }
+
+        // 2) Hard-delete the module's scoped config + option rows (its own `<slug>.*`/`<key>.*` namespace
+        //    + its route-override + code active-set entries), across every scope. Best-effort.
+        if ($db) {
+            try { self::_purgeScopedRows($db, $slug, $key); } catch (Throwable $e) { /* config cruft is not worth aborting the delete */ }
+        }
+
+        // 3) Unpublish assets + drop the install-tracking row (if the module was installer-managed).
+        self::unpublishAssets($slug);
+        if ((new Tiger_Model_Module())->bySlug($slug)) { (new Tiger_Model_Module())->uninstall($slug); }
+
+        // 4) Delete the files.
+        self::_rrmdir($target);
+    }
+
+    /**
+     * Hard-delete a module's own key/value rows from `config` + `option` (all scopes). Attribution is by
+     * the owner-prefixed key convention: a module owns `<slug>` / `<slug>.*` (and, for themes, `<key>.*`),
+     * plus its `tiger.routing.override.<slug>.*` alias. Deliberately never matches the broad `tiger.*`
+     * core namespace. Also prunes a deleted code module's `<slug>/…` snippets from the `tiger.code.modules`
+     * active-set and bumps the bundle version so the compiled cache rebuilds without them.
+     *
+     * @param  Zend_Db_Adapter_Abstract $db   the DB adapter
+     * @param  string                   $slug the module slug
+     * @param  string                   $key  the manifest key (may equal the slug)
+     * @return void
+     */
+    protected static function _purgeScopedRows(Zend_Db_Adapter_Abstract $db, $slug, $key)
+    {
+        $prefixes = array_values(array_unique(array_filter([$slug, $key], 'strlen')));
+        foreach (['option' => 'option_key', 'config' => 'config_key'] as $table => $col) {
+            foreach ($prefixes as $p) {
+                $db->delete($table, $db->quoteInto("{$col} = ?", $p) . ' OR ' . $db->quoteInto("{$col} LIKE ?", $p . '.%'));
+            }
+        }
+        // The module's pretty-route override (config only; the override name defaults to the slug).
+        $db->delete('config', $db->quoteInto('config_key = ?', 'tiger.routing.override.' . $slug)
+            . ' OR ' . $db->quoteInto('config_key LIKE ?', 'tiger.routing.override.' . $slug . '.%'));
+
+        // Code module: drop its "<slug>/<snippet>" keys from the active-set + invalidate the compiled bundle.
+        $cfg    = new Tiger_Model_Config();
+        $active = (string) $cfg->get(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.code.modules');
+        if ($active !== '') {
+            $keep = array_filter(array_map('trim', explode(',', $active)), function ($k) use ($slug) {
+                return $k !== '' && strncmp($k, $slug . '/', strlen($slug) + 1) !== 0;
+            });
+            $new = implode(',', $keep);
+            if ($new !== $active) {
+                $cfg->set(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.code.modules', $new);
+                $ver = (int) $cfg->get(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.code.version');
+                $cfg->set(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.code.version', (string) ($ver + 1));
+            }
+        }
+    }
+
     // ---- helpers ---------------------------------------------------------------
 
     /**

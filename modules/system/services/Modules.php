@@ -33,6 +33,79 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function deactivate(array $params): void { $this->_toggle($params, false); }
 
+    /**
+     * NUCLEAR delete of a NON-CORE module (by `slug`): drops its tables + data, then removes its files,
+     * assets, and install row. **Irreversible.** Guarded four ways: superadmin-only (the service ACL);
+     * never a bundled/core or PROTECTED module; a typed-confirmation `confirm` token that must match the
+     * module's `<vendor>/<name>`; and a dependency gate — refused while another ACTIVE module requires it.
+     *
+     * @param  array $params the /api payload (expects `slug` + `confirm`)
+     * @return void
+     */
+    public function delete(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+
+        $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($params['slug'] ?? ''));
+        if ($slug === '') { $this->_error('core.api.error.general'); return; }
+        if (in_array($slug, self::PROTECTED, true)) { $this->_error('system.error.protected'); return; }
+
+        $all = Tiger_Module_Discovery::all();
+        if (!isset($all[$slug])) { $this->_error('system.error.unknown'); return; }
+        $d = $all[$slug];
+
+        // Only NON-CORE (app) modules are deletable — never a bundled platform module.
+        if (($d['area'] ?? '') === 'core') { $this->_error('system.error.not_deletable'); return; }
+
+        // Must be DEACTIVATED first — delete is the second, deliberate step after the non-destructive one.
+        if ($this->_isModuleActive($slug, $d)) { $this->_error('system.error.delete_active'); return; }
+
+        // The typed confirmation must match exactly (defense-in-depth; the UI enforces it too).
+        if ((string) ($params['confirm'] ?? '') !== self::_deleteToken($d)) { $this->_error('system.error.delete_confirm'); return; }
+
+        // Refuse while an ACTIVE module depends on this one (it would break). Deactivating/deleting it unblocks.
+        $dependents = Tiger_Module_Dependency::dependents($slug);
+        if ($dependents) {
+            $names = [];
+            foreach ($dependents as $s) { $names[] = self::_deleteToken($all[$s] ?? ['name' => $s]); }
+            $this->_error('system.error.delete_dependents', ['dependents' => $names]);
+            return;
+        }
+
+        try {
+            // A deactivated theme keeps its asset symlink (inert, per THEMES.md §5a) — drop it on delete.
+            if (($d['type'] ?? '') === 'theme') {
+                $key  = (string) ($d['key'] ?? preg_replace('/^theme-/', '', $slug));
+                $base = (string) ($d['asset_base'] ?? '');
+                if ($base === '') { $base = '/_' . $key; }
+                if (defined('PUBLIC_PATH')) { $link = PUBLIC_PATH . '/' . ltrim($base, '/'); if (is_link($link)) { @unlink($link); } }
+            }
+            Tiger_Module_Installer::purge($slug);
+            $this->_success(['slug' => $slug, 'deleted' => true], 'system.module.deleted', '/system/modules');
+        } catch (Throwable $e) {
+            $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
+        }
+    }
+
+    /** Whether a module is currently active — a theme by its `tiger.theme` config, else its registry flag. */
+    private function _isModuleActive(string $slug, array $d): bool
+    {
+        if (($d['type'] ?? '') === 'theme') {
+            $active = (string) (new Tiger_Model_Config())->get(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.theme');
+            return $active === (string) ($d['key'] ?? $slug);
+        }
+        $row = (new Tiger_Model_Module())->bySlug($slug);
+        return $row ? ((int) $row->active === 1) : true;
+    }
+
+    /** The delete-confirmation token a user must type: "<vendor>/<name>" (else just the name). */
+    private static function _deleteToken(array $d): string
+    {
+        $vendor = trim((string) ($d['author'] ?? ''));
+        $name   = trim((string) ($d['name'] ?? ''));
+        return $vendor !== '' ? ($vendor . '/' . $name) : $name;
+    }
+
     protected function _toggle(array $params, $on): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }

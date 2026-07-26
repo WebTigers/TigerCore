@@ -5,10 +5,37 @@
  * Modules admin — the installed-modules list (the WordPress "Plugins" screen for Tiger).
  * Server-rendered from Tiger_Module_Discovery + module state; activate/deactivate
  * post to System_Service_Modules over /api, then reload. "Add New" lands the Module Installer.
+ * A filter toolbar (All | Core | Addon pills + a search box) and per-row "more/less"
+ * description toggles are wired client-side over the rendered rows.
  */
 $modules = $this->modules ?? [];
-$badge = ['bundled' => 'secondary', 'custom' => 'info', 'registry' => 'primary', 'url' => 'primary', 'discovered' => 'secondary'];
+$cat = static function (array $m) { return (($m['area'] ?? '') === 'core') ? 'core' : 'addon'; };
+// Source badge: platform = 'bundled', everything installed = 'addon'. License → a short tag.
+$srcLabel = static function ($src) { return $src === 'bundled' ? 'bundled' : 'addon'; };
+$licShort = static function ($lic) {
+    $l = (string) $lic;
+    if ($l === '') { return ''; }
+    if (preg_match('/\bMIT\b/i', $l))  { return 'MIT'; }
+    if (preg_match('/BSD-3/i', $l))    { return 'BSD-3'; }
+    if (preg_match('/BSD-2/i', $l))    { return 'BSD-2'; }
+    if (preg_match('/proprietary|licenseref|commercial/i', $l)) { return 'Commercial'; }
+    return $l;
+};
+$coreCount = 0; foreach ($modules as $m) { if ($cat($m) === 'core') { $coreCount++; } }
+$addonCount = count($modules) - $coreCount;
+// Delete-confirmation token ("<vendor>/<name>") + a slug→module map for naming dependents.
+$tokenOf = static function (array $m) { $v = trim((string) ($m['author'] ?? '')); $n = trim((string) ($m['name'] ?? '')); return $v !== '' ? ($v . '/' . $n) : $n; };
+$bySlug  = []; foreach ($modules as $mm) { $bySlug[$mm['slug']] = $mm; }
 ?>
+<style>
+/* functional-only: 1-line description clamp + the more/less affordance (animated via JS) */
+.mods-desc{overflow:hidden;}
+.mods-desc[data-collapsed]{max-height:1.4rem;}
+.mods-more{cursor:pointer;text-decoration:none;white-space:nowrap;font-weight:600;}
+.mods-more:hover{text-decoration:underline;}
+.mods-empty{display:none;}
+</style>
+
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
         <h1 class="h3 mb-1">Modules</h1>
@@ -17,9 +44,21 @@ $badge = ['bundled' => 'secondary', 'custom' => 'info', 'registry' => 'primary',
     <a href="/system/modules/add" class="btn btn-primary"><i class="fa-solid fa-plus me-2"></i>Add New</a>
 </div>
 
+<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+    <ul class="nav nav-pills" id="mods-filter" role="tablist">
+        <li class="nav-item"><a class="nav-link active" href="#" data-filter="all" role="tab">All <span class="badge rounded-pill text-bg-light ms-1"><?= count($modules) ?></span></a></li>
+        <li class="nav-item"><a class="nav-link" href="#" data-filter="core" role="tab">Core <span class="badge rounded-pill text-bg-light ms-1"><?= $coreCount ?></span></a></li>
+        <li class="nav-item"><a class="nav-link" href="#" data-filter="addon" role="tab">Addon <span class="badge rounded-pill text-bg-light ms-1"><?= $addonCount ?></span></a></li>
+    </ul>
+    <div class="ms-auto position-relative">
+        <i class="fa-solid fa-magnifying-glass position-absolute top-50 translate-middle-y text-body-secondary" style="left:.75rem;"></i>
+        <input type="search" id="mods-search" class="form-control form-control-sm" placeholder="Filter modules…" autocomplete="off" style="min-width:240px;padding-left:2.25rem;padding-top:.375rem;padding-bottom:.375rem;">
+    </div>
+</div>
+
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table table-hover align-middle mb-0" id="mods-table">
             <thead>
                 <tr>
                     <th style="width:45%;">Module</th>
@@ -31,25 +70,25 @@ $badge = ['bundled' => 'secondary', 'custom' => 'info', 'registry' => 'primary',
             </thead>
             <tbody>
             <?php foreach ($modules as $m): ?>
-                <tr>
+                <?php $search = strtolower(trim(($m['name'] ?? '') . ' ' . ($m['slug'] ?? '') . ' ' . ($m['description'] ?? '') . ' ' . ($m['author'] ?? '') . ' ' . ($m['license'] ?? '') . ' ' . $licShort($m['license'] ?? '') . ' ' . $srcLabel($m['source']))); ?>
+                <tr data-cat="<?= $cat($m) ?>" data-search="<?= $this->escape($search) ?>">
                     <td>
                         <div class="fw-semibold"><?= $this->escape($m['name']) ?>
                             <code class="text-body-secondary fw-normal ms-1">/<?= $this->escape($m['slug']) ?></code>
                             <?php if (($m['type'] ?? '') === 'theme'): ?><span class="badge text-bg-primary-subtle text-primary-emphasis border border-primary-subtle ms-1"><i class="fa-solid fa-palette me-1"></i>Theme</span><?php endif; ?>
                             <?php if ($m['protected']): ?><i class="fa-solid fa-lock text-body-secondary ms-1" title="Protected — always active"></i><?php endif; ?>
                         </div>
-                        <?php if (!empty($m['description'])): ?><div class="small text-body-secondary"><?= $this->escape($m['description']) ?></div><?php endif; ?>
+                        <?php if (!empty($m['description'])): ?><div class="small text-body-secondary mods-desc"><?= $this->escape($m['description']) ?></div><?php endif; ?>
                         <div class="small text-body-secondary">
                             <?php if (!empty($m['author'])): ?><span><?= $this->escape($m['author']) ?></span><?php endif; ?>
-                            <?php if (!empty($m['license'])): ?><span class="ms-2 badge text-bg-light"><?= $this->escape($m['license']) ?></span><?php endif; ?>
-                            <?php if (!empty($m['pricing']) && $m['pricing'] !== 'paid'): ?><span class="ms-1 badge text-bg-success-subtle text-success-emphasis border border-success-subtle">free tier</span><?php endif; ?>
+                            <?php if (!empty($m['license'])): ?><span class="ms-2 badge text-bg-light" title="<?= $this->escape($m['license']) ?>"><?= $this->escape($licShort($m['license'])) ?></span><?php endif; ?>
                         </div>
                         <?php if (!empty($m['compat']) && empty($m['compat']['ok']) && !empty($m['compat']['message'])): ?>
                             <div class="small text-warning-emphasis mt-1"><i class="fa-solid fa-triangle-exclamation me-1"></i><?= $this->escape($m['compat']['message']) ?></div>
                         <?php endif; ?>
                     </td>
                     <td class="text-body-secondary"><?= $m['version'] ? $this->escape($m['version']) : '—' ?></td>
-                    <td><span class="badge text-bg-<?= $badge[$m['source']] ?? 'secondary' ?>"><?= $this->escape($m['source']) ?></span></td>
+                    <td><span class="badge text-bg-<?= $m['source'] === 'bundled' ? 'secondary' : 'info' ?>"><?= $srcLabel($m['source']) ?></span></td>
                     <td>
                         <?php if ($m['active']): ?><span class="badge text-bg-success">Active</span>
                         <?php else: ?><span class="badge text-bg-secondary">Inactive</span><?php endif; ?>
@@ -62,16 +101,48 @@ $badge = ['bundled' => 'secondary', 'custom' => 'info', 'registry' => 'primary',
                         <?php else: ?>
                             <button type="button" class="btn btn-sm btn-outline-success" data-mod-toggle="activate" data-slug="<?= $this->escape($m['slug']) ?>" data-theme="<?= (($m['type'] ?? '') === 'theme') ? 1 : 0 ?>"><i class="fa-solid fa-play me-1"></i>Activate</button>
                         <?php endif; ?>
+                        <?php $deletable = !$m['protected'] && (($m['area'] ?? '') !== 'core') && !$m['active']; ?>
+                        <?php if ($deletable): ?>
+                            <?php $depTokens = array_map(function ($s) use ($bySlug, $tokenOf) { return $tokenOf($bySlug[$s] ?? ['name' => $s]); }, Tiger_Module_Dependency::dependents($m['slug'])); ?>
+                            <button type="button" class="btn btn-sm btn-outline-danger ms-1" data-mod-delete data-slug="<?= $this->escape($m['slug']) ?>" data-token="<?= $this->escape($tokenOf($m)) ?>" data-name="<?= $this->escape($m['name']) ?>" data-deps="<?= $this->escape(implode(', ', $depTokens)) ?>" title="Delete this module"><i class="fa-solid fa-trash-can"></i></button>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>
+                <tr class="mods-empty">
+                    <td colspan="5" class="text-center text-body-secondary py-4">No modules match your filter.</td>
+                </tr>
             </tbody>
         </table>
     </div>
 </div>
 
+<!-- DANGER: type-to-confirm module delete (populated per-row by the delete JS) -->
+<div class="modal fade" id="mod-delete-modal" tabindex="-1" aria-labelledby="mod-delete-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="mod-delete-title"><i class="fa-solid fa-triangle-exclamation me-2"></i>DANGER!</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="fw-semibold text-danger-emphasis">Deleting this module is a destructive action that will destroy data. You <u>CANNOT UNDO</u> this action!</p>
+                <p class="mb-2">Please type <code id="mod-delete-token" class="text-danger-emphasis fw-bold"></code> to delete this module.</p>
+                <input type="text" id="mod-delete-input" class="form-control" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Type the module name to confirm">
+                <div id="mod-delete-feedback" class="mt-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="mod-delete-btn" disabled><i class="fa-solid fa-trash-can me-1"></i>Delete this module</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+
+    /* ---- activate / deactivate (unchanged) ---- */
     document.querySelectorAll('[data-mod-toggle]').forEach(function (btn) {
         btn.addEventListener('click', function () {
             var method = btn.getAttribute('data-mod-toggle'), slug = btn.getAttribute('data-slug');
@@ -95,14 +166,112 @@ document.addEventListener('DOMContentLoaded', function () {
                     .then(function (r) { return r.json(); });
             })
                 .then(function (res) {
-                    if (res.result !== 1) {
-                        (res.messages || []).forEach(function (msg) { alert(msg.message); });
-                        return;
-                    }
+                    if (res.result !== 1) { (res.messages || []).forEach(function (m) { alert(m.message); }); return; }
                     window.location.reload();
                 })
                 .catch(function () {});
         });
     });
+
+    /* ---- delete (nuclear): dependents block → toast; else type-to-confirm DANGER modal ---- */
+    var delEl    = document.getElementById('mod-delete-modal');
+    var delModal = (delEl && window.bootstrap) ? bootstrap.Modal.getOrCreateInstance(delEl) : null;
+    var delToken = document.getElementById('mod-delete-token');
+    var delInput = document.getElementById('mod-delete-input');
+    var delBtn   = document.getElementById('mod-delete-btn');
+    var delFb    = document.getElementById('mod-delete-feedback');
+    var delCtx   = { slug: '', token: '' };
+
+    document.querySelectorAll('[data-mod-delete]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var deps = (btn.getAttribute('data-deps') || '').trim();
+            if (deps) {                                  // a dependent would break — refuse, don't open the modal
+                var many = deps.indexOf(',') !== -1;
+                var msg = "'" + deps + "' depend" + (many ? '' : 's') + " on this module. Deactivate and/or delete "
+                    + (many ? 'them' : 'it') + " before you can delete this module.";
+                if (window.TigerDOM) { TigerDOM.toast(msg, { type: 'error' }); } else { alert(msg); }
+                return;
+            }
+            delCtx.slug  = btn.getAttribute('data-slug');
+            delCtx.token = btn.getAttribute('data-token') || btn.getAttribute('data-name');
+            if (delToken) { delToken.textContent = delCtx.token; }
+            if (delInput) { delInput.value = ''; }
+            if (delBtn)   { delBtn.disabled = true; }
+            if (delFb)    { delFb.innerHTML = ''; }
+            if (delModal) { delModal.show(); } else { alert('Delete unavailable — modal failed to load.'); }
+        });
+    });
+    if (delInput) {
+        delInput.addEventListener('input', function () { if (delBtn) { delBtn.disabled = (delInput.value !== delCtx.token); } });
+    }
+    if (delBtn) {
+        delBtn.addEventListener('click', function () {
+            if (delInput && delInput.value !== delCtx.token) { return; }   // matches the server re-check
+            var body = new URLSearchParams({ module: 'system', service: 'modules', method: 'delete', slug: delCtx.slug, confirm: delCtx.token });
+            TigerButton.run(delBtn, function () {
+                return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
+                    .then(function (r) { return r.json().catch(function () { return {}; }); });
+            })
+                .then(function (res) {
+                    if (res && res.result === 1) { window.location.reload(); return; }
+                    var m = (res && res.messages && res.messages[0] && res.messages[0].message) || 'Delete failed.';
+                    if (window.TigerDOM && delFb) { TigerDOM.notify(delFb, m, { type: 'error' }); }
+                    else if (delFb) { delFb.textContent = m; }
+                })
+                .catch(function () { if (delFb) { delFb.textContent = 'Network error — please try again.'; } });
+        });
+    }
+
+    /* ---- description more/less (smooth height, matches TigerDOM easing) ---- */
+    var EASE = 'cubic-bezier(.4, 0, .2, 1)';
+    function toggleDesc(el, link) {
+        var expanding = el.hasAttribute('data-collapsed');
+        var from = el.getBoundingClientRect().height;
+        if (expanding) { el.removeAttribute('data-collapsed'); } else { el.setAttribute('data-collapsed', ''); }
+        var to = el.getBoundingClientRect().height;              // measured with the target clamp applied
+        el.style.overflow = 'hidden'; el.style.maxHeight = 'none';
+        var anim = el.animate([{ height: from + 'px' }, { height: to + 'px' }], { duration: 240, easing: EASE });
+        anim.finished.then(function () { el.style.height = ''; el.style.overflow = ''; el.style.maxHeight = ''; }).catch(function () {});
+        link.textContent = expanding ? 'less' : 'more';
+    }
+    document.querySelectorAll('.mods-desc').forEach(function (d) {
+        d.setAttribute('data-collapsed', '');
+        if (d.scrollHeight - d.clientHeight < 2) { d.removeAttribute('data-collapsed'); return; }  // fits 1 line — no toggle
+        var link = document.createElement('a');
+        link.className = 'mods-more small text-primary ms-1';
+        link.href = '#'; link.setAttribute('role', 'button'); link.textContent = 'more';
+        d.insertAdjacentElement('afterend', link);
+        link.addEventListener('click', function (e) { e.preventDefault(); toggleDesc(d, link); });
+    });
+
+    /* ---- filter: All | Core | Addon pills + search ---- */
+    var rows = Array.prototype.slice.call(document.querySelectorAll('#mods-table tbody tr[data-cat]'));
+    var empty = document.querySelector('.mods-empty');
+    var pills = document.querySelectorAll('#mods-filter .nav-link');
+    var searchEl = document.getElementById('mods-search');
+    var state = { cat: 'all', q: '' };
+    function apply() {
+        var shown = 0;
+        rows.forEach(function (tr) {
+            var okCat = state.cat === 'all' || tr.getAttribute('data-cat') === state.cat;
+            var okQ = state.q === '' || (tr.getAttribute('data-search') || '').indexOf(state.q) !== -1;
+            var show = okCat && okQ;
+            tr.style.display = show ? '' : 'none';
+            if (show) { shown++; }
+        });
+        if (empty) { empty.style.display = shown ? 'none' : ''; }
+    }
+    pills.forEach(function (p) {
+        p.addEventListener('click', function (e) {
+            e.preventDefault();
+            pills.forEach(function (x) { x.classList.remove('active'); });
+            p.classList.add('active');
+            state.cat = p.getAttribute('data-filter');
+            apply();
+        });
+    });
+    if (searchEl) {
+        searchEl.addEventListener('input', function () { state.q = searchEl.value.trim().toLowerCase(); apply(); });
+    }
 });
 </script>
