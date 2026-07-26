@@ -39,7 +39,9 @@ class Tiger_Module_Discovery
                 if (!$isRouted && !$isTheme && !is_file($dir . '/module.json')) { continue; }
 
                 $m = self::_manifest($dir);
-                $author = $m['author'] ?? '';
+                // Author credit: the manifest `author`, else fall back to `vendor` (the publisher) — themes
+                // and many modules declare a `vendor` (e.g. WebTigers) rather than an `author`.
+                $author = $m['author'] ?? ($m['vendor'] ?? '');
                 if (is_array($author)) { $author = $author['name'] ?? ''; }
                 $type = (string) ($m['type'] ?? ($isTheme ? 'theme' : ($isSnippets ? 'code' : 'module')));
 
