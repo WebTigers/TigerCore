@@ -57,6 +57,7 @@ class Analytics_Bootstrap extends Zend_Application_Module_Bootstrap
                 'resource' => 'Analytics_AdminController',
                 'width'    => 2,
                 'order'    => 30,
+                'chart'    => true,   // needs Chart.js — the dashboard loads it when a chart widget is shown
             ]);
         }
     }

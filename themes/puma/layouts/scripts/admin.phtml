@@ -103,6 +103,13 @@ $_hasAgent = class_exists('Tiger_Agent') && Tiger_Agent::isAvailable();
      UMD creates the window.intlTelInput global instead of registering as an anonymous AMD module. -->
 <script src="<?= $this->asset($this->themeAssets . '/vendor/intl-tel-input/js/intlTelInputWithUtils.min.js') ?>"></script>
 <?php endif; ?>
+<?php if (!empty($this->useChart) || !empty($this->useDataTables)): ?>
+<!-- Chart.js (vendored, MIT) — the shared charting lib for dashboard widgets + reports. Set `useChart`
+     (or `useDataTables`) from the controller when a page has a chart. MUST load BEFORE jQuery/Bootstrap
+     set define.amd, else its UMD registers as an anonymous AMD module and never creates the window.Chart
+     global — the same trap the Cropper / intl-tel comments above call out. -->
+<script src="<?= $this->asset($this->themeAssets . '/vendor/chartjs/chart.umd.min.js') ?>"></script>
+<?php endif; ?>
 <script src="<?= $this->asset($this->themeAssets . '/js/bootstrap.bundle.js') ?>"></script>
 <?php if (!empty($this->useDataTables)): ?>
 <!-- jQuery + DataTables: the admin's one jQuery dependency (data grids only); the
@@ -110,8 +117,6 @@ $_hasAgent = class_exists('Tiger_Agent') && Tiger_Agent::isAvailable();
 <script src="<?= $this->asset($this->themeAssets . '/vendor/jquery/jquery.min.js') ?>"></script>
 <script src="<?= $this->asset($this->themeAssets . '/vendor/datatables/dataTables.min.js') ?>"></script>
 <script src="<?= $this->asset($this->themeAssets . '/vendor/datatables/dataTables.bootstrap5.min.js') ?>"></script>
-<!-- Chart.js (vendored, MIT) — the shared charting lib for dashboard widgets + reports. -->
-<script src="<?= $this->asset($this->themeAssets . '/vendor/chartjs/chart.umd.min.js') ?>"></script>
 <!-- Tiger's shared grid helper: /api-sourced DataTables + envelope unwrap. -->
 <script src="<?= $this->asset($this->themeAssets . '/js/tiger.datatable.js') ?>"></script>
 <?php endif; ?>

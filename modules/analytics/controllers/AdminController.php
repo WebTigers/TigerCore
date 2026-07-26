@@ -160,6 +160,7 @@ class Analytics_AdminController extends Tiger_Controller_Admin_Action
     {
         $this->view->title     = 'Analytics — Dashboard';
         $this->view->connected = Tiger_Google_Analytics::isConnected();
+        $this->view->useChart  = true;   // the admin layout ships Chart.js only when a page declares a chart
     }
 
     /** The OAuth redirect URI (must match the one registered in the Google OAuth client). */
