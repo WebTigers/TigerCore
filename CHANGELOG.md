@@ -6,6 +6,44 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [0.42.0-beta] — 2026-07-26
+
+### Added
+- **Module delete — the "nuclear" option.** The Module Manager can now fully **delete** a non-core addon,
+  not just deactivate it. `Tiger_Module_Installer::purge()` rolls back the module's own migrations (dropping
+  its tables + data), **hard-deletes its scoped `config`/`option` rows** (its `<slug>.*` namespace, its
+  `tiger.routing.override.<slug>.*` alias, and its entries in the `tiger.code.modules` active-set),
+  unpublishes assets, drops the install row, and removes files — leaving nothing stranded. Guarded four
+  ways behind a DANGER type-to-confirm modal: superadmin-only, **deactivated-first**, a typed-confirmation
+  `<vendor>/<name>` token, and a dependency gate (refused while an active module requires it).
+- **Module Manager UI.** Filter pills (All | Core | Addon) + a search box, one-line descriptions with a
+  smooth more/less toggle, short license tags (BSD-3 | MIT | Commercial), and an `addon` source label;
+  `Tiger_Module_Discovery` now falls back to the manifest `vendor` when no `author` is set.
+- **Analytics dashboard + Traffic widget.** The in-app GA4 reports dashboard and its admin-dashboard
+  Traffic widget render fully — top-line numbers, top pages/channels, and a Chart.js graph with a
+  toggle legend and area fills. A new `useChart` view flag ships Chart.js only on pages that draw one.
+
+### Fixed
+- **The analytics chart never rendered.** Chart.js was nested inside the admin layout's `useDataTables`
+  block, so a chart-only page never loaded it (`window.Chart` undefined). Split into its own `useChart`
+  gate, loaded before jQuery/Bootstrap so its UMD build creates the `window.Chart` global.
+- **Double search box on `/docs`.** The puma header rendered its built-in `Tiger_Search` launcher alongside
+  a feature-filled `tigerHeaderSearch` slot; the built-in search is now a fallback shown only when the slot
+  is empty (a feature that fills the slot replaces it).
+- **`/backup` was entirely 500'ing** — `Backup_IndexController::_json()` was an incompatible override of the
+  base signature (a PHP 8.5 fatal at class load); renamed to `_jsonBody()`.
+- **`Signup_Service_Signup::create()`** issued the email-verify challenge after commit, outside the
+  try/catch → a fully-committed account could report `result=0`; moved inside the transaction.
+- **`Tiger_Model_PasswordHistory::recentForUser()`** ignored its `$limit` (ZF1 `fetchAll(Zend_Db_Select)`
+  drops the count argument).
+
+### Testing
+- Promoted the PHPUnit harness to `main` and made it **CI-gated** (unit + integration + smoke on PHP
+  8.1–8.5). **Coverage is measured in CI at 74.4% lines** with a ratcheting `MIN_COVERAGE` floor. Two
+  reusable harnesses landed: the `SavepointAdapter` (a service's own `_transaction()` composes inside the
+  per-test rollback) and a `ControllerTestCase` dispatch harness (covers action bodies with view-rendering
+  off).
+
 ## [0.41.0-beta] — 2026-07-24
 
 ### Added
