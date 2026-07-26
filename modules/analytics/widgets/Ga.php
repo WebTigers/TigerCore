@@ -39,26 +39,30 @@ class Analytics_Widget_Ga
 </div>
 <script>
 (function () {
-    if (typeof Chart === 'undefined') { return; }
-    var fd = new URLSearchParams({ module: 'analytics', service: 'reports', method: 'summary', days: '28' });
-    fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
-        .then(function (r) { return r.json().catch(function () { return {}; }); })
-        .then(function (res) {
-            if (!res || res.result !== 1 || !res.data || !res.data.summary) { return; }
-            var s = res.data.summary, t = s.totals || [], series = s.series || [];
-            document.getElementById('<?= $id ?>-users').textContent = Math.round(t[0] || 0).toLocaleString();
-            document.getElementById('<?= $id ?>-views').textContent = Math.round(t[2] || 0).toLocaleString();
-            var p = (getComputedStyle(document.documentElement).getPropertyValue('--bs-primary') || '#0d6efd').trim();
-            new Chart(document.getElementById('<?= $id ?>-chart'), {
-                type: 'line',
-                data: { labels: series.map(function () { return ''; }),
-                    datasets: [{ data: series.map(function (x) { return x.users; }), borderColor: p,
-                        backgroundColor: 'rgba(13,110,253,0.10)', fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2 }] },
-                options: { responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                    scales: { x: { display: false }, y: { display: false, beginAtZero: true } } }
-            });
-        }).catch(function () {});
+    function draw() {
+        var fd = new URLSearchParams({ module: 'analytics', service: 'reports', method: 'summary', days: '28' });
+        fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
+            .then(function (r) { return r.json().catch(function () { return {}; }); })
+            .then(function (res) {
+                if (!res || res.result !== 1 || !res.data || !res.data.summary) { return; }
+                var s = res.data.summary, t = s.totals || [], series = s.series || [];
+                document.getElementById('<?= $id ?>-users').textContent = Math.round(t[0] || 0).toLocaleString();
+                document.getElementById('<?= $id ?>-views').textContent = Math.round(t[2] || 0).toLocaleString();
+                if (typeof Chart === 'undefined') { return; }   // numbers still show; just skip the sparkline
+                var p = (getComputedStyle(document.documentElement).getPropertyValue('--bs-primary') || '#0d6efd').trim();
+                new Chart(document.getElementById('<?= $id ?>-chart'), {
+                    type: 'line',
+                    data: { labels: series.map(function () { return ''; }),
+                        datasets: [{ data: series.map(function (x) { return x.users; }), borderColor: p,
+                            backgroundColor: 'rgba(13,110,253,0.10)', fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2 }] },
+                    options: { responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                        scales: { x: { display: false }, y: { display: false, beginAtZero: true } } }
+                });
+            }).catch(function () {});
+    }
+    // Run after parsing so the admin layout's Chart.js (loaded later in the page) is available.
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', draw); } else { draw(); }
 })();
 </script>
 <?php

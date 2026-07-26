@@ -75,7 +75,7 @@
                     { label: 'Users', order: 0, data: series.map(function (p) { return p.users; }),
                       borderColor: primary, backgroundColor: rgba(primary, 0.3), fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
                     { label: 'Page views', order: 1, data: series.map(function (p) { return p.views; }),
-                      borderColor: muted, backgroundColor: rgba(muted, 0.3), fill: true, tension: 0.3, pointRadius: 0, borderWidth: 1.5 }
+                      borderColor: muted, backgroundColor: rgba(muted, 0.15), fill: true, tension: 0.3, pointRadius: 0, borderWidth: 1.5 }
                 ]
             },
             options: {
