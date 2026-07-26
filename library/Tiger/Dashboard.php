@@ -53,6 +53,7 @@ class Tiger_Dashboard
             'width'    => 1,
             'order'    => 100,
             'refresh'  => 0,
+            'chart'    => false,   // does the widget draw with Chart.js? (the dashboard ships the lib if so)
         ];
         $descriptor['width'] = max(1, min(4, (int) $descriptor['width']));   // 1..4 columns
         self::$_widgets[$descriptor['id']] = $descriptor;

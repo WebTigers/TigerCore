@@ -62,6 +62,11 @@ class AdminController extends Tiger_Controller_Admin_Action
         foreach ($widgets as &$w) { $w['hidden'] = isset($hiddenSet[$w['id']]); }
         unset($w);
 
+        // Load Chart.js only when a VISIBLE widget actually draws with it (a hidden widget renders no body).
+        foreach ($widgets as $w) {
+            if (!empty($w['chart']) && empty($w['hidden'])) { $this->view->useChart = true; break; }
+        }
+
         $this->view->widgets = $widgets;
     }
 
