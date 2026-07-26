@@ -12,6 +12,18 @@
     var primary = tok('--bs-primary', '#0d6efd');
     var muted   = tok('--bs-secondary-color', '#6c757d');
     var grid    = tok('--bs-border-color', '#dee2e6');
+    // A color (hex or rgb[a]) at a given alpha — used for the translucent area fills below each line.
+    function rgba(color, a) {
+        var c = (color || '').trim();
+        if (c.charAt(0) === '#') {
+            var h = c.slice(1);
+            if (h.length === 3) { h = h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2); }
+            var n = parseInt(h, 16);
+            return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+        }
+        var m = c.match(/(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
+        return m ? 'rgba(' + m[1] + ',' + m[2] + ',' + m[3] + ',' + a + ')' : c;
+    }
     function num(n) { return Math.round(n || 0).toLocaleString(); }
     function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
 
@@ -59,16 +71,44 @@
             data: {
                 labels: series.map(function (p) { return (p.date || '').slice(5); }),
                 datasets: [
-                    { label: 'Users', data: series.map(function (p) { return p.users; }),
-                      borderColor: primary, backgroundColor: 'rgba(13,110,253,0.08)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
-                    { label: 'Page views', data: series.map(function (p) { return p.views; }),
-                      borderColor: muted, backgroundColor: 'transparent', fill: false, tension: 0.3, pointRadius: 0, borderWidth: 1.5 }
+                    // `order` is the z-index: Chart.js draws lowest-order LAST, so order:0 = on top.
+                    { label: 'Users', order: 0, data: series.map(function (p) { return p.users; }),
+                      borderColor: primary, backgroundColor: rgba(primary, 0.3), fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
+                    { label: 'Page views', order: 1, data: series.map(function (p) { return p.views; }),
+                      borderColor: muted, backgroundColor: rgba(muted, 0.15), fill: true, tension: 0.3, pointRadius: 0, borderWidth: 1.5 }
                 ]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
-                plugins: { legend: { labels: { color: muted, boxWidth: 12, usePointStyle: true } } },
+                plugins: {
+                    legend: {
+                        // Filled circle = series shown, hollow circle = hidden (no strike-through). Click toggles.
+                        labels: {
+                            color: muted, usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 16,
+                            generateLabels: function (ch) {
+                                return ch.data.datasets.map(function (ds, i) {
+                                    var on = ch.isDatasetVisible(i);
+                                    return {
+                                        text: ds.label,
+                                        pointStyle: 'circle',
+                                        fillStyle: on ? ds.borderColor : 'transparent',
+                                        strokeStyle: ds.borderColor,
+                                        lineWidth: 2,
+                                        fontColor: muted,
+                                        hidden: false,          // never render the label struck-through
+                                        datasetIndex: i
+                                    };
+                                });
+                            }
+                        },
+                        onClick: function (e, item, legend) {
+                            var ci = legend.chart, i = item.datasetIndex;
+                            ci.setDatasetVisibility(i, !ci.isDatasetVisible(i));
+                            ci.update();
+                        }
+                    }
+                },
                 scales: {
                     x: { grid: { display: false }, ticks: { color: muted, maxTicksLimit: 8, autoSkip: true } },
                     y: { grid: { color: grid }, ticks: { color: muted, precision: 0 }, beginAtZero: true, suggestedMax: 10 }
