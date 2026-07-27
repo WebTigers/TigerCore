@@ -120,6 +120,28 @@ class System_Service_Modules extends Tiger_Service_Service
         try {
             $d = $discovered[$slug];
 
+            // Mutual exclusion (module.json "conflict"): a module can't run alongside a declared
+            // conflict — e.g. two cloud-SDK providers that each bundle their own copy of a shared HTTP
+            // library. On activation, deactivate any ACTIVE conflict first, but only after an explicit
+            // confirm so the admin knows exactly what's being turned off.
+            if ($on) {
+                $conflicts = Tiger_Module_Dependency::conflicts($slug);
+                if ($conflicts) {
+                    if ((string) ($params['confirm'] ?? '') !== '1') {
+                        $this->_error('system.error.conflict', ['slug' => $slug, 'conflicts' => array_map(
+                            fn ($c) => ['slug' => $c, 'name' => (string) ($discovered[$c]['name'] ?? $c)],
+                            $conflicts
+                        )]);
+                        return;
+                    }
+                    $cm = new Tiger_Model_Module();
+                    foreach ($conflicts as $c) {
+                        $cm->setActive($c, false, ['name' => $discovered[$c]['name'] ?? $c, 'version' => $discovered[$c]['version'] ?? null]);
+                        Tiger_Module_Installer::unpublishAssets($c);
+                    }
+                }
+            }
+
             // Capability detection, not a declared type: activating anything that ships a
             // migrations/ folder applies its schema now (idempotent; no-op without one). This is
             // why `type` stays a mere label — a theme that owns tables migrates just like a module.

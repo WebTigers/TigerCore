@@ -64,6 +64,9 @@ class Tiger_Module_Discovery
                     // for Tiger_Module_Compat to interpret; legacy `requires.tiger` doubles as the min.
                     'requires'     => isset($m['requires']) && is_array($m['requires']) ? $m['requires'] : [],
                     'compat'       => isset($m['compat']) && is_array($m['compat']) ? $m['compat'] : [],
+                    // Mutually-exclusive modules (slugs): activating this one deactivates any active
+                    // module named here (e.g. cloud-SDK providers that each bundle their own Guzzle).
+                    'conflict'     => isset($m['conflict']) && is_array($m['conflict']) ? array_values(array_map('strval', $m['conflict'])) : [],
                     'has_manifest' => (bool) $m,
                 ];
             }

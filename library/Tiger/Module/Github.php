@@ -83,6 +83,34 @@ class Tiger_Module_Github
     }
 
     /**
+     * The download URL of a release's first `.zip` **asset** (an uploaded artifact), for a tag or the
+     * latest release. A vendored-bundle module (e.g. an SDK provider, or a theme with licensed assets)
+     * ships its `vendor/`/`assets/` inside a release ZIP asset — NOT the git source archive, which omits
+     * gitignored build output. Callers prefer this over {@see tarballUrl} when an asset is present, and
+     * fall back to the source tarball for source-only modules.
+     *
+     * @param  string  $org  the repo owner
+     * @param  string  $repo the repo name
+     * @param  ?string $ref  a release tag, or null for the latest release
+     * @return string|null the asset's browser_download_url, or null when the release has no zip asset
+     */
+    public static function releaseAsset($org, $repo, $ref = null)
+    {
+        $url = $ref
+            ? self::API . "/repos/{$org}/{$repo}/releases/tags/" . rawurlencode((string) $ref)
+            : self::API . "/repos/{$org}/{$repo}/releases/latest";
+        $body = self::_http($url, true);
+        if (!$body) { return null; }
+        $d = json_decode($body, true);
+        foreach ($d['assets'] ?? [] as $a) {
+            if (!empty($a['browser_download_url']) && preg_match('/\.zip$/i', (string) ($a['name'] ?? ''))) {
+                return (string) $a['browser_download_url'];
+            }
+        }
+        return null;
+    }
+
+    /**
      * Download a URL to a local file. Returns bool.
      *
      * @param  string $url      the URL to download

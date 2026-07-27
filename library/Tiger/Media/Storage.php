@@ -53,16 +53,21 @@ class Tiger_Media_Storage
         self::$_disks = [];
     }
 
-    protected static function _build($name)
+    /**
+     * Build an adapter from an explicit settings array (bypassing the config disk lookup).
+     *
+     * Lets a caller instantiate an adapter from settings that aren't saved as a disk yet — e.g. a
+     * "test connection" probe on the admin Storage screen — using the same adapter switch as the
+     * config-driven {@see disk()} path. The array must carry an `adapter` key
+     * (`filesystem`|`local`|`s3`|`gcs`|`azure`) plus that adapter's settings.
+     *
+     * @param  array $settings the adapter settings (incl. `adapter`)
+     * @return Tiger_Media_Storage_Interface the adapter
+     * @throws RuntimeException on an unknown/empty adapter
+     */
+    public static function make(array $settings)
     {
-        $media = self::_config();
-        $disks = $media ? $media->get('disks') : null;
-        $conf  = $disks ? $disks->get($name) : null;
-        if (!$conf) {
-            throw new RuntimeException("Tiger_Media_Storage: no config for disk '{$name}' (media.disks.{$name}.*)");
-        }
-        $settings = $conf->toArray();
-        $adapter  = strtolower((string) ($settings['adapter'] ?? ''));
+        $adapter = strtolower((string) ($settings['adapter'] ?? ''));
 
         switch ($adapter) {
             case 'filesystem':
@@ -75,7 +80,23 @@ class Tiger_Media_Storage
             case 'azure':
                 return new Tiger_Media_Storage_Azure($settings);
             default:
-                throw new RuntimeException("Tiger_Media_Storage: unknown adapter '{$adapter}' for disk '{$name}'.");
+                throw new RuntimeException("Tiger_Media_Storage: unknown adapter '{$adapter}'.");
+        }
+    }
+
+    protected static function _build($name)
+    {
+        $media = self::_config();
+        $disks = $media ? $media->get('disks') : null;
+        $conf  = $disks ? $disks->get($name) : null;
+        if (!$conf) {
+            throw new RuntimeException("Tiger_Media_Storage: no config for disk '{$name}' (media.disks.{$name}.*)");
+        }
+        try {
+            return self::make($conf->toArray());
+        } catch (RuntimeException $e) {
+            // Re-throw with the disk name for a clearer message than make()'s adapter-only one.
+            throw new RuntimeException("Tiger_Media_Storage: cannot build disk '{$name}' — " . $e->getMessage());
         }
     }
 

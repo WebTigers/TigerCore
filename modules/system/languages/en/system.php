@@ -18,6 +18,8 @@ return [
     'system.error.delete_active'  => 'Deactivate this module before you delete it.',
     'system.error.delete_confirm' => 'The confirmation didn\'t match — nothing was deleted.',
     'system.error.delete_dependents' => 'Another active module depends on this one — remove it first.',
+    'system.error.conflict'          => 'This module can\'t run alongside another that\'s active.',
+    'system.module.conflict_switched' => 'Module activated — the conflicting module was deactivated.',
     'system.settings.saved'     => 'Settings saved.',
     'system.dashboard.saved'    => 'Dashboard layout saved.',
     'system.update.done'          => 'Updates applied.',

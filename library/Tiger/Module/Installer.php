@@ -49,19 +49,24 @@ class Tiger_Module_Installer
             throw new RuntimeException("{$org}/{$repo}@{$ref} has no module.json or theme.json (or the repo isn't public).");
         }
 
-        $tar = tempnam(sys_get_temp_dir(), 'tigermod') . '.tar.gz';
-        if (!Tiger_Module_Github::download(Tiger_Module_Github::tarballUrl($org, $repo, $ref), $tar)) {
-            @unlink($tar);
-            throw new RuntimeException('Failed to download the release tarball.');
+        // Prefer a release ZIP **asset** (a complete vendored bundle: code + vendor/) over the git source
+        // archive, which omits gitignored build output. A provider/SDK module or an asset-bearing theme is
+        // only usable from its release asset; a plain source module has none, so we fall back to the tarball.
+        $asset   = Tiger_Module_Github::releaseAsset($org, $repo, $ref);
+        $url     = $asset ?: Tiger_Module_Github::tarballUrl($org, $repo, $ref);
+        $archive = tempnam(sys_get_temp_dir(), 'tigermod') . ($asset ? '.zip' : '.tar.gz');
+        if (!Tiger_Module_Github::download($url, $archive)) {
+            @unlink($archive);
+            throw new RuntimeException('Failed to download the release ' . ($asset ? 'asset.' : 'tarball.'));
         }
         try {
-            return self::installFromTarball($tar, [
+            return self::installFromTarball($archive, [
                 'repository' => "https://github.com/{$org}/{$repo}",
                 'ref'        => $ref,
                 'source'     => Tiger_Model_Module::SOURCE_URL,
             ], $opts);
         } finally {
-            @unlink($tar);
+            @unlink($archive);
         }
     }
 
