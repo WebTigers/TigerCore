@@ -2,53 +2,247 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
- * Media settings — filename obfuscation per visibility. Standard admin screen (ADMIN.md):
- * header + feedback + a card; the Save posts to /api (Media_Service_Settings::save).
+ * Media settings — tabbed admin screen (ADMIN.md): a header + two tabs.
+ *   • Filenames — filename obfuscation per visibility (saves to Media_Service_Settings::save).
+ *   • Storage   — the cloud adapter (S3 / GCS / Azure) + Test connection + which disk new uploads use
+ *                 (saveStorage / testConnection), and the install-wide media migration (migrateDisk).
+ * Every mutation is an /api call; the view owns markup only.
  */
+$s = $this->storage;   // storage prefill (no secrets — only has_key/has_secret booleans)
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
         <h1 class="h3 mb-1">Media Settings</h1>
-        <p class="text-body-secondary mb-0">How uploaded files are named in storage &amp; URLs, per visibility. <span class="badge text-bg-light">this organization</span></p>
-    </div>
-    <div class="text-nowrap">
-        <button type="button" id="media-settings-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+        <p class="text-body-secondary mb-0">How uploaded files are named and where they're stored. <span class="badge text-bg-light">this organization</span></p>
     </div>
 </div>
 
-<div id="media-settings-feedback"></div>
+<ul class="nav nav-tabs mb-4" id="media-settings-tabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-filenames" data-bs-toggle="tab" data-bs-target="#pane-filenames" type="button" role="tab">
+            <i class="fa-solid fa-signature me-2"></i>Filenames
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-storage" data-bs-toggle="tab" data-bs-target="#pane-storage" type="button" role="tab">
+            <i class="fa-solid fa-cloud me-2"></i>Storage
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-migration" data-bs-toggle="tab" data-bs-target="#pane-migration" type="button" role="tab">
+            <i class="fa-solid fa-truck-fast me-2"></i>Migration
+        </button>
+    </li>
+</ul>
 
-<form id="media-settings-form" onsubmit="return false;" novalidate>
-    <?= $this->form->getElement('_csrf') ?>
-    <div class="row g-4">
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header fw-semibold"><i class="fa-solid fa-signature me-2"></i>Filename obfuscation</div>
-                <div class="card-body">
-                    <p class="text-body-secondary small mb-4">
-                        Every file is stored under a tenant-isolated, random-suffixed key, so names never collide and can't be guessed by counting.
-                        <strong>Obfuscate&nbsp;=&nbsp;Yes</strong> uses a fully random name — nothing about the original filename appears anywhere.
-                        <strong>Obfuscate&nbsp;=&nbsp;No</strong> keeps a readable, slugified version of the original name in the storage path and URL
-                        (friendlier for SEO and recognizable links), e.g. <code>annual-report-a1b2c3d4.pdf</code>. This applies to <em>new</em> uploads;
-                        existing files keep their names.
-                    </p>
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold" for="media-obf-public"><i class="fa-solid fa-globe me-2 text-success"></i>Public files</label>
-                        <?= $this->form->getElement('obfuscate_public') ?>
-                        <div class="form-text">Public files get a shareable, cacheable URL — <strong>readable</strong> is usually best.</div>
+<div class="tab-content">
+    <!-- ============================ FILENAMES ============================ -->
+    <div class="tab-pane fade show active" id="pane-filenames" role="tabpanel" aria-labelledby="tab-filenames">
+        <div id="media-settings-feedback"></div>
+        <form id="media-settings-form" onsubmit="return false;" novalidate>
+            <?= $this->form->getElement('_csrf') ?>
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header d-flex align-items-center justify-content-between">
+                            <span class="fw-semibold"><i class="fa-solid fa-signature me-2"></i>Filename obfuscation</span>
+                            <button type="button" id="media-settings-save" class="btn btn-primary btn-sm"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-body-secondary small mb-4">
+                                Every file is stored under a tenant-isolated, random-suffixed key, so names never collide and can't be guessed by counting.
+                                <strong>Obfuscate&nbsp;=&nbsp;Yes</strong> uses a fully random name — nothing about the original filename appears anywhere.
+                                <strong>Obfuscate&nbsp;=&nbsp;No</strong> keeps a readable, slugified version of the original name in the storage path and URL
+                                (friendlier for SEO and recognizable links), e.g. <code>annual-report-a1b2c3d4.pdf</code>. This applies to <em>new</em> uploads;
+                                existing files keep their names.
+                            </p>
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold" for="media-obf-public"><i class="fa-solid fa-globe me-2 text-success"></i>Public files</label>
+                                <?= $this->form->getElement('obfuscate_public') ?>
+                                <div class="form-text">Public files get a shareable, cacheable URL — <strong>readable</strong> is usually best.</div>
+                            </div>
+                            <div class="mb-0">
+                                <label class="form-label fw-semibold" for="media-obf-private"><i class="fa-solid fa-lock me-2 text-secondary"></i>Private files</label>
+                                <?= $this->form->getElement('obfuscate_private') ?>
+                                <div class="form-text">Private files stream through an opaque link — <strong>obfuscated</strong> is usually best.</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-0">
-                        <label class="form-label fw-semibold" for="media-obf-private"><i class="fa-solid fa-lock me-2 text-secondary"></i>Private files</label>
-                        <?= $this->form->getElement('obfuscate_private') ?>
-                        <div class="form-text">Private files stream through an opaque link — <strong>obfuscated</strong> is usually best.</div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- ============================= STORAGE ============================= -->
+    <div class="tab-pane fade" id="pane-storage" role="tabpanel" aria-labelledby="tab-storage">
+        <div id="media-storage-feedback"></div>
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <span class="fw-semibold"><i class="fa-solid fa-cloud me-2"></i>Cloud storage</span>
+                        <div class="text-nowrap">
+                            <button type="button" id="media-storage-test" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-plug-circle-check me-2"></i>Test connection</button>
+                            <button type="button" id="media-storage-save" class="btn btn-primary btn-sm"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-body-secondary small mb-3">
+                            Choose where files are stored. <strong>Local</strong> keeps them on this server; a cloud provider stores them in your
+                            own bucket. Configure a provider here, <strong>test the connection</strong>, then use <em>Storage migration</em> below to
+                            move existing files onto it.
+                        </p>
+
+                        <form id="media-storage-form" onsubmit="return false;" novalidate>
+                            <div class="btn-group flex-wrap mb-4" role="group" aria-label="Storage provider">
+                                <?php
+                                $adapters = [
+                                    'none'  => ['label' => 'Local only', 'icon' => 'fa-hard-drive', 'sdk' => true],
+                                    's3'    => ['label' => 'Amazon S3',  'icon' => 'fa-aws',        'sdk' => !empty($this->sdk['s3'])],
+                                    'gcs'   => ['label' => 'Google Cloud','icon' => 'fa-google',     'sdk' => !empty($this->sdk['gcs'])],
+                                    'azure' => ['label' => 'Azure Blob',  'icon' => 'fa-microsoft',  'sdk' => !empty($this->sdk['azure'])],
+                                ];
+                                foreach ($adapters as $key => $a):
+                                    $checked = $s['adapter'] === $key ? ' checked' : '';
+                                ?>
+                                <input type="radio" class="btn-check" name="adapter" id="sa-<?= $key ?>" value="<?= $key ?>" autocomplete="off"<?= $checked ?>>
+                                <label class="btn btn-outline-primary" for="sa-<?= $key ?>"><i class="fa-brands <?= $a['icon'] ?> me-2"></i><?= $this->escape($a['label']) ?></label>
+                                <?php endforeach; ?>
+                            </div>
+
+                            <!-- Local -->
+                            <div class="storage-fields" data-adapter="none">
+                                <p class="text-body-secondary small mb-0"><i class="fa-solid fa-circle-info me-2"></i>Files are stored on this server's local disk. No configuration needed.</p>
+                            </div>
+
+                            <!-- Amazon S3 -->
+                            <div class="storage-fields" data-adapter="s3" hidden>
+                                <?php if (empty($this->sdk['s3'])): ?><div class="alert alert-warning small py-2"><i class="fa-solid fa-triangle-exclamation me-2"></i>The AWS SDK isn't installed. Install the <strong>Tiger AWS PHP SDK</strong> module from <a href="/system/modules/add" class="alert-link">Module Manager</a> (recommended — no server access needed), or a developer can run <code>composer require aws/aws-sdk-php</code>.</div><?php endif; ?>
+                                <div class="row g-3">
+                                    <div class="col-md-8"><label class="form-label" for="st-s3-bucket">Bucket <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="st-s3-bucket" name="bucket" value="<?= $this->escape($s['bucket']) ?>" placeholder="my-media-bucket"></div>
+                                    <div class="col-md-4"><label class="form-label" for="st-s3-region">Region</label>
+                                        <input type="text" class="form-control" id="st-s3-region" name="region" value="<?= $this->escape($s['region']) ?>" placeholder="us-east-1"></div>
+                                    <div class="col-md-6"><label class="form-label" for="st-s3-key">Access key ID</label>
+                                        <input type="text" class="form-control" id="st-s3-key" name="key" autocomplete="off" placeholder="<?= $s['has_key'] ? 'saved — leave blank to keep' : 'blank = use the server IAM role' ?>"></div>
+                                    <div class="col-md-6"><label class="form-label" for="st-s3-secret">Secret access key</label>
+                                        <input type="password" class="form-control" id="st-s3-secret" name="secret" autocomplete="new-password" placeholder="<?= $s['has_secret'] ? '•••••••• saved — leave blank to keep' : 'blank = use the server IAM role' ?>"></div>
+                                    <div class="col-12"><div class="form-text mt-0">On AWS, leave the key &amp; secret blank to use this server's IAM instance role (nothing sensitive is stored).</div></div>
+                                    <div class="col-md-8"><label class="form-label" for="st-s3-endpoint">Endpoint <span class="text-body-secondary">(optional — S3-compatible)</span></label>
+                                        <input type="text" class="form-control" id="st-s3-endpoint" name="endpoint" value="<?= $this->escape($s['endpoint']) ?>" placeholder="https://s3.us-east-1.amazonaws.com"></div>
+                                    <div class="col-md-4 d-flex align-items-end"><div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="st-s3-pathstyle" name="use_path_style" value="1"<?= $s['use_path_style'] ? ' checked' : '' ?>>
+                                        <label class="form-check-label" for="st-s3-pathstyle">Path-style URLs</label></div></div>
+                                    <div class="col-12"><label class="form-label" for="st-s3-cdn">CDN domain <span class="text-body-secondary">(optional)</span></label>
+                                        <input type="text" class="form-control" id="st-s3-cdn" name="cdn" value="<?= $this->escape($s['cdn']) ?>" placeholder="d111abcdef8.cloudfront.net or cdn.yoursite.com">
+                                        <div class="form-text">Serve <strong>public</strong> media through this host (e.g. a CloudFront distribution) instead of the direct bucket URL — cacheable, on your own domain. Private files still use signed URLs. No <code>https://</code>.</div></div>
+                                </div>
+                            </div>
+
+                            <!-- Google Cloud Storage -->
+                            <div class="storage-fields" data-adapter="gcs" hidden>
+                                <?php if (empty($this->sdk['gcs'])): ?><div class="alert alert-warning small py-2"><i class="fa-solid fa-triangle-exclamation me-2"></i>The Google Cloud SDK isn't installed. Install the <strong>Tiger Google Cloud PHP SDK</strong> module from <a href="/system/modules/add" class="alert-link">Module Manager</a> (recommended — no server access needed), or a developer can run <code>composer require google/cloud-storage</code>.</div><?php endif; ?>
+                                <div class="row g-3">
+                                    <div class="col-md-6"><label class="form-label" for="st-gcs-bucket">Bucket <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="st-gcs-bucket" name="bucket" value="<?= $this->escape($s['bucket']) ?>" placeholder="my-media-bucket"></div>
+                                    <div class="col-md-6"><label class="form-label" for="st-gcs-project">Project ID</label>
+                                        <input type="text" class="form-control" id="st-gcs-project" name="project_id" value="<?= $this->escape($s['project_id']) ?>" placeholder="my-gcp-project"></div>
+                                    <div class="col-12"><label class="form-label" for="st-gcs-keyfile">Service-account key file <span class="text-body-secondary">(path on this server)</span></label>
+                                        <input type="text" class="form-control" id="st-gcs-keyfile" name="key_file" value="<?= $this->escape($s['key_file']) ?>" placeholder="/var/secrets/gcs.json">
+                                        <div class="form-text">A path to the JSON credentials on the server — the file stays on disk (nothing sensitive is stored in the database). Blank uses the environment's default credentials.</div></div>
+                                    <div class="col-12"><label class="form-label" for="st-gcs-cdn">CDN domain <span class="text-body-secondary">(optional)</span></label>
+                                        <input type="text" class="form-control" id="st-gcs-cdn" name="cdn" value="<?= $this->escape($s['cdn']) ?>" placeholder="cdn.yoursite.com (Cloud CDN / custom domain)">
+                                        <div class="form-text">Serve <strong>public</strong> media through this host instead of <code>storage.googleapis.com</code>. Private files still use signed URLs. No <code>https://</code>.</div></div>
+                                </div>
+                            </div>
+
+                            <!-- Azure Blob -->
+                            <div class="storage-fields" data-adapter="azure" hidden>
+                                <?php if (empty($this->sdk['azure'])): ?><div class="alert alert-warning small py-2"><i class="fa-solid fa-triangle-exclamation me-2"></i>The Azure Storage SDK isn't installed. Install the <strong>Tiger Azure PHP SDK</strong> module from <a href="/system/modules/add" class="alert-link">Module Manager</a> (recommended — no server access needed), or a developer can run <code>composer require microsoft/azure-storage-blob</code>.</div><?php endif; ?>
+                                <div class="row g-3">
+                                    <div class="col-md-6"><label class="form-label" for="st-az-account">Storage account <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="st-az-account" name="account" value="<?= $this->escape($s['account']) ?>" placeholder="mystorageacct"></div>
+                                    <div class="col-md-6"><label class="form-label" for="st-az-container">Container <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="st-az-container" name="container" value="<?= $this->escape($s['container']) ?>" placeholder="media"></div>
+                                    <div class="col-md-6"><label class="form-label" for="st-az-key">Account key</label>
+                                        <input type="password" class="form-control" id="st-az-key" name="key" autocomplete="new-password" placeholder="<?= $s['has_key'] ? '•••••••• saved — leave blank to keep' : 'account access key' ?>"></div>
+                                    <div class="col-md-6"><label class="form-label" for="st-az-endpoint">Endpoint <span class="text-body-secondary">(optional)</span></label>
+                                        <input type="text" class="form-control" id="st-az-endpoint" name="endpoint" value="<?= $this->escape($s['endpoint']) ?>" placeholder="blob.core.windows.net"></div>
+                                    <div class="col-12"><label class="form-label" for="st-az-cdn">CDN domain <span class="text-body-secondary">(optional)</span></label>
+                                        <input type="text" class="form-control" id="st-az-cdn" name="cdn" value="<?= $this->escape($s['cdn']) ?>" placeholder="cdn.yoursite.com (Azure CDN / custom domain)">
+                                        <div class="form-text">Serve <strong>public</strong> media through this host instead of <code>*.blob.core.windows.net</code>. Private files still use SAS URLs. No <code>https://</code>.</div></div>
+                                </div>
+                            </div>
+
+                            <hr class="my-4" id="storage-default-row"<?= $s['adapter'] === 'none' ? ' hidden' : '' ?>>
+                            <div class="row g-2 align-items-center" id="storage-default-wrap"<?= $s['adapter'] === 'none' ? ' hidden' : '' ?>>
+                                <div class="col-auto"><label class="form-label mb-0" for="st-default-disk">Send new uploads to</label></div>
+                                <div class="col-auto">
+                                    <select id="st-default-disk" name="default_disk" class="form-select form-select-sm">
+                                        <option value="local"<?= $this->defaultDisk !== 'cloud' ? ' selected' : '' ?>>Local disk</option>
+                                        <option value="cloud"<?= $this->defaultDisk === 'cloud' ? ' selected' : '' ?>>Cloud (configured above)</option>
+                                    </select>
+                                </div>
+                                <div class="col-12"><div class="form-text mt-1">Existing files stay where they are until you migrate them below. Point new uploads at the cloud only after a successful connection test.</div></div>
+                            </div>
+                        </form>
+                        <div id="media-storage-test-result" class="mt-3"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================ MIGRATION ============================ -->
+    <div class="tab-pane fade" id="pane-migration" role="tabpanel" aria-labelledby="tab-migration">
+        <div id="media-migrate-feedback"></div>
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header fw-semibold"><i class="fa-solid fa-truck-fast me-2"></i>Storage migration</div>
+                    <div class="card-body">
+                        <p class="text-body-secondary small mb-3">
+                            Relocate <em>existing</em> files to another storage disk — e.g. after configuring cloud storage in the <strong>Storage</strong> tab.
+                            New uploads already go to the default disk (<code><?= $this->escape($this->defaultDisk) ?></code>);
+                            this moves the files already stored. Install-wide.
+                        </p>
+                        <?php if (!empty($this->diskCounts)): ?>
+                        <p class="small mb-3">Currently stored:
+                            <?php foreach ($this->diskCounts as $d => $n): ?><span class="badge text-bg-light me-1"><?= $this->escape($d) ?>: <?= (int) $n ?></span><?php endforeach; ?>
+                        </p>
+                        <?php endif; ?>
+                        <div class="row g-2 align-items-end">
+                            <div class="col-sm">
+                                <label class="form-label" for="media-migrate-to">Migrate all media to</label>
+                                <select id="media-migrate-to" class="form-select">
+                                    <?php foreach ($this->disks as $d): ?><option value="<?= $this->escape($d) ?>"<?= $d === $this->defaultDisk ? ' selected' : '' ?>><?= $this->escape($this->diskLabels[$d] ?? $d) ?></option><?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-sm-auto">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="media-migrate-move">
+                                    <label class="form-check-label" for="media-migrate-move">Move (delete originals)</label>
+                                </div>
+                            </div>
+                            <div class="col-sm-auto">
+                                <button type="button" id="media-migrate-run" class="btn btn-outline-primary"><i class="fa-solid fa-truck-fast me-2"></i>Migrate</button>
+                            </div>
+                        </div>
+                        <div class="form-text mt-2">
+                            Default is <strong>Copy</strong> — originals are kept (fully reversible). <strong>Move</strong> deletes each
+                            original only after a verified copy. Safe to re-run; already-migrated files are skipped.
+                        </div>
+                        <div id="media-migrate-result" class="mt-3"></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</form>
+</div>
 
 <script>
+// ---- Filenames: save obfuscation flags ----
 document.getElementById('media-settings-save').addEventListener('click', function () {
     var form = document.getElementById('media-settings-form');
     var fb   = document.getElementById('media-settings-feedback');
@@ -63,4 +257,120 @@ document.getElementById('media-settings-save').addEventListener('click', functio
         (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
     }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
 });
+
+// ---- Storage: adapter toggle + test connection + save ----
+(function () {
+    function esc(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; }
+    var form = document.getElementById('media-storage-form');
+    if (!form) { return; }
+    var fb = document.getElementById('media-storage-feedback');
+
+    function current() { var r = form.querySelector('input[name="adapter"]:checked'); return r ? r.value : 'none'; }
+    function serviceLabel(a) { return { s3: 'AWS S3', gcs: 'Google Cloud Storage', azure: 'Azure Blob Storage' }[a] || 'Cloud'; }
+    function sync() {
+        var a = current();
+        form.querySelectorAll('.storage-fields').forEach(function (el) { el.hidden = (el.getAttribute('data-adapter') !== a); });
+        var isCloud = a !== 'none';
+        var row = document.getElementById('storage-default-row'), wrap = document.getElementById('storage-default-wrap');
+        if (row) { row.hidden = !isCloud; } if (wrap) { wrap.hidden = !isCloud; }
+        // Name the exact service (not just "Cloud") on the default-disk picker.
+        var co = document.querySelector('#st-default-disk option[value="cloud"]');
+        if (co && isCloud) { co.textContent = serviceLabel(a); }
+    }
+    form.querySelectorAll('input[name="adapter"]').forEach(function (r) { r.addEventListener('change', sync); });
+    sync();
+
+    // Only send the *visible* adapter's fields (each adapter's inputs share names like `bucket`/`key`).
+    function payload(method) {
+        var fd = new URLSearchParams();
+        fd.set('module', 'media'); fd.set('service', 'settings'); fd.set('method', method);
+        fd.set('adapter', current());
+        var group = form.querySelector('.storage-fields[data-adapter="' + current() + '"]');
+        if (group) {
+            group.querySelectorAll('input, select').forEach(function (el) {
+                if (!el.name) { return; }
+                if (el.type === 'checkbox') { if (el.checked) { fd.set(el.name, el.value || '1'); } }
+                else if (el.value !== '') { fd.set(el.name, el.value); }
+            });
+        }
+        var dd = document.getElementById('st-default-disk');
+        if (dd) { fd.set('default_disk', dd.value); }
+        return fd;
+    }
+
+    document.getElementById('media-storage-test').addEventListener('click', function () {
+        var res = document.getElementById('media-storage-test-result');
+        res.innerHTML = '';
+        if (current() === 'none') { TigerDOM.notify(fb, 'Local storage needs no connection test.', { type: 'info' }); return; }
+        TigerButton.run(this, function () {
+            return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: payload('testConnection') })
+                .then(function (r) { return r.json().catch(function () { return {}; }); });
+        }).then(function (r) {
+            var ok = r && r.result === 1;
+            var msg = (r && r.messages && r.messages[0] && r.messages[0].message) || (ok ? 'Connection succeeded.' : 'Connection failed.');
+            res.innerHTML = '<div class="alert alert-' + (ok ? 'success' : 'danger') + ' mb-0 small"><i class="fa-solid fa-' + (ok ? 'circle-check' : 'circle-xmark') + ' me-2"></i>' + esc(msg) + '</div>';
+        }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+    });
+
+    document.getElementById('media-storage-save').addEventListener('click', function () {
+        TigerButton.run(this, function () {
+            return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: payload('saveStorage') })
+                .then(function (r) { return r.json().catch(function () { return {}; }); });
+        }).then(function (r) {
+            if (r && r.result === 1) {
+                TigerDOM.notify(fb, 'Storage settings saved.', { type: 'success' });
+                // No page refresh — so reflect the just-saved disk in the Migration tab's target list now.
+                var adapter = (r.data && r.data.adapter) || current();
+                var mt = document.getElementById('media-migrate-to');
+                if (mt && adapter !== 'none') {
+                    var opt = mt.querySelector('option[value="cloud"]');
+                    if (!opt) { opt = document.createElement('option'); opt.value = 'cloud'; mt.appendChild(opt); }
+                    opt.textContent = serviceLabel(adapter);
+                    mt.value = 'cloud';   // the just-configured disk is the likely migration target
+                }
+                return;
+            }
+            (r && r.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class || 'error' }); });
+        }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+    });
+})();
+
+// ---- Storage migration ----
+(function () {
+    function esc(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; }
+    var btn = document.getElementById('media-migrate-run');
+    if (!btn) { return; }
+    btn.addEventListener('click', function () {
+        var to   = document.getElementById('media-migrate-to').value;
+        var move = document.getElementById('media-migrate-move').checked;
+        var res  = document.getElementById('media-migrate-result');
+        var fb   = document.getElementById('media-migrate-feedback');
+        var ask  = move
+            ? 'MOVE all media to "' + to + '" and DELETE each original after it is copied? (Files already there are skipped.)'
+            : 'COPY all media to "' + to + '"? Originals are kept.';
+        if (!confirm(ask)) { return; }
+        res.innerHTML = '';
+        var fd = new URLSearchParams({ module: 'media', service: 'settings', method: 'migrateDisk', to: to, move: move ? '1' : '0' });
+        TigerButton.run(btn, function () {
+            return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
+                .then(function (r) { return r.json().catch(function () { return {}; }); });
+        }).then(function (r) {
+            if (r && r.result === 1 && r.data && r.data.summary) {
+                var s = r.data.summary, mb = Math.round((s.bytes || 0) / 1048576 * 10) / 10;
+                var html = 'Migrated <strong>' + s.rows + '</strong> file(s), ' + s.objects + ' object(s), ' + mb + ' MB'
+                    + (s.skipped ? ', ' + s.skipped + ' already present' : '')
+                    + (s.move ? ' — originals deleted' : ' — originals kept') + '.';
+                if (s.errors && s.errors.length) {
+                    res.innerHTML = '<div class="alert alert-warning mb-0 small">' + html
+                        + '<div class="mt-2 text-danger"><strong>' + s.errors.length + ' error(s):</strong><br>'
+                        + s.errors.map(esc).join('<br>') + '</div></div>';
+                } else {
+                    res.innerHTML = '<div class="alert alert-success mb-0 small">' + html + '</div>';
+                }
+                return;
+            }
+            (r && r.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class || 'error' }); });
+        }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+    });
+})();
 </script>

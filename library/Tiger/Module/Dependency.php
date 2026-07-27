@@ -118,6 +118,36 @@ class Tiger_Module_Dependency
     }
 
     /**
+     * The currently-ACTIVE modules that $slug is mutually exclusive with (module.json `conflict`).
+     *
+     * Read from the activating module's OWN declared conflict list (not the inverse) and filtered to
+     * modules that are both installed and active — those are the ones activation must deactivate first.
+     * Two conflicting modules can't run together (e.g. cloud-SDK providers that each bundle their own
+     * copy of a shared HTTP library). An inactive or absent conflict needs no action, so it's omitted.
+     *
+     * @param  string $slug the module slug being activated
+     * @return string[] the active module slugs that conflict with $slug
+     */
+    public static function conflicts($slug)
+    {
+        $slug = strtolower(basename((string) $slug));
+        $all  = Tiger_Module_Discovery::all();
+        $declared = isset($all[$slug]['conflict']) && is_array($all[$slug]['conflict']) ? $all[$slug]['conflict'] : [];
+        if (!$declared) { return []; }
+
+        $inactive = self::_inactiveSlugs();
+        $out = [];
+        foreach ($declared as $other) {
+            $other = strtolower(basename((string) $other));
+            if ($other === '' || $other === $slug) { continue; }
+            if (isset($all[$other]) && !in_array($other, $inactive, true)) {
+                $out[] = $other;   // installed AND active -> must be deactivated to activate $slug
+            }
+        }
+        return $out;
+    }
+
+    /**
      * Parse [requires] modules[] from a module dir's configs/dependency.ini into slug + constraint
      * pairs (lowercased slug, deduped by slug). Each entry is a bare slug or "slug <constraint>"
      * where the separator is whitespace, `@`, or `:` — e.g. "billing >=0.5.0-beta", "pay@^1.0".

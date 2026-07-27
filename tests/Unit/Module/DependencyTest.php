@@ -186,6 +186,33 @@ final class DependencyTest extends UnitTestCase
         $this->assertSame([], Tiger_Module_Dependency::dependents('solo'));
     }
 
+    // ---- conflicts() (mutual exclusion) ----------------------------------------
+
+    #[Test]
+    public function conflictsReturnsOnlyInstalledActiveConflicts(): void
+    {
+        // 'sdkaws' declares a conflict with two other providers; only 'sdkgcs' is installed.
+        $this->plantAppModule('sdkaws', [
+            'module.json' => json_encode(['slug' => 'sdkaws', 'name' => 'AWS SDK', 'conflict' => ['sdkgcs', 'sdkazure']]),
+        ]);
+        $this->plantAppModule('sdkgcs', [
+            'module.json' => json_encode(['slug' => 'sdkgcs', 'name' => 'GCS SDK']),
+        ]);
+        // No DB booted -> nothing inactive, so an installed conflict counts as active.
+        $this->assertSame(['sdkgcs'], Tiger_Module_Dependency::conflicts('sdkaws'));
+        // The relation is read from the activating module's OWN list — sdkgcs declares none.
+        $this->assertSame([], Tiger_Module_Dependency::conflicts('sdkgcs'));
+    }
+
+    #[Test]
+    public function aModuleWithNoConflictListHasNoConflicts(): void
+    {
+        $this->plantAppModule('plain', [
+            'module.json' => json_encode(['slug' => 'plain', 'name' => 'Plain']),
+        ]);
+        $this->assertSame([], Tiger_Module_Dependency::conflicts('plain'));
+    }
+
     private function rrmdir(string $dir): void
     {
         if (!is_dir($dir)) { return; }

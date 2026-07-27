@@ -142,7 +142,7 @@ $bySlug  = []; foreach ($modules as $mm) { $bySlug[$mm['slug']] = $mm; }
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-    /* ---- activate / deactivate (unchanged) ---- */
+    /* ---- activate / deactivate (conflict-aware) ---- */
     document.querySelectorAll('[data-mod-toggle]').forEach(function (btn) {
         btn.addEventListener('click', function () {
             var method = btn.getAttribute('data-mod-toggle'), slug = btn.getAttribute('data-slug');
@@ -160,16 +160,28 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 if (!confirm(msg)) { return; }
             }
-            var body = new URLSearchParams({ module: 'system', service: 'modules', method: method, slug: slug });
-            TigerButton.run(btn, function () {
-                return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
-                    .then(function (r) { return r.json(); });
-            })
-                .then(function (res) {
-                    if (res.result !== 1) { (res.messages || []).forEach(function (m) { alert(m.message); }); return; }
-                    window.location.reload();
-                })
-                .catch(function () {});
+            function send(extra) {
+                var body = new URLSearchParams(Object.assign({ module: 'system', service: 'modules', method: method, slug: slug }, extra || {}));
+                return TigerButton.run(btn, function () {
+                    return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
+                        .then(function (r) { return r.json(); });
+                });
+            }
+            send().then(function (res) {
+                if (res.result === 1) { window.location.reload(); return; }
+                // Mutually-exclusive module: offer to deactivate the active conflict(s) and retry.
+                if (res.data && res.data.conflicts && res.data.conflicts.length) {
+                    var names = res.data.conflicts.map(function (c) { return '"' + (c.name || c.slug) + '"'; }).join(', ');
+                    if (confirm('Activating "' + slug + '" will deactivate ' + names + ' (only one can be active at a time). Continue?')) {
+                        send({ confirm: '1' }).then(function (r2) {
+                            if (r2.result === 1) { window.location.reload(); return; }
+                            (r2.messages || []).forEach(function (m) { alert(m.message); });
+                        }).catch(function () {});
+                    }
+                    return;
+                }
+                (res.messages || []).forEach(function (m) { alert(m.message); });
+            }).catch(function () {});
         });
     });
 
