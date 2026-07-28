@@ -44,6 +44,39 @@ Both surface in the **same Add screen**. The Directory is the free/discovery tie
 the paid/private tier. State the tradeoff honestly in the UI: the Directory guarantees "code is reviewable";
 a paid module **relaxes that to informed trust in the vendor.**
 
+### 1a. Sources — the multi-source registry client (built)
+
+`Tiger_Module_Registry` reads an **ordered list of sources** (`Tiger_Module_Source`), not one feed, and
+**aggregates** them into the Add screen. A source is one of two kinds:
+
+| `kind` | Is | Trust |
+|---|---|---|
+| **`git-index`** | a serverless public `index.json` (a Directory) | reviewable, community-curated |
+| **`live-api`** | an operator endpoint serving the same index-shaped payload, *enriched* (ratings, downloads, a paid catalog) | operator-run — informed trust |
+
+**Both fetch a URL and yield the same `{modules, taxonomy}` shape**, so a marketplace and a directory compose
+uniformly. Two sources ship by default, **both removable**:
+
+- **`webtigers`** — a `live-api` marketplace ("marketplace #0"), priority `0`. Inert until its URL is set
+  (`tiger.modules.marketplace`); when configured it becomes the source of truth for the dynamic/commercial
+  layer.
+- **`tiger-vendors`** — the `git-index` Directory, priority `10`. URL config-overridable
+  (`tiger.modules.registry`); the free, reviewable catalog **and the resilient offline fallback**.
+
+**Ordering & dedup.** Sources sort by `priority` **ascending** — lower wins a slug collision, so an enriching
+marketplace (0) overlays the plain directory (10). A later source only *fills* fields the winner lacks and
+*appends* new slugs; each listing is stamped with its home `source_id`. **Taxonomy is unioned** across sources.
+
+**Degradation.** Each source is fetched + cached **independently**; a down source is skipped (its last-good
+cache served first), so the Add screen **never hard-fails** on one source's outage — if the marketplace is
+unreachable, the Directory still yields free modules.
+
+**The connected-marketplaces store.** An admin adds / removes / reorders / disables sources in the **config
+tier** — `tiger.modules.sources.<id>.{kind,url,priority,enabled,removable,label}` — never a table
+(config-discipline). This is the store the **CONNECT** step (§6) writes; a non-`removable` default can be
+disabled but not deleted. `Tiger_Module_Registry::sources()` returns the resolved, ordered list for a settings
+UI to render.
+
 ---
 
 ## 2. A module declares how it's sold — `module.json` `pricing`

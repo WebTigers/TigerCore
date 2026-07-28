@@ -2,32 +2,51 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
- * Tiger_Module_Registry — the client for the open Vendor Registry (WebTigers/TigerVendors).
+ * Tiger_Module_Registry — the client for the module catalog, now **multi-source**.
  *
- * The registry is just a public git repo: one JSON file per module under /data, compiled by
- * CI into a single `index.json` search index Tiger fetches + caches (a few times/day). No
- * server, no DB — GitHub is the infrastructure. If the registry isn't reachable yet (the repo
- * doesn't exist / offline), search returns empty and the admin falls back to Install-from-URL.
+ * The Add screen aggregates an **ordered list of sources** (`Tiger_Module_Source`), not a single
+ * feed. Two are shipped by default (both removable, admin-overridable):
  *
- * The index URL is config-overridable (`tiger.modules.registry`) so a fork can point Tiger at
- * a different catalog — the whole thing is decentralized by design.
+ *  - **`webtigers` — a live-API marketplace ("marketplace #0")**, priority 0. The source of truth
+ *    for the *dynamic/commercial* layer (ratings, downloads, paid catalog). Inert until its URL is
+ *    configured (`tiger.modules.marketplace`) — phase 2 stands up the endpoint.
+ *  - **`tiger-vendors` — the git Directory**, priority 10. A public `index.json` compiled by CI
+ *    from `WebTigers/TigerVendors` — the free, reviewable community catalog and the resilient
+ *    offline **fallback**. Its URL stays config-overridable (`tiger.modules.registry`).
+ *
+ * Each source is fetched + cached independently (GitHub is the infrastructure for a git index; no
+ * server, no DB). `index()` merges them: modules are deduped by slug — the **lower-priority source
+ * wins** (an enriching marketplace overlays the plain directory), a later source only *fills* fields
+ * the winner is missing and *appends* new slugs; taxonomy is unioned. A down source is skipped (its
+ * last-good cache is served first), so the Add screen **never hard-fails** on one source's outage —
+ * if the marketplace is unreachable, the directory still yields free modules.
+ *
+ * An admin adds / removes / reorders / disables sources in the config tier
+ * (`tiger.modules.sources.<id>.*`) — the store a future "connect a marketplace" UI writes; no table.
+ * If the whole registry is unreachable, search returns empty and the admin falls back to
+ * Install-from-URL.
  *
  * @api
+ * @see Tiger_Module_Source
  */
 class Tiger_Module_Registry
 {
     const DEFAULT_INDEX     = 'https://raw.githubusercontent.com/WebTigers/TigerVendors/main/data/index.json';
     const CACHE_TTL         = 10800;   // 3h — a few refreshes a day, per the discovery model
-    const CACHE_FILE        = 'registry-index.json';
+    const CACHE_FILE        = 'registry-index.json';   // the Directory source's cache (legacy-stable name)
+
+    /** The shipped default source ids. */
+    const SOURCE_MARKETPLACE = 'webtigers';      // live-API, "marketplace #0" (dynamic/commercial)
+    const SOURCE_DIRECTORY   = 'tiger-vendors';  // git index (free presence + offline fallback)
 
     /** Result orderings for the directory. `featured` = the index's own neutral order (no paid placement). */
     const SORTS = ['featured', 'title', 'latest'];
 
     /**
-     * True if the registry index is reachable (fetch or fresh cache).
+     * True if the registry is reachable (at least one source resolved via fetch or fresh cache).
      *
-     * @param  bool $refresh bypass the cache and re-fetch now
-     * @return bool true if the index could be loaded
+     * @param  bool $refresh bypass the caches and re-fetch now
+     * @return bool true if the merged index could be loaded
      */
     public static function available($refresh = false)
     {
@@ -35,14 +54,14 @@ class Tiger_Module_Registry
     }
 
     /**
-     * Search the registry; [] when unavailable or no match. Matches name/slug/description/
+     * Search the aggregated registry; [] when unavailable or no match. Matches name/slug/description/
      * keywords/vendor/type, then orders by $sort. The directory is **neutral** — there is no paid
      * placement here; sponsorship/promotion is an on-platform concern (a marketplace's points system),
      * not a boost baked into this distributed catalog.
      *
      * @param  string $query   the search term ('' returns all modules)
      * @param  string $sort    'featured' (the index's neutral order), 'title', or 'latest'
-     * @param  bool   $refresh bypass the cache and re-fetch the index now
+     * @param  bool   $refresh bypass the caches and re-fetch the index now
      * @return array the matching module entries
      */
     public static function search($query, $sort = 'featured', $refresh = false)
@@ -151,42 +170,68 @@ class Tiger_Module_Registry
     }
 
     /**
-     * The (cached) registry index array, or null if unreachable.
+     * The **merged** registry index across all active sources, or null if none is reachable.
      *
-     * @param  bool $refresh bypass the cache and re-fetch now (the fresh copy is written back)
-     * @return array|null the decoded index, or null if unreachable
+     * Sources are walked in priority order (ascending). Modules dedupe by slug — the first
+     * (lower-priority) source to define a slug **wins**; a later source only fills fields the winner
+     * lacks (enrich) and appends slugs the winner didn't have. Each module is annotated with its
+     * home `source_id`. Taxonomy `types`/`categories` are unioned by id (first-seen wins).
+     *
+     * @param  bool $refresh bypass the caches and re-fetch every source now
+     * @return array|null the merged `{modules, taxonomy}`, or null if nothing resolved
      */
     public static function index($refresh = false)
     {
-        $cache = self::_cacheFile();
-        if (!$refresh && $cache && is_file($cache) && (time() - filemtime($cache)) < self::CACHE_TTL) {
-            $j = json_decode((string) @file_get_contents($cache), true);
-            if (is_array($j)) { return $j; }
+        $merged  = ['modules' => [], 'taxonomy' => []];
+        $bySlug  = [];   // slug => index into $merged['modules']
+        $seenTax = ['types' => [], 'categories' => []];
+        $any     = false;
+
+        foreach (self::_activeSources() as $source) {
+            $data = self::_fetchSource($source, $refresh);
+            if ($data === null) { continue; }   // a down source is skipped, never fatal
+            $any = true;
+
+            $mods = (isset($data['modules']) && is_array($data['modules'])) ? $data['modules'] : [];
+            foreach ($mods as $m) {
+                if (!is_array($m)) { continue; }
+                $m['source_id'] = $source->id;
+                $slug = (string) ($m['slug'] ?? '');
+                if ($slug === '') { $merged['modules'][] = $m; continue; }
+                if (!isset($bySlug[$slug])) {
+                    $bySlug[$slug] = count($merged['modules']);
+                    $merged['modules'][] = $m;
+                } else {
+                    // The higher-precedence (earlier) source already owns this slug; a later one
+                    // only ENRICHES — `+=` keeps the winner's keys, fills only what it's missing.
+                    $merged['modules'][$bySlug[$slug]] += $m;
+                }
+            }
+
+            $tax = (isset($data['taxonomy']) && is_array($data['taxonomy'])) ? $data['taxonomy'] : [];
+            foreach (['types', 'categories'] as $axis) {
+                $rows = (isset($tax[$axis]) && is_array($tax[$axis])) ? $tax[$axis] : [];
+                foreach ($rows as $row) {
+                    $id = (string) ($row['id'] ?? '');
+                    if ($id === '' || isset($seenTax[$axis][$id])) { continue; }
+                    $seenTax[$axis][$id] = true;
+                    $merged['taxonomy'][$axis][] = $row;
+                }
+            }
         }
 
-        $body = Tiger_Module_Github::get(self::indexUrl());
-        if ($body === null) {
-            // serve a stale cache if we have one (offline resilience), else null
-            if ($cache && is_file($cache)) {
-                $j = json_decode((string) @file_get_contents($cache), true);
-                return is_array($j) ? $j : null;
-            }
-            return null;
-        }
-        $j = json_decode($body, true);
-        if (!is_array($j)) { return null; }
-        if ($cache) { @file_put_contents($cache, $body); }
-        return $j;
+        return $any ? $merged : null;
     }
 
     /**
      * The registry's filter vocabulary — the top-level `types` (filter doors) and functional
-     * `categories` (each scoped to one or more types), as declared in the registry's taxonomy.json
-     * and folded into the index by the registry compiler. Powers the data-driven Add-screen filters
-     * so a new module type never needs a code change here. Empty arrays if the index is unreachable
-     * or predates the taxonomy (the client then derives the doors from the results it has).
+     * `categories` (each scoped to one or more types), unioned across every active source (declared
+     * in each source's taxonomy.json and folded into its index by its compiler). Powers the
+     * data-driven Add-screen filters so a new module type never needs a code change here. Empty
+     * arrays if nothing is reachable or the indexes predate the taxonomy (the client then derives the
+     * doors from the results it has).
      *
-     * @param  bool $refresh bypass the cache and re-fetch the index now
+     * @param  bool $refresh bypass the caches and re-fetch now
      * @return array{types:array,categories:array}
      */
     public static function taxonomy($refresh = false)
@@ -199,22 +244,145 @@ class Tiger_Module_Registry
         ];
     }
 
+    // ---- sources -----------------------------------------------------------------------------
+
     /**
-     * The registry index URL — the configured `tiger.modules.registry`, else DEFAULT_INDEX.
+     * The ordered list of configured sources (shipped defaults overlaid by the config tier), sorted
+     * by priority ascending. Includes disabled sources (a settings UI lists them to toggle); use
+     * `_activeSources()` for the fetch set.
+     *
+     * @return Tiger_Module_Source[]
+     */
+    public static function sources()
+    {
+        $byId = [];
+        foreach (self::_defaultSources() as $s) { $byId[$s->id] = $s; }
+        foreach (self::_configSources() as $id => $spec) {
+            if (isset($byId[$id])) { $byId[$id]->apply($spec); }
+            else { $spec['id'] = $id; $byId[$id] = new Tiger_Module_Source($spec); }
+        }
+        $all = array_values($byId);
+        usort($all, static fn($a, $b) => ($a->priority <=> $b->priority) ?: strcmp($a->id, $b->id));
+        return $all;
+    }
+
+    /**
+     * The primary git Directory index URL — the configured `tiger.modules.registry`, else
+     * DEFAULT_INDEX. (Kept for back-compat + the Add-screen "registry URL" hint; it feeds the
+     * `tiger-vendors` source's URL.)
      *
      * @return string the index URL
      */
     public static function indexUrl()
     {
-        $cfg = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
-        $t   = $cfg ? $cfg->get('tiger') : null;
-        $mod = $t ? $t->get('modules') : null;
+        $mod = self::_modulesConfig();
         $url = ($mod && $mod->get('registry')) ? (string) $mod->registry : '';
         return $url !== '' ? $url : self::DEFAULT_INDEX;
     }
 
+    /**
+     * The WebTigers marketplace API URL ("marketplace #0"), from `tiger.modules.marketplace`; '' =
+     * inert (the live-API source stays disabled) until phase 2 configures the endpoint.
+     *
+     * @return string the marketplace endpoint, or '' when unset
+     */
+    public static function marketplaceUrl()
+    {
+        $mod = self::_modulesConfig();
+        return ($mod && $mod->get('marketplace')) ? (string) $mod->marketplace : '';
+    }
+
+    /** The two shipped default sources (marketplace #0 first, then the git Directory). */
+    protected static function _defaultSources()
+    {
+        $mktUrl = self::marketplaceUrl();
+        return [
+            new Tiger_Module_Source([
+                'id'      => self::SOURCE_MARKETPLACE, 'label' => 'WebTigers Marketplace',
+                'kind'    => Tiger_Module_Source::KIND_LIVE_API, 'url' => $mktUrl,
+                'priority' => 0, 'enabled' => $mktUrl !== '', 'removable' => true, 'default' => true,
+            ]),
+            new Tiger_Module_Source([
+                'id'      => self::SOURCE_DIRECTORY, 'label' => 'Tiger Directory',
+                'kind'    => Tiger_Module_Source::KIND_GIT_INDEX, 'url' => self::indexUrl(),
+                'priority' => 10, 'enabled' => true, 'removable' => true, 'default' => true,
+                'cache'   => self::CACHE_FILE,
+            ]),
+        ];
+    }
+
+    /** Admin-declared sources from the config tier (`tiger.modules.sources.<id>.*`), id => spec. */
+    protected static function _configSources()
+    {
+        $mod = self::_modulesConfig();
+        $src = $mod ? $mod->get('sources') : null;
+        if (!$src instanceof Zend_Config) { return []; }
+        $out = [];
+        foreach ($src as $id => $spec) {
+            $out[(string) $id] = ($spec instanceof Zend_Config) ? $spec->toArray() : [];
+        }
+        return $out;
+    }
+
+    /** The fetchable subset of sources (enabled with a URL), in priority order. */
+    protected static function _activeSources()
+    {
+        return array_values(array_filter(self::sources(), static fn($s) => $s->isFetchable()));
+    }
+
+    /** The `tiger.modules` config node, or null when config isn't registered. */
+    protected static function _modulesConfig()
+    {
+        $cfg = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
+        $t   = $cfg ? $cfg->get('tiger') : null;
+        return $t ? $t->get('modules') : null;
+    }
+
+    // ---- per-source fetch + cache ------------------------------------------------------------
+
+    /**
+     * Fetch one source's index (cached per source; stale-served on an outage), or null if
+     * unreachable with no cache. Mirrors the old single-source cache dance, per source.
+     *
+     * @param  Tiger_Module_Source $source  the source to load
+     * @param  bool                $refresh bypass this source's fresh cache and re-fetch
+     * @return array|null the decoded index, or null
+     */
+    protected static function _fetchSource(Tiger_Module_Source $source, $refresh)
+    {
+        $cache = self::_cacheFile($source->cacheFile());
+        if (!$refresh && $cache && is_file($cache) && (time() - filemtime($cache)) < self::CACHE_TTL) {
+            $j = json_decode((string) @file_get_contents($cache), true);
+            if (is_array($j)) { return $j; }
+        }
+
+        $body = self::_fetch($source);
+        if ($body === null) {
+            if ($cache && is_file($cache)) {   // serve a stale cache (offline resilience)
+                $j = json_decode((string) @file_get_contents($cache), true);
+                return is_array($j) ? $j : null;
+            }
+            return null;
+        }
+        $j = json_decode($body, true);
+        if (!is_array($j)) { return null; }
+        if ($cache) { @file_put_contents($cache, $body); }
+        return $j;
+    }
+
+    /**
+     * Fetch a source's raw body. Both kinds are a plain HTTP GET of an index-shaped JSON document
+     * today; `kind` is the seam where a live-API source later gains authenticated / ETag-aware
+     * fetching (phase 2). Returns the body string, or null on failure.
+     */
+    protected static function _fetch(Tiger_Module_Source $source)
+    {
+        return Tiger_Module_Github::get($source->url);
+    }
+
     protected static function _cacheFile($name = self::CACHE_FILE)
     {
+        if ((string) $name === '') { return null; }
         $base = defined('APPLICATION_ROOT') ? rtrim(APPLICATION_ROOT, '/') : rtrim(getcwd(), '/');
         $dir  = $base . '/storage/cache';
         if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
