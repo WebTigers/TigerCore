@@ -17,12 +17,10 @@
 class Tiger_Module_Registry
 {
     const DEFAULT_INDEX     = 'https://raw.githubusercontent.com/WebTigers/TigerVendors/main/data/index.json';
-    const DEFAULT_SPONSORS  = 'https://raw.githubusercontent.com/WebTigers/TigerSponsors/main/sponsors.json';
     const CACHE_TTL         = 10800;   // 3h — a few refreshes a day, per the discovery model
     const CACHE_FILE        = 'registry-index.json';
-    const CACHE_FILE_SPONS  = 'registry-sponsored.json';
 
-    /** Result orderings for the directory. Default = featured (curated placement floats up). */
+    /** Result orderings for the directory. `featured` = the index's own neutral order (no paid placement). */
     const SORTS = ['featured', 'title', 'latest'];
 
     /**
@@ -38,12 +36,13 @@ class Tiger_Module_Registry
 
     /**
      * Search the registry; [] when unavailable or no match. Matches name/slug/description/
-     * keywords/vendor/type. Each hit is enriched with curated placement (priority + a `sponsored`
-     * badge) from the sponsored overlay, then ordered by $sort.
+     * keywords/vendor/type, then orders by $sort. The directory is **neutral** — there is no paid
+     * placement here; sponsorship/promotion is an on-platform concern (a marketplace's points system),
+     * not a boost baked into this distributed catalog.
      *
      * @param  string $query   the search term ('' returns all modules)
-     * @param  string $sort    'featured' (default: sponsored priority, then title), 'title', or 'latest'
-     * @param  bool   $refresh bypass the cache and re-fetch the index (+ sponsor overlay) now
+     * @param  string $sort    'featured' (the index's neutral order), 'title', or 'latest'
+     * @param  bool   $refresh bypass the cache and re-fetch the index now
      * @return array the matching module entries
      */
     public static function search($query, $sort = 'featured', $refresh = false)
@@ -51,9 +50,6 @@ class Tiger_Module_Registry
         $index = self::index($refresh);
         if (!$index) {
             return [];
-        }
-        if ($refresh) {
-            self::sponsored(true);   // re-fetch the placement overlay too, so a refresh is a full one
         }
         $modules = isset($index['modules']) && is_array($index['modules']) ? $index['modules'] : (array) $index;
         $q = strtolower(trim((string) $query));
@@ -67,32 +63,11 @@ class Tiger_Module_Registry
                     . ' ' . ($m['type'] ?? ''));
                 if (strpos($hay, $q) === false) { continue; }
             }
-            $out[] = self::_resolveImages(self::_mergeSponsor($m));
+            $out[] = self::_resolveImages($m);
         }
 
         self::_sort($out, in_array($sort, self::SORTS, true) ? $sort : 'featured');
         return $out;
-    }
-
-    /**
-     * Attach curated placement to a listing from the sponsored overlay (keyed by <Org>_<Repo>,
-     * derived from the repo URL). Sets `priority` (0 when unsponsored) + a `sponsored` flag/label.
-     *
-     * @param  array $m the listing
-     * @return array the listing with placement fields
-     */
-    protected static function _mergeSponsor(array $m)
-    {
-        $m['priority'] = 0;
-        $key = preg_match('#github\.com/([^/]+)/([^/]+?)/?$#i', (string) ($m['repository'] ?? ''), $r)
-            ? $r[1] . '_' . $r[2] : '';
-        $sp = $key ? (self::sponsored()[$key] ?? null) : null;
-        if (is_array($sp)) {
-            $m['priority']        = (int) ($sp['priority'] ?? 0);
-            $m['sponsored']       = true;
-            $m['sponsored_label'] = (string) ($sp['label'] ?? 'Sponsored');
-        }
-        return $m;
     }
 
     /**
@@ -152,7 +127,12 @@ class Tiger_Module_Registry
         return $m;
     }
 
-    /** Order results in place: featured (priority then title), title (A–Z), or latest (newest review). */
+    /**
+     * Order results in place: `title` (A–Z), `latest` (newest review), or `featured` — which is now the
+     * index's own neutral order (the compiler sorts it alphabetically). There is no paid placement in the
+     * directory: **sponsorship is on-platform** (a marketplace's points system), never a boost baked into
+     * this distributed Add-screen catalog.
+     */
     protected static function _sort(array &$out, $sort)
     {
         if ($sort === 'title') {
@@ -160,68 +140,14 @@ class Tiger_Module_Registry
         } elseif ($sort === 'latest') {
             $at = static fn($m) => (string) ($m['review']['reviewed_at'] ?? '');
             usort($out, static fn($a, $b) => strcmp($at($b), $at($a)) ?: strcmp(self::_title($a), self::_title($b)));
-        } else { // featured
-            usort($out, static fn($a, $b) => (($b['priority'] ?? 0) <=> ($a['priority'] ?? 0))
-                ?: strcmp(self::_title($a), self::_title($b)));
         }
+        // 'featured' → leave the index's neutral order untouched.
     }
 
     /** A listing's display title (the registry uses `module`; tolerate a legacy `name`). */
     protected static function _title(array $m)
     {
         return strtolower((string) ($m['module'] ?? $m['name'] ?? ''));
-    }
-
-    /**
-     * The curated sponsorship overlay — a { "<Org>_<Repo>": {priority,label,until} } map fetched
-     * from data/sponsored.json alongside the index and cached like it (so placement updates need
-     * no index recompile). Expired (`until` < today) or malformed entries are dropped. [] if none.
-     *
-     * @param  bool $refresh bypass the per-request memo + file cache and re-fetch now
-     * @return array the active sponsorship map
-     */
-    public static function sponsored($refresh = false)
-    {
-        static $mem = null;
-        if ($mem !== null && !$refresh) { return $mem; }
-
-        $cache = self::_cacheFile(self::CACHE_FILE_SPONS);
-        $body  = (!$refresh && $cache && is_file($cache) && (time() - filemtime($cache)) < self::CACHE_TTL)
-            ? (string) @file_get_contents($cache) : '';
-        if ($body === '') {
-            $fetched = Tiger_Module_Github::get(self::sponsoredUrl());
-            if ($fetched !== null) {
-                $body = $fetched;
-                if ($cache) { @file_put_contents($cache, $body); }
-            } elseif ($cache && is_file($cache)) {
-                $body = (string) @file_get_contents($cache);   // stale is fine (offline)
-            }
-        }
-
-        $j    = $body !== '' ? json_decode($body, true) : null;
-        $list = (is_array($j) && isset($j['listings']) && is_array($j['listings'])) ? $j['listings'] : [];
-        $today = gmdate('Y-m-d');
-        $mem = [];
-        foreach ($list as $k => $v) {
-            if (is_array($v) && (empty($v['until']) || $v['until'] >= $today)) { $mem[$k] = $v; }
-        }
-        return $mem;
-    }
-
-    /**
-     * The sponsors-overlay URL — the curated placement map. Its own repo (WebTigers/TigerSponsors), not a
-     * file in the open Vendors registry, so access control is just repo permissions. Overridable via
-     * `tiger.modules.sponsors` (a fork can disable placement or point at its own file).
-     *
-     * @return string the sponsors.json URL
-     */
-    public static function sponsoredUrl()
-    {
-        $cfg = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
-        $t   = $cfg ? $cfg->get('tiger') : null;
-        $mod = $t ? $t->get('modules') : null;
-        $url = ($mod && $mod->get('sponsors')) ? (string) $mod->sponsors : '';
-        return $url !== '' ? $url : self::DEFAULT_SPONSORS;
     }
 
     /**
