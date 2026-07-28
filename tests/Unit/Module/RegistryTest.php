@@ -90,6 +90,32 @@ final class RegistryTest extends UnitTestCase
         $this->assertIsArray(Tiger_Module_Registry::index());
     }
 
+    // ---- taxonomy (the data-driven filter vocabulary) ----------------------
+
+    #[Test]
+    public function taxonomy_returns_the_types_and_categories_folded_into_the_index(): void
+    {
+        $this->primeIndex([
+            'taxonomy' => [
+                'types'      => [['id' => 'app', 'label' => 'Apps'], ['id' => 'developer', 'label' => 'Developer']],
+                'categories' => [['id' => 'commerce', 'label' => 'Commerce', 'types' => ['app']]],
+            ],
+            'modules' => [],
+        ]);
+        $tax = Tiger_Module_Registry::taxonomy();
+        $this->assertSame(['app', 'developer'], array_column($tax['types'], 'id'));
+        $this->assertSame(['commerce'], array_column($tax['categories'], 'id'));
+    }
+
+    #[Test]
+    public function taxonomy_is_empty_arrays_when_the_index_predates_it(): void
+    {
+        $this->primeTwoModuleIndex();                 // an index with no `taxonomy` key
+        $tax = Tiger_Module_Registry::taxonomy();
+        $this->assertSame([], $tax['types']);
+        $this->assertSame([], $tax['categories']);
+    }
+
     // ---- search filtering ---------------------------------------------------
 
     #[Test]
