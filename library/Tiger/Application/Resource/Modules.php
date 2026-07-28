@@ -43,6 +43,11 @@ class Tiger_Application_Resource_Modules extends Zend_Application_Resource_Modul
         }
 
         try {
+            // The strip reads the `module` table, so the DB adapter MUST be up first. This resource can
+            // be triggered (via bootstrap('modules')) by an _init method that runs BEFORE _initDb — in
+            // which case inactiveSlugs() would throw, the catch would swallow it, and EVERY module would
+            // stay active (deactivation silently a no-op). Bootstrapping db here guarantees the adapter.
+            $this->getBootstrap()->bootstrap('db');
             foreach ((new Tiger_Model_Module())->inactiveSlugs() as $slug) {
                 $slug = (string) $slug;
                 // never strip the default (core) namespace; the protected set is enforced by the
