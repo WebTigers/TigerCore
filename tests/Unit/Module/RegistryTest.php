@@ -11,11 +11,11 @@ use Tiger_Module_Registry;
 
 /**
  * Tiger_Module_Registry — the client for the open Vendor Registry. Driven with NO network by PRE-SEEDING
- * the fresh file cache the client reads before it ever calls GitHub: a primed `registry-index.json` +
- * `registry-sponsored.json` make index()/sponsored()/search() resolve offline. Covered: search filtering,
- * the three orderings, curated-sponsor merge (priority + badge), repo-relative media resolution (logo /
- * screenshots / YouTube+Vimeo+mp4 video), and the config-overridable index/sponsor URLs. The genuine HTTP
- * fetch + the offline-null fallback are live territory, left to integration.
+ * the fresh file cache the client reads before it ever calls GitHub: a primed `registry-index.json` makes
+ * index()/search()/taxonomy() resolve offline. Covered: search filtering, the neutral orderings (the
+ * directory has NO paid placement — promotion is on-platform), repo-relative media resolution (logo /
+ * screenshots / YouTube+Vimeo+mp4 video), the taxonomy, and the config-overridable index URL. The genuine
+ * HTTP fetch + the offline-null fallback are live territory, left to integration.
  */
 #[CoversClass(Tiger_Module_Registry::class)]
 final class RegistryTest extends UnitTestCase
@@ -29,8 +29,6 @@ final class RegistryTest extends UnitTestCase
         parent::setUp();
         $this->cacheDir = rtrim(APPLICATION_ROOT, '/') . '/storage/cache';
         @mkdir($this->cacheDir, 0775, true);
-        // A consistent sponsor overlay for the whole class (Registry::sponsored() memoizes per-process).
-        $this->primeSponsored(['Acme_Widget' => ['priority' => 50, 'label' => 'Sponsored']]);
     }
 
     protected function tearDown(): void
@@ -46,14 +44,7 @@ final class RegistryTest extends UnitTestCase
         $this->wrote[] = $file;
     }
 
-    private function primeSponsored(array $listings): void
-    {
-        $file = $this->cacheDir . '/registry-sponsored.json';
-        file_put_contents($file, json_encode(['listings' => $listings]));
-        $this->wrote[] = $file;
-    }
-
-    /** A minimal two-module index: one sponsored (Acme/Widget), one not (Beta/Gadget). */
+    /** A minimal two-module index (Acme/Widget, Beta/Gadget). */
     private function primeTwoModuleIndex(): void
     {
         $this->primeIndex(['modules' => [
@@ -135,34 +126,23 @@ final class RegistryTest extends UnitTestCase
         $this->assertSame([], Tiger_Module_Registry::search('nonexistent-term'), 'a miss returns []');
     }
 
-    // ---- sponsor merge + orderings -----------------------------------------
+    // ---- orderings (the directory is neutral — no paid placement) -----------
 
     #[Test]
-    public function search_merges_the_curated_sponsor_placement(): void
+    public function the_directory_is_neutral_no_priority_or_sponsored_fields(): void
     {
         $this->primeTwoModuleIndex();
-        $rows = Tiger_Module_Registry::search('widget');
-
-        $this->assertSame(50, $rows[0]['priority'], 'the sponsored priority is attached');
-        $this->assertTrue($rows[0]['sponsored']);
-        $this->assertSame('Sponsored', $rows[0]['sponsored_label']);
+        $widget = Tiger_Module_Registry::search('widget')[0];
+        $this->assertArrayNotHasKey('priority', $widget, 'no paid-placement priority in the directory');
+        $this->assertArrayNotHasKey('sponsored', $widget, 'no sponsored badge — promotion is on-platform');
     }
 
     #[Test]
-    public function an_unsponsored_module_gets_zero_priority_and_no_badge(): void
+    public function featured_sort_preserves_the_index_neutral_order(): void
     {
-        $this->primeTwoModuleIndex();
-        $gadget = Tiger_Module_Registry::search('gadget')[0];
-        $this->assertSame(0, $gadget['priority']);
-        $this->assertArrayNotHasKey('sponsored', $gadget);
-    }
-
-    #[Test]
-    public function featured_sort_floats_the_sponsored_module_to_the_top(): void
-    {
-        $this->primeTwoModuleIndex();
+        $this->primeTwoModuleIndex();   // primed order: Widget, then Gadget
         $rows = Tiger_Module_Registry::search('', 'featured');
-        $this->assertSame('widget', $rows[0]['slug'], 'sponsored (priority 50) leads featured');
+        $this->assertSame(['widget', 'gadget'], [$rows[0]['slug'], $rows[1]['slug']], 'featured = the index order');
     }
 
     #[Test]
@@ -186,7 +166,7 @@ final class RegistryTest extends UnitTestCase
     {
         $this->primeTwoModuleIndex();
         $rows = Tiger_Module_Registry::search('', 'bogus-sort');
-        $this->assertSame('widget', $rows[0]['slug']);
+        $this->assertSame('widget', $rows[0]['slug']);   // featured = index order (Widget first)
     }
 
     // ---- media resolution ---------------------------------------------------
@@ -236,16 +216,11 @@ final class RegistryTest extends UnitTestCase
     // ---- config-overridable endpoints --------------------------------------
 
     #[Test]
-    public function index_and_sponsor_urls_default_then_honor_a_config_override(): void
+    public function index_url_defaults_then_honors_a_config_override(): void
     {
         $this->assertSame(Tiger_Module_Registry::DEFAULT_INDEX, Tiger_Module_Registry::indexUrl());
-        $this->assertSame(Tiger_Module_Registry::DEFAULT_SPONSORS, Tiger_Module_Registry::sponsoredUrl());
 
-        $this->setConfig(['tiger' => ['modules' => [
-            'registry' => 'https://example.test/index.json',
-            'sponsors' => 'https://example.test/sponsors.json',
-        ]]]);
+        $this->setConfig(['tiger' => ['modules' => ['registry' => 'https://example.test/index.json']]]);
         $this->assertSame('https://example.test/index.json', Tiger_Module_Registry::indexUrl());
-        $this->assertSame('https://example.test/sponsors.json', Tiger_Module_Registry::sponsoredUrl());
     }
 }
