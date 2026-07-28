@@ -200,6 +200,10 @@ body {
   .mod-shot-vid:hover img{opacity:.8;}
   .mod-type-filter{gap:.4rem;}
   .mod-type-filter .nav-link{padding:.25rem .8rem;font-size:.8125rem;}
+  /* Secondary category filter — scoped to the active type, de-emphasized under the type pills */
+  .mod-cat-filter{gap:.35rem;}
+  .mod-cat-filter .nav-link{padding:.15rem .65rem;font-size:.75rem;border-radius:1rem;color:var(--bs-secondary-color);}
+  .mod-cat-filter .nav-link.active{background:var(--bs-secondary-bg);color:var(--bs-emphasis-color);}
   /* Muuri masonry grid of directory cards (variable height; theme cards show a full hero) */
   .mod-grid{position:relative;}
   .mod-grid-item{display:block;position:absolute;width:50%;margin:0;padding:.5rem;box-sizing:border-box;z-index:1;}

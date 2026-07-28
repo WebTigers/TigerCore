@@ -254,6 +254,26 @@ class Tiger_Module_Registry
     }
 
     /**
+     * The registry's filter vocabulary — the top-level `types` (filter doors) and functional
+     * `categories` (each scoped to one or more types), as declared in the registry's taxonomy.json
+     * and folded into the index by the registry compiler. Powers the data-driven Add-screen filters
+     * so a new module type never needs a code change here. Empty arrays if the index is unreachable
+     * or predates the taxonomy (the client then derives the doors from the results it has).
+     *
+     * @param  bool $refresh bypass the cache and re-fetch the index now
+     * @return array{types:array,categories:array}
+     */
+    public static function taxonomy($refresh = false)
+    {
+        $index = self::index($refresh);
+        $tax   = (is_array($index) && isset($index['taxonomy']) && is_array($index['taxonomy'])) ? $index['taxonomy'] : [];
+        return [
+            'types'      => isset($tax['types']) && is_array($tax['types']) ? array_values($tax['types']) : [],
+            'categories' => isset($tax['categories']) && is_array($tax['categories']) ? array_values($tax['categories']) : [],
+        ];
+    }
+
+    /**
      * The registry index URL — the configured `tiger.modules.registry`, else DEFAULT_INDEX.
      *
      * @return string the index URL

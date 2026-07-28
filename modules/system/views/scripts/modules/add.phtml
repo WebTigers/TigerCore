@@ -55,13 +55,12 @@ $registryHasData = !empty($this->registryHasData);
                         </select>
                         <button type="button" class="btn btn-outline-secondary" id="mod-refresh" aria-label="Refresh directory" title="Refresh directory — re-fetch the catalog now (it's otherwise cached for a few hours)"><i class="fa-solid fa-arrows-rotate"></i></button>
                     </div>
-                    <ul class="nav nav-pills mod-type-filter mb-3" id="mod-type-filter">
-                        <li class="nav-item"><button type="button" class="nav-link active" data-type="">All</button></li>
-                        <li class="nav-item"><button type="button" class="nav-link" data-type="theme">Themes</button></li>
-                        <li class="nav-item"><button type="button" class="nav-link" data-type="app">Apps</button></li>
-                        <li class="nav-item"><button type="button" class="nav-link" data-type="plugin">Plugins</button></li>
-                        <li class="nav-item"><button type="button" class="nav-link" data-type="code">Code</button></li>
-                    </ul>
+                    <!-- Type + category filters are DATA-DRIVEN from the registry taxonomy (never
+                         hardcoded here) — the doors are owned by the registry's taxonomy.json and
+                         travel in the search payload. JS renders these; a fallback derives the type
+                         pills from the results if the taxonomy is unreachable. -->
+                    <ul class="nav nav-pills mod-type-filter mb-2" id="mod-type-filter"></ul>
+                    <ul class="nav nav-pills mod-cat-filter mb-3 d-none" id="mod-cat-filter"></ul>
                     <div id="mod-results"></div>
                 <?php endif; ?>
             </div>
@@ -275,19 +274,64 @@ document.addEventListener('DOMContentLoaded', function () {
     // Registry search + type filter — a Muuri masonry grid (variable-height cards; theme cards
     // show their hero full-height). Search re-fetches + rebuilds; the type pills filter in place.
     var searchEl=document.getElementById('mod-search'), sortEl=document.getElementById('mod-sort'),
-        results=document.getElementById('mod-results'), typeFilter=document.getElementById('mod-type-filter'), t;
-    var allResults=[], activeType='', grid=null;
+        results=document.getElementById('mod-results'), typeFilter=document.getElementById('mod-type-filter'),
+        catFilter=document.getElementById('mod-cat-filter'), t;
+    var allResults=[], activeType='', activeCat='', grid=null,
+        typeLabels={}, catsByType={}, pillsBuilt=false;
     if (searchEl){
         searchEl.addEventListener('input', function(){ clearTimeout(t); t=setTimeout(runSearch,250); });
         if (sortEl){ sortEl.addEventListener('change', runSearch); }
         runSearch();
     }
-    if (typeFilter){
+    // Title-case a bare id for the fallback labels (no taxonomy → derive doors from the results).
+    function humanize(id){ return String(id||'').replace(/[-_]/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();}); }
+    // Fold the registry taxonomy into fast lookup maps (id→label, type→[categories]).
+    function setTaxonomy(tax){
+        typeLabels={}; catsByType={};
+        var types=(tax&&tax.types)||[], cats=(tax&&tax.categories)||[];
+        if (!types.length){                                    // FALLBACK: derive doors from the results
+            var seen={};
+            allResults.forEach(function(m){ var ty=m.type; if(ty && !seen[ty]){ seen[ty]=1; types.push({id:ty,label:humanize(ty)}); } });
+            types.sort(function(a,b){ return a.label.localeCompare(b.label); });
+        }
+        types.forEach(function(ty){ typeLabels[ty.id]=ty.label||humanize(ty.id); });
+        cats.forEach(function(c){ (c.types||[]).forEach(function(ty){ (catsByType[ty]=catsByType[ty]||[]).push(c); }); });
+        return types;
+    }
+    function renderTypePills(types){
+        if (!typeFilter){ return; }
+        var html='<li class="nav-item"><button type="button" class="nav-link'+(activeType===''?' active':'')+'" data-type="">All</button></li>';
+        types.forEach(function(ty){
+            html+='<li class="nav-item"><button type="button" class="nav-link'+(activeType===ty.id?' active':'')+'" data-type="'+esc(ty.id)+'">'+esc(ty.label||humanize(ty.id))+'</button></li>';
+        });
+        typeFilter.innerHTML=html;
         typeFilter.querySelectorAll('[data-type]').forEach(function(btn){
             btn.addEventListener('click', function(){
                 typeFilter.querySelectorAll('.nav-link').forEach(function(b){ b.classList.remove('active'); });
                 btn.classList.add('active');
-                activeType = btn.getAttribute('data-type');
+                activeType=btn.getAttribute('data-type'); activeCat='';
+                renderCatPills();
+                applyFilter();
+            });
+        });
+        renderCatPills();
+    }
+    // Category pills are scoped to the active type — hidden entirely when a type has no categories.
+    function renderCatPills(){
+        if (!catFilter){ return; }
+        var cats=catsByType[activeType]||[];
+        if (!activeType || !cats.length){ catFilter.innerHTML=''; catFilter.classList.add('d-none'); return; }
+        catFilter.classList.remove('d-none');
+        var html='<li class="nav-item"><button type="button" class="nav-link'+(activeCat===''?' active':'')+'" data-cat="">All</button></li>';
+        cats.forEach(function(c){
+            html+='<li class="nav-item"><button type="button" class="nav-link'+(activeCat===c.id?' active':'')+'" data-cat="'+esc(c.id)+'">'+esc(c.label||humanize(c.id))+'</button></li>';
+        });
+        catFilter.innerHTML=html;
+        catFilter.querySelectorAll('[data-cat]').forEach(function(btn){
+            btn.addEventListener('click', function(){
+                catFilter.querySelectorAll('.nav-link').forEach(function(b){ b.classList.remove('active'); });
+                btn.classList.add('active');
+                activeCat=btn.getAttribute('data-cat');
                 applyFilter();
             });
         });
@@ -298,6 +342,8 @@ document.addEventListener('DOMContentLoaded', function () {
         return api('search',data).then(function(res){
             if (res.result!==1) return;
             allResults=(res.data&&res.data.results)||[];
+            // Build the filter doors once, from the taxonomy the payload carries (or the fallback).
+            if (!pillsBuilt){ renderTypePills(setTaxonomy(res.data&&res.data.taxonomy)); pillsBuilt=true; }
             renderResults();
         });
     }
@@ -308,16 +354,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(function(){ if (window.TigerDOM && TigerDOM.toast){ TigerDOM.toast('Directory refreshed.', { type:'success' }); } });
         });
     }
+    // A listing's categories, normalized to an array of ids (the registry stores single→string, multi→array).
+    function catList(m){ var c=m.category; return Array.isArray(c)?c:(c?[c]:[]); }
     function card(m,i){
-        var type = m.type || 'plugin';
-        var typeBadge = ' <span class="badge text-bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">'+({theme:'Theme',app:'App',plugin:'Plugin',code:'Code'}[type]||'Plugin')+'</span>';
+        var type = m.type || '';
+        var typeBadge = type ? ' <span class="badge text-bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">'+esc(typeLabels[type]||humanize(type))+'</span>' : '';
         var pm = (m.pricing && m.pricing.model) || '';
         var pricingBadges =
             ((pm==='free'||pm==='freemium') ? ' <span class="badge text-bg-success-subtle text-success-emphasis border border-success-subtle">free</span>' : '') +
             ((pm==='freemium'||pm==='paid') ? ' <span class="badge text-bg-primary-subtle text-primary-emphasis border border-primary-subtle" title="Paid pro version available">pro</span>' : '');
         var spon = m.sponsored?' <span class="badge text-bg-warning-subtle text-warning-emphasis border border-warning-subtle" title="Promoted placement">'+esc(m.sponsored_label||'Sponsored')+'</span>':'';
         var hero = m.hero ? '<img src="'+esc(m.hero)+'" class="mod-card-hero" alt="" onerror="'+imgErr+'">' : '';
-        return '<div class="mod-grid-item" data-type="'+esc(type)+'"><div class="mod-grid-item-content card'+(m.sponsored?' border-warning-subtle':'')+'">'+
+        return '<div class="mod-grid-item" data-type="'+esc(type)+'" data-category="'+esc(catList(m).join(' '))+'"><div class="mod-grid-item-content card'+(m.sponsored?' border-warning-subtle':'')+'">'+
             hero +
             '<div class="card-body d-flex gap-3">'+
               (m.logo?'<img src="'+esc(m.logo)+'" alt="" class="mod-card-logo" onerror="'+imgErr+'">':'')+
@@ -345,10 +393,20 @@ document.addEventListener('DOMContentLoaded', function () {
             b.addEventListener('click', function(){ var m=allResults[+b.getAttribute('data-i')]; openDetail(m.repository, m.ref, m, this); });
         });
     }
+    function matches(m){
+        if (activeType && (m.type||'')!==activeType){ return false; }
+        if (activeCat  && catList(m).indexOf(activeCat)<0){ return false; }
+        return true;
+    }
     function applyFilter(){
         if (!grid){ return; }
-        grid.filter(function(item){ return !activeType || item.getElement().getAttribute('data-type')===activeType; });
-        var visible = allResults.filter(function(m){ return !activeType || (m.type||'plugin')===activeType; }).length;
+        grid.filter(function(item){
+            var el=item.getElement();
+            var okType=!activeType || el.getAttribute('data-type')===activeType;
+            var okCat =!activeCat  || (el.getAttribute('data-category')||'').split(' ').indexOf(activeCat)>=0;
+            return okType && okCat;
+        });
+        var visible = allResults.filter(matches).length;
         var empty = results.querySelector('.mod-empty');
         if (empty){ empty.classList.toggle('d-none', visible>0); }
     }

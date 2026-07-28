@@ -230,6 +230,7 @@ class System_Service_Modules extends Tiger_Service_Service
         $this->_success([
             'results'   => Tiger_Module_Registry::search((string) ($params['q'] ?? ''), $sort, $refresh),
             'available' => Tiger_Module_Registry::available(),   // reads the copy search() just refreshed
+            'taxonomy'  => Tiger_Module_Registry::taxonomy(),    // data-driven type/category filters
             'sort'      => $sort,
         ]);
     }
