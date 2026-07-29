@@ -43,6 +43,22 @@ class Register_Service_Status
         return self::isDomainVerified() ? self::_cfg('register.tsid') : '';
     }
 
+    /**
+     * The install's Ed25519 federation signing SECRET key (base64), or '' — read by a producer (the
+     * marketplace / shop) to sign its feed entries so a consumer can verify origin integrity across re-share
+     * hops. Sensitive: install-local, never transmitted; only the matching PUBLIC key is published (registry).
+     */
+    public static function signingSecret(): string
+    {
+        return self::_cfg('register.sign_secret');
+    }
+
+    /** The install's Ed25519 federation signing PUBLIC key (base64), or '' (the half published to the registry). */
+    public static function signingPublic(): string
+    {
+        return self::_cfg('register.sign_public');
+    }
+
     /** The full snapshot for the widget / the Registration screen / the `status` API. */
     public static function state(): array
     {

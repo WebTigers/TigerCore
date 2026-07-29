@@ -36,4 +36,12 @@ final class StatusTest extends UnitTestCase
         }
         $this->assertFalse($s['verified']);
     }
+
+    #[Test]
+    public function signing_key_accessors_are_empty_when_unset(): void
+    {
+        // Fail-safe default (no readable config): a producer sees no key and simply signs nothing.
+        $this->assertSame('', Register_Service_Status::signingSecret());
+        $this->assertSame('', Register_Service_Status::signingPublic());
+    }
 }
