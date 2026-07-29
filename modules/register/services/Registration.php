@@ -51,10 +51,16 @@ class Register_Service_Registration extends Tiger_Service_Service
         $domain = $this->_detectDomain();
         if ($domain === '') { $this->_error('register.error.no_domain'); return; }
 
-        // NO PII to the registry: send only the domain + a site name. The email stays install-side
-        // (`register.email`, below) for our own verification, and is forwarded to TigerList later — never
-        // to registry.webtigers.com (its `site` table holds no email; see TigerRegistry/SECURITY.md).
-        $reg = $this->_registry('site', 'register', ['domain' => $domain, 'site_name' => $this->_siteName()]);
+        // Mint (once) this install's federation signing keypair; the PUBLIC half is published to the registry
+        // and becomes authoritative when the domain verifies — a consumer verifies feed signatures against it.
+        $publicKey = $this->_ensureKeypair();
+
+        // NO PII to the registry: send only the domain, a site name, and the signing PUBLIC key. The email
+        // stays install-side (`register.email`, below) + is forwarded to TigerList later — never to
+        // registry.webtigers.com (its `site` table holds no email; see TigerRegistry/SECURITY.md).
+        $reg = $this->_registry('site', 'register', [
+            'domain' => $domain, 'site_name' => $this->_siteName(), 'public_key' => $publicKey,
+        ]);
         if ($reg === null || empty($reg['tsid'])) { $this->_error('register.error.registry_unreachable'); return; }
 
         $this->_set('register.tsid', (string) $reg['tsid']);
@@ -91,6 +97,31 @@ class Register_Service_Registration extends Tiger_Service_Service
     }
 
     // ---- internals ---------------------------------------------------------------------------
+
+    /**
+     * Ensure this install has a federation signing keypair, generating + storing one on first call. The
+     * SECRET stays install-side (config); the PUBLIC key is returned (to publish to the registry). Fail-soft:
+     * returns '' if libsodium/the signature primitive is unavailable (registration just proceeds unsigned).
+     *
+     * @return string the base64 public key, or ''
+     */
+    private function _ensureKeypair(): string
+    {
+        $cfg = new Tiger_Model_Config();
+        $pub = trim((string) $cfg->get(Tiger_Model_Config::SCOPE_GLOBAL, '', 'register.sign_public'));
+        $sec = trim((string) $cfg->get(Tiger_Model_Config::SCOPE_GLOBAL, '', 'register.sign_secret'));
+        if ($pub !== '' && $sec !== '') { return $pub; }
+        if (!class_exists('Tiger_Crypto_Signature')) { return ''; }
+
+        try {
+            $kp = Tiger_Crypto_Signature::generateKeypair();
+            $this->_set('register.sign_public', $kp['public_key']);
+            $this->_set('register.sign_secret', $kp['secret_key']);
+            return $kp['public_key'];
+        } catch (Throwable $e) {
+            return '';
+        }
+    }
 
     private function _selfVerifyDomain(): void
     {
