@@ -1,0 +1,16 @@
+<?php // SPDX-License-Identifier: BSD-3-Clause — TigerNetwork registration email-verify landing (public). ?>
+<div class="container py-5">
+    <div class="row justify-content-center"><div class="col-lg-6 text-center">
+        <?php if ($this->ok): ?>
+            <div class="display-6 text-success mb-2"><i class="fa-solid fa-circle-check"></i></div>
+            <h1 class="h3 mb-2">Your site is verified</h1>
+            <p class="text-body-secondary">Thanks — your email is confirmed.</p>
+            <a href="/admin" class="btn btn-primary mt-2">Go to your dashboard</a>
+        <?php else: ?>
+            <div class="display-6 text-warning mb-2"><i class="fa-solid fa-circle-exclamation"></i></div>
+            <h1 class="h3 mb-2">That link didn’t work</h1>
+            <p class="text-body-secondary">It may have expired or already been used. Resend it from the Registration widget or Settings.</p>
+            <a href="/register/admin/registration" class="btn btn-outline-primary mt-2">Go to Registration</a>
+        <?php endif; ?>
+    </div></div>
+</div>
