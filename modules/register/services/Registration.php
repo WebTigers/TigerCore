@@ -6,7 +6,7 @@
  * Admin only. Registration is entirely optional and **gates nothing**: the widget is the offer, switching it
  * off (or deactivating this module) is the opt-out, and no feature anywhere is enabled or disabled by this.
  *
- *  - **register** — call the TigerRegistry `shop/register` for this domain → store the TSID + the challenge
+ *  - **register** — call the TigerRegistry `site/register` for this domain → store the TSID + the challenge
  *    token (auto-served at `/.well-known/tiger-verify.txt`), email a verification link, self-verify the domain.
  *  - **verifyDomain** — (re)confirm domain control via the registry.
  *  - **resendEmail** — resend the email verification link.
@@ -51,14 +51,17 @@ class Register_Service_Registration extends Tiger_Service_Service
         $domain = $this->_detectDomain();
         if ($domain === '') { $this->_error('register.error.no_domain'); return; }
 
-        $reg = $this->_registry('shop', 'register', ['domain' => $domain, 'shop_name' => $this->_siteName(), 'owner_id' => $email]);
+        // NO PII to the registry: send only the domain + a site name. The email stays install-side
+        // (`register.email`, below) for our own verification, and is forwarded to TigerList later — never
+        // to registry.webtigers.com (its `site` table holds no email; see TigerRegistry/SECURITY.md).
+        $reg = $this->_registry('site', 'register', ['domain' => $domain, 'site_name' => $this->_siteName()]);
         if ($reg === null || empty($reg['tsid'])) { $this->_error('register.error.registry_unreachable'); return; }
 
         $this->_set('register.tsid', (string) $reg['tsid']);
         $this->_set('register.domain', (string) ($reg['domain'] ?? $domain));
         $this->_set('register.domain_verified', !empty($reg['verified']) ? '1' : '0');
         $this->_set('register.verify_token', (string) ($reg['token'] ?? ''));
-        $this->_set('register.email', $email);
+        $this->_set('register.email', $email);   // install-side only; → TigerList (todo), never the registry
         $this->_set('register.email_verified', '0');
 
         $this->_issueEmailToken($email, $domain);      // best-effort
@@ -93,7 +96,7 @@ class Register_Service_Registration extends Tiger_Service_Service
     {
         $tsid = (string) (new Tiger_Model_Config())->get(Tiger_Model_Config::SCOPE_GLOBAL, '', 'register.tsid');
         if ($tsid === '') { return; }
-        $res = $this->_registry('shop', 'domainVerify', ['tsid' => $tsid]);
+        $res = $this->_registry('site', 'domainVerify', ['tsid' => $tsid]);
         if (is_array($res) && !empty($res['verified'])) {
             $this->_set('register.domain_verified', '1');
         }

@@ -15,7 +15,7 @@ Nothing is sent anywhere until the admin submits.
 - **`Register_Widget_Registration`** — the dashboard widget body (registered in the Bootstrap via
   `Tiger_Dashboard::registerWidget`). Renders the current step (register email → verify domain → verify email →
   "registered"); each action posts to `/api`.
-- **`Register_Service_Registration`** (`/api`, admin): `register(email)` → registry `shop/register` → stores
+- **`Register_Service_Registration`** (`/api`, admin): `register(email)` → registry `site/register` → stores
   the TSID + a domain token this install **auto-serves** at `/.well-known/tiger-verify.txt`
   (`Register_VerifyController::domainAction`, routed in `configs/routes.ini`) → self-verifies the domain;
   `verifyDomain`; `resendEmail`; `status`. Registry transport injectable (`setTransport`), URL

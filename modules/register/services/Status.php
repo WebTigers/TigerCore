@@ -37,7 +37,7 @@ class Register_Service_Status
         return self::isDomainVerified() && self::isEmailVerified();
     }
 
-    /** The verified site/shop id (TSID) once the domain is verified, else '' — what the Federation reads. */
+    /** The verified site id (TSID) once the domain is verified, else '' — what the Federation reads. */
     public static function tsid(): string
     {
         return self::isDomainVerified() ? self::_cfg('register.tsid') : '';
