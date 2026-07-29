@@ -9,5 +9,5 @@
 class Tiger_Version
 {
     /** Current Tiger Core version. Keep in lockstep with the git tag cut for a release. */
-    const VERSION = '0.43.0-beta';
+    const VERSION = '0.44.0-beta';
 }

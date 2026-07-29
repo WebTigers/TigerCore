@@ -6,6 +6,39 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [0.44.0-beta] — 2026-07-29
+
+### Added
+- **Multi-source Module Manager registry.** `Tiger_Module_Registry` grows from a single feed to an **ordered
+  list of sources** (`Tiger_Module_Source`), aggregated into the Add screen. Each source is a `git-index`
+  (the free, reviewable directory) or a `live-api` (an operator marketplace), both fetched + cached
+  independently — a down source is skipped (last-good served), never a hard fail. Modules dedupe by slug
+  (lower-priority source wins, later ones enrich/append, each stamped with its `source_id`); taxonomy is
+  unioned. Two removable defaults ship: `tiger-vendors` (the git directory) + `webtigers` ("marketplace #0",
+  a live-api source, inert until `tiger.modules.marketplace` is set). Admin-declared sources live in the
+  config tier (`tiger.modules.sources.<id>.*`), no table. Back-compat: `tiger.modules.registry` still works.
+- **Optional site-registration module (`register`).** A first-party, bundled module that offers to register the
+  install with a network authority — as a **dashboard widget** the user places / collapses / switches off, not
+  a forced prompt. It **disables nothing** and touches no other module; the opt-out is switching the widget off
+  or deactivating the module. Verifies **domain control** (the install auto-serves the token at
+  `/.well-known/tiger-verify.txt`) + **email** (a magic link); `Register_Service_Status` is a read-only,
+  gates-nothing capability other modules can detect.
+- **Data-driven Add-screen filters.** The Module Manager's type/category filters render from the registry's
+  `taxonomy.json` (folded into `index.json`), so a new module type needs no client code change.
+- **Config-driven footer legal links.** Privacy/Terms links in the public footer come from config, surviving
+  core updates.
+
+### Changed
+- **Retired directory sponsored placement.** The Vendor Registry directory is neutral (its own compiled order);
+  promotion is an on-platform concern (a marketplace's points system), never a boost baked into the distributed
+  catalog. `sponsored()`/priority merging removed from `Tiger_Module_Registry`.
+
+### Fixed
+- **Module deactivation was a silent no-op.** `Tiger_Application_Resource_Modules` read `inactiveSlugs()` (a DB
+  query) before the DB adapter was guaranteed up — it threw, the catch swallowed it, and **every** module stayed
+  active regardless of the Module Manager. Now bootstraps `db` before the strip. (Deactivation only ever worked
+  by luck of resource ordering before this.)
+
 ## [0.42.0-beta] — 2026-07-26
 
 ### Added
