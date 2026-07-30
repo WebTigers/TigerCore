@@ -6,6 +6,17 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [0.45.0-beta] — 2026-07-30
+
+### Added
+- **Federation signing keypair in the `register` module.** On registration the module now mints (once) an
+  Ed25519 signing keypair: the secret stays install-side (config, never transmitted), and the public half is
+  published to the registry's `site/register` so it becomes authoritative when the domain verifies.
+  `Register_Service_Status::signingSecret()`/`signingPublic()` expose it so a producer (a marketplace or shop)
+  can sign its federation feed entries and a consumer can verify origin metadata integrity across any number of
+  re-share hops. Fail-soft: no libsodium → registration just proceeds unsigned. (Completes the buyer-neutral
+  half of feed signing; the producer sign/verify + registry public-key custody ship in the respective modules.)
+
 ## [0.44.0-beta] — 2026-07-29
 
 ### Added
