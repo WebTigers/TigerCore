@@ -10,9 +10,9 @@ Tiger is a **1-click SaaS platform** built on [TigerZF](https://github.com/WebTi
 substrate — multi-tenant orgs, users, memberships, roles/ACL, auth, theming — so you build
 *product*, not plumbing.
 
-> Reference architecture: **AskLevi** (a legal SaaS built on TigerZF). Tiger generalizes
-> AskLevi's clean patterns. Where this doc says "AskLevi does X," that's the proven pattern
-> we adapted. The old **TigerCore** repo is the *anti*-reference (the copy-not-consume
+> Reference architecture: **a production SaaS we built on TigerZF** (our "reference app"). Tiger
+> generalizes its clean patterns. Where this doc says "the reference app does X," that's the proven
+> pattern we adapted. The old **TigerCore** repo is the *anti*-reference (the copy-not-consume
 > mistake we're correcting).
 
 ---
@@ -101,7 +101,7 @@ an extension.
 
 **Why:** it makes the boundary *structurally enforceable*. "If it's in `/modules`, it's an
 add-on; if it's in the default namespace, it's Core" — no "is core a module?" ambiguity, and
-nobody can accidentally treat Core as just-another-module. AskLevi's `core` module conflated
+nobody can accidentally treat Core as just-another-module. The reference app's `core` module conflated
 "the platform" with "this app's public face"; splitting Core into the package untangles them.
 
 You *can* drop a default-namespace controller into `application/` if you insist (it wins via a
@@ -185,7 +185,7 @@ So the app inherits module scanning, default-namespace wiring, theme-as-path, an
 publish **for free** — core bootstrap logic is *inherited*, never copied into the app. Add your
 own `_init*` methods in the subclass to hook the sequence.
 
-**Why the base class + shim?** AskLevi's `constants.php`/`index.php`/`Core_Bootstrap` are
+**Why the base class + shim?** The reference app's `constants.php`/`index.php`/`Core_Bootstrap` are
 hand-maintained files *in the app*. That's fine when you edit your own core module — but Tiger's
 core is a package you don't edit, so the entry plumbing moves into the package (updatable) and
 the app keeps only a thin shim + the `custom.php` hook.
@@ -222,14 +222,14 @@ core.ini          vendor/…/tiger-core/configs   Tiger    bootstrap plumbing (f
   section. testing sets `throwExceptions=1` (CI catches them); development shows errors but routes
   to the error page (stays browsable); staging mirrors prod.
 
-**Why separated?** AskLevi keeps *everything* in one `application.ini` — which works **only
+**Why separated?** The reference app keeps *everything* in one `application.ini` — which works **only
 because its core is a copied module it owns and edits.** Tiger consumes core as a package you
 never edit, so the split is *forced by the ownership rule*: core plumbing → `core.ini` (package,
 never edited); app settings → `application.ini` (edit freely — there's no core plumbing in it to
-break); secrets → `local.ini` (uncommitted — fixing the plaintext-password smell in AskLevi's
+break); secrets → `local.ini` (uncommitted — fixing the plaintext-password smell in the reference app's
 committed config).
 
-**The elegant convergence:** AskLevi's config cascade already has a DB layer scoped by
+**The elegant convergence:** the reference app's config cascade already has a DB layer scoped by
 `global` + module. **Add an `org` scope and config resolution *becomes* the per-org theming
 resolver** — a tenant's active theme/skin is just an org-scoped config row resolved at
 bootstrap. Config resolution and per-org theming are the *same mechanism*.
@@ -337,9 +337,9 @@ session) belongs in an auth **service**; the models are factor-aware gateways.
 - **Subject-agnostic:** `can(Subject, permission, context)` — the engine doesn't care whether
   the subject is a user, an org, or a token.
 - **Role lives on the membership (`org_user`), not on the user.** So the same user can be
-  `admin` in one org and `viewer` in another — real multi-tenancy. (AskLevi's ACL is
+  `admin` in one org and `viewer` in another — real multi-tenancy. (The reference app's ACL is
   single-global-role-per-user; moving the role onto `org_user` is Tiger's key evolution. We keep
-  AskLevi's DB-driven hierarchical role *engine* and just relocate the assignment.)
+  its DB-driven hierarchical role *engine* and just relocate the assignment.)
 - **Every decision goes through `Zend_Acl::isAllowed`.** Never compare role strings in code.
   "God mode", "can create admins", etc. are expressed as ACL grants, not `if` branches.
 - Orgs don't normally have roles (roles are a user-side, membership concept). Nothing prevents
@@ -372,7 +372,7 @@ Two axes, deliberately different weights:
 Active theme + skin resolve from the config cascade at bootstrap (config now; per-org via the DB
 layer). "Active theme" is **just a path** woven into the layout path, the view-script paths, and
 the asset base URL. **No inheritance, no routing** — that's the whole trick (straight from
-AskLevi's `_initTheme`). The only fallback is **theme → Core default views** (via the view-path
+the reference app's `_initTheme`). The only fallback is **theme → Core default views** (via the view-path
 cascade), so a theme only provides what it wants to override.
 
 **Why full themes (not just skins) earn their keep** — a skin can only recolor; a theme is a
@@ -419,6 +419,12 @@ registered dirs; assets = symlink.**
 
 ## 11. Design principles (the heuristics behind the rules)
 
+- **Structure is not opinionated — and that's a superpower.** Tiger is opinionated about exactly one
+  thing: the ownership boundary (extend, don't edit `vendor/`). About *how you build your own code* it
+  is deliberately un-prescriptive — PSR-0 or PSR-4, a module or an `App_*` library class, a service or
+  a controller, the `config` tier or the `option` tier, a `.phtml` theme or an SPA against `/api`. Tiger
+  shows a clean default and gets out of the way; it never forces one way of doing something. That's a
+  real framework's power without a framework's dogma.
 - **Consume, don't fork.** Core is a dependency in `vendor/`, never copied into the app.
 - **Never hack Core; extend instead** — modules, config overrides, subclasses, skins.
 - **Core imports nothing app-side.** Dependencies point one way (modules → Core).
@@ -431,7 +437,7 @@ registered dirs; assets = symlink.**
 - **YAGNI, with one exception:** don't build speculative *features*; *do* establish cheap
   conventions that keep doors open (theme-as-a-path), because retrofitting those is the expensive
   part.
-- **Prefer the proven pattern.** AskLevi is a working system; when it does something clean, adopt
+- **Prefer the proven pattern.** The reference app is a working system; when it does something clean, adopt
   it rather than reinventing.
 
 ---
@@ -441,7 +447,7 @@ registered dirs; assets = symlink.**
 | Rejected | Why | Chosen instead |
 |---|---|---|
 | Repo-per-module (Laminas polyrepo) | maintenance tax; modularity ≠ repo count | monorepo (`tiger-core`) |
-| Core as a copied module (TigerCore/AskLevi) | copy-not-consume → no clean update path | Core as a versioned package |
+| Core as a copied module (the old TigerCore) | copy-not-consume → no clean update path | Core as a versioned package |
 | Single `application.ini` with core plumbing | users edit it → break core on update | 3-tier config split by ownership |
 | Full theme→theme inheritance / swap resolver | speculative machinery, rarely needed | theme-as-a-path + core-view fallback |
 | Tailwind as the default theme | needs a build toolchain | Bootstrap (runtime CSS-var theming) |
