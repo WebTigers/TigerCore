@@ -101,4 +101,24 @@ final class OptionTest extends IntegrationTestCase
             'a forgotten option is excluded from the active read'
         );
     }
+
+    #[Test]
+    public function set_after_forget_revives_the_row_instead_of_duplicate_key_crashing(): void
+    {
+        $user = Tiger_Uuid::v7();
+        $this->option->set(Tiger_Model_Option::SCOPE_USER, $user, 'nag.dismissed_at', '111');
+        $this->option->forget(Tiger_Model_Option::SCOPE_USER, $user, 'nag.dismissed_at');
+        $this->assertNull($this->option->get(Tiger_Model_Option::SCOPE_USER, $user, 'nag.dismissed_at'));
+
+        // The regression this guards: set() looked up via activeSelect() (which skips the soft-deleted
+        // row) and tried a fresh insert that collided on the (scope, scope_id, option_key) unique index.
+        // It must REVIVE the soft-deleted row (clear `deleted`) instead. This is the deactivate→re-enable
+        // path the TigerPASS nag + license store hit.
+        $this->option->set(Tiger_Model_Option::SCOPE_USER, $user, 'nag.dismissed_at', '222');
+        $this->assertSame(
+            '222',
+            $this->option->get(Tiger_Model_Option::SCOPE_USER, $user, 'nag.dismissed_at'),
+            'the soft-deleted row is revived and updated — no duplicate-key crash'
+        );
+    }
 }

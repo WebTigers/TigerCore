@@ -18,6 +18,23 @@ class System_Service_Modules extends Tiger_Service_Service
     const PROTECTED = ['default', 'system', 'access'];
 
     /**
+     * The reserved license "slug" the install's ONE TigerPASS key is stored under. TigerPASS is not a
+     * per-module license — one subscription key unlocks the whole WebTigers premium shelf — so every
+     * PASS-covered module resolves its entitlement from this single record (not its own slug).
+     */
+    const PASS_SLUG = '__tigerpass__';
+
+    /** The `owner/repo` trust anchor for WebTigers-published premium modules (the TigerPASS shelf). */
+    const PASS_VENDOR = 'WebTigers/TigerVendor';
+
+    /** How long dismissing the TigerPASS promo banner snoozes it (days) before it may reappear. */
+    const NAG_SNOOZE_DAYS = 30;
+
+    /** Per-user option keys for the TigerPASS nag (lazy `option` tier — never the eager config tier). */
+    const NAG_DISMISSED_KEY = 'tiger.pass.nag.dismissed_at';   // UTC unix stamp of the last dismiss
+    const NAG_DISABLED_KEY  = 'tiger.pass.nag.disabled';       // '1' = the user turned the banner off
+
+    /**
      * Activate a module (by `slug`), publishing its assets.
      *
      * @param  array $params the /api payload (expects `slug`)
@@ -217,7 +234,10 @@ class System_Service_Modules extends Tiger_Service_Service
     }
 
     /**
-     * Search the Vendor Registry (empty + available=false when the registry isn't reachable).
+     * Search the Vendor Registry (empty + available=false when the registry isn't reachable). Each result
+     * is annotated with its Add-screen `availability` (free|freemium|pass|paid) so the client renders the
+     * right badge + button without re-interpreting the pricing block; the payload also carries this
+     * install's TigerPASS `pass` state so PASS listings show "Get TigerPASS" vs a plain "Install".
      *
      * @param  array $params the /api payload (expects `q`; optional `sort`, `refresh`)
      * @return void
@@ -227,12 +247,367 @@ class System_Service_Modules extends Tiger_Service_Service
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
         $sort    = (string) ($params['sort'] ?? 'featured');
         $refresh = !empty($params['refresh']);   // "Refresh directory" — bypass the 3h cache
+
+        $results = Tiger_Module_Registry::search((string) ($params['q'] ?? ''), $sort, $refresh);
+        foreach ($results as &$m) { $m['availability'] = self::_availabilityOf($m); }
+        unset($m);
+
         $this->_success([
-            'results'   => Tiger_Module_Registry::search((string) ($params['q'] ?? ''), $sort, $refresh),
+            'results'   => $results,
             'available' => Tiger_Module_Registry::available(),   // reads the copy search() just refreshed
             'taxonomy'  => Tiger_Module_Registry::taxonomy(),    // data-driven type/category filters
             'sort'      => $sort,
+            'pass'      => self::_passState(),                   // {has, state} — no network (cached verdict)
+            'nag'       => self::_passNagState(),                // {show, disabled} — whether to show the promo banner
         ]);
+    }
+
+    /**
+     * PASS status + nag preference for this user (the TigerPASS tab reads this directly, independent of a
+     * registry search — so the tab works even when the registry is unreachable).
+     *
+     * @param  array $params the /api payload (no fields)
+     * @return void
+     */
+    public function passInfo(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        $this->_success(['pass' => self::_passState(), 'nag' => self::_passNagState()]);
+    }
+
+    /**
+     * Snooze the TigerPASS promo banner for this user (NAG_SNOOZE_DAYS). Records `dismissed_at = now` in
+     * the per-user `option` tier; the banner self-corrects — it reappears once the interval elapses, with
+     * no reset logic. A brand-new subscription hides it anyway (see _passNagState).
+     *
+     * @param  array $params the /api payload (no fields)
+     * @return void
+     */
+    public function snoozePassNag(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        $uid = self::_currentUserId();
+        if ($uid !== '') {
+            (new Tiger_Model_Option())->set(Tiger_Model_Option::SCOPE_USER, $uid, self::NAG_DISMISSED_KEY, (string) time());
+        }
+        $this->_success(['nag' => self::_passNagState()], 'system.pass.nag_snoozed');
+    }
+
+    /**
+     * Turn the TigerPASS promo banner off (or back on) for this user — the "Disable TigerPASS nag alert"
+     * switch. A per-user preference in the `option` tier, so one admin's choice never blinds another.
+     *
+     * @param  array $params the /api payload (expects `disabled` = 1|0)
+     * @return void
+     */
+    public function setPassNag(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        $uid = self::_currentUserId();
+        if ($uid === '') { $this->_error('core.api.error.general'); return; }
+        $disabled = in_array((string) ($params['disabled'] ?? ''), ['1', 'true', 'on'], true);
+        (new Tiger_Model_Option())->set(Tiger_Model_Option::SCOPE_USER, $uid, self::NAG_DISABLED_KEY, $disabled ? '1' : '0');
+        $this->_success(['nag' => self::_passNagState()], 'system.pass.nag_updated');
+    }
+
+    // ---- marketplace sources (the "Connect a marketplace" surface) --------------------------------
+
+    /** The config-tier subtree an admin-connected/overridden source lives under. */
+    const SOURCE_KEY_PREFIX = 'tiger.modules.sources.';
+    /** The per-source config fields the Connect UI writes/removes. */
+    const SOURCE_FIELDS = ['kind', 'url', 'label', 'priority', 'enabled', 'removable', 'default'];
+
+    /**
+     * List every catalog source the Add screen aggregates — shipped defaults, module-contributed
+     * (register()), and admin-connected — with provenance so the UI can show who owns each and what may be
+     * removed vs. only disabled.
+     *
+     * @param  array $params the /api payload (no fields)
+     * @return void
+     */
+    public function sources(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        $this->_success(['sources' => self::_sourceList()]);
+    }
+
+    /**
+     * Connect a new marketplace/directory: an admin pastes a label + an index URL (a `git-index` static
+     * `index.json`, or a `live-api` endpoint). Stored in the config tier so it survives updates and the
+     * admin owns it. The source just has to return `{modules, taxonomy}` — everything else is automatic.
+     *
+     * @param  array $params the /api payload (expects `label`, `url`; optional `kind`, `priority`)
+     * @return void
+     */
+    public function connectSource(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+
+        $label = trim((string) ($params['label'] ?? ''));
+        $url   = trim((string) ($params['url'] ?? ''));
+        if ($label === '') { $this->_error('system.source.err_label'); return; }
+        if (!preg_match('#^https?://#i', $url)) { $this->_error('system.source.err_url'); return; }
+
+        $kind     = ($params['kind'] ?? '') === Tiger_Module_Source::KIND_GIT_INDEX
+            ? Tiger_Module_Source::KIND_GIT_INDEX : Tiger_Module_Source::KIND_LIVE_API;
+        $priority = max(0, (int) ($params['priority'] ?? 5));
+
+        // A fresh id from the label; never collide with an existing source (default/module/connected).
+        $existing = [];
+        foreach (Tiger_Module_Registry::sources() as $s) { $existing[$s->id] = true; }
+        $base = trim(preg_replace('/[^a-z0-9-]+/', '-', strtolower($label)), '-') ?: 'source';
+        $id   = $base; $n = 2;
+        while (isset($existing[$id])) { $id = $base . '-' . $n++; }
+
+        try {
+            $cfg = new Tiger_Model_Config();
+            $write = [
+                'kind' => $kind, 'url' => $url, 'label' => $label,
+                'priority' => (string) $priority, 'enabled' => '1', 'removable' => '1', 'default' => '0',
+            ];
+            foreach ($write as $field => $value) {
+                $cfg->set(Tiger_Model_Config::SCOPE_GLOBAL, '', self::SOURCE_KEY_PREFIX . $id . '.' . $field, $value);
+            }
+            $this->_success(['id' => $id, 'sources' => self::_sourceList(true)], 'system.source.connected');
+        } catch (Throwable $e) {
+            $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
+        }
+    }
+
+    /**
+     * Enable/disable or reorder any source (works for defaults + module sources too — it writes a config
+     * override that wins over what shipped/registered). Only the fields present are changed.
+     *
+     * @param  array $params the /api payload (expects `id`; optional `enabled`, `priority`)
+     * @return void
+     */
+    public function updateSource(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+
+        $id = self::_slugId((string) ($params['id'] ?? ''));
+        if ($id === '' || !self::_sourceExists($id)) { $this->_error('system.source.err_unknown'); return; }
+
+        try {
+            $cfg = new Tiger_Model_Config();
+            if (array_key_exists('enabled', $params)) {
+                $on = in_array((string) $params['enabled'], ['1', 'true', 'on'], true);
+                $cfg->set(Tiger_Model_Config::SCOPE_GLOBAL, '', self::SOURCE_KEY_PREFIX . $id . '.enabled', $on ? '1' : '0');
+            }
+            if (array_key_exists('priority', $params) && $params['priority'] !== '') {
+                $cfg->set(Tiger_Model_Config::SCOPE_GLOBAL, '', self::SOURCE_KEY_PREFIX . $id . '.priority', (string) max(0, (int) $params['priority']));
+            }
+            $this->_success(['sources' => self::_sourceList(true)], 'system.source.updated');
+        } catch (Throwable $e) {
+            $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
+        }
+    }
+
+    /**
+     * Remove a CONNECTED marketplace (deletes its config subtree). A shipped default or a module-provided
+     * source can't be removed here — disable it instead (or deactivate the owning module).
+     *
+     * @param  array $params the /api payload (expects `id`)
+     * @return void
+     */
+    public function removeSource(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+
+        $id = self::_slugId((string) ($params['id'] ?? ''));
+        $src = null;
+        foreach (Tiger_Module_Registry::sources() as $s) { if ($s->id === $id) { $src = $s; break; } }
+        if (!$src) { $this->_error('system.source.err_unknown'); return; }
+        if ($src->origin !== 'connected') { $this->_error('system.source.err_not_removable'); return; }
+
+        try {
+            $cfg = new Tiger_Model_Config();
+            foreach (self::SOURCE_FIELDS as $field) {
+                $cfg->forget(Tiger_Model_Config::SCOPE_GLOBAL, '', self::SOURCE_KEY_PREFIX . $id . '.' . $field);
+            }
+            // Drop its per-source cache too, so a re-connect with the same id starts clean.
+            $cache = defined('APPLICATION_ROOT') ? APPLICATION_ROOT . '/storage/cache/registry-' . $id . '.json' : '';
+            if ($cache && is_file($cache)) { @unlink($cache); }
+            $this->_success(['sources' => self::_sourceList(true)], 'system.source.removed');
+        } catch (Throwable $e) {
+            $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
+        }
+    }
+
+    /** The resolved source list as plain arrays (optionally refreshing the merged index so counts are live). */
+    protected static function _sourceList(bool $refresh = false): array
+    {
+        if ($refresh) { Tiger_Module_Registry::available(true); }   // re-fetch so a just-connected source is live
+        $out = [];
+        foreach (Tiger_Module_Registry::sources() as $s) { $out[] = $s->toArray(); }
+        return $out;
+    }
+
+    /** Whether a source id currently exists (any origin). */
+    protected static function _sourceExists(string $id): bool
+    {
+        foreach (Tiger_Module_Registry::sources() as $s) { if ($s->id === $id) { return true; } }
+        return false;
+    }
+
+    /** Reduce an id to the `[a-z0-9-]` shape a source id is allowed to take. */
+    protected static function _slugId(string $id): string
+    {
+        return trim(strtolower(preg_replace('/[^a-zA-Z0-9-]+/', '-', $id)), '-');
+    }
+
+    /**
+     * Activate a TigerPASS subscription key on this install. Validates the key shape, remembers it under
+     * the reserved pass slug, and verifies it against the pass authority. NAG-NEVER-DISABLE: activation is
+     * refused ONLY on a definitive, reached-home `lapsed` verdict; an unreachable authority yields
+     * `unknown` and is accepted (assume-current — an authority outage must never block a paying customer).
+     * The heavy commerce (buy/renew) lives on webtigers.com; this endpoint only accepts the resulting key.
+     *
+     * @param  array $params the /api payload (expects `key`)
+     * @return void
+     */
+    public function activatePass(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+
+        $key = strtoupper(trim((string) ($params['key'] ?? '')));
+        if (!preg_match('/^TPASS-([0-9A-Z]{4}-){4}[0-9A-Z]{4}$/', $key)) {
+            $this->_error('system.pass.invalid_format'); return;
+        }
+
+        $authority = self::_passAuthority();
+        if ($authority === '') { $this->_error('system.pass.not_configured'); return; }
+
+        try {
+            Tiger_License_Checker::remember(self::PASS_SLUG, [
+                'key'        => $key,
+                'authority'  => $authority,
+                'vendor'     => self::PASS_VENDOR,
+                'public_key' => self::_passPublicKey(),
+            ]);
+            $verdict = Tiger_License_Checker::verify(self::PASS_SLUG);   // the one deliberate network check
+            if ($verdict['state'] === Tiger_License_Checker::LAPSED) {
+                Tiger_License_Checker::forget(self::PASS_SLUG);          // don't keep a proven-lapsed key
+                $this->_error('system.pass.lapsed'); return;
+            }
+            $this->_success(['pass' => self::_passState()], 'system.pass.activated');
+        } catch (Throwable $e) {
+            $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
+        }
+    }
+
+    /**
+     * Remove the stored TigerPASS key from this install (a manage/troubleshoot action; the subscription
+     * itself is cancelled on webtigers.com — this only forgets the key locally).
+     *
+     * @param  array $params the /api payload (no fields)
+     * @return void
+     */
+    public function deactivatePass(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        Tiger_License_Checker::forget(self::PASS_SLUG);
+        $this->_success(['pass' => self::_passState()], 'system.pass.removed');
+    }
+
+    /**
+     * This install's TigerPASS entitlement, read from the CACHED verdict (no network — safe to call on
+     * every search). `has` is true when we hold a key and home has not definitively said `lapsed`
+     * (`valid` = confirmed, `unknown` = couldn't reach home → assume-current, the fail-open rule).
+     *
+     * @return array{has:bool,state:string}
+     */
+    protected static function _passState(): array
+    {
+        $verdict = Tiger_License_Checker::status(self::PASS_SLUG);
+        $state   = (string) $verdict['state'];
+        $has     = !in_array($state, [Tiger_License_Checker::UNLICENSED, Tiger_License_Checker::LAPSED], true);
+        return ['has' => $has, 'state' => $state];
+    }
+
+    /**
+     * Whether to show the TigerPASS promo banner for the current user, and whether they've disabled it.
+     * An active PASS suppresses it outright (nothing to promote); otherwise it's hidden while the user's
+     * "disable" switch is on OR their dismiss is still inside the NAG_SNOOZE_DAYS window.
+     *
+     * @return array{show:bool,disabled:bool}
+     */
+    protected static function _passNagState(): array
+    {
+        if (self::_passState()['has']) { return ['show' => false, 'disabled' => false]; }   // subscribers never see it
+
+        $uid = self::_currentUserId();
+        if ($uid === '') { return ['show' => true, 'disabled' => false]; }
+
+        $opt      = new Tiger_Model_Option();
+        $disabled = (string) $opt->get(Tiger_Model_Option::SCOPE_USER, $uid, self::NAG_DISABLED_KEY) === '1';
+        if ($disabled) { return ['show' => false, 'disabled' => true]; }
+
+        $dismissedAt = (int) $opt->get(Tiger_Model_Option::SCOPE_USER, $uid, self::NAG_DISMISSED_KEY);
+        $snoozed     = $dismissedAt > 0 && (time() - $dismissedAt) < (self::NAG_SNOOZE_DAYS * 86400);
+        return ['show' => !$snoozed, 'disabled' => false];
+    }
+
+    /** The authenticated user's id (for per-user option scoping), or '' when there's no identity. */
+    protected static function _currentUserId(): string
+    {
+        if (class_exists('Zend_Auth') && Zend_Auth::getInstance()->hasIdentity()) {
+            $id = Zend_Auth::getInstance()->getIdentity();
+            return (string) ($id->user_id ?? '');
+        }
+        return '';
+    }
+
+    /**
+     * The Add-screen acquisition path for a listing: free | freemium | pass | paid. `pass` = a `licensed`
+     * module covered by the TigerPASS subscription (marked by `pricing.plan = "tigerpass"` or a
+     * `pricing.authority` matching this install's configured pass authority); any other `licensed` module
+     * is a per-vendor paid one.
+     *
+     * @param  array $m a registry listing
+     * @return string one of free|freemium|pass|paid
+     */
+    protected static function _availabilityOf(array $m): string
+    {
+        $p     = Tiger_Module_Pricing::of($m);
+        $model = $p['model'];
+        if ($model === Tiger_Module_Pricing::FREE)     { return 'free'; }
+        if ($model === Tiger_Module_Pricing::FREEMIUM) { return 'freemium'; }
+        if ($model === Tiger_Module_Pricing::LICENSED) {
+            $pricing = (isset($m['pricing']) && is_array($m['pricing'])) ? $m['pricing'] : [];
+            $plan    = strtolower((string) ($pricing['plan'] ?? ''));
+            if ($plan === 'tigerpass' || self::_isPassAuthority((string) $p['authority'])) { return 'pass'; }
+            return 'paid';   // a generic per-vendor licensed module (its own authority/key)
+        }
+        return 'paid';
+    }
+
+    /** The configured TigerPASS authority URL (`tiger.pass.authority`), or '' when unset. */
+    protected static function _passAuthority(): string
+    {
+        return self::_passConfig('authority');
+    }
+
+    /** The pinned Ed25519 public key for the pass authority (`tiger.pass.public_key`), or '' (unsigned/dev). */
+    protected static function _passPublicKey(): string
+    {
+        return self::_passConfig('public_key');
+    }
+
+    /** Whether an authority URL is this install's configured TigerPASS authority. */
+    protected static function _isPassAuthority(string $authority): bool
+    {
+        $pa = self::_passAuthority();
+        return $pa !== '' && rtrim($authority, '/') === rtrim($pa, '/');
+    }
+
+    /** Read a `tiger.pass.<key>` value from the resolved config, or '' when absent. */
+    protected static function _passConfig(string $key): string
+    {
+        $cfg  = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
+        $t    = $cfg ? $cfg->get('tiger') : null;
+        $pass = $t ? $t->get('pass') : null;
+        return $pass ? (string) $pass->get($key) : '';
     }
 
     /**

@@ -102,4 +102,37 @@ final class ConfigTest extends IntegrationTestCase
         sort($keys);
         $this->assertSame(['o.one', 'o.two'], $keys, 'only this org scope\'s rows, not the global one');
     }
+
+    #[Test]
+    public function forget_soft_deletes_so_the_key_reads_null_again(): void
+    {
+        $key = 'tiger.modules.sources.acme.enabled';
+        $this->config->set(Tiger_Model_Config::SCOPE_GLOBAL, '', $key, '1');
+        $this->assertSame('1', $this->config->get(Tiger_Model_Config::SCOPE_GLOBAL, '', $key));
+
+        $this->config->forget(Tiger_Model_Config::SCOPE_GLOBAL, '', $key);
+
+        $this->assertNull(
+            $this->config->get(Tiger_Model_Config::SCOPE_GLOBAL, '', $key),
+            'a forgotten config key drops out of the active read (and the config cascade next request)'
+        );
+    }
+
+    #[Test]
+    public function set_after_forget_revives_the_row_instead_of_duplicate_key_crashing(): void
+    {
+        $key = 'tiger.modules.sources.acme.url';
+        $this->config->set(Tiger_Model_Config::SCOPE_GLOBAL, '', $key, 'https://acme.test/a.json');
+        $this->config->forget(Tiger_Model_Config::SCOPE_GLOBAL, '', $key);
+        $this->assertNull($this->config->get(Tiger_Model_Config::SCOPE_GLOBAL, '', $key));
+
+        // Removing then re-connecting the same marketplace id must REVIVE the soft-deleted row, not
+        // collide on the (scope, scope_id, config_key) unique index (the sibling of the Option bug).
+        $this->config->set(Tiger_Model_Config::SCOPE_GLOBAL, '', $key, 'https://acme.test/b.json');
+        $this->assertSame(
+            'https://acme.test/b.json',
+            $this->config->get(Tiger_Model_Config::SCOPE_GLOBAL, '', $key),
+            'the soft-deleted row is revived and updated — no duplicate-key crash'
+        );
+    }
 }

@@ -12,10 +12,12 @@ use Tiger_Module_Registry;
 /**
  * Tiger_Module_Registry — the client for the open Vendor Registry. Driven with NO network by PRE-SEEDING
  * the fresh file cache the client reads before it ever calls GitHub: a primed `registry-index.json` makes
- * index()/search()/taxonomy() resolve offline. Covered: search filtering, the neutral orderings (the
- * directory has NO paid placement — promotion is on-platform), repo-relative media resolution (logo /
- * screenshots / YouTube+Vimeo+mp4 video), the taxonomy, and the config-overridable index URL. The genuine
- * HTTP fetch + the offline-null fallback are live territory, left to integration.
+ * index()/search()/taxonomy() resolve offline. Covered: search filtering, the orderings (`featured` floats
+ * sponsored listings first — a `live-api` marketplace source flags them — while `title`/`latest` stay
+ * neutral; the git directory itself ships no sponsored field), module-contributed sources via register(),
+ * repo-relative media resolution (logo / screenshots / YouTube+Vimeo+mp4 video), the taxonomy, and the
+ * config-overridable index URL. The genuine HTTP fetch + the offline-null fallback are live territory,
+ * left to integration.
  */
 #[CoversClass(Tiger_Module_Registry::class)]
 final class RegistryTest extends UnitTestCase
@@ -173,6 +175,58 @@ final class RegistryTest extends UnitTestCase
         $this->primeTwoModuleIndex();
         $rows = Tiger_Module_Registry::search('', 'bogus-sort');
         $this->assertSame('widget', $rows[0]['slug']);   // featured = index order (Widget first)
+    }
+
+    // ---- sponsored (featured floats promoted listings; a marketplace source flags them) --------
+
+    #[Test]
+    public function featured_floats_a_sponsored_listing_first_while_other_sorts_ignore_it(): void
+    {
+        // Alpha is first in index order and NOT sponsored; Beta is second but sponsored.
+        $this->primeIndex(['modules' => [
+            ['module' => 'Alpha', 'slug' => 'alpha', 'type' => 'app', 'repository' => 'https://github.com/x/alpha'],
+            ['module' => 'Beta',  'slug' => 'beta',  'type' => 'app', 'repository' => 'https://github.com/x/beta',
+             'sponsored' => true, 'sponsored_rank' => 3],
+        ]]);
+        $featured = Tiger_Module_Registry::search('', 'featured');
+        $this->assertSame(['beta', 'alpha'], [$featured[0]['slug'], $featured[1]['slug']], 'the sponsored listing floats above the neutral one');
+        // A buyer can always sort past promotion — title is pure alphabetical, sponsorship ignored.
+        $title = Tiger_Module_Registry::search('', 'title');
+        $this->assertSame(['alpha', 'beta'], [$title[0]['slug'], $title[1]['slug']]);
+    }
+
+    #[Test]
+    public function featured_orders_multiple_sponsors_by_rank_descending(): void
+    {
+        $this->primeIndex(['modules' => [
+            ['module' => 'Low',  'slug' => 'low',  'repository' => 'https://github.com/x/low',  'sponsored' => true, 'sponsored_rank' => 1],
+            ['module' => 'High', 'slug' => 'high', 'repository' => 'https://github.com/x/high', 'sponsored' => true, 'sponsored_rank' => 9],
+        ]]);
+        $rows = Tiger_Module_Registry::search('', 'featured');
+        $this->assertSame(['high', 'low'], [$rows[0]['slug'], $rows[1]['slug']], 'higher rank is checked first');
+    }
+
+    // ---- module-contributed sources (register) -------------------------------------------------
+
+    #[Test]
+    public function register_adds_a_module_source_with_module_provenance(): void
+    {
+        Tiger_Module_Registry::register('acme', [
+            'label' => 'Acme Market', 'kind' => 'live-api', 'url' => 'https://acme.test/index.json', 'priority' => 7,
+        ], 'acme-mod');
+        try {
+            $acme = null;
+            foreach (Tiger_Module_Registry::sources() as $s) {
+                if ($s->id === 'acme') { $acme = $s; break; }
+            }
+            $this->assertNotNull($acme, 'the registered source appears in sources()');
+            $this->assertSame('module', $acme->origin);
+            $this->assertSame('acme-mod', $acme->provider);
+            $this->assertSame(7, $acme->priority);
+            $this->assertTrue($acme->enabled);
+        } finally {
+            Tiger_Module_Registry::unregister('acme');   // in-memory registry persists across tests
+        }
     }
 
     // ---- media resolution ---------------------------------------------------

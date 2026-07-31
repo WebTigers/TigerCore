@@ -1,0 +1,48 @@
+name: Claude AI Review
+
+# Automated AI code review on every PR — security, correctness, and code smell, well beyond the
+# functional smoke/test suite. Advisory by design: the review posts as a comment/check and NEVER
+# blocks a merge (the human + the required smoke/tests/coverage/version checks stay the gate).
+#
+# REQUIRES two one-time, owner-only steps (a workflow file alone does nothing):
+#   1. Install the Claude GitHub App on this repo:  https://github.com/apps/claude
+#   2. Add the repo secret CLAUDE_CODE_OAUTH_TOKEN — generate it with `claude setup-token` (bills the
+#      Claude subscription, not API credits), then set it under Settings → Secrets and variables → Actions.
+# `claude /install-github-app` can walk both. Review calibration (what counts as Important vs a Nit for
+# this codebase) lives in the repo-root REVIEW.md.
+
+on:
+  pull_request:
+    # Once per PR (not on every push) to keep token cost predictable. Add `synchronize` here if you
+    # want a fresh review on each push; or comment `@claude review` on the PR to re-run on demand
+    # (that needs the separate mention workflow, not installed here).
+    types: [opened, reopened, ready_for_review]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    # Skip drafts until they're marked ready (saves tokens on WIP branches).
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so the reviewer can diff against the base
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          plugin_marketplaces: "https://github.com/anthropics/claude-code.git"
+          plugins: "code-review@claude-code-plugins"
+          prompt: "/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}"
+          # Calibration lives in the repo-root REVIEW.md (highest-priority instruction to every agent).
+          # Sonnet 5 is the cost/quality default (~half of Opus). For a deep security pass, switch the
+          # model to claude-opus-4-8.
+          claude_args: "--max-turns 12 --model claude-sonnet-5"

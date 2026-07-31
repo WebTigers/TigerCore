@@ -275,9 +275,13 @@ class Tiger_License_Checker
             return (self::$transport)($authority, $payload);
         }
         $url = rtrim($authority, '/') . '/verify';
+        // Send a User-Agent: a WAF-protected authority (ours sits behind one) blocks a UA-less request
+        // (AWS CommonRuleSet's NoUserAgent_HEADER → 403), which would otherwise force every verify to
+        // `unknown` and silently kill lapse detection. A named UA also identifies the caller in logs.
         $ctx = stream_context_create(['http' => [
             'method'        => 'POST',
-            'header'        => "Content-Type: application/json\r\nAccept: application/json\r\n",
+            'header'        => "Content-Type: application/json\r\nAccept: application/json\r\n"
+                             . "User-Agent: Tiger-License-Checker\r\n",
             'content'       => (string) json_encode($payload),
             'timeout'       => 6,
             'ignore_errors' => true,

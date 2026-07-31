@@ -66,17 +66,20 @@ class Tiger_Model_Config extends Tiger_Model_Table
      */
     public function set($scope, $scopeId, $key, $value)
     {
+        // Match ANY existing row for this key — INCLUDING a soft-deleted one (plain select(), not
+        // activeSelect()). forget() soft-deletes, but the DB unique index (scope, scope_id, config_key)
+        // still holds that row, so a fresh insert would collide. A set() after a forget() must REVIVE the
+        // row (clear `deleted`) rather than insert a duplicate.
         $existing = $this->fetchRow(
-            $this->activeSelect()
+            $this->select()
                 ->where('scope = ?', $scope)
                 ->where('scope_id = ?', (string) $scopeId)
                 ->where('config_key = ?', $key)
         );
         if ($existing) {
-            $this->update(
-                ['config_value' => $value],
-                $this->getAdapter()->quoteInto('config_id = ?', $existing->config_id)
-            );
+            $data = ['config_value' => $value];
+            if ((int) $existing->deleted === 1) { $data['deleted'] = 0; }   // revive a forgotten key
+            $this->update($data, $this->getAdapter()->quoteInto('config_id = ?', $existing->config_id));
             return $existing->config_id;
         }
         return $this->insert([
@@ -85,5 +88,27 @@ class Tiger_Model_Config extends Tiger_Model_Table
             'config_key'   => $key,
             'config_value' => $value,
         ]);
+    }
+
+    /**
+     * Remove a config value (soft-delete) for a scope. No-op if it doesn't exist. The row drops out of the
+     * config cascade next request; a later set() of the same key revives it.
+     *
+     * @param  string $scope   the scope (global/org/user)
+     * @param  string $scopeId the scope id ('' for global)
+     * @param  string $key     the dot-notation config key
+     * @return void
+     */
+    public function forget($scope, $scopeId, $key)
+    {
+        $row = $this->fetchRow(
+            $this->activeSelect()
+                ->where('scope = ?', $scope)
+                ->where('scope_id = ?', (string) $scopeId)
+                ->where('config_key = ?', $key)
+        );
+        if ($row) {
+            $this->softDelete($this->getAdapter()->quoteInto('config_id = ?', $row->config_id));
+        }
     }
 }

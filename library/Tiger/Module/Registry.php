@@ -39,8 +39,51 @@ class Tiger_Module_Registry
     const SOURCE_MARKETPLACE = 'webtigers';      // live-API, "marketplace #0" (dynamic/commercial)
     const SOURCE_DIRECTORY   = 'tiger-vendors';  // git index (free presence + offline fallback)
 
-    /** Result orderings for the directory. `featured` = the index's own neutral order (no paid placement). */
+    /** Result orderings. `featured` = sponsored-first (marketplace-promoted), then neutral; the rest are neutral. */
     const SORTS = ['featured', 'title', 'latest'];
+
+    /** @var array<string,array> module-contributed sources (id => spec), registered in-memory per request. */
+    protected static $registered = [];
+
+    /**
+     * Register a catalog source from a module (call it from the module's Bootstrap `_init*`). This is the
+     * one-call seam that lets any module add its own marketplace to the Add screen — no config editing, no
+     * core change. It mirrors `Tiger_Audience::register()` / `Tiger_Search::register()`: in-memory and
+     * re-declared each request, so the source exists exactly while the module is active and vanishes when
+     * it's deactivated (nothing to clean up). An admin can still disable/reorder it — a config override
+     * (`tiger.modules.sources.<id>.*`) always wins over what a module registered (see `sources()`), which
+     * is how the "Connect a marketplace" screen manages module and admin sources uniformly.
+     *
+     * A source just has to return index-shaped JSON (`{modules, taxonomy}`) from its `url`; everything else
+     * (merge, dedupe, taxonomy union, sponsored/featured, offline fallback) is handled here.
+     *
+     * @param  string $id       a stable id ([a-z0-9-]); the config key + cache namespace
+     * @param  array  $spec     {label, kind:'git-index'|'live-api', url, priority (lower=earlier), enabled}
+     * @param  string $provider the registering module's slug (shown in the manage UI), optional
+     * @return void
+     */
+    public static function register(string $id, array $spec, string $provider = ''): void
+    {
+        $spec['id']       = $id;
+        $spec['origin']   = 'module';
+        $spec['provider'] = $provider;
+        if (!isset($spec['priority'])) { $spec['priority'] = 20; }   // default: after the shipped marketplace(0)+directory(10)
+        $source = new Tiger_Module_Source($spec);
+        if ($source->id === '') { return; }
+        self::$registered[$source->id] = $spec;
+    }
+
+    /**
+     * Drop a previously registered module source (rarely needed — deactivating the module already removes
+     * it, since registration is per-request). Mainly a test/So seam.
+     *
+     * @param  string $id the source id
+     * @return void
+     */
+    public static function unregister(string $id): void
+    {
+        unset(self::$registered[$id]);
+    }
 
     /**
      * True if the registry is reachable (at least one source resolved via fetch or fresh cache).
@@ -55,12 +98,14 @@ class Tiger_Module_Registry
 
     /**
      * Search the aggregated registry; [] when unavailable or no match. Matches name/slug/description/
-     * keywords/vendor/type, then orders by $sort. The directory is **neutral** — there is no paid
-     * placement here; sponsorship/promotion is an on-platform concern (a marketplace's points system),
-     * not a boost baked into this distributed catalog.
+     * keywords/vendor/type, then orders by $sort. **`featured` surfaces sponsored listings first** — a
+     * `live-api` marketplace source (e.g. `webtigers`) may flag a listing `sponsored` (with an optional
+     * `sponsored_rank`) to give a paying vendor promoted placement; every other sort (`title`, `latest`)
+     * is neutral, so a buyer can always opt out of sponsorship by re-sorting. The git Directory carries
+     * no `sponsored` field, so a directory-only install is unaffected (nothing to promote).
      *
      * @param  string $query   the search term ('' returns all modules)
-     * @param  string $sort    'featured' (the index's neutral order), 'title', or 'latest'
+     * @param  string $sort    'featured' (sponsored-first, then neutral), 'title', or 'latest'
      * @param  bool   $refresh bypass the caches and re-fetch the index now
      * @return array the matching module entries
      */
@@ -147,10 +192,13 @@ class Tiger_Module_Registry
     }
 
     /**
-     * Order results in place: `title` (A–Z), `latest` (newest review), or `featured` — which is now the
-     * index's own neutral order (the compiler sorts it alphabetically). There is no paid placement in the
-     * directory: **sponsorship is on-platform** (a marketplace's points system), never a boost baked into
-     * this distributed Add-screen catalog.
+     * Order results in place: `title` (A–Z), `latest` (newest review), or `featured` — **sponsored-first**.
+     * A marketplace (`live-api`) source may flag a listing `sponsored` with an optional integer
+     * `sponsored_rank` (higher = earlier; a bare `sponsored:true` ranks as 1). Featured floats those to the
+     * top by rank, then leaves the index's neutral order beneath them; the sort is **stable** (PHP 8) so
+     * un-sponsored listings keep their compiled order. `title`/`latest` ignore sponsorship entirely, so
+     * promotion is always something the buyer can sort past. The git Directory ships no `sponsored` field,
+     * so a directory-only install sees pure neutral order.
      */
     protected static function _sort(array &$out, $sort)
     {
@@ -159,8 +207,10 @@ class Tiger_Module_Registry
         } elseif ($sort === 'latest') {
             $at = static fn($m) => (string) ($m['review']['reviewed_at'] ?? '');
             usort($out, static fn($a, $b) => strcmp($at($b), $at($a)) ?: strcmp(self::_title($a), self::_title($b)));
+        } elseif ($sort === 'featured') {
+            $rank = static fn($m) => !empty($m['sponsored']) ? max(1, (int) ($m['sponsored_rank'] ?? 1)) : 0;
+            usort($out, static fn($a, $b) => $rank($b) <=> $rank($a));   // stable: neutral order kept within a band
         }
-        // 'featured' → leave the index's neutral order untouched.
     }
 
     /** A listing's display title (the registry uses `module`; tolerate a legacy `name`). */
@@ -256,14 +306,29 @@ class Tiger_Module_Registry
     public static function sources()
     {
         $byId = [];
-        foreach (self::_defaultSources() as $s) { $byId[$s->id] = $s; }
+        // 1) shipped defaults (marketplace #0 + the git Directory).
+        foreach (self::_defaultSources() as $s) { $s->origin = 'default'; $byId[$s->id] = $s; }
+        // 2) module-contributed sources (Tiger_Module_Registry::register) — fill new ids; never clobber a default.
+        foreach (self::_registeredSources() as $s) {
+            if (!isset($byId[$s->id])) { $byId[$s->id] = $s; }
+        }
+        // 3) admin config overrides win LAST — a connected marketplace, or an enable/priority tweak of any
+        //    source above (config-discipline: `tiger.modules.sources.<id>.*`, never a table).
         foreach (self::_configSources() as $id => $spec) {
-            if (isset($byId[$id])) { $byId[$id]->apply($spec); }
-            else { $spec['id'] = $id; $byId[$id] = new Tiger_Module_Source($spec); }
+            if (isset($byId[$id])) { $byId[$id]->apply($spec); }   // keeps the base source's origin (default|module)
+            else { $spec['id'] = $id; $spec['origin'] = 'connected'; $byId[$id] = new Tiger_Module_Source($spec); }
         }
         $all = array_values($byId);
         usort($all, static fn($a, $b) => ($a->priority <=> $b->priority) ?: strcmp($a->id, $b->id));
         return $all;
+    }
+
+    /** The module-contributed sources (from register()), as Source objects. */
+    protected static function _registeredSources()
+    {
+        $out = [];
+        foreach (self::$registered as $spec) { $out[] = new Tiger_Module_Source($spec); }
+        return $out;
     }
 
     /**
@@ -311,8 +376,42 @@ class Tiger_Module_Registry
         ];
     }
 
-    /** Admin-declared sources from the config tier (`tiger.modules.sources.<id>.*`), id => spec. */
+    /**
+     * Admin-declared source overrides from the config tier (`tiger.modules.sources.<id>.*`), id => spec.
+     *
+     * Read LIVE from the config DB model — NOT the boot-time Zend_Config snapshot — so a source an admin
+     * just connected/updated/removed is reflected in the SAME request (the config tier is eager: a
+     * mid-request write wouldn't otherwise appear until the next boot, so the manage UI would look stale).
+     * Falls back to the Zend_Config snapshot when the DB model isn't available (very early boot / tests).
+     *
+     * @return array<string,array> id => {field: value}
+     */
     protected static function _configSources()
+    {
+        if (!class_exists('Tiger_Model_Config')) { return self::_configSourcesFromZend(); }
+        try {
+            $rows = (new Tiger_Model_Config())->getForScope(Tiger_Model_Config::SCOPE_GLOBAL, '');
+        } catch (Throwable $e) {
+            return self::_configSourcesFromZend();
+        }
+        $prefix = 'tiger.modules.sources.';
+        $out    = [];
+        foreach ($rows as $row) {
+            $key = (string) $row->config_key;
+            if (strpos($key, $prefix) !== 0) { continue; }
+            $rest = substr($key, strlen($prefix));   // "<id>.<field>"
+            $dot  = strpos($rest, '.');
+            if ($dot === false) { continue; }
+            $id    = substr($rest, 0, $dot);
+            $field = substr($rest, $dot + 1);
+            if ($id === '' || $field === '') { continue; }
+            $out[$id][$field] = (string) $row->config_value;
+        }
+        return $out;
+    }
+
+    /** Source overrides from the boot-time Zend_Config snapshot (fallback when the DB model isn't ready). */
+    protected static function _configSourcesFromZend()
     {
         $mod = self::_modulesConfig();
         $src = $mod ? $mod->get('sources') : null;

@@ -56,17 +56,20 @@ class Tiger_Model_Option extends Tiger_Model_Table
      */
     public function set($scope, $scopeId, $key, $value)
     {
+        // Match ANY existing row for this key — INCLUDING a soft-deleted one (plain select(), not
+        // activeSelect()). forget() soft-deletes, but the DB unique index (scope, scope_id, option_key)
+        // still holds that row, so a fresh insert would collide (duplicate key). A set() after a forget()
+        // must therefore REVIVE the row (clear `deleted`) rather than insert a duplicate.
         $existing = $this->fetchRow(
-            $this->activeSelect()
+            $this->select()
                 ->where('scope = ?', $scope)
                 ->where('scope_id = ?', (string) $scopeId)
                 ->where('option_key = ?', $key)
         );
         if ($existing) {
-            $this->update(
-                ['option_value' => $value],
-                $this->getAdapter()->quoteInto('option_id = ?', $existing->option_id)
-            );
+            $data = ['option_value' => $value];
+            if ((int) $existing->deleted === 1) { $data['deleted'] = 0; }   // revive a forgotten key
+            $this->update($data, $this->getAdapter()->quoteInto('option_id = ?', $existing->option_id));
             return $existing->option_id;
         }
         return $this->insert([
