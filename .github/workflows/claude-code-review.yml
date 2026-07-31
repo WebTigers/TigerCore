@@ -13,10 +13,9 @@ name: Claude AI Review
 
 on:
   pull_request:
-    # Once per PR (not on every push) to keep token cost predictable. Add `synchronize` here if you
-    # want a fresh review on each push; or comment `@claude review` on the PR to re-run on demand
-    # (that needs the separate mention workflow, not installed here).
-    types: [opened, reopened, ready_for_review]
+    # Reviews on open + on each push while the PR is open. Drop `synchronize` to go back to once-per-PR
+    # (open/reopen only) if you'd rather keep token spend to a single review per PR.
+    types: [opened, reopened, ready_for_review, synchronize]
 
 concurrency:
   group: claude-review-${{ github.event.pull_request.number }}
@@ -31,6 +30,7 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
+      id-token: write   # required: the action fetches an OIDC token to authenticate
     steps:
       - uses: actions/checkout@v4
         with:
