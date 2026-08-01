@@ -65,5 +65,11 @@ class System_ModulesController extends Tiger_Controller_Admin_Action
         $this->view->title           = 'Add Module — Tiger Admin';
         $this->view->registryUrl     = Tiger_Module_Registry::indexUrl();
         $this->view->registryHasData = Tiger_Module_Registry::available();
+
+        // Where "Subscribe" sends the buyer for TigerPASS checkout (config-overridable; the install never
+        // takes a card — Stripe lives on webtigers.com). Empty here just falls back to the default in-view.
+        $cfg = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
+        $pass = ($cfg && $cfg->get('tiger')) ? $cfg->get('tiger')->get('pass') : null;
+        $this->view->passCheckoutUrl = $pass ? (string) $pass->get('checkout_url') : '';
     }
 }

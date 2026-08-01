@@ -40,6 +40,26 @@ final class SourceTest extends UnitTestCase
     }
 
     #[Test]
+    public function origin_defaults_to_connected_with_no_provider_and_rides_in_toArray(): void
+    {
+        $s = new Tiger_Module_Source(['id' => 'x']);
+        $this->assertSame('connected', $s->origin, 'an admin-added source is the default shape');
+        $this->assertSame('', $s->provider);
+        $arr = $s->toArray();
+        $this->assertSame('connected', $arr['origin']);
+        $this->assertSame('', $arr['provider']);
+    }
+
+    #[Test]
+    public function origin_and_provider_come_from_the_spec_and_an_unknown_origin_coerces(): void
+    {
+        $s = new Tiger_Module_Source(['id' => 'x', 'origin' => 'module', 'provider' => 'acme-mod']);
+        $this->assertSame('module', $s->origin);
+        $this->assertSame('acme-mod', $s->provider);
+        $this->assertSame('connected', (new Tiger_Module_Source(['id' => 'y', 'origin' => 'bogus']))->origin, 'an unknown origin coerces to connected');
+    }
+
+    #[Test]
     public function an_id_is_slugged_to_a_safe_key(): void
     {
         $this->assertSame('web-tigers', (new Tiger_Module_Source(['id' => 'Web Tigers!']))->id);
@@ -81,7 +101,8 @@ final class SourceTest extends UnitTestCase
     public function to_array_round_trips_the_public_shape(): void
     {
         $spec = ['id' => 'acme', 'label' => 'Acme', 'kind' => 'live-api', 'url' => 'https://a/i.json',
-                 'priority' => 3, 'enabled' => true, 'removable' => false, 'default' => true, 'cache' => 'registry-acme.json'];
+                 'priority' => 3, 'enabled' => true, 'removable' => false, 'default' => true, 'cache' => 'registry-acme.json',
+                 'origin' => 'module', 'provider' => 'acme-mod'];
         $this->assertSame($spec, (new Tiger_Module_Source($spec))->toArray());
     }
 }

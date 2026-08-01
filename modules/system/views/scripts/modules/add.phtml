@@ -2,12 +2,18 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
- * Add Module — install from a public GitHub repo + search the open Vendor Registry. A "View
- * more" (or Check) opens a styled modal: the module header (logo/name/vendor/badges) + the
- * repo's rendered TIGER.md + Install. Everything is /api (System_Service_Modules); gated to
- * superadmin (installing runs vendor code).
+ * Add Module — install from a public GitHub repo + search the multi-source registry (the git Directory
+ * plus, when configured, the WebTigers Marketplace live-API source that can flag SPONSORED listings). A
+ * "View more" opens a styled modal: the module header + the repo's rendered TIGER.md + Install.
+ *
+ * The TigerPASS funnel lives here: PASS-covered (licensed) listings carry a 🐯 PASS badge and — until this
+ * install holds a valid subscription key — a "Get TigerPASS — $5/mo" CTA that opens a two-phase modal
+ * (value → paste-key). Activation flips every PASS card to a plain Install. Everything is /api
+ * (System_Service_Modules); gated to superadmin (installing runs vendor code).
  */
 $registryHasData = !empty($this->registryHasData);
+$passCheckout = (string) ($this->passCheckoutUrl ?? '');
+if ($passCheckout === '') { $passCheckout = 'https://webtigers.com/checkout/tigerpass'; }
 ?>
 
 <div class="d-flex align-items-center justify-content-between mb-4">
@@ -19,6 +25,9 @@ $registryHasData = !empty($this->registryHasData);
 
 <div id="mod-feedback"></div>
 
+<!-- TigerPASS value banner — rendered by JS only when this install has no active PASS -->
+<div id="pass-banner"></div>
+
 <ul class="nav nav-tabs mb-4" id="mod-add-tabs" role="tablist">
     <li class="nav-item" role="presentation">
         <button class="nav-link active" id="tab-browse-btn" data-bs-toggle="tab" data-bs-target="#tab-browse" type="button" role="tab"><i class="fa-solid fa-store me-2"></i>Browse</button>
@@ -28,6 +37,12 @@ $registryHasData = !empty($this->registryHasData);
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="tab-upload-btn" data-bs-toggle="tab" data-bs-target="#tab-upload" type="button" role="tab"><i class="fa-solid fa-upload me-2"></i>Upload</button>
+    </li>
+    <li class="nav-item ms-auto" role="presentation">
+        <button class="nav-link" id="tab-sources-btn" data-bs-toggle="tab" data-bs-target="#tab-sources" type="button" role="tab"><i class="fa-solid fa-store me-2"></i>Marketplaces</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-pass-btn" data-bs-toggle="tab" data-bs-target="#tab-pass" type="button" role="tab"><i class="fa-solid fa-paw me-2"></i>TigerPASS</button>
     </li>
 </ul>
 
@@ -60,7 +75,16 @@ $registryHasData = !empty($this->registryHasData);
                          travel in the search payload. JS renders these; a fallback derives the type
                          pills from the results if the taxonomy is unreachable. -->
                     <ul class="nav nav-pills mod-type-filter mb-2" id="mod-type-filter"></ul>
-                    <ul class="nav nav-pills mod-cat-filter mb-3 d-none" id="mod-cat-filter"></ul>
+                    <ul class="nav nav-pills mod-cat-filter mb-2 d-none" id="mod-cat-filter"></ul>
+                    <!-- Availability filter — how you GET a module (a second axis alongside type). Static:
+                         it mirrors the pricing models the platform understands, not registry taxonomy. -->
+                    <ul class="nav nav-pills mod-avail-filter mb-3" id="mod-avail-filter">
+                        <li class="nav-item"><button type="button" class="nav-link active" data-avail="">All</button></li>
+                        <li class="nav-item"><button type="button" class="nav-link" data-avail="free">Free</button></li>
+                        <li class="nav-item"><button type="button" class="nav-link" data-avail="pass"><i class="fa-solid fa-paw me-1 text-warning"></i>TigerPASS</button></li>
+                        <li class="nav-item"><button type="button" class="nav-link" data-avail="freemium">Freemium</button></li>
+                        <li class="nav-item"><button type="button" class="nav-link" data-avail="paid">Paid</button></li>
+                    </ul>
                     <div id="mod-results"></div>
                 <?php endif; ?>
             </div>
@@ -111,6 +135,59 @@ $registryHasData = !empty($this->registryHasData);
             </div>
         </div>
     </div>
+
+    <!-- Marketplaces — connect + manage catalog sources -->
+    <div class="tab-pane fade" id="tab-sources" role="tabpanel" aria-labelledby="tab-sources-btn">
+        <div class="card mb-3">
+            <div class="card-header fw-semibold"><i class="fa-solid fa-store me-2"></i>Marketplaces &amp; directories</div>
+            <div class="card-body">
+                <p class="text-body-secondary small mb-3">The Add screen aggregates every source below. A source is any URL that returns a Tiger catalog index (<code>{modules, taxonomy}</code>) — a static <code>index.json</code> directory or a live marketplace endpoint. <strong>Lower priority is checked first</strong> and wins a slug collision, so a marketplace can enrich a directory listing.</p>
+                <div id="src-list" class="table-responsive"></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header fw-semibold"><i class="fa-solid fa-plug me-2"></i>Connect a marketplace</div>
+            <div class="card-body">
+                <div id="src-connect-feedback"></div>
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label small" for="src-label">Name</label>
+                        <input type="text" class="form-control" id="src-label" placeholder="Acme Market">
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label small" for="src-url">Index URL</label>
+                        <input type="url" class="form-control" id="src-url" placeholder="https://acme.example/tiger/index.json">
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label small" for="src-kind">Type</label>
+                        <select class="form-select" id="src-kind">
+                            <option value="live-api">Marketplace</option>
+                            <option value="git-index">Directory</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <button type="button" class="btn btn-primary w-100" id="src-connect"><i class="fa-solid fa-plug me-1"></i>Connect</button>
+                    </div>
+                </div>
+                <p class="text-body-secondary mt-2 mb-0" style="font-size:11px">Only add marketplaces you trust — a source lists modules whose code runs on your server once you install them. You always review a module (and, for paid ones, its signature) before it installs.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- TigerPASS — status + preferences -->
+    <div class="tab-pane fade" id="tab-pass" role="tabpanel" aria-labelledby="tab-pass-btn">
+        <div class="card">
+            <div class="card-header fw-semibold"><i class="fa-solid fa-paw me-2"></i>TigerPASS</div>
+            <div class="card-body">
+                <div id="pass-tab-status" class="mb-3"></div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="pass-nag-toggle">
+                    <label class="form-check-label" for="pass-nag-toggle">Disable TigerPASS nag alert</label>
+                </div>
+                <div class="form-text">Hides the TigerPASS promo banner on this screen for you. You can still get TigerPASS anytime from a premium module's card.</div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Detail modal (the "View more" -> TIGER.md view) -->
@@ -127,25 +204,35 @@ $registryHasData = !empty($this->registryHasData);
   </div>
 </div>
 
+<!-- TigerPASS funnel modal (two phases: value proposition -> paste key). Body filled by JS. -->
+<div class="modal fade" id="pass-modal" tabindex="-1" aria-hidden="true" aria-labelledby="pass-title" role="dialog">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" id="pass-content"></div>
+  </div>
+</div>
+
 <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/vendor/tiger-lightbox/tiger-lightbox.css') ?>">
 <script src="<?= $this->asset($this->themeAssets . '/vendor/tiger-lightbox/tiger-lightbox.js') ?>"></script>
 <script src="<?= $this->asset($this->themeAssets . '/vendor/muuri/muuri.min.js') ?>"></script>
 <script src="<?= $this->asset($this->themeAssets . '/vendor/tiger-upload/tiger-upload.js') ?>"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    var PASS_CHECKOUT = <?= json_encode($passCheckout) ?>;
     var fb = document.getElementById('mod-feedback');
     var urlEl = document.getElementById('mod-url'), refEl = document.getElementById('mod-ref');
     var modalEl = document.getElementById('mod-detail');
     var modal = new bootstrap.Modal(modalEl);
     var head = document.getElementById('mod-detail-head'), body = document.getElementById('mod-detail-body'), foot = document.getElementById('mod-detail-foot');
 
+    // Install state + the per-user nag preference — set from every search payload (and the TigerPASS tab).
+    var passHas = false, nagShow = true, nagDisabled = false;
+
     function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
     function badge(t,cls){ return '<span class="badge text-bg-'+cls+' me-1">'+esc(t)+'</span>'; }
     function api(method,data){ var b=new URLSearchParams(Object.assign({module:'system',service:'modules',method:method},data)); return fetch('/api',{method:'POST',headers:{'X-Requested-With':'XMLHttpRequest'},body:b}).then(function(r){return r.json();}); }
     var imgErr = "this.style.display='none'";
 
-    // Open the detail modal for a repo (extra = registry listing fields: logo/hero/vendor/pricing…).
-    // btn (optional) = the clicked trigger button, given a busy state while inspect runs.
+    // ---------- the detail modal (unchanged review-before-install path) ----------
     function openDetail(repo, ref, extra, btn){
         extra = extra || {};
         head.innerHTML = '<h5 class="modal-title mb-0">Loading…</h5>';
@@ -169,6 +256,7 @@ document.addEventListener('DOMContentLoaded', function () {
             '<div class="small text-body-secondary">'+(vendor?esc(vendor)+' · ':'')+'<code>/'+esc(m.slug)+'</code></div></div>';
 
         var reqBits=[]; if(req.tiger)reqBits.push('Tiger '+esc(req.tiger)); if(req.php)reqBits.push('PHP '+esc(req.php));
+        var avail = x.availability || '';
         var pricing = (x.pricing && x.pricing.model) || m.pricing;
         var media = [];
         if (x.video && x.video.src){ media.push({ type: x.video.type || 'video', src: x.video.src, poster: x.video.poster || '' }); }
@@ -187,8 +275,7 @@ document.addEventListener('DOMContentLoaded', function () {
             (x.hero ? '<img src="'+esc(x.hero)+'" alt="" class="mod-hero" onerror="'+imgErr+'">' : '') +
             gallery +
             '<div class="mb-2">' +
-              ((pricing==='free'||pricing==='freemium') ? badge('free','success-subtle text-success-emphasis border border-success-subtle') : '') +
-              ((pricing==='freemium'||pricing==='paid') ? badge('pro','primary-subtle text-primary-emphasis border border-primary-subtle') : '') +
+              availBadgeHTML(avail || (pricing==='free'?'free':(pricing==='freemium'?'freemium':(pricing==='licensed'?'pass':'')))) +
               '<a href="'+esc(d.repo)+'" target="_blank" rel="noopener" class="badge text-bg-light text-decoration-none"><i class="fa-brands fa-github me-1"></i>'+esc(d.repo.replace('https://github.com/',''))+'@'+esc(d.ref)+'</a>' +
               (reqBits.length?' <span class="small text-body-secondary ms-1">Requires '+reqBits.join(', ')+'</span>':'') +
             '</div>' +
@@ -202,11 +289,18 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
 
-        foot.innerHTML = d.installed
-            ? '<span class="text-success"><i class="fa-solid fa-circle-check me-1"></i>Installed'+(d.installed_version?' (v'+esc(d.installed_version)+')':'')+'</span>'
-            : '<button type="button" class="btn btn-primary" id="mod-do"><i class="fa-solid fa-download me-1"></i>Install</button>';
-        var doBtn = document.getElementById('mod-do');
-        if (doBtn){ doBtn.addEventListener('click', function(){ doInstall(d.repo, d.ref, false); }); }
+        // Footer: a PASS-covered module you don't yet own → route to the subscription, not a dead Install.
+        if (d.installed){
+            foot.innerHTML = '<span class="text-success"><i class="fa-solid fa-circle-check me-1"></i>Installed'+(d.installed_version?' (v'+esc(d.installed_version)+')':'')+'</span>';
+        } else if (avail === 'pass' && !passHas){
+            foot.innerHTML = '<button type="button" class="btn btn-warning" id="mod-getpass"><i class="fa-solid fa-paw me-1"></i>Get TigerPASS</button>';
+            var gp = document.getElementById('mod-getpass');
+            if (gp){ gp.addEventListener('click', function(){ modal.hide(); openPass(m.name); }); }
+        } else {
+            foot.innerHTML = '<button type="button" class="btn btn-primary" id="mod-do"><i class="fa-solid fa-download me-1"></i>Install</button>';
+            var doBtn = document.getElementById('mod-do');
+            if (doBtn){ doBtn.addEventListener('click', function(){ doInstall(d.repo, d.ref, false); }); }
+        }
     }
 
     function doInstall(repo, ref, isUpdate){
@@ -223,8 +317,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('mod-check').addEventListener('click', function(){ var u=urlEl.value.trim(); if(u){ openDetail(u, refEl.value.trim(), {}, this); } });
     urlEl.addEventListener('keydown', function(e){ if(e.key==='Enter'){ document.getElementById('mod-check').click(); } });
 
-    // Upload install — TigerUpload: full-page drop (auto-switches to this tab), click-to-browse,
-    // real progress. Single .zip; install stays a deliberate click (it runs vendor code).
+    // ---------- upload install (TigerUpload; unchanged) ----------
     var uploadBtn = document.getElementById('mod-upload'), fileEl = document.getElementById('mod-file');
     var dropzone = document.getElementById('mod-dropzone'), dropLabel = document.getElementById('mod-drop-label');
     var prog = document.getElementById('mod-progress'), progBar = document.getElementById('mod-progress-bar');
@@ -232,17 +325,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (window.TigerUpload && dropzone) {
         var showUploadTab = function(){ var b = document.getElementById('tab-upload-btn'); if (b && window.bootstrap) { bootstrap.Tab.getOrCreateInstance(b).show(); } };
-
         var up = TigerUpload.create({
             url: '/api', field: 'archive', accept: ['.zip'], maxSize: 50 * 1048576,
-            multiple: false, auto: false,                       // stage on drop; install on the button click
+            multiple: false, auto: false,
             params: { module: 'system', service: 'modules', method: 'upload' }
         });
-        up.fromInput(fileEl);                                   // click-to-browse
+        up.fromInput(fileEl);
         up.dropOnWindow({ label: 'Drop your module .zip', sublabel: 'unpacked into your modules folder', onDrop: showUploadTab });
-
         up.subscribe({
-            onAdd: function (item) {                             // staged (auto:false → not uploading yet)
+            onAdd: function (item) {
                 staged = item;
                 dropLabel.innerHTML = '<i class="fa-solid fa-file-zipper text-success me-1"></i>' + esc(item.name) +
                     ' <span class="text-body-secondary">(' + (item.size / 1048576).toFixed(1) + ' MB)</span>';
@@ -259,10 +350,8 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             onReject: function (info) { TigerDOM.notify(fb, info.error, { type: 'alert' }); }
         });
-
         dropzone.addEventListener('click', function () { fileEl.click(); });
         dropzone.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileEl.click(); } });
-
         uploadBtn.addEventListener('click', function () {
             if (!staged) { TigerDOM.notify(fb, 'Choose a .zip package to upload.', { type: 'alert' }); return; }
             if (!confirm('Install this uploaded package? Its code will run in your app once active.')) { return; }
@@ -271,25 +360,22 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Registry search + type filter — a Muuri masonry grid (variable-height cards; theme cards
-    // show their hero full-height). Search re-fetches + rebuilds; the type pills filter in place.
+    // ================= registry search + filters + cards =================
     var searchEl=document.getElementById('mod-search'), sortEl=document.getElementById('mod-sort'),
         results=document.getElementById('mod-results'), typeFilter=document.getElementById('mod-type-filter'),
-        catFilter=document.getElementById('mod-cat-filter'), t;
-    var allResults=[], activeType='', activeCat='', grid=null,
+        catFilter=document.getElementById('mod-cat-filter'), availFilter=document.getElementById('mod-avail-filter'), t;
+    var allResults=[], activeType='', activeCat='', activeAvail='', grid=null,
         typeLabels={}, catsByType={}, pillsBuilt=false;
     if (searchEl){
         searchEl.addEventListener('input', function(){ clearTimeout(t); t=setTimeout(runSearch,250); });
         if (sortEl){ sortEl.addEventListener('change', runSearch); }
         runSearch();
     }
-    // Title-case a bare id for the fallback labels (no taxonomy → derive doors from the results).
     function humanize(id){ return String(id||'').replace(/[-_]/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();}); }
-    // Fold the registry taxonomy into fast lookup maps (id→label, type→[categories]).
     function setTaxonomy(tax){
         typeLabels={}; catsByType={};
         var types=(tax&&tax.types)||[], cats=(tax&&tax.categories)||[];
-        if (!types.length){                                    // FALLBACK: derive doors from the results
+        if (!types.length){
             var seen={};
             allResults.forEach(function(m){ var ty=m.type; if(ty && !seen[ty]){ seen[ty]=1; types.push({id:ty,label:humanize(ty)}); } });
             types.sort(function(a,b){ return a.label.localeCompare(b.label); });
@@ -316,7 +402,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         renderCatPills();
     }
-    // Category pills are scoped to the active type — hidden entirely when a type has no categories.
     function renderCatPills(){
         if (!catFilter){ return; }
         var cats=catsByType[activeType]||[];
@@ -336,15 +421,32 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     }
+    // Availability pills are static (the platform's pricing models), wired once.
+    if (availFilter){
+        availFilter.querySelectorAll('[data-avail]').forEach(function(btn){
+            btn.addEventListener('click', function(){
+                availFilter.querySelectorAll('.nav-link').forEach(function(b){ b.classList.remove('active'); });
+                btn.classList.add('active');
+                activeAvail=btn.getAttribute('data-avail');
+                applyFilter();
+            });
+        });
+    }
+
     function runSearch(refresh){
         var data = { q:searchEl.value.trim(), sort:(sortEl?sortEl.value:'featured') };
-        if (refresh){ data.refresh = 1; }   // bypass the registry's ~3h cache
+        if (refresh){ data.refresh = 1; }
         return api('search',data).then(function(res){
             if (res.result!==1) return;
             allResults=(res.data&&res.data.results)||[];
-            // Build the filter doors once, from the taxonomy the payload carries (or the fallback).
+            passHas = !!(res.data && res.data.pass && res.data.pass.has);
+            var nag = (res.data && res.data.nag) || {};
+            nagShow = nag.show !== false;
+            nagDisabled = !!nag.disabled;
             if (!pillsBuilt){ renderTypePills(setTaxonomy(res.data&&res.data.taxonomy)); pillsBuilt=true; }
             renderResults();
+            renderBanner();
+            renderPassTab({ has: passHas }, { show: nagShow, disabled: nagDisabled });
         });
     }
     var refreshEl = document.getElementById('mod-refresh');
@@ -354,26 +456,44 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(function(){ if (window.TigerDOM && TigerDOM.toast){ TigerDOM.toast('Directory refreshed.', { type:'success' }); } });
         });
     }
-    // A listing's categories, normalized to an array of ids (the registry stores single→string, multi→array).
     function catList(m){ var c=m.category; return Array.isArray(c)?c:(c?[c]:[]); }
+
+    // ---- badges + card ----
+    // Availability → a themed badge. PASS is amber (🐯); owned PASS shows a check.
+    function availBadgeHTML(avail){
+        if (avail==='free')     return '<span class="badge text-bg-success-subtle text-success-emphasis border border-success-subtle me-1">free</span>';
+        if (avail==='freemium') return '<span class="badge text-bg-info-subtle text-info-emphasis border border-info-subtle me-1">freemium</span>';
+        if (avail==='paid')     return '<span class="badge text-bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle me-1">paid</span>';
+        if (avail==='pass')     return passHas
+            ? '<span class="badge text-bg-warning-subtle text-warning-emphasis border border-warning-subtle me-1"><i class="fa-solid fa-paw me-1"></i>PASS <i class="fa-solid fa-check ms-1"></i></span>'
+            : '<span class="badge text-bg-warning-subtle text-warning-emphasis border border-warning-subtle me-1"><i class="fa-solid fa-paw me-1"></i>PASS</span>';
+        return '';
+    }
     function card(m,i){
         var type = m.type || '';
         var typeBadge = type ? ' <span class="badge text-bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">'+esc(typeLabels[type]||humanize(type))+'</span>' : '';
-        var pm = (m.pricing && m.pricing.model) || '';
-        var pricingBadges =
-            ((pm==='free'||pm==='freemium') ? ' <span class="badge text-bg-success-subtle text-success-emphasis border border-success-subtle">free</span>' : '') +
-            ((pm==='freemium'||pm==='paid') ? ' <span class="badge text-bg-primary-subtle text-primary-emphasis border border-primary-subtle" title="Paid pro version available">pro</span>' : '');
-        var spon = m.sponsored?' <span class="badge text-bg-warning-subtle text-warning-emphasis border border-warning-subtle" title="Promoted placement">'+esc(m.sponsored_label||'Sponsored')+'</span>':'';
+        var avail = m.availability || '';
+        // Sponsored marker is only meaningful under the Featured sort (which surfaces them first); it
+        // disappears when the buyer re-sorts, so promotion is always something they can opt past.
+        var spon = (m.sponsored && (sortEl?sortEl.value:'featured')==='featured')
+            ? ' <span class="badge text-bg-warning-subtle text-warning-emphasis border border-warning-subtle" title="Promoted placement">'+esc(m.sponsored_label||'Sponsored')+'</span>' : '';
         var hero = m.hero ? '<img src="'+esc(m.hero)+'" class="mod-card-hero" alt="" onerror="'+imgErr+'">' : '';
-        return '<div class="mod-grid-item" data-type="'+esc(type)+'" data-category="'+esc(catList(m).join(' '))+'"><div class="mod-grid-item-content card'+(m.sponsored?' border-warning-subtle':'')+'">'+
+
+        // Primary action. Every card keeps "View more" as the review-before-install path, EXCEPT a
+        // PASS module you don't own — where the honest CTA is the subscription, not a dead Install.
+        var action = (avail==='pass' && !passHas)
+            ? '<button type="button" class="btn btn-sm btn-warning" data-getpass="'+i+'"><i class="fa-solid fa-paw me-1"></i>Get TigerPASS</button>'
+            : '<button type="button" class="btn btn-sm btn-outline-primary" data-i="'+i+'">View more</button>';
+
+        return '<div class="mod-grid-item" data-type="'+esc(type)+'" data-category="'+esc(catList(m).join(' '))+'" data-avail="'+esc(avail)+'"><div class="mod-grid-item-content card'+(m.sponsored?' border-warning-subtle':'')+'">'+
             hero +
             '<div class="card-body d-flex gap-3">'+
               (m.logo?'<img src="'+esc(m.logo)+'" alt="" class="mod-card-logo" onerror="'+imgErr+'">':'')+
               '<div class="flex-grow-1">'+
-                '<h6 class="mb-0">'+esc(m.module||m.slug)+typeBadge+pricingBadges+spon+'</h6>'+
+                '<h6 class="mb-0">'+esc(m.module||m.slug)+typeBadge+' '+availBadgeHTML(avail)+spon+'</h6>'+
                 '<div class="small text-body-secondary mb-1">'+esc(m.vendor||'')+'</div>'+
                 '<p class="small text-body-secondary mb-2">'+esc(m.description||'')+'</p>'+
-                '<button type="button" class="btn btn-sm btn-outline-primary" data-i="'+i+'">View more</button>'+
+                action+
               '</div>'+
             '</div>'+
           '</div></div>';
@@ -382,33 +502,275 @@ document.addEventListener('DOMContentLoaded', function () {
         if (grid){ grid.destroy(); grid=null; }
         if (!allResults.length){ results.innerHTML='<div class="text-body-secondary small">No modules match.</div>'; return; }
         results.innerHTML = '<div class="mod-grid">'+allResults.map(card).join('')+'</div>'+
-            '<div class="mod-empty text-body-secondary small d-none">No modules of this type yet.</div>';
+            '<div class="mod-empty text-body-secondary small d-none">No modules match these filters.</div>';
         grid = new Muuri(results.querySelector('.mod-grid'), { dragEnabled:false, layout:{ fillGaps:true } });
         applyFilter();
-        // heroes/logos load async — re-pack as each finishes so heights are right
         results.querySelectorAll('img').forEach(function(img){
             img.addEventListener('load', function(){ if(grid){ grid.refreshItems().layout(); } });
         });
         results.querySelectorAll('[data-i]').forEach(function(b){
             b.addEventListener('click', function(){ var m=allResults[+b.getAttribute('data-i')]; openDetail(m.repository, m.ref, m, this); });
         });
+        results.querySelectorAll('[data-getpass]').forEach(function(b){
+            b.addEventListener('click', function(){ var m=allResults[+b.getAttribute('data-getpass')]; openPass(m.module||m.slug); });
+        });
     }
     function matches(m){
         if (activeType && (m.type||'')!==activeType){ return false; }
         if (activeCat  && catList(m).indexOf(activeCat)<0){ return false; }
+        if (activeAvail && (m.availability||'')!==activeAvail){ return false; }
         return true;
     }
     function applyFilter(){
         if (!grid){ return; }
         grid.filter(function(item){
             var el=item.getElement();
-            var okType=!activeType || el.getAttribute('data-type')===activeType;
-            var okCat =!activeCat  || (el.getAttribute('data-category')||'').split(' ').indexOf(activeCat)>=0;
-            return okType && okCat;
+            var okType =!activeType  || el.getAttribute('data-type')===activeType;
+            var okCat  =!activeCat   || (el.getAttribute('data-category')||'').split(' ').indexOf(activeCat)>=0;
+            var okAvail=!activeAvail || el.getAttribute('data-avail')===activeAvail;
+            return okType && okCat && okAvail;
         });
         var visible = allResults.filter(matches).length;
         var empty = results.querySelector('.mod-empty');
         if (empty){ empty.classList.toggle('d-none', visible>0); }
+    }
+
+    // ================= the TigerPASS funnel =================
+    var passModalEl = document.getElementById('pass-modal');
+    var passModal = new bootstrap.Modal(passModalEl);
+    var passContent = document.getElementById('pass-content');
+
+    function passShelf(){
+        // The PASS-covered modules currently in the catalog — the "all this for $5?" shelf.
+        var names = allResults.filter(function(m){ return (m.availability||'')==='pass'; })
+            .map(function(m){ return m.module||m.slug; });
+        // De-dup + cap the visible list; always end with the "future" line.
+        var seen={}, uniq=[]; names.forEach(function(n){ if(n && !seen[n]){ seen[n]=1; uniq.push(n); } });
+        var rows = uniq.slice(0,7).map(function(n){ return '<div class="col-6 mb-1"><i class="fa-solid fa-check text-success me-2"></i>'+esc(n)+'</div>'; });
+        rows.push('<div class="col-6 mb-1 text-body-secondary fst-italic"><i class="fa-solid fa-check text-success me-2"></i>Every future premium module</div>');
+        return '<div class="row g-0 small mb-1">'+rows.join('')+'</div>';
+    }
+
+    function openPass(refName){
+        renderPassPhase1(refName);
+        passModal.show();
+    }
+
+    function renderPassPhase1(refName){
+        var refBar = refName ? '<div class="alert alert-warning py-2 px-3 small d-flex gap-2 mb-3"><i class="fa-solid fa-paw mt-1"></i><div>You clicked <strong>'+esc(refName)+'</strong> — it\'s one of these. TigerPASS unlocks the whole shelf, not just this one.</div></div>' : '';
+        passContent.innerHTML =
+            '<div class="modal-header border-0 pb-0">'+
+              '<div class="d-flex align-items-center gap-3">'+
+                '<span class="d-inline-flex align-items-center justify-content-center rounded-3 text-bg-warning" style="width:42px;height:42px;font-size:22px"><i class="fa-solid fa-paw"></i></span>'+
+                '<div><h5 class="modal-title mb-0" id="pass-title">Get TigerPASS</h5><div class="small text-body-secondary text-uppercase" style="letter-spacing:.04em">One subscription · every premium module</div></div>'+
+              '</div>'+
+              '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>'+
+            '</div>'+
+            '<div class="modal-body pt-2">'+
+              '<p class="mb-2"><strong class="text-warning-emphasis">$5/mo</strong> unlocks every premium module and theme — not just this one. One key, one domain, subdomains free.</p>'+
+              refBar +
+              passShelf() +
+              '<div class="d-grid gap-2 mt-3">'+
+                '<button type="button" class="btn btn-warning d-flex align-items-center justify-content-between" data-plan="monthly"><span class="fw-semibold">$5 <span class="fw-normal small">/ month</span></span><i class="fa-solid fa-arrow-right"></i></button>'+
+                '<button type="button" class="btn btn-outline-warning d-flex align-items-center justify-content-between" data-plan="yearly"><span class="fw-semibold">$50 <span class="fw-normal small">/ year</span></span><span class="badge text-bg-success-subtle text-success-emphasis border border-success-subtle">2 months free</span></button>'+
+              '</div>'+
+              '<button type="button" class="btn btn-link btn-sm text-body-secondary d-block mx-auto mt-2" data-bs-dismiss="modal">← or keep browsing free modules</button>'+
+              '<p class="text-body-secondary mb-0 mt-1" style="font-size:11px;line-height:1.4">Checkout happens on webtigers.com (Stripe). Your install never sees a card. Lapsing only pauses <em>updates</em> — installed modules keep running.</p>'+
+            '</div>';
+        passContent.querySelectorAll('[data-plan]').forEach(function(b){
+            b.addEventListener('click', function(){ renderPassPhase2(b.getAttribute('data-plan')); });
+        });
+    }
+
+    function renderPassPhase2(plan){
+        var priceLine = plan==='yearly' ? '$50/year' : '$5/month';
+        // Open the seller's hosted checkout in a new tab (popup window, never an iframe — 3DS + hosted
+        // checkout can't be framed). The modal stays here as the waiting/paste-key state.
+        try { window.open(PASS_CHECKOUT + (PASS_CHECKOUT.indexOf('?')<0?'?':'&') + 'plan=' + encodeURIComponent(plan), '_blank', 'noopener'); } catch(e){}
+        passContent.innerHTML =
+            '<div class="modal-header border-0 pb-0">'+
+              '<div class="d-flex align-items-center gap-3">'+
+                '<span class="d-inline-flex align-items-center justify-content-center rounded-3 text-bg-warning" style="width:42px;height:42px;font-size:22px"><i class="fa-solid fa-paw"></i></span>'+
+                '<div><h5 class="modal-title mb-0" id="pass-title">Complete your purchase</h5><div class="small text-body-secondary text-uppercase" style="letter-spacing:.04em">'+esc(priceLine)+' · checkout opened in a new tab</div></div>'+
+              '</div>'+
+              '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>'+
+            '</div>'+
+            '<div class="modal-body pt-2">'+
+              '<p class="d-flex align-items-center gap-2 text-body-secondary small mb-3"><span class="spinner-border spinner-border-sm text-warning"></span> Waiting for your TigerPASS key…</p>'+
+              '<label class="form-label small fw-semibold" for="pass-key">Paste your TigerPASS key</label>'+
+              '<input type="text" class="form-control font-monospace" id="pass-key" placeholder="TPASS-XXXX-XXXX-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" aria-describedby="pass-key-help">'+
+              '<div class="invalid-feedback" id="pass-key-err">That key isn\'t valid for this domain. Check it, or resend it to your email from webtigers.com.</div>'+
+              '<div class="form-text" id="pass-key-help">Finish checkout in the other tab — your key shows on the confirmation page (and is emailed to you). Paste it here and it activates automatically.</div>'+
+              '<div class="mt-3 pt-2 border-top">'+
+                '<a href="'+esc(PASS_CHECKOUT)+'" target="_blank" rel="noopener" class="small text-decoration-none"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Reopen checkout</a>'+
+              '</div>'+
+            '</div>';
+        var input = document.getElementById('pass-key');
+        var errEl = document.getElementById('pass-key-err');
+        var pending = false;
+        function tryActivate(){
+            var v = input.value.trim().toUpperCase();
+            input.classList.remove('is-invalid','is-valid');
+            if (!/^TPASS-([0-9A-Z]{4}-){4}[0-9A-Z]{4}$/.test(v)) { return; }   // wait for a full, well-formed key
+            if (pending) { return; }
+            pending = true;
+            api('activatePass', { key: v }).then(function(res){
+                pending = false;
+                if (res.result===1){
+                    input.classList.add('is-valid');
+                    passHas = true;
+                    passModal.hide();
+                    if (window.TigerDOM && TigerDOM.toast){ TigerDOM.toast('Welcome to TigerPASS — every premium module is unlocked.', { type:'success' }); }
+                    renderResults();     // flip every PASS card to a plain Install
+                    renderBanner();      // banner disappears now that PASS is active
+                    return;
+                }
+                input.classList.add('is-invalid');
+                var msg = (res.messages && res.messages[0] && res.messages[0].message) || '';
+                if (msg && errEl){ errEl.textContent = msg; }
+            }).catch(function(){ pending=false; input.classList.add('is-invalid'); });
+        }
+        input.addEventListener('input', tryActivate);
+        input.focus();
+    }
+
+    // ---- persistent value banner (only when there's no active PASS, and the user hasn't snoozed/disabled it) ----
+    function renderBanner(){
+        var slot = document.getElementById('pass-banner');
+        if (!slot) return;
+        if (passHas || !nagShow){ slot.innerHTML=''; return; }   // active PASS, disabled, or still snoozed → hidden
+        var count = allResults.filter(function(m){ return (m.availability||'')==='pass'; }).length;
+        if (!count){ slot.innerHTML=''; return; }   // nothing to sell → no banner
+        slot.innerHTML =
+            '<div class="alert alert-warning d-flex align-items-center gap-3 mb-4" role="alert">'+
+              '<i class="fa-solid fa-paw fs-5"></i>'+
+              '<div class="flex-grow-1"><strong>TigerPASS — $5/mo</strong> unlocks every premium module and theme. '+
+                count+' premium module'+(count===1?'':'s')+' included here, and every future one. <span class="text-body-secondary">Included with your subscription, never per-module.</span></div>'+
+              '<button type="button" class="btn btn-sm btn-warning text-nowrap" id="pass-banner-cta">Learn more</button>'+
+              '<button type="button" class="btn-close" id="pass-banner-x" aria-label="Dismiss for 30 days" title="Dismiss for 30 days"></button>'+
+            '</div>';
+        var cta = document.getElementById('pass-banner-cta');
+        if (cta){ cta.addEventListener('click', function(){ openPass(null); }); }
+        var x = document.getElementById('pass-banner-x');
+        if (x){ x.addEventListener('click', function(){
+            nagShow = false;
+            var alertEl = slot.querySelector('.alert');
+            if (window.TigerDOM && TigerDOM.collapse && alertEl){ TigerDOM.collapse(alertEl); setTimeout(function(){ slot.innerHTML=''; }, 450); }
+            else { slot.innerHTML=''; }
+            api('snoozePassNag', {});   // persist the 30-day snooze (per user)
+        }); }
+    }
+
+    // ---- TigerPASS tab: status + the "Disable TigerPASS nag alert" switch ----
+    function renderPassTab(pass, nag){
+        var toggle = document.getElementById('pass-nag-toggle');
+        var status = document.getElementById('pass-tab-status');
+        if (toggle && nag){ toggle.checked = !!nag.disabled; }
+        if (status){
+            status.innerHTML = (pass && pass.has)
+                ? '<div class="alert alert-success d-flex align-items-center gap-2 mb-0"><i class="fa-solid fa-circle-check"></i><div>TigerPASS is <strong>active</strong> on this install — every premium module and theme is unlocked.</div></div>'
+                : '<div class="alert alert-warning d-flex align-items-center gap-2 mb-0"><i class="fa-solid fa-paw"></i><div>No active TigerPASS. Unlock the whole premium shelf from any premium module’s card.</div></div>';
+        }
+    }
+    var passTabBtn = document.getElementById('tab-pass-btn');
+    if (passTabBtn){
+        passTabBtn.addEventListener('shown.bs.tab', function(){
+            // Fetch fresh status even when the registry (and its search) is unreachable.
+            api('passInfo', {}).then(function(res){ if (res.result===1){ renderPassTab(res.data.pass, res.data.nag); } });
+        });
+    }
+    var passNagToggle = document.getElementById('pass-nag-toggle');
+    if (passNagToggle){
+        passNagToggle.addEventListener('change', function(){
+            var on = passNagToggle.checked;
+            api('setPassNag', { disabled: on ? 1 : 0 }).then(function(res){
+                if (res.result === 1){
+                    nagDisabled = !!(res.data.nag && res.data.nag.disabled);
+                    nagShow = res.data.nag ? (res.data.nag.show !== false) : nagShow;
+                    renderBanner();
+                    if (window.TigerDOM && TigerDOM.toast){ TigerDOM.toast(on ? 'TigerPASS nag alert disabled.' : 'TigerPASS nag alert enabled.', { type:'success' }); }
+                } else {
+                    passNagToggle.checked = !on;   // revert on failure
+                    (res.messages||[]).forEach(function(m){ TigerDOM.notify(fb, m.message, { type: m.class }); });
+                }
+            }).catch(function(){ passNagToggle.checked = !on; });
+        });
+    }
+
+    // ---- Marketplaces tab: list + connect + manage catalog sources ----
+    var srcList = document.getElementById('src-list');
+    function kindLabel(k){ return k === 'git-index' ? 'Directory' : 'Marketplace'; }
+    function kindBadge(k){ return '<span class="badge text-bg-light border">'+esc(kindLabel(k))+'</span>'; }
+    function originBadge(o){
+        if (o === 'default') return '<span class="badge text-bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">Built-in</span>';
+        if (o === 'module')  return '<span class="badge text-bg-info-subtle text-info-emphasis border border-info-subtle">Module</span>';
+        return '<span class="badge text-bg-success-subtle text-success-emphasis border border-success-subtle">Connected</span>';
+    }
+    function renderSources(list){
+        if (!srcList) return;
+        if (!list || !list.length){ srcList.innerHTML = '<div class="text-body-secondary small">No sources.</div>'; return; }
+        var rows = list.map(function(s){
+            var provider = s.provider ? ' <span class="small text-body-secondary">· '+esc(s.provider)+'</span>' : '';
+            var remove = (s.origin === 'connected')
+                ? '<button type="button" class="btn btn-sm btn-outline-danger" data-src-remove="'+esc(s.id)+'" aria-label="Remove" title="Remove"><i class="fa-solid fa-trash"></i></button>'
+                : '<span class="text-body-secondary small" title="Built-in and module sources can be disabled but not removed">—</span>';
+            return '<tr>'+
+                '<td><div class="fw-semibold">'+esc(s.label||s.id)+'</div>'+
+                    '<div class="small">'+kindBadge(s.kind)+' '+originBadge(s.origin)+provider+'</div></td>'+
+                '<td class="small text-body-secondary text-truncate" style="max-width:260px" title="'+esc(s.url||'')+'">'+esc(s.url||'—')+'</td>'+
+                '<td style="width:88px"><input type="number" class="form-control form-control-sm" value="'+(parseInt(s.priority,10)||0)+'" min="0" aria-label="Priority" data-src-priority="'+esc(s.id)+'"></td>'+
+                '<td style="width:64px"><div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" role="switch" '+(s.enabled?'checked':'')+' aria-label="Enabled" data-src-enabled="'+esc(s.id)+'"></div></td>'+
+                '<td class="text-end" style="width:56px">'+remove+'</td>'+
+            '</tr>';
+        }).join('');
+        srcList.innerHTML =
+            '<table class="table table-sm align-middle mb-0">'+
+              '<thead><tr class="small text-body-secondary"><th>Name</th><th>Index URL</th><th>Priority</th><th>On</th><th></th></tr></thead>'+
+              '<tbody>'+rows+'</tbody></table>';
+        srcList.querySelectorAll('[data-src-enabled]').forEach(function(el){
+            el.addEventListener('change', function(){ updateSource(el.getAttribute('data-src-enabled'), { enabled: el.checked ? 1 : 0 }); });
+        });
+        srcList.querySelectorAll('[data-src-priority]').forEach(function(el){
+            el.addEventListener('change', function(){ updateSource(el.getAttribute('data-src-priority'), { priority: el.value }); });
+        });
+        srcList.querySelectorAll('[data-src-remove]').forEach(function(el){
+            el.addEventListener('click', function(){
+                if (!confirm('Remove this marketplace? Modules already installed from it stay installed.')) return;
+                api('removeSource', { id: el.getAttribute('data-src-remove') }).then(handleSrcResp);
+            });
+        });
+    }
+    function updateSource(id, data){ api('updateSource', Object.assign({ id: id }, data)).then(function(res){ handleSrcResp(res, true); }); }
+    function handleSrcResp(res, quiet){
+        if (res.result === 1){
+            if (res.data && res.data.sources){ renderSources(res.data.sources); }
+            if (!quiet){ (res.messages||[]).forEach(function(m){ if (window.TigerDOM && TigerDOM.toast){ TigerDOM.toast(m.message, { type:m.class }); } }); }
+        } else {
+            (res.messages||[]).forEach(function(m){ if (window.TigerDOM && TigerDOM.toast){ TigerDOM.toast(m.message, { type:m.class }); } });
+        }
+    }
+    function loadSources(){ api('sources', {}).then(function(res){ if (res.result===1){ renderSources(res.data.sources); } }); }
+    var srcTabBtn = document.getElementById('tab-sources-btn');
+    if (srcTabBtn){ srcTabBtn.addEventListener('shown.bs.tab', loadSources); }
+    var srcConnectBtn = document.getElementById('src-connect');
+    if (srcConnectBtn){
+        srcConnectBtn.addEventListener('click', function(){
+            var label = document.getElementById('src-label').value.trim();
+            var url   = document.getElementById('src-url').value.trim();
+            var kind  = document.getElementById('src-kind').value;
+            var fbSrc = document.getElementById('src-connect-feedback');
+            TigerButton.run(this, function(){ return api('connectSource', { label:label, url:url, kind:kind }); })
+              .then(function(res){
+                  if (res.result === 1){
+                      document.getElementById('src-label').value=''; document.getElementById('src-url').value='';
+                      renderSources(res.data.sources);
+                      TigerDOM.notify(fbSrc, (res.messages && res.messages[0] && res.messages[0].message) || 'Connected.', { type:'success' });
+                      if (searchEl && typeof runSearch === 'function'){ runSearch(true); }   // pull the new source into Browse
+                  } else {
+                      (res.messages||[]).forEach(function(m){ TigerDOM.notify(fbSrc, m.message, { type:m.class }); });
+                  }
+              }).catch(function(){ TigerDOM.notify(fbSrc, 'Network error.', { type:'error' }); });
+        });
     }
 });
 </script>

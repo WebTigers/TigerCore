@@ -49,6 +49,10 @@ class Tiger_Module_Source
     public $default;
     /** @var string the per-source cache file basename */
     public $cache;
+    /** @var string where this source came from: 'default' | 'module' | 'connected' (admin-added). Set by the registry. */
+    public $origin = 'connected';
+    /** @var string the module slug that contributed this source (origin='module'), else '' */
+    public $provider = '';
 
     /**
      * Build a source from a spec array (missing keys take sane defaults).
@@ -66,6 +70,8 @@ class Tiger_Module_Source
         $this->removable = self::_bool($spec['removable'] ?? true);
         $this->default   = self::_bool($spec['default'] ?? false);
         $this->cache     = (string) ($spec['cache'] ?? ($this->id !== '' ? 'registry-' . $this->id . '.json' : ''));
+        $this->origin    = in_array($spec['origin'] ?? '', ['default', 'module', 'connected'], true) ? (string) $spec['origin'] : 'connected';
+        $this->provider  = (string) ($spec['provider'] ?? '');
     }
 
     /**
@@ -117,6 +123,7 @@ class Tiger_Module_Source
             'id' => $this->id, 'label' => $this->label, 'kind' => $this->kind, 'url' => $this->url,
             'priority' => $this->priority, 'enabled' => $this->enabled, 'removable' => $this->removable,
             'default' => $this->default, 'cache' => $this->cache,
+            'origin' => $this->origin, 'provider' => $this->provider,
         ];
     }
 
