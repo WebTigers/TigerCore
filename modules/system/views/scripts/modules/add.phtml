@@ -239,7 +239,12 @@ document.addEventListener('DOMContentLoaded', function () {
         body.innerHTML = '<div class="text-center py-5"><span class="spinner-border"></span></div>';
         foot.innerHTML = '';
         modal.show();
-        var task = function(){ return api('inspect', { url: repo, ref: ref || '' }); };
+        // A marketplace (live-api) listing carries slug+source_id → the server serves its review copy from
+        // the index (private paid-module repos have no public module.json to fetch). A pasted URL / Directory
+        // listing has no source → the server takes the GitHub path.
+        var task = function(){ return api('inspect', (extra.slug && extra.source_id)
+            ? { slug: extra.slug, source: extra.source_id, url: repo, ref: ref || '' }
+            : { url: repo, ref: ref || '' }); };
         (btn ? TigerButton.run(btn, task) : task()).then(function(res){
             if (res.result !== 1){ body.innerHTML = ''; (res.messages||[]).forEach(function(m){ TigerDOM.notify(body, m.message, { type: m.class, replace: false }); }); return; }
             renderDetail(Object.assign({}, res.data, { _extra: extra }));
@@ -276,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function () {
             gallery +
             '<div class="mb-2">' +
               availBadgeHTML(avail || (pricing==='free'?'free':(pricing==='freemium'?'freemium':(pricing==='licensed'?'pass':'')))) +
-              '<a href="'+esc(d.repo)+'" target="_blank" rel="noopener" class="badge text-bg-light text-decoration-none"><i class="fa-brands fa-github me-1"></i>'+esc(d.repo.replace('https://github.com/',''))+'@'+esc(d.ref)+'</a>' +
+              (d.repo ? '<a href="'+esc(d.repo)+'" target="_blank" rel="noopener" class="badge text-bg-light text-decoration-none"><i class="fa-brands fa-github me-1"></i>'+esc(d.repo.replace('https://github.com/',''))+'@'+esc(d.ref)+'</a>' : '') +
               (reqBits.length?' <span class="small text-body-secondary ms-1">Requires '+reqBits.join(', ')+'</span>':'') +
             '</div>' +
             ((m.compat && !m.compat.ok && m.compat.message) ? '<div class="alert alert-warning py-2 px-3 small mb-2"><i class="fa-solid fa-triangle-exclamation me-1"></i>'+esc(m.compat.message)+'</div>' : '') +

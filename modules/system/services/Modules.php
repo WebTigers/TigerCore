@@ -622,6 +622,16 @@ class System_Service_Modules extends Tiger_Service_Service
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
 
+        // A marketplace (live-api) listing serves its OWN review copy: a paid/PASS module's code repo is
+        // private, so its "View more" detail comes from the index (the marketplace vouches for + serves
+        // the metadata), never a GitHub fetch. The Directory (git-index / public repos) path is below.
+        $slug   = trim((string) ($params['slug'] ?? ''));
+        $source = trim((string) ($params['source'] ?? ''));
+        if ($slug !== '' && $source !== '' && Tiger_Module_Registry::sourceKind($source) === Tiger_Module_Source::KIND_LIVE_API) {
+            $this->_inspectMarketplace($slug, $source);
+            return;
+        }
+
         $r = Tiger_Module_Github::parseRepo((string) ($params['url'] ?? ''));
         if (!$r) { $this->_error('That doesn\'t look like a GitHub repository URL.'); return; }
 
@@ -680,6 +690,53 @@ class System_Service_Modules extends Tiger_Service_Service
                 'pricing'     => $m['pricing']['model'] ?? null,
                 // Advisory: has this module been tested for the Tiger version running here? (never blocks)
                 'compat'      => Tiger_Module_Compat::check($m),
+            ],
+            'description_html' => $descHtml,
+            'installed'        => (bool) $present,
+            'installed_version'=> $instVer,
+        ]);
+    }
+
+    /**
+     * Preview a marketplace (live-api) listing from the index — the review path for a module whose code
+     * repo is private (a PASS/paid module). Builds the manifest + rendered marketing readme from the
+     * aggregated listing (the marketplace is the source of the review copy), through the same safe
+     * render+scrub as a public TIGER.md. Mirrors inspect()'s response shape so renderDetail is unchanged.
+     *
+     * @param  string $slug   the listing slug
+     * @param  string $source the live-api source id the listing came from
+     * @return void
+     */
+    protected function _inspectMarketplace(string $slug, string $source): void
+    {
+        $listing = Tiger_Module_Registry::listing($slug, $source);
+        if (!$listing) { $this->_error('That listing is no longer offered by this marketplace.'); return; }
+
+        $descHtml = '';
+        $readme   = (string) ($listing['readme'] ?? '');
+        if ($readme !== '') {
+            try { $descHtml = $this->_scrub((new Tiger_Cms_Renderer())->renderBody($readme, 'markdown')); } catch (Throwable $e) {}
+        }
+
+        $row        = (new Tiger_Model_Module())->bySlug($slug);
+        $discovered = Tiger_Module_Discovery::all();
+        $present    = $row || isset($discovered[$slug]);
+        $instVer    = $row ? $row->version : ($discovered[$slug]['version'] ?? null);
+
+        $this->_success([
+            // A paid module's repo is private — no public GitHub link to offer (the client hides the badge).
+            'repo'             => '',
+            'ref'              => (string) ($listing['ref'] ?? ''),
+            'manifest'         => [
+                'slug'        => $slug,
+                'name'        => (string) ($listing['module'] ?? $listing['name'] ?? $slug),
+                'version'     => $listing['version'] ?? $listing['ref'] ?? null,
+                'author'      => (string) ($listing['vendor'] ?? ''),
+                'license'     => (string) ($listing['license'] ?? ''),
+                'description' => (string) ($listing['description'] ?? ''),
+                'requires'    => $listing['requires'] ?? new stdClass(),
+                'pricing'     => $listing['pricing']['model'] ?? null,
+                'compat'      => Tiger_Module_Compat::check($listing),
             ],
             'description_html' => $descHtml,
             'installed'        => (bool) $present,
