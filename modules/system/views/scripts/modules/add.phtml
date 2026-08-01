@@ -479,11 +479,12 @@ document.addEventListener('DOMContentLoaded', function () {
             ? ' <span class="badge text-bg-warning-subtle text-warning-emphasis border border-warning-subtle" title="Promoted placement">'+esc(m.sponsored_label||'Sponsored')+'</span>' : '';
         var hero = m.hero ? '<img src="'+esc(m.hero)+'" class="mod-card-hero" alt="" onerror="'+imgErr+'">' : '';
 
-        // Primary action. Every card keeps "View more" as the review-before-install path, EXCEPT a
-        // PASS module you don't own — where the honest CTA is the subscription, not a dead Install.
-        var action = (avail==='pass' && !passHas)
-            ? '<button type="button" class="btn btn-sm btn-warning" data-getpass="'+i+'"><i class="fa-solid fa-paw me-1"></i>Get TigerPASS</button>'
-            : '<button type="button" class="btn btn-sm btn-outline-primary" data-i="'+i+'">View more</button>';
+        // Actions. EVERY card keeps "View more" (the review-before-install / read-the-TIGER.md path).
+        // A PASS module you don't own ALSO gets the subscription CTA, after it — read about it first,
+        // then subscribe. (A PASS module you already own just needs View more → Install.)
+        var viewMore = '<button type="button" class="btn btn-sm btn-outline-primary" data-i="'+i+'">View more</button>';
+        var getPass  = '<button type="button" class="btn btn-sm btn-warning" data-getpass="'+i+'"><i class="fa-solid fa-paw me-1"></i>Get TigerPASS</button>';
+        var action = '<div class="d-flex gap-2 flex-wrap">'+ viewMore + ((avail==='pass' && !passHas) ? getPass : '') +'</div>';
 
         return '<div class="mod-grid-item" data-type="'+esc(type)+'" data-category="'+esc(catList(m).join(' '))+'" data-avail="'+esc(avail)+'"><div class="mod-grid-item-content card'+(m.sponsored?' border-warning-subtle':'')+'">'+
             hero +
