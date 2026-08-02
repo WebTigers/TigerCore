@@ -6,6 +6,12 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+### Added
+- **Production TigerPASS defaults in `core.ini`.** A fresh install verifies TigerPASS against the WebTigers
+  authority out of the box — `tiger.pass.authority` + a **pinned** `tiger.pass.public_key` (Ed25519), so an
+  unsigned or wrong-key verdict is refused. A dev / self-hosted authority overrides both in the config DB
+  tier (global scope), no deploy.
+
 ### Security
 - **TigerPASS activation now requires a positive, signed `valid` verdict from the authority.** Previously
   `activatePass` only refused a definitive `lapsed` and accepted `unknown` (the ongoing nag-never-disable
