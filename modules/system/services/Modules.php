@@ -470,8 +470,10 @@ class System_Service_Modules extends Tiger_Service_Service
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
 
-        $key = strtoupper(trim((string) ($params['key'] ?? '')));
-        if (!preg_match('/^TPASS-([0-9A-Z]{4}-){4}[0-9A-Z]{4}$/', $key)) {
+        // A TigerPASS key is the license key TigerLicense mints — a lowercase v7 UUID (not a branded
+        // "TPASS-…" string). Normalize + shape-check as a UUID before any authority call.
+        $key = strtolower(trim((string) ($params['key'] ?? '')));
+        if (!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $key)) {
             $this->_error('system.pass.invalid_format'); return;
         }
 

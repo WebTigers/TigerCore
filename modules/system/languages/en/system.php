@@ -27,7 +27,7 @@ return [
     'system.acl.unavailable'      => 'The ACL engine isn\'t available in this request.',
     'system.pass.activated'       => 'TigerPASS active — every premium module is unlocked.',
     'system.pass.removed'         => 'TigerPASS key removed from this install.',
-    'system.pass.invalid_format'  => 'That doesn\'t look like a TigerPASS key (expected TPASS-XXXX-XXXX-XXXX-XXXX-XXXX).',
+    'system.pass.invalid_format'  => 'That doesn\'t look like a TigerPASS key (it\'s a code like 019f88b1-7ce7-7467-95b3-db7a7433342c).',
     'system.pass.not_configured'  => 'TigerPASS isn\'t configured on this install yet.',
     'system.pass.lapsed'          => 'That subscription has lapsed — renew it at webtigers.com, then try again.',
     'system.pass.nag_snoozed'     => 'TigerPASS reminder hidden for 30 days.',

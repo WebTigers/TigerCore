@@ -33,6 +33,7 @@ $_lang = defined('LANG') ? LANG : 'en';
     <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/auth.css') ?>">
     <!-- Override playground — loads last so it wins the cascade. See themes/puma/assets/custom.css. -->
     <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/custom.css') ?>">
+<?= $this->pageHead ?? '' ?><?php /* per-page <link>/styles a view registered via $this->pageStyle() */ ?>
 </head>
 <body class="tiger-auth-body">
     <a href="#tiger-main" class="visually-hidden-focusable position-absolute top-0 start-0 m-2 btn btn-primary btn-sm" style="z-index:3000;">Skip to content</a>
@@ -50,5 +51,6 @@ $_lang = defined('LANG') ? LANG : 'en';
     <script src="<?= $this->asset($this->themeAssets . '/js/tiger.password-strength.js') ?>"></script>
     <script src="<?= $this->asset($this->themeAssets . '/js/tiger.address.js') ?>"></script>
     <script src="<?= $this->asset($this->themeAssets . '/js/tiger.prefs.js') ?>"></script>
+<?= $this->pageScripts ?? '' ?><?php /* per-page scripts a view registered via $this->pageScript() */ ?>
 </body>
 </html>

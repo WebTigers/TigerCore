@@ -709,6 +709,31 @@ class Tiger_Service_Authentication
     }
 
     /**
+     * Establish an authenticated session for a user WITHOUT a password round-trip — the account already
+     * exists (or was just created) and we want to sign them in programmatically. Used by guest checkout
+     * (create-account-then-sign-in) and any "just signed up → straight in" flow. Resolves the user's
+     * active org (or the one given), builds the identity, and establishes it with the same session-
+     * fixation protection + activity-clock reset as a real login (minus the password audit trail).
+     *
+     * SECURITY: the caller owns authorization — this trusts that the user was just proven (e.g. created
+     * from a paid, card-verified checkout, or a fresh signup). NEVER call it to sign in an EXISTING
+     * account off an unverified identifier (a typed email/username): that is account takeover.
+     *
+     * @param  string      $userId the user to sign in
+     * @param  string|null $orgId  optional preferred org; defaults to the user's first active membership
+     * @return object|false the established identity, or false if the user can't be resolved
+     */
+    public function establishSession($userId, $orgId = null)
+    {
+        $user = (new Tiger_Model_User())->findById((string) $userId);
+        if (!$user) { return false; }
+        $identity = $this->_buildIdentity($user, $orgId);
+        $this->_establish($identity, $user->user_id);
+        $this->_activityNs()->last = time();   // the sign-in is activity — don't let the first poll idle-out
+        return $identity;
+    }
+
+    /**
      * Is there an authenticated identity on this request?
      *
      * @return bool

@@ -1,0 +1,10 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * Account home — reuses the shared dashboard widget grid (admin/index.phtml) under an account-appropriate
+ * header. The header + empty-state text come from dashTitle/dashLead/dashEmptyLead set by AccountController;
+ * the widgets themselves are ACL-filtered to the current (non-admin) role by Tiger_Dashboard. One grid,
+ * one shell — the role decides what shows.
+ */
+echo $this->render('admin/index.phtml');

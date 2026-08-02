@@ -604,7 +604,7 @@ document.addEventListener('DOMContentLoaded', function () {
             '<div class="modal-body pt-2">'+
               '<p class="d-flex align-items-center gap-2 text-body-secondary small mb-3"><span class="spinner-border spinner-border-sm text-warning"></span> Waiting for your TigerPASS key…</p>'+
               '<label class="form-label small fw-semibold" for="pass-key">Paste your TigerPASS key</label>'+
-              '<input type="text" class="form-control font-monospace" id="pass-key" placeholder="TPASS-XXXX-XXXX-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" aria-describedby="pass-key-help">'+
+              '<input type="text" class="form-control font-monospace" id="pass-key" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" spellcheck="false" aria-describedby="pass-key-help">'+
               '<div class="invalid-feedback" id="pass-key-err">That key isn\'t valid for this domain. Check it, or resend it to your email from webtigers.com.</div>'+
               '<div class="form-text" id="pass-key-help">Finish checkout in the other tab — your key shows on the confirmation page (and is emailed to you). Paste it here and it activates automatically.</div>'+
               '<div class="mt-3 pt-2 border-top">'+
@@ -615,9 +615,9 @@ document.addEventListener('DOMContentLoaded', function () {
         var errEl = document.getElementById('pass-key-err');
         var pending = false;
         function tryActivate(){
-            var v = input.value.trim().toUpperCase();
+            var v = input.value.trim().toLowerCase();
             input.classList.remove('is-invalid','is-valid');
-            if (!/^TPASS-([0-9A-Z]{4}-){4}[0-9A-Z]{4}$/.test(v)) { return; }   // wait for a full, well-formed key
+            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v)) { return; }   // wait for a full, well-formed key (a UUID)
             if (pending) { return; }
             pending = true;
             api('activatePass', { key: v }).then(function(res){
