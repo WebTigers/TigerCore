@@ -6,6 +6,8 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [0.48.0-beta] — 2026-08-02
+
 ### Added
 - **Production TigerPASS defaults in `core.ini`.** A fresh install verifies TigerPASS against the WebTigers
   authority out of the box — `tiger.pass.authority` + a **pinned** `tiger.pass.public_key` (Ed25519), so an
