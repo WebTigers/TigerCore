@@ -212,6 +212,24 @@ final class ModulesServiceMarketplaceTest extends IntegrationTestCase
     {
         $this->loginAs('superadmin');
         $res = $this->dispatch(['action' => 'activatePass', 'key' => 'not-a-key']);
-        $this->assertSame(0, $res->result, 'a key that is not TPASS-XXXX-… is refused before any authority call');
+        $this->assertSame(0, $res->result, 'a key that isn\'t a UUID is refused at the format gate, before any authority call');
+    }
+
+    #[Test]
+    public function activate_pass_accepts_a_uuid_shaped_key_at_the_format_gate(): void
+    {
+        // The real TigerPASS key is the v7 UUID TigerLicense mints — it must CLEAR the format gate (not be
+        // rejected like the old "TPASS-…" shape). With no pass authority configured here, a well-formed key
+        // then fails for a DIFFERENT reason (not configured), so the two error messages must differ.
+        $this->loginAs('superadmin');
+        $malformed = $this->dispatch(['action' => 'activatePass', 'key' => 'not-a-key']);
+        $uuid      = $this->dispatch(['action' => 'activatePass', 'key' => '019f88b1-7ce7-7467-95b3-db7a7433342c']);
+        $this->assertSame(0, $malformed->result);
+        $this->assertSame(0, $uuid->result);
+        $this->assertNotSame(
+            (string) ($malformed->messages[0]->message ?? 'a'),
+            (string) ($uuid->messages[0]->message ?? 'b'),
+            'a UUID passes the format check (fails later as not-configured); a malformed key fails AT the format check'
+        );
     }
 }
