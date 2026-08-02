@@ -6,6 +6,8 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [0.47.0-beta] — 2026-08-02
+
 ### Added
 - **A dedicated "My Account" menu — the account surface is now first-class.** `/account` gets its own
   sidebar (`Tiger_Account_Nav`) instead of the admin menu filtered down: the menu follows the *surface*,
