@@ -6,6 +6,34 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [0.46.0-beta] — 2026-08-02
+
+### Added
+- **`/account` — the authenticated non-admin home ("My Account").** A signed-in non-admin (customer/member)
+  now lands on their own dashboard — the same ACL-filtered, module-registered widget grid as the admin
+  dashboard, in the shared app shell — instead of being bounced to `/admin`. The header/nav "Dashboard"
+  control routes by role (admin → `/admin`, everyone else → `/account`); `AccountController` is allowed to any
+  authenticated user, while the admin dashboard stays admin+.
+- **`$this->pageScript()` / `$this->pageStyle()` view helpers.** Register a page-specific JS/CSS asset from a
+  `.phtml` view WITHOUT emitting a `<script>`/`<style>` tag — the helper appends it (cache-busted, deduped) to
+  the layout's `pageScripts`/`pageHead` slot, keeping views markup-only. The `admin` + `auth` layouts now echo
+  those slots too (the public layout already did).
+- **`Tiger_Service_Authentication::establishSession()`.** Programmatic sign-in with no password round-trip —
+  for a freshly-created or already-proven account (guest checkout, "just signed up → straight in"), reusing
+  the same session-fixation protection as a real login.
+- **Add-screen marketplace federation + the TigerPASS funnel.** A multi-source module registry (a `live-api`
+  marketplace alongside the git Directory), "connect a marketplace," the TigerPASS acquisition funnel + nag,
+  and the AI PR-review workflow.
+- **Marketplace-served module detail for private (paid/PASS) modules.** A `live-api` marketplace serves a
+  listing's review copy from its own index, so a paid module whose code repo is private still shows a real
+  "View more" page — no public repo required.
+
+### Fixed
+- **The TigerPASS activation funnel accepts the real UUID license-key format** (the v7 UUID TigerLicense
+  mints), not the old placeholder shape.
+- **PASS listings show "View more" alongside "Get TigerPASS"** on the Add screen, so a module can be reviewed
+  before subscribing.
+
 ## [0.45.0-beta] — 2026-07-30
 
 ### Added
