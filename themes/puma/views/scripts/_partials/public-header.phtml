@@ -142,7 +142,14 @@ $mega = [
 <?php if (count($authRegion)): ?>
                 <?= $authRegion ?>
 <?php elseif ($identity): ?>
-                <a class="btn btn-primary ms-2" href="/admin"><i class="fa-solid fa-gauge-high me-1"></i>Dashboard</a>
+                <?php
+                // Route by role: an admin lands on the back office; everyone else on their own /account home
+                // (so a customer is never sent to /admin, where the ACL would deny them).
+                $_acl      = Zend_Registry::isRegistered('Zend_Acl') ? Zend_Registry::get('Zend_Acl') : null;
+                $_role     = (is_object($identity) && !empty($identity->role)) ? $identity->role : 'guest';
+                $_canAdmin = $_acl && $_acl->has('AdminController') ? $_acl->isAllowed($_role, 'AdminController') : false;
+                ?>
+                <a class="btn btn-primary ms-2" href="<?= $_canAdmin ? '/admin' : '/account' ?>"><i class="fa-solid fa-gauge-high me-1"></i><?= $_canAdmin ? 'Dashboard' : 'My Account' ?></a>
 <?php else: ?>
                 <a class="btn btn-link ms-2 text-decoration-none" href="/signup">Sign up</a>
                 <a class="btn btn-outline-secondary" href="/login">Sign in</a>
