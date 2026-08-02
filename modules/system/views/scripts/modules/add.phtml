@@ -546,70 +546,31 @@ document.addEventListener('DOMContentLoaded', function () {
     var passModal = new bootstrap.Modal(passModalEl);
     var passContent = document.getElementById('pass-content');
 
-    function passShelf(){
-        // The PASS-covered modules currently in the catalog — the "all this for $5?" shelf.
-        var names = allResults.filter(function(m){ return (m.availability||'')==='pass'; })
-            .map(function(m){ return m.module||m.slug; });
-        // De-dup + cap the visible list; always end with the "future" line.
-        var seen={}, uniq=[]; names.forEach(function(n){ if(n && !seen[n]){ seen[n]=1; uniq.push(n); } });
-        var rows = uniq.slice(0,7).map(function(n){ return '<div class="col-6 mb-1"><i class="fa-solid fa-check text-success me-2"></i>'+esc(n)+'</div>'; });
-        rows.push('<div class="col-6 mb-1 text-body-secondary fst-italic"><i class="fa-solid fa-check text-success me-2"></i>Every future premium module</div>');
-        return '<div class="row g-0 small mb-1">'+rows.join('')+'</div>';
-    }
-
-    function openPass(refName){
-        renderPassPhase1(refName);
+    function openPass(){
+        renderPassModal();
         passModal.show();
     }
 
-    function renderPassPhase1(refName){
-        var refBar = refName ? '<div class="alert alert-warning py-2 px-3 small d-flex gap-2 mb-3"><i class="fa-solid fa-paw mt-1"></i><div>You clicked <strong>'+esc(refName)+'</strong> — it\'s one of these. TigerPASS unlocks the whole shelf, not just this one.</div></div>' : '';
+    // A lean key modal: a "Get My Key" button (opens the seller's Shop checkout in a new tab — the sales
+    // pitch + pricing live THERE, not here) and a paste-key field that activates on a well-formed key.
+    function renderPassModal(){
         passContent.innerHTML =
             '<div class="modal-header border-0 pb-0">'+
               '<div class="d-flex align-items-center gap-3">'+
                 '<span class="d-inline-flex align-items-center justify-content-center rounded-3 text-bg-warning" style="width:42px;height:42px;font-size:22px"><i class="fa-solid fa-paw"></i></span>'+
-                '<div><h5 class="modal-title mb-0" id="pass-title">Get TigerPASS</h5><div class="small text-body-secondary text-uppercase" style="letter-spacing:.04em">One subscription · every premium module</div></div>'+
+                '<div><h5 class="modal-title mb-0" id="pass-title">TigerPASS</h5><div class="small text-body-secondary text-uppercase" style="letter-spacing:.04em">One key · every premium module</div></div>'+
               '</div>'+
               '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>'+
             '</div>'+
-            '<div class="modal-body pt-2">'+
-              '<p class="mb-2"><strong class="text-warning-emphasis">$5/mo</strong> unlocks every premium module and theme — not just this one. One key, one domain, subdomains free.</p>'+
-              refBar +
-              passShelf() +
-              '<div class="d-grid gap-2 mt-3">'+
-                '<button type="button" class="btn btn-warning d-flex align-items-center justify-content-between" data-plan="monthly"><span class="fw-semibold">$5 <span class="fw-normal small">/ month</span></span><i class="fa-solid fa-arrow-right"></i></button>'+
-                '<button type="button" class="btn btn-outline-warning d-flex align-items-center justify-content-between" data-plan="yearly"><span class="fw-semibold">$50 <span class="fw-normal small">/ year</span></span><span class="badge text-bg-success-subtle text-success-emphasis border border-success-subtle">2 months free</span></button>'+
+            '<div class="modal-body pt-3">'+
+              '<div class="d-grid mb-1">'+
+                '<a href="'+esc(PASS_CHECKOUT)+'" target="_blank" rel="noopener" class="btn btn-warning btn-lg d-flex align-items-center justify-content-center gap-2"><span class="fw-semibold">Get My Key</span><i class="fa-solid fa-arrow-right"></i></a>'+
               '</div>'+
-              '<button type="button" class="btn btn-link btn-sm text-body-secondary d-block mx-auto mt-2" data-bs-dismiss="modal">← or keep browsing free modules</button>'+
-              '<p class="text-body-secondary mb-0 mt-1" style="font-size:11px;line-height:1.4">Checkout happens on webtigers.com (Stripe). Your install never sees a card. Lapsing only pauses <em>updates</em> — installed modules keep running.</p>'+
-            '</div>';
-        passContent.querySelectorAll('[data-plan]').forEach(function(b){
-            b.addEventListener('click', function(){ renderPassPhase2(b.getAttribute('data-plan')); });
-        });
-    }
-
-    function renderPassPhase2(plan){
-        var priceLine = plan==='yearly' ? '$50/year' : '$5/month';
-        // Open the seller's hosted checkout in a new tab (popup window, never an iframe — 3DS + hosted
-        // checkout can't be framed). The modal stays here as the waiting/paste-key state.
-        try { window.open(PASS_CHECKOUT + (PASS_CHECKOUT.indexOf('?')<0?'?':'&') + 'plan=' + encodeURIComponent(plan), '_blank', 'noopener'); } catch(e){}
-        passContent.innerHTML =
-            '<div class="modal-header border-0 pb-0">'+
-              '<div class="d-flex align-items-center gap-3">'+
-                '<span class="d-inline-flex align-items-center justify-content-center rounded-3 text-bg-warning" style="width:42px;height:42px;font-size:22px"><i class="fa-solid fa-paw"></i></span>'+
-                '<div><h5 class="modal-title mb-0" id="pass-title">Complete your purchase</h5><div class="small text-body-secondary text-uppercase" style="letter-spacing:.04em">'+esc(priceLine)+' · checkout opened in a new tab</div></div>'+
-              '</div>'+
-              '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>'+
-            '</div>'+
-            '<div class="modal-body pt-2">'+
-              '<p class="d-flex align-items-center gap-2 text-body-secondary small mb-3"><span class="spinner-border spinner-border-sm text-warning"></span> Waiting for your TigerPASS key…</p>'+
+              '<div class="d-flex align-items-center gap-2 text-body-secondary my-3" style="font-size:12px"><span class="flex-grow-1 border-top"></span>already have a key?<span class="flex-grow-1 border-top"></span></div>'+
               '<label class="form-label small fw-semibold" for="pass-key">Paste your TigerPASS key</label>'+
               '<input type="text" class="form-control font-monospace" id="pass-key" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" spellcheck="false" aria-describedby="pass-key-help">'+
               '<div class="invalid-feedback" id="pass-key-err">That key isn\'t valid for this domain. Check it, or resend it to your email from webtigers.com.</div>'+
-              '<div class="form-text" id="pass-key-help">Finish checkout in the other tab — your key shows on the confirmation page (and is emailed to you). Paste it here and it activates automatically.</div>'+
-              '<div class="mt-3 pt-2 border-top">'+
-                '<a href="'+esc(PASS_CHECKOUT)+'" target="_blank" rel="noopener" class="small text-decoration-none"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Reopen checkout</a>'+
-              '</div>'+
+              '<div class="form-text" id="pass-key-help">Your key is on the confirmation page after checkout (and emailed to you). Paste it here and it activates automatically.</div>'+
             '</div>';
         var input = document.getElementById('pass-key');
         var errEl = document.getElementById('pass-key-err');
@@ -637,7 +598,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }).catch(function(){ pending=false; input.classList.add('is-invalid'); });
         }
         input.addEventListener('input', tryActivate);
-        input.focus();
+        setTimeout(function(){ try { input.focus(); } catch(e){} }, 200);
     }
 
     // ---- persistent value banner (only when there's no active PASS, and the user hasn't snoozed/disabled it) ----

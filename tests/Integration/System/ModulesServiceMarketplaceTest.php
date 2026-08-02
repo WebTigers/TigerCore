@@ -8,7 +8,9 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use System_Service_Modules;
 use Tiger\Tests\Support\IntegrationTestCase;
+use Tiger_License_Checker;
 use Tiger_Module_Registry;
+use Zend_Config;
 use Zend_Registry;
 
 // System_Service_Modules resolves via the harness module autoloader (tests/bootstrap.php).
@@ -28,18 +30,33 @@ final class ModulesServiceMarketplaceTest extends IntegrationTestCase
 {
     private string $cacheDir = '';
     private array $wrote = [];
+    private $priorConfig = null;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->cacheDir = rtrim(APPLICATION_ROOT, '/') . '/storage/cache';
         @mkdir($this->cacheDir, 0775, true);
+        $this->priorConfig = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
     }
 
     protected function tearDown(): void
     {
         foreach ($this->wrote as $f) { @unlink($f); }
+        // Undo any pass-authority test wiring so tests don't bleed into each other.
+        Tiger_License_Checker::setTransport(null);
+        Tiger_License_Checker::forget('__tigerpass__');            // System_Service_Modules::PASS_SLUG
+        if ($this->priorConfig !== null) { Zend_Registry::set('Zend_Config', $this->priorConfig); }
         parent::tearDown();
+    }
+
+    /** Wire a fake pass authority (config) + a canned authority reply (transport), the activatePass seam. */
+    private function wirePassAuthority(array $reply, string $publicKey = ''): void
+    {
+        Zend_Registry::set('Zend_Config', new Zend_Config([
+            'tiger' => ['pass' => ['authority' => 'https://authority.test', 'public_key' => $publicKey]],
+        ], true));
+        Tiger_License_Checker::setTransport(static fn() => $reply);
     }
 
     /** Construct + dispatch the service on its message (routes on `action`), returning the response object. */
@@ -231,5 +248,38 @@ final class ModulesServiceMarketplaceTest extends IntegrationTestCase
             (string) ($uuid->messages[0]->message ?? 'b'),
             'a UUID passes the format check (fails later as not-configured); a malformed key fails AT the format check'
         );
+    }
+
+    #[Test]
+    public function activate_pass_unlocks_only_on_a_trusted_valid_verdict(): void
+    {
+        // The happy path: a reached-home, trusted `valid:true` (no pinned key here → the raw reply is
+        // trusted) activates. This is the ONLY state that unlocks.
+        $this->loginAs('superadmin');
+        $this->wirePassAuthority(['valid' => true, 'ttl' => 3600]);
+        $res = $this->dispatch(['action' => 'activatePass', 'key' => '019f88b1-7ce7-7467-95b3-db7a7433342c']);
+        $this->assertSame(1, $res->result, 'a trusted valid=true verdict activates TigerPASS');
+    }
+
+    #[Test]
+    public function activate_pass_refuses_a_not_entitled_verdict(): void
+    {
+        // The authority says "not entitled" (valid:false) → refused. A random/lapsed key never unlocks.
+        $this->loginAs('superadmin');
+        $this->wirePassAuthority(['valid' => false]);
+        $res = $this->dispatch(['action' => 'activatePass', 'key' => '019f88b1-7ce7-7467-95b3-db7a7433342c']);
+        $this->assertSame(0, $res->result, 'a valid=false verdict is refused — activation is not fail-open');
+    }
+
+    #[Test]
+    public function activate_pass_refuses_an_unsigned_reply_when_a_key_is_pinned(): void
+    {
+        // THE security regression guard. With a public key pinned, an UNSIGNED `valid:true` — exactly what
+        // the old always-say-yes stub returned — can't be trusted → verdict `unknown` → REFUSED. Activation
+        // demands a positive, cryptographically-proven verdict, so a random UUID can never unlock the shelf.
+        $this->loginAs('superadmin');
+        $this->wirePassAuthority(['valid' => true], 'cGlubmVkLXRlc3Qta2V5');   // no payload/signature in the reply
+        $res = $this->dispatch(['action' => 'activatePass', 'key' => '019f88b1-7ce7-7467-95b3-db7a7433342c']);
+        $this->assertSame(0, $res->result, 'an unsigned valid=true is refused (unknown), not accepted, when a key is pinned');
     }
 }

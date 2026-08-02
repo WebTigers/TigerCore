@@ -458,10 +458,14 @@ class System_Service_Modules extends Tiger_Service_Service
 
     /**
      * Activate a TigerPASS subscription key on this install. Validates the key shape, remembers it under
-     * the reserved pass slug, and verifies it against the pass authority. NAG-NEVER-DISABLE: activation is
-     * refused ONLY on a definitive, reached-home `lapsed` verdict; an unreachable authority yields
-     * `unknown` and is accepted (assume-current — an authority outage must never block a paying customer).
-     * The heavy commerce (buy/renew) lives on webtigers.com; this endpoint only accepts the resulting key.
+     * the reserved pass slug, and verifies it against the pass authority. Activation requires a POSITIVE,
+     * SIGNED `valid` verdict — an unprovable key (a definitive `lapsed`, OR an `unknown` from an
+     * unreachable/untrusted authority — e.g. an unsigned reply, or one whose signature doesn't match the
+     * pinned public key) is refused and the key forgotten, so a random UUID can never unlock the premium
+     * shelf. This is deliberately STRICTER than the ongoing nag-never-disable gate: that fail-open keeps an
+     * ALREADY-active install running through an authority outage (renewal), but you can't ACTIVATE off a
+     * key we couldn't prove in the first place. The heavy commerce (buy/renew) lives on webtigers.com; this
+     * endpoint only accepts the resulting key.
      *
      * @param  array $params the /api payload (expects `key`)
      * @return void
@@ -488,9 +492,12 @@ class System_Service_Modules extends Tiger_Service_Service
                 'public_key' => self::_passPublicKey(),
             ]);
             $verdict = Tiger_License_Checker::verify(self::PASS_SLUG);   // the one deliberate network check
-            if ($verdict['state'] === Tiger_License_Checker::LAPSED) {
-                Tiger_License_Checker::forget(self::PASS_SLUG);          // don't keep a proven-lapsed key
-                $this->_error('system.pass.lapsed'); return;
+            if ($verdict['state'] !== Tiger_License_Checker::VALID) {
+                // Only a reached-home, signature-verified `valid` unlocks. `lapsed` = told no; anything else
+                // (`unknown`) = we couldn't prove it — either way, forget the key and never unlock.
+                Tiger_License_Checker::forget(self::PASS_SLUG);
+                $this->_error($verdict['state'] === Tiger_License_Checker::LAPSED ? 'system.pass.lapsed' : 'system.pass.unverified');
+                return;
             }
             $this->_success(['pass' => self::_passState()], 'system.pass.activated');
         } catch (Throwable $e) {
