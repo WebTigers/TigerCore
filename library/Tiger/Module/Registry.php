@@ -274,6 +274,48 @@ class Tiger_Module_Registry
     }
 
     /**
+     * The raw aggregated listing for one slug (optionally pinned to a source) as it appears in the
+     * merged index — every field the source published (including a marketplace's `readme`/media) plus
+     * the annotated `source_id`. This is how a `live-api` marketplace serves the "View more" detail for
+     * a module whose code repo is private (a PASS/paid module): the review copy comes from the index,
+     * not a GitHub fetch.
+     *
+     * @param  string $slug     the module slug
+     * @param  string $sourceId optional — require the listing to come from this source
+     * @return array|null the listing dict, or null if no active source lists it
+     */
+    public static function listing($slug, $sourceId = '')
+    {
+        $slug = (string) $slug;
+        if ($slug === '') { return null; }
+        $index = self::index();
+        $mods  = (is_array($index) && isset($index['modules']) && is_array($index['modules'])) ? $index['modules'] : [];
+        foreach ($mods as $m) {
+            if (!is_array($m) || (string) ($m['slug'] ?? '') !== $slug) { continue; }
+            if ($sourceId !== '' && (string) ($m['source_id'] ?? '') !== (string) $sourceId) { continue; }
+            return $m;
+        }
+        return null;
+    }
+
+    /**
+     * The `kind` of an active source by id (`git-index` | `live-api`), or '' if unknown — so a caller
+     * can decide whether a listing's detail comes from a public repo (directory) or the marketplace
+     * index (a live-api source that serves its own enriched review copy).
+     *
+     * @param  string $sourceId the source id
+     * @return string the source kind, or ''
+     */
+    public static function sourceKind($sourceId)
+    {
+        $sourceId = (string) $sourceId;
+        foreach (self::sources() as $s) {
+            if ((string) $s->id === $sourceId) { return (string) $s->kind; }
+        }
+        return '';
+    }
+
+    /**
      * The registry's filter vocabulary — the top-level `types` (filter doors) and functional
      * `categories` (each scoped to one or more types), unioned across every active source (declared
      * in each source's taxonomy.json and folded into its index by its compiler). Powers the
