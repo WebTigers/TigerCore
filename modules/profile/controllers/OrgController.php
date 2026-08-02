@@ -7,13 +7,15 @@
  * The org-side twin of Profile_IndexController: same extensible tab shell (Tiger_Profile_Tabs,
  * CONTEXT_ORG), but gated to role `admin` and scoped to the CURRENT org ($identity->org_id) — an
  * admin edits the org they're signed into, never an arbitrary one (that's Access_OrgController's job,
- * which manages every tenant). Thin per ADMIN.md: it renders the shell pre-filled from the org row;
- * every save is an /api call to a Profile_Service_Org*.
+ * which manages every tenant). Being self-service ("my org"), it renders on the /account surface
+ * (Tiger_Controller_Account_Action: the shared app shell + the account menu), NOT the admin back
+ * office. Thin per ADMIN.md: it renders the shell pre-filled from the org row; every save is an /api
+ * call to a Profile_Service_Org*.
  */
-class Profile_OrgController extends Tiger_Controller_Admin_Action
+class Profile_OrgController extends Tiger_Controller_Account_Action
 {
     /**
-     * Admin shell (layout) comes from the base; keep the explicit init cascade.
+     * Account shell + menu come from the base; keep the explicit init cascade.
      *
      * @return void
      */
