@@ -15,11 +15,15 @@
 $widgets = isset($this->widgets) && is_array($this->widgets) ? $this->widgets : [];
 $tr = Zend_Registry::isRegistered('Zend_Translate') ? Zend_Registry::get('Zend_Translate') : null;
 $t  = function ($s) use ($tr) { return $tr ? $tr->translate($s) : $s; };
+// Header + empty-state copy are overridable — AccountController reuses this same grid (ACL-filtered per
+// role) under an account-appropriate header, so a non-admin gets "My Account" not "Tiger admin".
+$dashTitle = $this->dashTitle ?? 'Dashboard';
+$dashLead  = $this->dashLead ?? 'Welcome to the Tiger admin.';
 ?>
 <header class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
     <div>
-        <h1 class="h3 mb-1">Dashboard</h1>
-        <p class="text-secondary mb-0 small">Welcome to the Tiger admin.</p>
+        <h1 class="h3 mb-1"><?= $this->escape($dashTitle) ?></h1>
+        <p class="text-secondary mb-0 small"><?= $this->escape($dashLead) ?></p>
     </div>
     <?php if (!empty($widgets)): ?>
     <button type="button" class="btn btn-sm btn-outline-secondary" id="dash-customize">
@@ -32,7 +36,7 @@ $t  = function ($s) use ($tr) { return $tr ? $tr->translate($s) : $s; };
     <div class="text-center text-body-secondary py-5">
         <i class="fa-regular fa-window-restore fa-2x mb-3 d-block"></i>
         <p class="mb-1 fw-semibold text-body">No dashboard widgets yet</p>
-        <p class="mb-0">Modules that provide a dashboard widget will appear here automatically once they're active.</p>
+        <p class="mb-0"><?= $this->escape($this->dashEmptyLead ?? 'Modules that provide a dashboard widget will appear here automatically once they\'re active.') ?></p>
     </div>
 <?php else: ?>
     <div class="dash-grid" id="dash-grid">

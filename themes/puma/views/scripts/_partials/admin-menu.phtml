@@ -27,9 +27,17 @@
  * saved by tiger.admin-nav.js -> System_Service_Nav::sort). No override = the natural default
  * order, unchanged. `group` = 'root' for the top level, else the parent item's key.
  */
+// Resolve the live role + whether this user can reach the admin back office. The dashboard item routes
+// admins to /admin and everyone else to their own /account home — so a customer is never bounced to /admin.
+$acl  = Zend_Registry::isRegistered('Zend_Acl') ? Zend_Registry::get('Zend_Acl') : null;
+$idn  = Zend_Auth::getInstance()->getIdentity();
+$role = ($idn && !empty($idn->role)) ? $idn->role : 'guest';
+$canAdmin = $acl && $acl->has('AdminController') ? $acl->isAllowed($role, 'AdminController') : false;
+$homeHref = $canAdmin ? '/admin' : '/account';
+
 // Core items, then any module-registered top-level items (Tiger_Admin_Nav), then Settings last.
 $nav = $this->nav ?? array_merge([
-    ['key' => 'dashboard', 'label' => 'Dashboard',     'href' => '/admin',          'icon' => 'fa-gauge-high',      'match' => '/admin'],
+    ['key' => 'dashboard', 'label' => $canAdmin ? 'Dashboard' : 'My Account', 'href' => $homeHref, 'icon' => 'fa-gauge-high', 'match' => $homeHref],
     ['key' => 'content',   'label' => 'Content',       'href' => '/cms/page',       'icon' => 'fa-file-lines',      'match' => '/cms/page',      'resource' => 'Cms_PageController'],
     ['key' => 'articles',  'label' => 'Articles',      'href' => '/blog/post',      'icon' => 'fa-feather-pointed', 'match' => '/blog/post',     'resource' => 'Blog_PostController'],
     ['key' => 'menus',     'label' => 'Menus',         'href' => '/cms/menu',       'icon' => 'fa-bars',            'match' => '/cms/menu',      'resource' => 'Cms_MenuController'],
@@ -48,9 +56,6 @@ $nav = $this->nav ?? array_merge([
     ['key' => 'settings',  'label' => 'Settings',      'icon' => 'fa-gear',         'children' => Tiger_Admin_Settings::pages()],
 ]);
 
-$acl  = Zend_Registry::isRegistered('Zend_Acl') ? Zend_Registry::get('Zend_Acl') : null;
-$idn  = Zend_Auth::getInstance()->getIdentity();
-$role = ($idn && !empty($idn->role)) ? $idn->role : 'guest';
 $path = rtrim(Zend_Controller_Front::getInstance()->getRequest()->getPathInfo(), '/');
 
 // The nav config subtree (holds any per-user sort overrides folded in by the cascade), or null.
@@ -81,7 +86,8 @@ $allowed = function ($item) use ($acl, $role) {
 // ('/admin') matches exactly so it doesn't light up for every /admin/* child.
 $isActive = function ($item) use ($path) {
     $m = rtrim($item['match'] ?? $item['href'] ?? '', '/');
-    if ($m === '/admin') { return $path === '/admin' || $path === ''; }
+    // The home roots match exactly so they don't light up for every child path.
+    if ($m === '/admin' || $m === '/account') { return $path === $m || $path === ''; }
     return $m !== '' && strpos($path, $m) === 0;
 };
 
