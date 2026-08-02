@@ -6,6 +6,20 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+### Security
+- **TigerPASS activation now requires a positive, signed `valid` verdict from the authority.** Previously
+  `activatePass` only refused a definitive `lapsed` and accepted `unknown` (the ongoing nag-never-disable
+  fail-open) — so a well-formed but unprovable key (or an authority that couldn't cryptographically prove
+  entitlement) could unlock the premium shelf. Activation is now strict: only a reached-home,
+  signature-verified `valid` unlocks; `unknown`/`lapsed` are refused and the key is forgotten. (The
+  fail-open rule still applies to *ongoing* operation — an already-active install keeps running through an
+  authority outage.)
+
+### Changed
+- **The "Get TigerPASS" modal is now a lean key modal.** Replaced the two-phase sales pitch (plan cards,
+  feature shelf) with a single modal: a **Get My Key →** button that opens the seller's checkout, and a
+  paste-your-key field that activates. The pricing + value prop live on the checkout page, not the modal.
+
 ## [0.47.0-beta] — 2026-08-02
 
 ### Added

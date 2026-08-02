@@ -30,6 +30,7 @@ return [
     'system.pass.invalid_format'  => 'That doesn\'t look like a TigerPASS key (it\'s a code like 019f88b1-7ce7-7467-95b3-db7a7433342c).',
     'system.pass.not_configured'  => 'TigerPASS isn\'t configured on this install yet.',
     'system.pass.lapsed'          => 'That subscription has lapsed — renew it at webtigers.com, then try again.',
+    'system.pass.unverified'      => 'We couldn\'t verify that key with WebTigers. Check that you pasted it correctly, or try again in a moment.',
     'system.pass.nag_snoozed'     => 'TigerPASS reminder hidden for 30 days.',
     'system.pass.nag_updated'     => 'Preference saved.',
     'system.source.connected'     => 'Marketplace connected.',
