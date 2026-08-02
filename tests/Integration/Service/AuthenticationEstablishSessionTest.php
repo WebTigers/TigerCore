@@ -12,6 +12,7 @@ use Tiger_Model_OrgUser;
 use Tiger_Model_User;
 use Tiger_Service_Authentication;
 use Zend_Auth;
+use Zend_Session;
 
 /**
  * Tiger_Service_Authentication::establishSession — programmatic sign-in (no password round-trip) for an
@@ -24,6 +25,21 @@ use Zend_Auth;
 #[CoversClass(Tiger_Service_Authentication::class)]
 final class AuthenticationEstablishSessionTest extends IntegrationTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // establishSession() → _establish() regenerates the session id (fixation protection); the harness
+        // has no active PHP session, so session_regenerate_id() warns. Unit-test mode no-ops Zend_Session's
+        // session operations (the identity storage write still happens, so hasIdentity() holds).
+        Zend_Session::$_unitTestEnabled = true;
+    }
+
+    protected function tearDown(): void
+    {
+        Zend_Session::$_unitTestEnabled = false;
+        parent::tearDown();
+    }
+
     #[Test]
     public function it_establishes_a_session_for_a_known_user_without_a_password(): void
     {
