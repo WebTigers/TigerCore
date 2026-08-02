@@ -67,6 +67,7 @@ $_hasAgent = class_exists('Tiger_Agent') && Tiger_Agent::isAvailable();
     <!-- Override playground — loads last so it wins the cascade. See themes/puma/assets/custom.css. -->
     <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/custom.css') ?>">
 <?= $this->codeInject('head') ?>
+<?= $this->pageHead ?? '' ?><?php /* per-page <link>/styles a view registered via $this->pageStyle() */ ?>
 </head>
 <body>
 <a href="#tiger-main" class="visually-hidden-focusable position-absolute top-0 start-0 m-2 btn btn-primary btn-sm" style="z-index:3000;">Skip to content</a>
@@ -158,6 +159,7 @@ if (!empty($autologout['enabled'])):
 ], JSON_UNESCAPED_SLASHES) ?>;</script>
 <script src="<?= $this->asset($this->themeAssets . '/js/tiger.autologout.js') ?>"></script>
 <?php endif; ?>
+<?= $this->pageScripts ?? '' ?><?php /* per-page scripts a view registered via $this->pageScript() */ ?>
 <?= $this->codeInject('footer') ?>
 </body>
 </html>
