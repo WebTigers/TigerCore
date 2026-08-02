@@ -23,6 +23,20 @@ require_once __DIR__ . '/AdminController.php';
 class AccountController extends AdminController
 {
     /**
+     * Init the account home in the shared app shell, but with the ACCOUNT menu (Tiger_Account_Nav),
+     * not the admin one — the same swap Tiger_Controller_Account_Action does for module account
+     * screens. (This controller extends AdminController to reuse the dashboard widget grid, so it
+     * sets the menu here rather than via that base.)
+     *
+     * @return void
+     */
+    public function init()
+    {
+        parent::init();                               // shared app shell (the 'admin' layout)
+        $this->view->nav = Tiger_Account_Nav::items();
+    }
+
+    /**
      * The account home — the same ACL-filtered dashboard as admin, under an account header.
      *
      * @return void

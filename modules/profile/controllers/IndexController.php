@@ -4,14 +4,17 @@
 /**
  * Profile_IndexController — the signed-in user's own account screen (/profile).
  *
- * Self-service, allowed to role `user` (and up). Thin per ADMIN.md: it renders the tabbed shell
- * pre-filled from the current identity's user row; every save is an /api call to a Profile_Service_*.
- * The tabs come from Tiger_Profile_Tabs (extensible) — this controller renders whatever is registered.
+ * Self-service, allowed to role `user` (and up). It's a "My Account" screen — the user managing
+ * their OWN identity — so it renders on the /account surface (Tiger_Controller_Account_Action: the
+ * shared app shell + the account menu), NOT the admin back office. Thin per ADMIN.md: it renders the
+ * tabbed shell pre-filled from the current identity's user row; every save is an /api call to a
+ * Profile_Service_*. The tabs come from Tiger_Profile_Tabs (extensible) — this controller renders
+ * whatever is registered.
  */
-class Profile_IndexController extends Tiger_Controller_Admin_Action
+class Profile_IndexController extends Tiger_Controller_Account_Action
 {
     /**
-     * Admin shell (layout) comes from the base; keep the explicit init cascade.
+     * Account shell + menu come from the base; keep the explicit init cascade.
      *
      * @return void
      */

@@ -162,3 +162,25 @@ envelope. See WEBSERVICES.md.
 
 Match `Docs_AdminController` + `modules/system` (Settings) exactly and a third-party module's admin
 screen is indistinguishable from core's — which is the point.
+
+## The account surface — a "My Account" screen
+
+There are **two** surfaces, one shell. `/admin` is the back office ("manage the platform" — Content,
+Users, Modules), gated admin+. `/account` is the user's own home ("manage MY stuff" — my subscription,
+my licenses, my profile), open to any signed-in user. The menu follows the **surface, not the role**:
+an admin visiting `/account` sees the account menu (their personal account), never the admin menu.
+So a user-facing screen for a module — "My Membership", "My Licenses", "My Orders" — is built exactly
+like an admin screen above, with two swaps:
+
+1. **Extend `Tiger_Controller_Account_Action`** (not `Tiger_Controller_Admin_Action`). Same shared app
+   shell; the sidebar is the **account** menu instead of the admin one. Everything else — the thin
+   `init()`, the screen template, `/api` saves, the UI primitives — is identical.
+2. **Contribute the menu item to `Tiger_Account_Nav`**, the account-surface twin of `Tiger_Admin_Nav`
+   — either zero-code via a `configs/navigation-account.ini` or `Tiger_Account_Nav::register()` from
+   the Bootstrap. ACL-/activation-gated for free, exactly like the admin nav.
+
+The **`profile` module is the reference** (`Profile_IndexController` / `Profile_OrgController` +
+`modules/profile/configs/navigation-account.ini`): it surfaces "Profile" and "My Organization" onto
+`/account` with zero code. The split it embodies is the rule of thumb — **admin manages *everyone*
+(`Access_*`), the account surface manages *yourself* (`Profile_*`)**: a "manage all users" screen is an
+admin screen; a "my profile" screen is an account screen. When in doubt, ask whose data it edits.

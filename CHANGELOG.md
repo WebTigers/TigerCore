@@ -6,6 +6,21 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+### Added
+- **A dedicated "My Account" menu — the account surface is now first-class.** `/account` gets its own
+  sidebar (`Tiger_Account_Nav`) instead of the admin menu filtered down: the menu follows the *surface*,
+  not the role, so an admin on `/account` sees their personal-account menu, not the back office. New
+  `Tiger_Controller_Account_Action` base — a module parks a user-facing screen ("My Membership", "My
+  Licenses") on `/account` by extending it and contributing a `navigation-account.ini` (or
+  `Tiger_Account_Nav::register()`), exactly mirroring the admin nav registry. Documented in ADMIN.md.
+
+### Changed
+- **The self-service profile screens moved from the admin menu to `/account`.** "Profile" and "My
+  Organization" now live on the account surface (the `profile` module contributes them via
+  `navigation-account.ini` — the reference example), and the admin **Users**/**Organizations** items go
+  straight to the manage-everyone screens (`Access_*`). The split: admin manages *everyone*, the account
+  surface manages *yourself*.
+
 ## [0.46.0-beta] — 2026-08-02
 
 ### Added
