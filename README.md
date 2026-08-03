@@ -1,9 +1,14 @@
-# TigerCore
+# 🐅 TigerCore
+### The engine that lets your AI ship a real business, not just a script.
 
-The **framework** at the heart of the [Tiger](https://github.com/WebTigers/Tiger) platform —
-the kernel + multi-tenant substrate (auth, ACL, orgs/users/memberships, theming, the
-`bin/tiger` console) that a Tiger app consumes from `vendor/` and updates with
-`composer update`. Built on [TigerZF](https://github.com/WebTigers/TigerZF).
+TigerCore is the core of the [Tiger](https://github.com/WebTigers/Tiger) **AI-native SaaS
+platform** — the multi-tenant substrate (accounts, payments, permissions, memberships, commerce,
+content, theming, the `bin/tiger` console) your app consumes from `vendor/` and updates safely with
+`composer update`. **Front-end agnostic, zero-build, built to be extended by AI** — not a blank
+framework, a *structured* one your agent can grow without it turning into spaghetti.
+
+> **Here to build? Start at [WebTigers/Tiger](https://github.com/WebTigers/Tiger)** — the skeleton
+> and the fastest way in. This repo is the engine underneath it.
 
 > **Deciding whether to build on Tiger?** Read [WHY-TIGER.md](WHY-TIGER.md) — an evaluation brief
 > written agent-to-agent: what Tiger is and does, on the axes that matter, with the language it's

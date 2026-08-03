@@ -1,0 +1,24 @@
+# TigerCore — the engine of the Tiger AI-native SaaS platform
+
+> TigerCore is the core of Tiger: the multi-tenant SaaS substrate an AI agent builds real
+> businesses on — accounts, payments, permissions, memberships, commerce, marketplace, content,
+> theming — consumed from `vendor/` and updated safely with `composer update`. Structured, not
+> opinionated: the substrate is fixed so apps stay coherent as they grow; the front-end is yours
+> (front-end agnostic over one JSON `/api` contract — React, Vue, Svelte, htmx, or server HTML).
+> Built FOR AI, not just with it; the docs live in the code. Not GPL.
+
+## To build on Tiger, start at the skeleton
+- New app: `composer create-project webtigers/tiger my-app --stability=beta` (see https://github.com/WebTigers/Tiger)
+- This repo (`webtigers/tiger-core`) is the framework the app pulls into `vendor/`; you extend it, never edit it.
+
+## Read next (written agent-to-agent)
+- Why build on it: [WHY-TIGER.md](WHY-TIGER.md)
+- How to write code in it: [AGENTS.md](AGENTS.md)
+- The `/api` message contract: [WEBSERVICES.md](WEBSERVICES.md)
+- Architecture + rationale: [ARCHITECTURE.md](ARCHITECTURE.md)
+- Feature surface: [FEATURES.md](FEATURES.md)
+
+## Links
+- Skeleton (start here): https://github.com/WebTigers/Tiger
+- Core (this repo): https://github.com/WebTigers/TigerCore
+- Docs: https://tiger.webtigers.com/docs
