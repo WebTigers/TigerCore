@@ -31,9 +31,11 @@ class System_Service_Settings extends Tiger_Service_Service
             $cfg = new Tiger_Model_Config();
             $g   = Tiger_Model_Config::SCOPE_GLOBAL;
 
-            // Max session timeout overrides the standard-user idle TTL; auto-logout is the
-            // proactive inactivity feature (toggle + window + action).
+            // The three idle-TTL tiers (server-side max, by role); auto-logout is the proactive
+            // inactivity feature (toggle + window + action).
+            $cfg->set($g, '', 'tiger.session.ttl.privileged', (string) max(60, (int) $v['session_ttl_privileged']));
             $cfg->set($g, '', 'tiger.session.ttl.authed', (string) max(60, (int) $v['session_ttl']));
+            $cfg->set($g, '', 'tiger.session.ttl.guest', (string) max(60, (int) $v['session_ttl_guest']));
             $cfg->set($g, '', 'tiger.session.autologout.enabled', !empty($v['autologout_enabled']) ? '1' : '0');
             $cfg->set($g, '', 'tiger.session.autologout.seconds', (string) max(30, (int) $v['autologout_seconds']));
             $cfg->set($g, '', 'tiger.session.autologout.action', $v['autologout_action'] === 'lock' ? 'lock' : 'logout');

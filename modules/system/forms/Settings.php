@@ -17,11 +17,25 @@ class System_Form_Settings extends Tiger_Form
         $control = ['class' => 'form-control'];
 
         return [
+            // The three idle-TTL tiers (server-side max, by role). session_ttl = the standard-user tier
+            // (kept as the historical name); privileged = admin/superadmin/developer; guest = anonymous.
+            ['text', 'session_ttl_privileged', [
+                'required'   => true,
+                'filters'    => ['StringTrim'],
+                'validators' => [['Digits'], ['GreaterThan', false, ['min' => 59]]],
+                'attribs'    => array_merge($control, ['id' => 'set-session-ttl-priv', 'inputmode' => 'numeric']),
+            ]],
             ['text', 'session_ttl', [
                 'required'   => true,
                 'filters'    => ['StringTrim'],
                 'validators' => [['Digits'], ['GreaterThan', false, ['min' => 59]]],
                 'attribs'    => array_merge($control, ['id' => 'set-session-ttl', 'inputmode' => 'numeric']),
+            ]],
+            ['text', 'session_ttl_guest', [
+                'required'   => true,
+                'filters'    => ['StringTrim'],
+                'validators' => [['Digits'], ['GreaterThan', false, ['min' => 59]]],
+                'attribs'    => array_merge($control, ['id' => 'set-session-ttl-guest', 'inputmode' => 'numeric']),
             ]],
             ['checkbox', 'autologout_enabled', [
                 'attribs' => ['id' => 'set-autologout-enabled', 'class' => 'form-check-input'],

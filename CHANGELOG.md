@@ -6,6 +6,15 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+### Added
+- **Session settings now expose all three idle-TTL tiers + the PHP GC ceiling.** The System → Session &
+  Security screen shows the **privileged** (admin/superadmin/developer), **standard-user**, and **guest**
+  idle timeouts as separate fields (was: only the standard-user tier, which hid why admins expired sooner),
+  each with a live human-readable readout. It also surfaces the **active session store** (database vs PHP
+  files) and PHP's **`session.gc_maxlifetime`** — warning, on a file-backed install, when a tier is set above
+  the PHP ceiling (which would reap it early no matter the configured value). The DB store's per-row TTL is
+  unaffected by `gc_maxlifetime`, and the panel says so.
+
 ## [0.48.0-beta] — 2026-08-02
 
 ### Added

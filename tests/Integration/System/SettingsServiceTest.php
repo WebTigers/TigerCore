@@ -49,11 +49,13 @@ final class SettingsServiceTest extends IntegrationTestCase
     private function validParams(array $over = []): array
     {
         return array_merge([
-            'action'             => 'save',
-            'session_ttl'        => '3600',
-            'autologout_enabled' => '1',
-            'autologout_seconds' => '900',
-            'autologout_action'  => 'lock',
+            'action'                 => 'save',
+            'session_ttl_privileged' => '7200',
+            'session_ttl'            => '3600',
+            'session_ttl_guest'      => '1800',
+            'autologout_enabled'     => '1',
+            'autologout_seconds'     => '900',
+            'autologout_action'      => 'lock',
         ], $over);
     }
 
@@ -111,7 +113,9 @@ final class SettingsServiceTest extends IntegrationTestCase
 
         $cfg = new Tiger_Model_Config();
         $g   = Tiger_Model_Config::SCOPE_GLOBAL;
+        $this->assertSame('7200', $cfg->get($g, '', 'tiger.session.ttl.privileged'), 'the privileged tier is saved');
         $this->assertSame('3600', $cfg->get($g, '', 'tiger.session.ttl.authed'));
+        $this->assertSame('1800', $cfg->get($g, '', 'tiger.session.ttl.guest'), 'the guest tier is saved');
         $this->assertSame('1', $cfg->get($g, '', 'tiger.session.autologout.enabled'));
         $this->assertSame('900', $cfg->get($g, '', 'tiger.session.autologout.seconds'));
         $this->assertSame('lock', $cfg->get($g, '', 'tiger.session.autologout.action'));
