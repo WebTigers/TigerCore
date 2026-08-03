@@ -64,13 +64,40 @@ $hasSecret = !empty($this->hasSecret);
                         <div class="card-header fw-semibold"><i class="fa-solid fa-shield-halved me-2"></i>Session &amp; Security</div>
                         <div class="card-body">
                             <div class="mb-4">
-                                <label class="form-label" for="set-session-ttl">Maximum session timeout <span class="text-body-secondary fw-normal">(seconds)</span></label>
-                                <div class="input-group" style="max-width:24rem;">
-                                    <?= $el('session_ttl') ?>
-                                    <span class="input-group-text">sec</span>
+                                <label class="form-label mb-1">Maximum session timeout <span class="text-body-secondary fw-normal">(idle, seconds)</span></label>
+                                <div class="form-text mb-3">The server-side <strong>hard max</strong> a session stays valid while idle — enforced even with the tab closed. Tiered by role: the more privileged the role, the shorter the window.</div>
+
+                                <div class="row g-2 align-items-center mb-2">
+                                    <div class="col-sm-4"><label class="form-label small fw-semibold mb-0" for="set-session-ttl-priv">Admin / privileged</label><div class="form-text mt-0 mb-0">admin · superadmin · developer</div></div>
+                                    <div class="col-sm-4"><div class="input-group"><?= $el('session_ttl_privileged') ?><span class="input-group-text">sec</span></div></div>
+                                    <div class="col-sm-4"><span class="form-text"><i class="fa-regular fa-clock me-1"></i><span id="set-session-ttl-priv-h" class="fw-semibold text-body">—</span></span></div>
                                 </div>
-                                <div class="form-text mt-1"><i class="fa-regular fa-clock me-1"></i><span id="set-session-ttl-h" class="fw-semibold text-body">—</span></div>
-                                <div class="form-text">How long a standard user's session stays valid while idle — the hard backstop, enforced even with the tab closed. Admin roles use a separate, shorter tier.</div>
+                                <div class="row g-2 align-items-center mb-2">
+                                    <div class="col-sm-4"><label class="form-label small fw-semibold mb-0" for="set-session-ttl">Standard user</label><div class="form-text mt-0 mb-0">signed-in members</div></div>
+                                    <div class="col-sm-4"><div class="input-group"><?= $el('session_ttl') ?><span class="input-group-text">sec</span></div></div>
+                                    <div class="col-sm-4"><span class="form-text"><i class="fa-regular fa-clock me-1"></i><span id="set-session-ttl-h" class="fw-semibold text-body">—</span></span></div>
+                                </div>
+                                <div class="row g-2 align-items-center mb-3">
+                                    <div class="col-sm-4"><label class="form-label small fw-semibold mb-0" for="set-session-ttl-guest">Guest</label><div class="form-text mt-0 mb-0">anonymous visitors</div></div>
+                                    <div class="col-sm-4"><div class="input-group"><?= $el('session_ttl_guest') ?><span class="input-group-text">sec</span></div></div>
+                                    <div class="col-sm-4"><span class="form-text"><i class="fa-regular fa-clock me-1"></i><span id="set-session-ttl-guest-h" class="fw-semibold text-body">—</span></span></div>
+                                </div>
+
+                                <div class="border rounded-3 p-3 bg-body-tertiary" id="php-session-panel"
+                                     data-php-max="<?= (int) $this->phpGcMax ?>" data-db-handler="<?= !empty($this->sessionDbHandler) ? '1' : '0' ?>">
+                                    <div class="small fw-semibold mb-1"><i class="fa-solid fa-server me-1"></i>Session store:
+                                        <?php if (!empty($this->sessionDbHandler)): ?>
+                                            <span class="text-success-emphasis">Database</span> <span class="text-body-secondary fw-normal">— each row carries its own TTL</span>
+                                        <?php else: ?>
+                                            <span class="text-warning-emphasis">PHP files</span> <span class="text-body-secondary fw-normal">— capped by PHP's garbage collector</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="form-text mt-0 mb-0">PHP <code>session.gc_maxlifetime</code> = <span class="fw-semibold text-body"><?= (int) $this->phpGcMax ?></span> sec <span id="php-max-h" class="text-body-secondary"></span></div>
+                                    <div id="php-max-warn" class="alert alert-warning d-flex align-items-start gap-2 mt-2 mb-0 py-2 px-3 small d-none">
+                                        <i class="fa-solid fa-triangle-exclamation mt-1"></i><div id="php-max-warn-body"></div>
+                                    </div>
+                                    <div id="php-max-ok" class="form-text mt-2 mb-0 d-none"><i class="fa-solid fa-circle-check text-success me-1"></i>The database session store uses its own per-row TTL, so PHP's <code>gc_maxlifetime</code> above does <strong>not</strong> cap these tiers.</div>
+                                </div>
                             </div>
 
                             <hr>
@@ -401,8 +428,34 @@ document.addEventListener('DOMContentLoaded', function () {
         var upd = function () { o.textContent = '≈ ' + humanize(i.value); };
         i.addEventListener('input', upd); upd();
     }
+    bindDuration('set-session-ttl-priv', 'set-session-ttl-priv-h');
     bindDuration('set-session-ttl', 'set-session-ttl-h');
+    bindDuration('set-session-ttl-guest', 'set-session-ttl-guest-h');
     bindDuration('set-autologout-seconds', 'set-autologout-seconds-h');
+
+    // PHP gc_maxlifetime ceiling awareness. The DB session store ignores gc_maxlifetime (per-row TTL),
+    // so a tier above it is honored; the FILE fallback is hard-capped by it, so any tier above the PHP
+    // ceiling would be reaped early no matter what's set here — warn, and name the offending tiers.
+    (function () {
+        var panel = document.getElementById('php-session-panel');
+        if (!panel) { return; }
+        var phpMax = parseInt(panel.getAttribute('data-php-max'), 10) || 0;
+        var dbHandler = panel.getAttribute('data-db-handler') === '1';
+        var maxH = document.getElementById('php-max-h');
+        if (maxH && phpMax) { maxH.textContent = '(≈ ' + humanize(phpMax) + ')'; }
+        var warn = document.getElementById('php-max-warn'), warnBody = document.getElementById('php-max-warn-body'), ok = document.getElementById('php-max-ok');
+        var tiers = [['Admin / privileged', 'set-session-ttl-priv'], ['Standard user', 'set-session-ttl'], ['Guest', 'set-session-ttl-guest']];
+        function check() {
+            if (dbHandler) { if (ok) { ok.classList.remove('d-none'); } if (warn) { warn.classList.add('d-none'); } return; }
+            var over = tiers.filter(function (t) { var e = document.getElementById(t[1]); return e && (parseInt(e.value, 10) || 0) > phpMax; }).map(function (t) { return t[0]; });
+            if (phpMax && over.length) {
+                warnBody.innerHTML = 'This install uses the <strong>PHP file session store</strong>, so <code>session.gc_maxlifetime</code> (' + phpMax + ' sec ≈ ' + humanize(phpMax) + ') is the hard ceiling. <strong>' + over.join(', ') + '</strong> set above it will be reaped early by PHP regardless of the value here — raise <code>gc_maxlifetime</code> in <code>php.ini</code>, or switch to the database session store.';
+                warn.classList.remove('d-none'); if (ok) { ok.classList.add('d-none'); }
+            } else if (warn) { warn.classList.add('d-none'); }
+        }
+        tiers.forEach(function (t) { var e = document.getElementById(t[1]); if (e) { e.addEventListener('input', check); } });
+        check();
+    })();
 
     var alToggle = document.getElementById('set-autologout-enabled');
     var alOpts   = document.getElementById('set-autologout-opts');

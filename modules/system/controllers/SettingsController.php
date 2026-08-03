@@ -31,17 +31,29 @@ class System_SettingsController extends Tiger_Controller_Admin_Action
         $tiger   = $cfg->get('tiger');
         $session = $tiger ? $tiger->get('session') : null;
 
-        $ttlAuthed = 604800;   // 7d default (matches Tiger_Session_SaveHandler_DbTable)
-        if ($session && $session->get('ttl') && (int) $session->ttl->get('authed') > 0) {
-            $ttlAuthed = (int) $session->ttl->authed;
-        }
+        // The three idle-TTL tiers, resolved from config with the same defaults the save handler uses.
+        $ttl     = ($session && $session->get('ttl')) ? $session->ttl : null;
+        $tierVal = static function ($node, $key, $def) {
+            return ($node && (int) $node->get($key) > 0) ? (int) $node->get($key) : $def;
+        };
+        $ttlPriv   = $tierVal($ttl, 'privileged', 28800);    // 8h  — admin/superadmin/developer
+        $ttlAuthed = $tierVal($ttl, 'authed', 604800);       // 7d  — standard user
+        $ttlGuest  = $tierVal($ttl, 'guest', 86400);         // 1d  — guest
+
+        // PHP's own session GC ceiling + which store is active. The DB handler ignores gc_maxlifetime
+        // (per-row TTL), but the file fallback is HARD-capped by it — so the view warns accordingly.
+        $this->view->phpGcMax        = (int) ini_get('session.gc_maxlifetime');
+        $this->view->sessionDbHandler = strtolower((string) ini_get('session.save_handler')) === 'user';
+
         $al = (new Tiger_Service_Authentication())->autologoutConfig();
 
         $rc = Tiger_Recaptcha::settings();
 
         $form = new System_Form_Settings();
         $form->populate([
+            'session_ttl_privileged' => $ttlPriv,
             'session_ttl'          => $ttlAuthed,
+            'session_ttl_guest'    => $ttlGuest,
             'autologout_enabled'   => $al['enabled'] ? 1 : 0,
             'autologout_seconds'   => $al['seconds'],
             'autologout_action'    => $al['action'],
