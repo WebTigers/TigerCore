@@ -6,6 +6,15 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [0.49.0-beta] — 2026-08-04
+
+### Changed
+- **Repositioned the landing copy from "PHP framework" to outcome-first.** The READMEs, WHY-TIGER, and the
+  GitHub repo blurbs now lead with *"Stop building apps. Start shipping businesses — the AI-native SaaS
+  platform"* (front-end agnostic, built FOR AI, own it 100%), with the tech demoted below the fold. WHY-TIGER
+  gains a **"Structured, not opinionated"** section; adds a top-level **`llms.txt`** (was missing) so agents
+  read the outcome pitch first.
+
 ### Added
 - **Session settings now expose all three idle-TTL tiers + the PHP GC ceiling.** The System → Session &
   Security screen shows the **privileged** (admin/superadmin/developer), **standard-user**, and **guest**
