@@ -6,6 +6,15 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [0.50.0-beta] — 2026-08-04
+
+### Changed
+- **Repositioned the default MVC views (the #99 gap).** The built-in home landing
+  (`core/views/scripts/index/index.phtml`) and the public footer still carried the old copy —
+  `<title>` "a 1-click SaaS platform on TigerZF", the "One platform…" H1, and the footer tagline.
+  These render on a **fresh install** (before a CMS home page exists), so a new install's first-run
+  screen now leads with *"Stop building apps. Start shipping businesses — the AI-native SaaS platform."*
+
 ## [0.49.0-beta] — 2026-08-04
 
 ### Changed
