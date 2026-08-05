@@ -245,6 +245,10 @@ geocode / reverse / IP behind adapters, normalized `Place` payload) and **`Tiger
   string-concatenated SQL in models or services.
 - Every domain table gets the **standard columns**: `status`, `deleted`, `created_by`,
   `updated_by`, `created_at`, `updated_at`. UUIDs are `CHAR(36)`; unique text is `VARCHAR(191)`.
+- **JSON-shaped data → `LONGTEXT`, never the `JSON` type.** The DB stores text; validating JSON is the
+  app's job (you already `json_encode`/`json_decode` it). MariaDB's `JSON` is `LONGTEXT` + an implicit
+  `CHECK(json_valid())` that **rejects JSON nested ≥ 32 levels** (which PHP encodes fine) — it broke the
+  CMS builder's deep project blob (migration `0041` converted the existing columns).
 - Migrations are **additive-only** PHP files (`NNNN_name.php` returning `['up'=>[], 'down'=>[]]`)
   in `migrations/`. One logical DDL change per migration (MySQL auto-commits DDL).
 
