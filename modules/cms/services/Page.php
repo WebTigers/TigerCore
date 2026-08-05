@@ -245,11 +245,20 @@ class Cms_Service_Page extends Tiger_Service_Service
             $meta['builder'] = is_array($decodedProject) ? $decodedProject : null;
         }
 
+        // A GrapesJS project can carry lone surrogates / invalid UTF-8 (JS strings), which make a strict
+        // json_encode return FALSE — an empty string that fails the meta column's json_valid CHECK
+        // (SQLSTATE 23000 / err 4025). Encode defensively (substitute bad bytes) so we never write invalid JSON.
+        $metaJson = json_encode($meta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if ($metaJson === false) {
+            $metaJson = json_encode($meta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        if ($metaJson === false) { $metaJson = '{}'; }
+
         try {
             $model->save([
                 'body'   => $body,
                 'format' => Tiger_Model_Page::FORMAT_BUILDER,
-                'meta'   => json_encode($meta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                'meta'   => $metaJson,
             ], $pageId);
             $this->_success(['page_id' => $pageId], 'cms.page.saved');
         } catch (Throwable $e) {
