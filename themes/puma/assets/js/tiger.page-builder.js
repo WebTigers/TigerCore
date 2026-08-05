@@ -120,7 +120,9 @@
 
   // Canvas light/dark — mirror the site's data-bs-theme INSIDE the canvas iframe (Bootstrap reads it
   // on the iframe's <html>; our skins define both modes), toggleable from the top-bar sun/moon.
-  var tbMode = 'light';
+  // Init to the builder's OWN theme (theme-init.js set it from the cookie), so the first frame:load
+  // applies the right mode immediately — no light default to flash from.
+  var tbMode = document.documentElement.getAttribute('data-bs-theme') || 'light';
   // GrapesJS hardcodes a white "paper" bg on the canvas body, which ignores --bs-body-bg — so the body
   // stayed white while token-driven sections went dark. Tie html/body to the Bootstrap body token so
   // it follows the theme (background only forced; text-* utilities keep their own colors).
@@ -149,6 +151,9 @@
   editor.on('canvas:frame:load', function () { tbApplyCanvasBg(); tbCanvasTheme(tbMode); });
   var themeBtn = document.getElementById('tb-theme');
   if (themeBtn) { themeBtn.addEventListener('click', function () { tbCanvasTheme(tbMode === 'dark' ? 'light' : 'dark'); }); }
+  // Safety: the canvas frame is hidden by builder.css until .tb-canvas-ready — always reveal it, even if
+  // 'load' never fires, so it can't stay blank.
+  setTimeout(function () { document.body.classList.add('tb-canvas-ready'); }, 2500);
 
   // ---- Non-editable theme chrome: render the real header + footer in the canvas for context
   // (Elementor-style), LOCKED so they can't be edited/moved/deleted, and STRIPPED from the saved
@@ -177,7 +182,12 @@
       return d.body.innerHTML;
     } catch (e) { return html; }
   }
-  editor.on('load', function () { tbInjectChrome(); });
+  editor.on('load', function () {
+    tbInjectChrome();
+    // Theme is applied + chrome placed — reveal the canvas (hidden until now to kill the light→dark
+    // FOUC; see builder.css). rAF lets the themed repaint land before the fade-in.
+    requestAnimationFrame(function () { document.body.classList.add('tb-canvas-ready'); });
+  });
 
   // Ctrl/Cmd+S saves without leaving the builder.
   document.addEventListener('keydown', function (e) {

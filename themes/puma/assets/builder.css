@@ -55,3 +55,9 @@ body { margin: 0; display: flex; flex-direction: column; overflow: hidden; }
 .gjs-block__media svg { width: 30px !important; height: 30px !important; }
 .gjs-block__media i   { font-size: 28px; line-height: 1; }
 .gjs-block-label { font-size: 0.85rem; }
+
+/* --- No-FOUC: the canvas iframe paints LIGHT before its data-bs-theme is applied on load, flashing to
+   dark. Hide the frame until JS marks it ready (theme applied + chrome placed), then fade it in. A JS
+   safety timeout also adds .tb-canvas-ready so the frame can never stay hidden. --- */
+.gjs-frame { opacity: 0; }
+body.tb-canvas-ready .gjs-frame { opacity: 1; transition: opacity .15s ease; }
