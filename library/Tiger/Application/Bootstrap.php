@@ -238,6 +238,14 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
                 return '';
             }
         });
+
+        // [content] -> the page body, when a LAYOUT wraps a page (Tiger_Cms_Renderer::render passes it as
+        // $context['content']). This is the one reserved slot that lets a VISUALLY-BUILT layout be "just a
+        // partial": [partial name="site-header"] [content] [partial name="site-footer"]. Empty (harmless)
+        // when rendered outside a layout, so it never leaks a stray body elsewhere.
+        Tiger_Cms_Renderer::registerShortcode('content', static function ($attrs, $inner = null, array $context = []) {
+            return isset($context['content']) ? (string) $context['content'] : '';
+        });
     }
 
     /**
