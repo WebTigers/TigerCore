@@ -1,0 +1,65 @@
+/*! SPDX-License-Identifier: BSD-3-Clause · © 2026 WebTigers · Tiger™/WebTigers™ are trademarks */
+/* PUMA skin: bengal — Tiger-original. A warm near-black ground with a burnt tiger-orange
+   accent and big, bold, tight-tracked headings (the "Get Tiger" look). A variable-level
+   overlay on stock Bootstrap 5.3, loaded AFTER bootstrap.css — re-declares the --bs-* color
+   system, font, and radius for BOTH light and dark (data-bs-theme), so it keeps its identity
+   in either mode. Swapped live by the skin switcher (tiger.prefs.js). */
+@import url('../vendor/fonts/inter/inter.css');
+
+:root,[data-bs-theme=light]{
+  --bs-blue:#3a6ea5;--bs-indigo:#6610f2;--bs-purple:#6f42c1;--bs-pink:#d6336c;--bs-red:#cf3a2e;
+  --bs-orange:#e8631a;--bs-yellow:#e8922b;--bs-green:#1f9d57;--bs-teal:#199d8b;--bs-cyan:#2f7fa8;
+  --bs-black:#000;--bs-white:#fff;
+  --bs-gray:#7c6f60;--bs-gray-dark:#39322a;
+  --bs-gray-100:#f7f3ee;--bs-gray-200:#efe7dc;--bs-gray-300:#e4d8c9;--bs-gray-400:#d3c3ae;
+  --bs-gray-500:#a89a89;--bs-gray-600:#7c6f60;--bs-gray-700:#5b5044;--bs-gray-800:#39322a;--bs-gray-900:#211b15;
+  --bs-primary:#c65312;--bs-secondary:#7c6f60;--bs-success:#1f9d57;--bs-info:#2f7fa8;--bs-warning:#e8922b;--bs-danger:#cf3a2e;--bs-light:#f7f3ee;--bs-dark:#211b15;
+  --bs-primary-rgb:198,83,18;--bs-secondary-rgb:124,111,96;--bs-success-rgb:31,157,87;--bs-info-rgb:47,127,168;--bs-warning-rgb:232,146,43;--bs-danger-rgb:207,58,46;--bs-light-rgb:247,243,238;--bs-dark-rgb:33,27,21;
+  --bs-primary-text-emphasis:#742f09;--bs-secondary-text-emphasis:#3a332b;--bs-success-text-emphasis:#0d3f23;--bs-info-text-emphasis:#12333f;--bs-warning-text-emphasis:#5c3a11;--bs-danger-text-emphasis:#531712;--bs-light-text-emphasis:#5b5044;--bs-dark-text-emphasis:#5b5044;
+  --bs-primary-bg-subtle:#fbe6d6;--bs-secondary-bg-subtle:#efe7dc;--bs-success-bg-subtle:#d6f0e0;--bs-info-bg-subtle:#d9eaf2;--bs-warning-bg-subtle:#fbebd5;--bs-danger-bg-subtle:#f7dad7;--bs-light-bg-subtle:#fcfbf8;--bs-dark-bg-subtle:#d3c3ae;
+  --bs-primary-border-subtle:#eeb488;--bs-secondary-border-subtle:#d3c3ae;--bs-success-border-subtle:#a6ddc0;--bs-info-border-subtle:#abcbe0;--bs-warning-border-subtle:#f6d5a6;--bs-danger-border-subtle:#eab0ab;--bs-light-border-subtle:#efe7dc;--bs-dark-border-subtle:#a89a89;
+  --bs-white-rgb:255,255,255;--bs-black-rgb:0,0,0;
+  --bs-font-sans-serif:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
+  --bs-font-monospace:SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+  --bs-gradient:linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,0));
+  --bs-body-font-family:var(--bs-font-sans-serif);--bs-body-font-size:1rem;--bs-body-font-weight:400;--bs-body-line-height:1.6;
+  --bs-body-color:#2b241d;--bs-body-color-rgb:43,36,29;--bs-body-bg:#faf7f2;--bs-body-bg-rgb:250,247,242;
+  --bs-emphasis-color:#171310;--bs-emphasis-color-rgb:23,19,16;
+  --bs-secondary-color:rgba(43,36,29,.7);--bs-secondary-color-rgb:43,36,29;--bs-secondary-bg:#efe7dc;--bs-secondary-bg-rgb:239,231,220;
+  --bs-tertiary-color:rgba(43,36,29,.5);--bs-tertiary-color-rgb:43,36,29;--bs-tertiary-bg:#f5efe7;--bs-tertiary-bg-rgb:245,239,231;
+  --bs-heading-color:inherit;
+  --bs-link-color:#c65312;--bs-link-color-rgb:198,83,18;--bs-link-decoration:none;--bs-link-hover-color:#a5430c;--bs-link-hover-color-rgb:165,67,12;
+  --bs-code-color:#c0491a;--bs-highlight-color:#2b241d;--bs-highlight-bg:#fbebd5;
+  --bs-border-width:1px;--bs-border-style:solid;--bs-border-color:#e4d8c9;--bs-border-color-translucent:rgba(40,25,10,.14);
+  --bs-border-radius:.55rem;--bs-border-radius-sm:.35rem;--bs-border-radius-lg:.85rem;--bs-border-radius-xl:1.1rem;--bs-border-radius-xxl:1.6rem;--bs-border-radius-2xl:var(--bs-border-radius-xxl);--bs-border-radius-pill:50rem;
+  --bs-box-shadow:0 1px 2px rgba(40,25,10,.05),0 12px 30px -16px rgba(40,25,10,.2);--bs-box-shadow-sm:0 .125rem .25rem rgba(40,25,10,.07);--bs-box-shadow-lg:0 1.2rem 3rem rgba(40,25,10,.16);--bs-box-shadow-inset:inset 0 1px 2px rgba(40,25,10,.075);
+  --bs-focus-ring-width:.25rem;--bs-focus-ring-opacity:.22;--bs-focus-ring-color:rgba(198,83,18,.28);
+  --bs-form-valid-color:#1f9d57;--bs-form-valid-border-color:#1f9d57;--bs-form-invalid-color:#cf3a2e;--bs-form-invalid-border-color:#cf3a2e;
+}
+
+[data-bs-theme=dark]{
+  color-scheme:dark;
+  --bs-body-color:#f1e9df;--bs-body-color-rgb:241,233,223;--bs-body-bg:#100e0c;--bs-body-bg-rgb:16,14,12;
+  --bs-emphasis-color:#fff;--bs-emphasis-color-rgb:255,255,255;
+  --bs-secondary-color:rgba(241,233,223,.72);--bs-secondary-color-rgb:241,233,223;--bs-secondary-bg:#1c1712;--bs-secondary-bg-rgb:28,23,18;
+  --bs-tertiary-color:rgba(241,233,223,.5);--bs-tertiary-color-rgb:241,233,223;--bs-tertiary-bg:#17120e;--bs-tertiary-bg-rgb:23,18,14;
+  --bs-primary:#f07c2a;--bs-primary-rgb:240,124,42;
+  --bs-primary-text-emphasis:#f7ab6f;--bs-secondary-text-emphasis:#c8bcac;--bs-success-text-emphasis:#7fd3a5;--bs-info-text-emphasis:#87bcd6;--bs-warning-text-emphasis:#f2c17e;--bs-danger-text-emphasis:#e79087;--bs-light-text-emphasis:#f7f3ee;--bs-dark-text-emphasis:#e4d8c9;
+  --bs-primary-bg-subtle:#2a1a0d;--bs-secondary-bg-subtle:#211a13;--bs-success-bg-subtle:#0a2417;--bs-info-bg-subtle:#0a1e28;--bs-warning-bg-subtle:#2c1e0a;--bs-danger-bg-subtle:#2c0f0c;--bs-light-bg-subtle:#1c1712;--bs-dark-bg-subtle:#141310;
+  --bs-primary-border-subtle:#6c3c17;--bs-secondary-border-subtle:#4a4034;--bs-success-border-subtle:#155f39;--bs-info-border-subtle:#1c516b;--bs-warning-border-subtle:#7a5216;--bs-danger-border-subtle:#7c2820;--bs-light-border-subtle:#39322a;--bs-dark-border-subtle:#2d2419;
+  --bs-heading-color:inherit;
+  --bs-link-color:#f07c2a;--bs-link-hover-color:#f7ab6f;--bs-link-color-rgb:240,124,42;--bs-link-hover-color-rgb:247,171,111;
+  --bs-code-color:#f39b5f;--bs-highlight-color:#f1e9df;--bs-highlight-bg:#5c3a11;
+  --bs-border-color:#2d2419;--bs-border-color-translucent:rgba(255,255,255,.13);
+  --bs-focus-ring-color:rgba(240,124,42,.35);
+  --bs-form-valid-color:#7fd3a5;--bs-form-valid-border-color:#7fd3a5;--bs-form-invalid-color:#e79087;--bs-form-invalid-border-color:#e79087;
+}
+[data-bs-theme=dark]{
+  --bs-navbar-color:rgba(255,255,255,.6);--bs-navbar-hover-color:#f07c2a;--bs-navbar-disabled-color:rgba(255,255,255,.25);--bs-navbar-active-color:#f07c2a;--bs-navbar-brand-color:#fff;--bs-navbar-brand-hover-color:#f07c2a;--bs-navbar-toggler-border-color:rgba(255,255,255,.1);
+  --bs-navbar-toggler-icon-bg:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.6%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* Bengal identity: big, bold, tight-tracked headings (loaded after Bootstrap, so these win). */
+h1,h2,.h1,.h2{font-weight:800;letter-spacing:-.025em;}
+h3,h4,h5,h6,.h3,.h4,.h5,.h6{font-weight:700;letter-spacing:-.015em;}
+.display-1,.display-2,.display-3,.display-4,.display-5,.display-6{font-weight:800;letter-spacing:-.035em;}

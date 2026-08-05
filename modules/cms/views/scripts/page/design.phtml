@@ -11,6 +11,28 @@
 $va = $this->themeAssets;
 // Safe JSON embedding in a <script> context (no </script> or quote breakouts).
 $jf = JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
+
+// The base front-end stylesheets the LIVE page uses. GrapesJS renders the page inside an isolated
+// iframe that does NOT inherit the outer document's <link>s, so these must be injected into the
+// canvas (below) — otherwise the page edits as unstyled HTML. Same set + order as the public layout.
+$canvasStyles = [
+    $this->asset($va . '/vendor/fonts/inter/inter.css'),
+    $this->asset($va . '/vendor/fontawesome/css/all.min.css'),
+    $this->asset($va . '/css/bootstrap.css'),
+    $this->asset($va . '/default.css'),
+];
+if (!empty($this->skin)) { $canvasStyles[] = $this->asset($va . '/skins/' . $this->skin . '.css'); }
+$canvasStyles[] = $this->asset($va . '/custom.css');
+
+// Render the real public header + footer for a NON-EDITABLE preview inside the builder canvas
+// (Elementor-style theme chrome). <style>/<script> are stripped — it's a static preview, and this
+// keeps the header's mega-menu CSS/JS out of the saved page. Guarded: a partial that can't render in
+// this context just yields no preview, never breaks the builder.
+$headerHtml = '';
+$footerHtml = '';
+$tbStrip = ['#<style\b[^>]*>.*?</style>#is', '#<script\b[^>]*>.*?</script>#is'];
+try { $headerHtml = trim((string) preg_replace($tbStrip, '', (string) $this->render('_partials/public-header.phtml'))); } catch (\Throwable $e) {}
+try { $footerHtml = trim((string) preg_replace($tbStrip, '', (string) $this->render('_partials/public-footer.phtml'))); } catch (\Throwable $e) {}
 ?>
 <!doctype html>
 <html lang="en">
@@ -38,6 +60,7 @@ $jf = JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JS
         </div>
         <div class="tb-right">
             <span id="tb-status" class="tb-status"></span>
+            <button id="tb-theme" class="btn btn-sm btn-outline-secondary" type="button" title="Toggle canvas light / dark"><i class="fa-solid fa-sun"></i></button>
             <a class="btn btn-sm btn-outline-secondary" href="/cms/page/edit/id/<?= $this->escape($this->page->page_id) ?>"><i class="fa-solid fa-gear me-1"></i>Settings</a>
             <a class="btn btn-sm btn-outline-secondary" href="/cms/page"><i class="fa-solid fa-xmark me-1"></i>Exit</a>
             <button id="tb-save" class="btn btn-sm btn-primary" type="button"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
@@ -53,8 +76,12 @@ $jf = JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JS
             project:  <?= $this->projectData ? json_encode($this->projectData, $jf) : 'null' ?>,
             seedHtml: <?= json_encode((string) $this->page->body, $jf) ?>,
             menus:    <?= json_encode($this->menus ?: (object) [], $jf) ?>,
-            themeBlocks: <?= json_encode($this->themeBlocks ?: [], $jf) ?>,
-            canvasCss:   <?= json_encode($this->canvasCss ?: [], $jf) ?>
+            partials: <?= json_encode($this->partials ?: (object) [], $jf) ?>,
+            themeBlocks:  <?= json_encode($this->themeBlocks ?: [], $jf) ?>,
+            headerHtml:   <?= json_encode($headerHtml, $jf) ?>,
+            footerHtml:   <?= json_encode($footerHtml, $jf) ?>,
+            canvasStyles: <?= json_encode($canvasStyles, $jf) ?>,
+            canvasCss:    <?= json_encode($this->canvasCss ?: [], $jf) ?>
         };
     </script>
     <script src="<?= $this->asset($va . '/js/bootstrap.bundle.js') ?>"></script>

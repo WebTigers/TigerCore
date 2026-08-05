@@ -104,6 +104,17 @@ class IndexController extends Zend_Controller_Action
         // view: index/features.phtml
     }
 
+    /**
+     * `/get-tiger` — the "Get Tiger" page: the four ways to run Tiger, the vibe-stack comparison, and
+     * portability. A shipped marketing page; the view owns its content.
+     *
+     * @return void
+     */
+    public function getTigerAction()
+    {
+        // view: index/get-tiger.phtml
+    }
+
     /** The configured home-page id (tiger.site.home_page), or '' for the built-in landing. */
     protected function _homePageId()
     {

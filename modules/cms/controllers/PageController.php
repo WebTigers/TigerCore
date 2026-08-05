@@ -110,6 +110,26 @@ class Cms_PageController extends Tiger_Controller_Admin_Action
             $menus[$key] = Tiger_Menu::getHTML($key);
         }
 
+        // Named partials for the builder's Partial widget — a {name: {label, html}} map: `label` for
+        // the picker, `html` a live-rendered preview. The widget exports [partial name="x"] (dynamic),
+        // never the preview markup, so editing the partial updates everywhere it's dropped.
+        $partials = [];
+        try {
+            $pm = new Tiger_Model_Page();
+            foreach ($pm->fetchAll(
+                $pm->activeSelect()
+                    ->where('type = ?', Tiger_Model_Page::TYPE_PARTIAL)
+                    ->where('status = ?', Tiger_Model_Page::STATUS_PUBLISHED)
+                    ->order('page_key ASC')
+            ) as $r) {
+                if (!$r->page_key) { continue; }
+                $partials[$r->page_key] = [
+                    'label' => (string) (($r->title !== null && $r->title !== '') ? $r->title : $r->page_key),
+                    'html'  => (new Tiger_Cms_Renderer())->renderBody((string) $r->body, (string) $r->format, []),
+                ];
+            }
+        } catch (\Throwable $e) { $partials = []; }
+
         // The ACTIVE theme's builder components (its components/*.phtml) + the CSS to load into
         // the GrapesJS canvas so those blocks preview in the theme's own style (THEMES.md Tier 2).
         $manifest = Tiger_Theme::manifest();
@@ -119,6 +139,7 @@ class Cms_PageController extends Tiger_Controller_Admin_Action
         $this->view->page        = $page;
         $this->view->projectData = !empty($meta['builder']) ? $meta['builder'] : null;
         $this->view->menus       = $menus;
+        $this->view->partials    = $partials;
         $this->view->themeBlocks = Tiger_Theme::components();
         $this->view->canvasCss   = isset($manifest['canvasCss']) ? (array) $manifest['canvasCss'] : [];
     }
