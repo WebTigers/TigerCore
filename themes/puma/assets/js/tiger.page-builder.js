@@ -72,20 +72,33 @@
 
   var saving = false;
   var dirty  = false;
+  var suppressUpdate = false;   // set while save() pulls/re-adds the chrome, so that churn isn't "dirty"
 
   function save() {
     if (saving) { return; }
     saving = true;
     setStatus('Saving…', 'saving');
 
+    // Remove the header/footer preview from ALL saved data (body, css, AND the project blob) — it's
+    // view-only chrome, and its deep nesting blows past MariaDB's 32-level JSON limit (the meta
+    // json_valid CHECK). Capture with it gone, then re-inject for continued editing. suppressUpdate
+    // keeps this churn from marking the doc dirty / flickering the status.
+    suppressUpdate = true;
+    editor.getWrapper().find('[data-tiger-chrome]').forEach(function (c) { c.remove(); });
+    var outHtml    = editor.getHtml();
+    var outCss     = editor.getCss();
+    var outProject = JSON.stringify(editor.getProjectData());
+    tbInjectChrome();
+    suppressUpdate = false;
+
     var body = new URLSearchParams();
     body.set('module', 'cms');
     body.set('service', 'page');
     body.set('method', 'saveDesign');
     body.set('page_id', cfg.pageId || '');
-    body.set('html', tbStripChrome(editor.getHtml()));   // never persist the header/footer preview into the page body
-    body.set('css', editor.getCss());
-    body.set('project', JSON.stringify(editor.getProjectData()));
+    body.set('html', tbStripChrome(outHtml));   // belt-and-suspenders (chrome already removed above)
+    body.set('css', outCss);
+    body.set('project', outProject);
 
     fetch(cfg.api || '/api', {
       method: 'POST',
@@ -174,7 +187,7 @@
   // Track unsaved edits; warn before closing. GrapesJS fires 'update' after its initial
   // seed, so arm the flag only once the editor has settled.
   editor.on('load', function () {
-    setTimeout(function () { editor.on('update', function () { dirty = true; setStatus('Unsaved changes', ''); }); }, 400);
+    setTimeout(function () { editor.on('update', function () { if (suppressUpdate) { return; } dirty = true; setStatus('Unsaved changes', ''); }); }, 400);
   });
   window.addEventListener('beforeunload', function (e) {
     if (dirty) { e.preventDefault(); e.returnValue = ''; }
