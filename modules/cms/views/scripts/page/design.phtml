@@ -24,15 +24,23 @@ $canvasStyles = [
 if (!empty($this->skin)) { $canvasStyles[] = $this->asset($va . '/skins/' . $this->skin . '.css'); }
 $canvasStyles[] = $this->asset($va . '/custom.css');
 
-// Render the real public header + footer for a NON-EDITABLE preview inside the builder canvas
-// (Elementor-style theme chrome). <style>/<script> are stripped — it's a static preview, and this
-// keeps the header's mega-menu CSS/JS out of the saved page. Guarded: a partial that can't render in
-// this context just yields no preview, never breaks the builder.
+// The LOCKED chrome around the editable region (Elementor-style theme context). Two sources:
+//   • a PARTIAL edited against a CMS layout supplies its own split chrome (controller: chromeBefore/
+//     chromeAfter, cut at the partial's slot) — so a header partial edits at the top with the footer
+//     below as context, a hero edits in the content area between real header + footer;
+//   • everything else (a page, or a partial with no CMS layout) uses the theme's real public
+//     header + footer.
+// <style>/<script> are stripped — it's a static preview, kept out of the saved body.
+$tbStrip = ['#<style\b[^>]*>.*?</style>#is', '#<script\b[^>]*>.*?</script>#is'];
 $headerHtml = '';
 $footerHtml = '';
-$tbStrip = ['#<style\b[^>]*>.*?</style>#is', '#<script\b[^>]*>.*?</script>#is'];
-try { $headerHtml = trim((string) preg_replace($tbStrip, '', (string) $this->render('_partials/public-header.phtml'))); } catch (\Throwable $e) {}
-try { $footerHtml = trim((string) preg_replace($tbStrip, '', (string) $this->render('_partials/public-footer.phtml'))); } catch (\Throwable $e) {}
+if ($this->chromeBefore !== null || $this->chromeAfter !== null) {
+    $headerHtml = (string) $this->chromeBefore;   // already style/script-stripped by the controller
+    $footerHtml = (string) $this->chromeAfter;
+} else {
+    try { $headerHtml = trim((string) preg_replace($tbStrip, '', (string) $this->render('_partials/public-header.phtml'))); } catch (\Throwable $e) {}
+    try { $footerHtml = trim((string) preg_replace($tbStrip, '', (string) $this->render('_partials/public-footer.phtml'))); } catch (\Throwable $e) {}
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -56,10 +64,25 @@ try { $footerHtml = trim((string) preg_replace($tbStrip, '', (string) $this->ren
     <header class="tb-bar">
         <div class="tb-left">
             <span class="tb-brand"><i class="fa-solid fa-panorama me-1"></i>Tiger Builder</span>
+<?php if (!empty($this->partialMode)): ?>
+            <span class="badge text-bg-secondary-subtle text-secondary-emphasis"><i class="fa-solid <?= ($this->fragmentLabel === 'Block' ? 'fa-cube' : 'fa-puzzle-piece') ?> me-1"></i><?= $this->escape($this->fragmentLabel ?: 'Partial') ?></span>
+<?php endif; ?>
             <span class="tb-title"><?= $this->escape($this->title ?: 'Untitled') ?></span>
         </div>
         <div class="tb-right">
             <span id="tb-status" class="tb-status"></span>
+<?php if (!empty($this->partialMode) && !empty($this->layoutOptions)): ?>
+            <label class="tb-layout-wrap d-inline-flex align-items-center gap-1" title="Preview this partial inside a layout's chrome">
+                <i class="fa-solid fa-table-columns text-body-secondary"></i>
+                <select id="tb-layout" class="form-select form-select-sm" style="width:auto;">
+                    <option value="">Theme default</option>
+<?php foreach ($this->layoutOptions as $lk => $ll): ?>
+                    <option value="<?= $this->escape($lk) ?>"<?= ($lk === $this->partialLayoutKey ? ' selected' : '') ?>><?= $this->escape($ll) ?></option>
+<?php endforeach; ?>
+                </select>
+            </label>
+<?php endif; ?>
+            <button id="tb-save-block" class="btn btn-sm btn-outline-secondary" type="button" title="Save the selected element as a reusable Block"><i class="fa-solid fa-cube me-1"></i>Save as Block</button>
             <button id="tb-theme" class="btn btn-sm btn-outline-secondary" type="button" title="Toggle canvas light / dark"><i class="fa-solid fa-sun"></i></button>
             <a class="btn btn-sm btn-outline-secondary" href="/cms/page/edit/id/<?= $this->escape($this->page->page_id) ?>"><i class="fa-solid fa-gear me-1"></i>Settings</a>
             <a class="btn btn-sm btn-outline-secondary" href="/cms/page"><i class="fa-solid fa-xmark me-1"></i>Exit</a>
@@ -77,9 +100,11 @@ try { $footerHtml = trim((string) preg_replace($tbStrip, '', (string) $this->ren
             seedHtml: <?= json_encode((string) $this->page->body, $jf) ?>,
             menus:    <?= json_encode($this->menus ?: (object) [], $jf) ?>,
             partials: <?= json_encode($this->partials ?: (object) [], $jf) ?>,
+            userBlocks:   <?= json_encode($this->userBlocks ?: [], $jf) ?>,
             themeBlocks:  <?= json_encode($this->themeBlocks ?: [], $jf) ?>,
             headerHtml:   <?= json_encode($headerHtml, $jf) ?>,
             footerHtml:   <?= json_encode($footerHtml, $jf) ?>,
+            partialMode:  <?= !empty($this->partialMode) ? 'true' : 'false' ?>,
             canvasStyles: <?= json_encode($canvasStyles, $jf) ?>,
             canvasCss:    <?= json_encode($this->canvasCss ?: [], $jf) ?>
         };

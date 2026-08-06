@@ -39,7 +39,7 @@ class Cms_Service_Page extends Tiger_Service_Service
         $data = (new Tiger_Model_Page())->datatable([
             'search'   => $dt['search'],
             'status'   => in_array(($params['status'] ?? ''), [Tiger_Model_Page::STATUS_DRAFT, Tiger_Model_Page::STATUS_PUBLISHED, Tiger_Model_Page::STATUS_ARCHIVED], true) ? (string) $params['status'] : '',
-            'type'     => in_array(($params['type']   ?? ''), [Tiger_Model_Page::TYPE_PAGE, Tiger_Model_Page::TYPE_LAYOUT, Tiger_Model_Page::TYPE_PARTIAL], true) ? (string) $params['type'] : '',
+            'type'     => in_array(($params['type']   ?? ''), [Tiger_Model_Page::TYPE_PAGE, Tiger_Model_Page::TYPE_LAYOUT, Tiger_Model_Page::TYPE_PARTIAL, Tiger_Model_Page::TYPE_BLOCK], true) ? (string) $params['type'] : '',
             'orderCol' => isset($dt['order'][0]) ? $dt['order'][0]['column'] : -1,
             'orderDir' => isset($dt['order'][0]) ? $dt['order'][0]['dir'] : '',
             'offset'   => $dt['start'],
@@ -254,16 +254,83 @@ class Cms_Service_Page extends Tiger_Service_Service
         }
         if ($metaJson === false) { $metaJson = '{}'; }
 
+        $save = [
+            'body'   => $body,
+            'format' => Tiger_Model_Page::FORMAT_BUILDER,
+            'meta'   => $metaJson,
+        ];
+        // Partial editing: the builder's [Layout ▾] picker persists which layout this partial previews
+        // against (its layout_key). Only touched when the param is present, so a page save never clears it.
+        if (array_key_exists('layout_key', $params)) {
+            $lk = trim((string) $params['layout_key']);
+            $save['layout_key'] = ($lk !== '') ? $lk : null;
+        }
+
         try {
-            $model->save([
-                'body'   => $body,
-                'format' => Tiger_Model_Page::FORMAT_BUILDER,
-                'meta'   => $metaJson,
-            ], $pageId);
+            $model->save($save, $pageId);
             $this->_success(['page_id' => $pageId], 'cms.page.saved');
         } catch (Throwable $e) {
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
         }
+    }
+
+    /**
+     * Save a builder selection as a reusable BLOCK (a copy-in fragment). The visual builder posts the
+     * selected component's HTML (+ its scoped CSS) and a name; we store a type=block page row that the
+     * builder then offers in its "My Blocks" palette. Unlike a partial, a block is placed by COPY —
+     * dropping it inlines this HTML into a page, detached — so it is a library source only, never
+     * resolved at render time. Returns the new block for a live palette add.
+     *
+     * @param  array $params `name`, `html`, and optional `css`
+     * @return void
+     */
+    public function saveBlock(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+
+        $name = trim((string) ($params['name'] ?? ''));
+        if ($name === '') { $this->_error('cms.block.name_required'); return; }
+
+        // Strip <script> — a block is a SAFE (tenant-editable) fragment, never code.
+        $html = (string) ($params['html'] ?? '');
+        $html = preg_replace('#<script\b[^>]*>.*?</script>#is', '', $html);
+        $html = preg_replace('#<script\b[^>]*/?>#i', '', (string) $html);
+        if (trim((string) $html) === '') { $this->_error('cms.block.empty'); return; }
+        $css  = trim((string) ($params['css'] ?? ''));
+        $body = ($css !== '' ? "<style>\n{$css}\n</style>\n" : '') . $html;
+
+        // A stable, collision-proof handle (blocks aren't referenced by key, but page_key is UNIQUE-ish
+        // per the store's conventions, so uniquify against existing block/partial keys).
+        $pm  = new Tiger_Model_Page();
+        $key = $this->_uniqueKey($pm, $this->_slugify($name) ?: 'block');
+
+        try {
+            $id = $pm->save([
+                'type'     => Tiger_Model_Page::TYPE_BLOCK,
+                'page_key' => $key,
+                'slug'     => null,
+                'locale'   => 'en',
+                'title'    => $name,
+                'body'     => $body,
+                'format'   => Tiger_Model_Page::FORMAT_BUILDER,
+                'status'   => Tiger_Model_Page::STATUS_PUBLISHED,
+            ], null);
+            $this->_success(['page_id' => $id, 'page_key' => $key, 'label' => $name, 'html' => $body], 'cms.block.saved');
+        } catch (Throwable $e) {
+            $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
+        }
+    }
+
+    /** A page_key not already taken by an active row — appends -2, -3, … on collision. */
+    protected function _uniqueKey(Tiger_Model_Page $pm, string $base): string
+    {
+        $key = $base;
+        for ($i = 2; $i <= 50; $i++) {
+            $hit = $pm->fetchRow($pm->activeSelect()->where('page_key = ?', $key)->limit(1));
+            if (!$hit) { return $key; }
+            $key = $base . '-' . $i;
+        }
+        return $base . '-' . substr(bin2hex(random_bytes(3)), 0, 5);
     }
 
     /**

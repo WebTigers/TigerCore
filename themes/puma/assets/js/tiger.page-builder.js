@@ -53,6 +53,7 @@
   registerBootstrapBlocks(editor);
   registerVideoPicker(editor);
   registerThemeBlocks(editor);
+  registerUserBlocks(editor);
 
   // Seed the canvas: prefer the lossless project blob, else import the body HTML.
   try {
@@ -73,8 +74,9 @@
   var saving = false;
   var dirty  = false;
   var suppressUpdate = false;   // set while save() pulls/re-adds the chrome, so that churn isn't "dirty"
+  var pendingLayoutKey = null;  // partial mode: a [Layout ▾] change to persist with the next save
 
-  function save() {
+  function save(done) {
     if (saving) { return; }
     saving = true;
     setStatus('Saving…', 'saving');
@@ -99,6 +101,8 @@
     body.set('html', tbStripChrome(outHtml));   // belt-and-suspenders (chrome already removed above)
     body.set('css', outCss);
     body.set('project', outProject);
+    // Partial mode: persist a changed preview-layout association alongside the design.
+    if (pendingLayoutKey !== null) { body.set('layout_key', pendingLayoutKey); }
 
     fetch(cfg.api || '/api', {
       method: 'POST',
@@ -108,7 +112,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (res) {
-        if (res && res.result) { dirty = false; setStatus('Saved ✓', 'ok'); }
+        if (res && res.result) { dirty = false; setStatus('Saved ✓', 'ok'); if (typeof done === 'function') { done(); } }
         else { setStatus('Save failed', 'err'); }
       })
       .catch(function () { setStatus('Save failed', 'err'); })
@@ -116,7 +120,19 @@
   }
 
   var saveBtn = document.getElementById('tb-save');
-  if (saveBtn) { saveBtn.addEventListener('click', save); }
+  if (saveBtn) { saveBtn.addEventListener('click', function () { save(); }); }
+
+  // Partial mode: the [Layout ▾] picker re-previews this partial inside a different layout's chrome.
+  // The server assembles the locked chrome, so we save the current design (persisting the new
+  // association) and reload to pick up the freshly-split chrome around the partial.
+  var layoutSel = document.getElementById('tb-layout');
+  if (layoutSel) {
+    layoutSel.addEventListener('change', function () {
+      pendingLayoutKey = layoutSel.value;
+      setStatus('Switching layout…', 'saving');
+      save(function () { window.location.reload(); });
+    });
+  }
 
   // Canvas light/dark — mirror the site's data-bs-theme INSIDE the canvas iframe (Bootstrap reads it
   // on the iframe's <html>; our skins define both modes), toggleable from the top-bar sun/moon.
@@ -354,6 +370,66 @@
       if (component && component.get && component.get('type') === 'video' && !component.get('src')) {
         editor.runCommand('tiger-video-pick', { target: component });
       }
+    });
+  }
+
+  // ---- user-authored BLOCKS: reusable fragments placed by COPY (window.TIGER_BUILDER.userBlocks) ----
+  // Each drops its saved HTML into the canvas as EDITABLE components, detached from the source — the twin
+  // of the reference-placed Partial widget (which drops a live [partial name] placeholder). Grouped under
+  // "My Blocks"; authored via the "Save as Block" button (addUserBlock adds one to the palette live).
+  function registerUserBlocks(editor) {
+    var blocks = (window.TIGER_BUILDER && window.TIGER_BUILDER.userBlocks) || [];
+    blocks.forEach(function (b) { addUserBlock({ page_id: b.id, label: b.label, html: b.content }); });
+  }
+  function addUserBlock(b) {
+    if (!b || !b.page_id) { return; }
+    try {
+      editor.BlockManager.add('userblock-' + b.page_id, {
+        label:    b.label || 'Block',
+        category: 'My Blocks',
+        media:    '<i class="fa-solid fa-cube"></i>',
+        content:  b.html || ''
+      });
+    } catch (e) {}
+  }
+
+  // "Save as Block": persist the SELECTED element as a reusable Block (a copy-in fragment) and add it to
+  // the "My Blocks" palette immediately. Copy semantics — the page keeps its element; the Block is a new,
+  // independent source. Chrome is stripped so locked header/footer can never be captured into a block.
+  var saveBlockBtn = document.getElementById('tb-save-block');
+  if (saveBlockBtn) {
+    saveBlockBtn.addEventListener('click', function () {
+      var sel = editor.getSelected();
+      if (!sel) { setStatus('Select an element first', 'err'); return; }
+      var name = window.prompt('Name this block:', '');
+      if (name === null) { return; }
+      name = String(name).trim();
+      if (!name) { setStatus('A name is required', 'err'); return; }
+
+      var html = '', css = '';
+      try { html = sel.toHTML(); } catch (e) {}
+      try { css = editor.getCss({ component: sel }) || ''; } catch (e) {}
+      html = tbStripChrome(html);
+      if (!html || !html.trim()) { setStatus('Nothing to save', 'err'); return; }
+
+      var body = new URLSearchParams();
+      body.set('module', 'cms'); body.set('service', 'page'); body.set('method', 'saveBlock');
+      body.set('name', name); body.set('html', html); body.set('css', css);
+
+      saveBlockBtn.disabled = true;
+      setStatus('Saving block…', 'saving');
+      fetch(cfg.api || '/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+        body: body.toString(), credentials: 'same-origin'
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+          if (res && res.result && res.data) { addUserBlock(res.data); setStatus('Block saved ✓ — see “My Blocks”', 'ok'); }
+          else { setStatus('Block save failed', 'err'); }
+        })
+        .catch(function () { setStatus('Block save failed', 'err'); })
+        .finally(function () { saveBlockBtn.disabled = false; });
     });
   }
 

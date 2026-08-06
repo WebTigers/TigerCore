@@ -53,6 +53,7 @@
                             <option value="page">Page</option>
                             <option value="layout">Layout</option>
                             <option value="partial">Partial</option>
+                            <option value="block">Block</option>
                         </select>
                     </div>
                     <div class="col-auto">
@@ -115,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof tigerDataTable !== 'function') { return; }
     var $   = jQuery;
     var esc = tigerDataTable.esc;
-    var TYPE_ICON = { page: 'fa-file-lines', layout: 'fa-table-columns', partial: 'fa-puzzle-piece' };
+    var TYPE_ICON = { page: 'fa-file-lines', layout: 'fa-table-columns', partial: 'fa-puzzle-piece', block: 'fa-cube' };
     var BADGE     = { published: 'success', draft: 'secondary', archived: 'warning' };
     function cap(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
 
@@ -156,7 +157,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 var html = '';
                 if (row.can_edit) {
                     html += '<a href="/cms/page/edit/id/' + encodeURIComponent(row.page_id) + '" class="btn btn-sm btn-outline-secondary" title="Edit" aria-label="Edit"><i class="fa-solid fa-pen"></i></a> ';
-                    if (row.type === 'page') {
+                    // Pages, partials, AND blocks open in the visual builder (a fragment edits inside its
+                    // layout's chrome — see Cms_PageController::designAction); layouts stay text-edited.
+                    if (row.type === 'page' || row.type === 'partial' || row.type === 'block') {
                         html += '<a href="/cms/page/design/id/' + encodeURIComponent(row.page_id) + '" class="btn btn-sm btn-outline-primary" title="Design visually" aria-label="Design visually"><i class="fa-solid fa-panorama"></i></a> ';
                     }
                 }

@@ -42,7 +42,7 @@ class Cms_Form_Page extends Tiger_Form
             ]],
 
             ['select', 'type', [
-                'multiOptions' => ['page' => 'Page', 'layout' => 'Layout', 'partial' => 'Partial'],
+                'multiOptions' => ['page' => 'Page', 'layout' => 'Layout', 'partial' => 'Partial', 'block' => 'Block'],
                 'value'        => 'page',
                 'attribs'      => array_merge($select, ['id' => 'cms-type']),
             ]],
