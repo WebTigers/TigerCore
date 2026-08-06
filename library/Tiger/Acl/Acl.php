@@ -174,8 +174,24 @@ class Tiger_Acl_Acl extends Zend_Acl
         if (is_file($core)) {
             $paths[] = $core;
         }
+
+        // A DEACTIVATED module contributes NO ACL rules: its controllers/services are stripped from the
+        // dispatch map (Tiger_Application_Resource_Modules), so loading its acl.ini would only register
+        // roles/resources/rules for unreachable code. Gate it here, mirroring Tiger_Admin_Nav. Fail-safe:
+        // DB not ready (install/CLI) -> empty inactive set -> load all, never fewer rules than stock.
+        $inactive = [];
+        try {
+            if (class_exists('Tiger_Model_Module')) {
+                $inactive = (new Tiger_Model_Module())->inactiveSlugs();
+            }
+        } catch (Throwable $e) {
+        }
+
         foreach ([APPLICATION_PATH . '/modules', TIGER_CORE_PATH . '/modules'] as $modsDir) {
             foreach (glob($modsDir . '/*', GLOB_ONLYDIR) ?: [] as $moduleDir) {
+                if (in_array(basename($moduleDir), $inactive, true)) {
+                    continue;   // deactivated module: no ACL rules
+                }
                 $ini = $moduleDir . '/configs/acl.ini';
                 if (is_file($ini)) {
                     $paths[] = $ini;
