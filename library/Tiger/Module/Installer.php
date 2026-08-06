@@ -224,6 +224,12 @@ class Tiger_Module_Installer
                 'repository' => $provenance['repository'] ?? null,
                 'ref'        => $provenance['ref'] ?? null,
                 'source'     => $provenance['source'] ?? Tiger_Model_Module::SOURCE_URL,
+                // Retain the source taxonomy — prefer the listing (provenance, when a caller has it),
+                // else the module's own manifest. NULL if neither declared it (Discovery then defaults).
+                'type'       => $provenance['type'] ?? ($manifest['type'] ?? null),
+                'category'   => isset($provenance['category'])
+                    ? (is_array($provenance['category']) ? implode(',', $provenance['category']) : (string) $provenance['category'])
+                    : (isset($manifest['category']) ? implode(',', (array) $manifest['category']) : null),
             ]);
 
             return ['slug' => $slug, 'name' => $manifest['name'] ?? $slug, 'version' => $manifest['version'] ?? null,
