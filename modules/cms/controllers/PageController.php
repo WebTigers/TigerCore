@@ -38,23 +38,13 @@ class Cms_PageController extends Tiger_Controller_Admin_Action
         $this->view->title         = 'Content — Tiger Admin';
         $this->view->useDataTables = true;   // the layout loads jQuery + DataTables when set
 
-        // The ACTIVE theme's page templates (served from files) — surfaced so an author can
-        // CUSTOMIZE one: fork it into an editable page that overrides the file. Flag which are
-        // already customized (a published/draft page row claims the slug).
-        $templates = Tiger_Theme::pages();
-        if ($templates) {
-            $bySlug = [];
-            foreach ($this->_pages->fetchAll(
-                $this->_pages->activeSelect()->where('type = ?', Tiger_Model_Page::TYPE_PAGE)
-            ) as $p) {
-                if ($p->slug !== null && $p->slug !== '') { $bySlug[$p->slug] = $p->page_id; }
-            }
-            foreach ($templates as &$t) { $t['page_id'] = $bySlug[$t['slug']] ?? ''; }
-            unset($t);
-        }
-        $man = Tiger_Theme::manifest();
-        $this->view->themeName      = (string) ($man['name'] ?? '');
-        $this->view->themeTemplates = $templates;
+        // The ACTIVE theme's forkable material — pages/layouts/partials it serves from files
+        // (AUTHORING.md §3.3), surfaced in the "Theme Templates" tab so an author can CUSTOMIZE one (fork
+        // it into an editable row that overrides the file). An installed-but-inactive theme has no asset
+        // symlink, so its content can't render and never surfaces. The tab is a server-side DataTable
+        // (Cms_Service_Page::themeTemplates); here we only need the count for the tab badge (cheap —
+        // Tiger_Theme::forkables is fingerprint-cached).
+        $this->view->themeCount = count(Tiger_Theme::forkables());
     }
 
     /**

@@ -72,56 +72,180 @@ class Cms_Service_Page extends Tiger_Service_Service
     }
 
     /**
-     * Fork an ACTIVE-theme page template (served from a file) into an editable CMS page row at the
-     * same slug. That row then transparently OVERRIDES the file — ThemeContent serves the file only
-     * when no DB page claims the slug (the live-override tier). No theme file is ever modified. If a
-     * page already exists at the slug it's returned (already customized). Origin is tagged in `meta`
-     * (source/source_key) so we can later offer "revert to theme default" without a schema change.
+     * DataTables server-side source for the "Theme Templates" tab — the active theme's forkable
+     * pages/layouts/partials (served from files). A large theme (Porto ~830) makes this a real dataset,
+     * so it paginates/searches/sorts server-side like the content list. Rows are file-derived (not a SQL
+     * query): scan once (Tiger_Theme::forkables), flag each with its customization id, then filter/sort/
+     * slice in PHP. Each row carries `can_edit` so the client renders ACL-correct controls.
      *
-     * @param  array $params must carry `slug` (the theme content slug)
+     * @param  array $params the DataTables request payload
+     * @return void
+     */
+    public function themeTemplates(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+
+        $dt = $this->_dtParams($params);
+
+        // Which theme templates are already forked — matched PRECISELY by origin (theme|kind|slug)
+        // recorded in the fork's meta, so a same-named template can't cross-flag.
+        $forked = $this->_forkedIndex();
+
+        // Only the ACTIVE theme's templates surface — an installed-but-INACTIVE theme has no asset
+        // symlink, so its content can't render and must not be forkable (AUTHORING.md §3.3).
+        $active = Tiger_Theme::active();
+        $rows   = [];
+        foreach (Tiger_Theme::forkables() as $t) {
+            $isPage = ($t['kind'] === 'page');
+            $pageId = $forked[$active['key'] . '|' . $t['kind'] . '|' . $t['slug']] ?? '';
+            $rows[] = [
+                'kind'       => $t['kind'],
+                'theme'      => $active['name'],
+                'theme_key'  => $active['key'],
+                'title'      => ($t['title'] !== '' ? $t['title'] : $t['slug']),
+                'slug'       => $t['slug'],                                   // raw handle for the fork call
+                'handle'     => $isPage ? '/' . $t['slug'] : '#' . $this->_slugify($t['slug']),
+                'customized' => $pageId !== '',
+                'page_id'    => $pageId,
+            ];
+        }
+
+        $total = count($rows);
+
+        // Search across title/slug/kind/theme.
+        $search = strtolower(trim((string) $dt['search']));
+        if ($search !== '') {
+            $rows = array_values(array_filter($rows, static function ($r) use ($search) {
+                return strpos(strtolower($r['title'] . ' ' . $r['slug'] . ' ' . $r['kind'] . ' ' . $r['theme']), $search) !== false;
+            }));
+        }
+        $filtered = count($rows);
+
+        // Sort by the ordered column, title as the tiebreak.
+        $cols  = [0 => 'kind', 1 => 'theme', 2 => 'title', 3 => 'handle', 4 => 'customized'];
+        $field = $cols[(int) ($dt['order'][0]['column'] ?? 1)] ?? 'theme';
+        $dir   = (strtolower((string) ($dt['order'][0]['dir'] ?? 'asc')) === 'desc') ? -1 : 1;
+        $val   = static function ($r) use ($field) {
+            return $field === 'customized' ? ($r['customized'] ? '1' : '0') : (string) $r[$field];
+        };
+        usort($rows, static function ($a, $b) use ($val, $dir) {
+            $c = strcmp($val($a), $val($b));
+            if ($c === 0) { $c = strcasecmp((string) $a['title'], (string) $b['title']); }
+            return $c * $dir;
+        });
+
+        // Paginate.
+        $page = array_slice($rows, (int) $dt['start'], ((int) $dt['length'] > 0) ? (int) $dt['length'] : null);
+
+        $canEdit = $this->_isAdmin(static::class, 'save');
+        foreach ($page as &$r) { $r['can_edit'] = $canEdit; }
+        unset($r);
+
+        $this->_dtResponse($dt['draw'], $total, $filtered, $page);
+    }
+
+    /** [theme_key|kind|slug => page_id] for theme-forked rows, from each fork's origin recorded in meta. */
+    protected function _forkedIndex(): array
+    {
+        $pm  = new Tiger_Model_Page();
+        $out = [];
+        foreach ($pm->fetchAll($pm->activeSelect()->where('type IN (?)', [
+            Tiger_Model_Page::TYPE_PAGE, Tiger_Model_Page::TYPE_LAYOUT, Tiger_Model_Page::TYPE_PARTIAL,
+        ])) as $r) {
+            if (empty($r->meta)) { continue; }
+            $meta = is_array($r->meta) ? $r->meta : json_decode((string) $r->meta, true);
+            if (!is_array($meta) || ($meta['source'] ?? '') !== 'theme') { continue; }
+            $out[($meta['source_key'] ?? '') . '|' . ($meta['source_kind'] ?? '') . '|' . ($meta['source_slug'] ?? '')] = $r->page_id;
+        }
+        return $out;
+    }
+
+    /**
+     * Fork an ACTIVE-theme template (served from a file) into an editable CMS row — a PAGE (by slug),
+     * a LAYOUT, or a PARTIAL (by page_key). That row then transparently OVERRIDES the file (the
+     * live-override tier); no theme file is ever modified. If a matching row already exists it's
+     * returned (already customized). Origin is tagged in `meta` (source/source_key/source_kind) so we
+     * can later offer "revert to theme default" + non-destructive theme updates (AUTHORING.md §4).
+     *
+     * @param  array $params `slug` (the theme content slug/key) + optional `kind` (page|layout|partial)
      * @return void
      */
     public function forkTheme(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
 
-        $slug = trim((string) ($params['slug'] ?? ''), '/');
-        $tpl  = Tiger_Theme::page($slug);
+        $kind = (string) ($params['kind'] ?? 'page');
+        if (!in_array($kind, ['page', 'layout', 'partial'], true)) { $kind = 'page'; }
+        $key  = trim((string) ($params['slug'] ?? ''), '/');
+
+        // Only the ACTIVE theme is forkable (its assets are symlinked/reachable). Refuse any other — a
+        // crafted request could otherwise name an installed-but-inactive theme whose content is dark.
+        $active     = Tiger_Theme::active();
+        $themeParam = (string) ($params['theme'] ?? '');
+        if ($themeParam !== '' && $themeParam !== $active['key']) {
+            $this->_error('That theme is not active.'); return;
+        }
+        $dir      = $active['dir'];
+        $themeKey = $active['key'];
+
+        $tpl = Tiger_Theme::template($kind, $key, $dir ?: null);
         if (!$tpl) { $this->_error('That template is no longer available.'); return; }
 
-        $pm = new Tiger_Model_Page();
-        $existing = $pm->fetchRow(
-            $pm->activeSelect()->where('slug = ?', $slug)->where('type = ?', Tiger_Model_Page::TYPE_PAGE)
-        );
-        if ($existing) {
-            $url = '/cms/page/edit/id/' . $existing->page_id;
-            $this->_success(['page_id' => $existing->page_id, 'edit_url' => $url], 'cms.page.exists', $url);
+        $type = [
+            'page'    => Tiger_Model_Page::TYPE_PAGE,
+            'layout'  => Tiger_Model_Page::TYPE_LAYOUT,
+            'partial' => Tiger_Model_Page::TYPE_PARTIAL,
+        ][$kind];
+        $isPage = ($kind === 'page');
+
+        // Re-customizing an already-forked template just reopens it — matched by ORIGIN (theme|kind|slug),
+        // so the same-named template from two themes forks independently.
+        $pm     = new Tiger_Model_Page();
+        $forked = $this->_forkedIndex();
+        $origin = $themeKey . '|' . $kind . '|' . $key;
+        if (isset($forked[$origin])) {
+            $id  = $forked[$origin];
+            $url = '/cms/page/edit/id/' . $id;
+            $this->_success(['page_id' => $id, 'edit_url' => $url, 'kind' => $kind], 'cms.page.exists', $url);
             return;
         }
 
-        // A page body with PHP must stay phtml (trusted); pure markup forks as html so it opens
-        // cleanly in the visual builder.
-        $hasPhp = (strpos($tpl['body'], '<?php') !== false) || (strpos($tpl['body'], '<?=') !== false);
+        // A body with PHP must stay phtml (trusted); pure markup forks as html so it opens cleanly in the
+        // visual builder. Only a PAGE carries a layout_key; layouts/partials are chrome themselves. The
+        // page_key is uniquified so two themes' same-named templates don't collide on the handle.
+        $hasPhp  = (strpos($tpl['body'], '<?php') !== false) || (strpos($tpl['body'], '<?=') !== false);
+        $pageKey = $this->_uniqueKey($pm, $this->_slugify($key) ?: $kind);
+
+        // Provenance (source_*) drives "already customized" + a future "revert to theme default". For a
+        // PAGE, bake the origin theme's stylesheet links into the head so it SELF-LOADS its theme's CSS
+        // (reachable via that theme's own symlink) — so the fork renders correctly under ANY active theme,
+        // and goes dark only if that theme is deactivated and its symlink removed.
+        $meta = ['source' => 'theme', 'source_key' => $themeKey, 'source_kind' => $kind, 'source_slug' => $key];
+        if ($isPage) {
+            $links = '';
+            foreach (Tiger_Theme::stylesheets($dir ?: null) as $href) {
+                $links .= '<link rel="stylesheet" href="' . htmlspecialchars($href, ENT_QUOTES) . '">' . "\n";
+            }
+            if ($links !== '') { $meta['head_html'] = $links; }
+        }
+
         $data = [
-            'type'         => Tiger_Model_Page::TYPE_PAGE,
-            'page_key'     => $this->_slugify($slug),
-            'slug'         => $slug,
+            'type'         => $type,
+            'page_key'     => $pageKey,
+            'slug'         => $isPage ? $key : null,
             'locale'       => '',
             'title'        => $tpl['title'],
             'body'         => $tpl['body'],
             'format'       => $hasPhp ? Tiger_Model_Page::FORMAT_PHTML : Tiger_Model_Page::FORMAT_HTML,
-            'layout_key'   => $tpl['layout'] !== '' ? $tpl['layout'] : null,
+            'layout_key'   => ($isPage && $tpl['layout'] !== '') ? $tpl['layout'] : null,
             'status'       => Tiger_Model_Page::STATUS_PUBLISHED,
             'published_at' => null,
-            'meta'         => json_encode(
-                ['source' => 'theme', 'source_key' => (string) (Tiger_Theme::manifest()['key'] ?? '')],
-                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
-            ),
+            'meta'         => json_encode($meta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
         ];
         try {
             $id  = $pm->save($data, null);
             $url = '/cms/page/edit/id/' . $id;
-            $this->_success(['page_id' => $id, 'edit_url' => $url], 'cms.page.forked', $url);
+            $this->_success(['page_id' => $id, 'edit_url' => $url, 'kind' => $kind], 'cms.page.forked', $url);
         } catch (Throwable $e) {
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
         }
