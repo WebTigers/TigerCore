@@ -6,6 +6,34 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [0.51.1-beta] — 2026-08-07
+
+### Fixed
+- **CSRF token is no longer effectively single-use (#105).** `Zend_Form_Element_Hash` armed the
+  token with a 1-hop session expiration, so the first submit consumed it — a submit that failed any
+  *other* field's validation then left the corrected resubmit dead with *"your security token
+  expired,"* fixable only by a full page refresh (hit on the profile Security / change-password form).
+  New `Tiger_Form_Element_Hash` arms the token on its timeout only (matching `Tiger_Form`'s documented
+  "not single-use; validates until it times out"), so a failed-then-corrected resubmit works.
+- **Change-password form now surfaces its validation (#106).** Field-level validator messages are
+  localized — `Tiger_Service_Service::_formErrors` translates each field message the same way
+  top-level `messages[]` already were, so a validator's semantic key (e.g. `password.too_short`)
+  renders as a real sentence — and the view shows them inline (`.invalid-feedback`) instead of a bare
+  red icon. The password **strength meter** now loads on the account-layout profile page (it was
+  auth-layout-only). The confirm-mismatch message reads **"Passwords do not match."** (was Zend's
+  default), and new/confirm are matched **client-side** before the round trip.
+
+## [0.51.0-beta] — 2026-08-06
+
+### Added
+- **CMS authoring: partial editor, Blocks, and content-region layouts (#103).** A partial is editable
+  inside its layout's chrome; a **Block** is a detached copy-in fragment (My Blocks palette + Save as
+  Block). PUMA ships prebuilt content-region layouts (full-width / sidebars) that compose partials
+  inside `<main>`, with the shell's injection points abstracted from CMS users.
+- **Theme templates as forkable starters + Modules taxonomy.** Theme layouts/partials surface as
+  forkable templates (server-side DataTable); the Modules screen is a DataTable with a Type column +
+  taxonomy filter, and an installed module retains the taxonomy it was downloaded under.
+
 ## [0.50.0-beta] — 2026-08-04
 
 ### Changed
