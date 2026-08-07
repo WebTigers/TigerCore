@@ -35,6 +35,14 @@ return [
     'core.auth.twofa.bad_code'       => 'That code is incorrect or has expired.',
     'core.auth.twofa.unavailable'    => 'Two-factor authentication is not available on this install.',
 
+    // --- Form validation (field-level; localized by Tiger_Service_Service::_formErrors) ---
+    'core.form.password_mismatch'    => 'Passwords do not match.',
+
+    // --- Password policy (Tiger_Policy_Password violation keys) ---
+    'password.too_short'             => 'Password is too short — please use at least 8 characters.',
+    'password.needs_complexity'      => 'Add upper- and lower-case letters, a number, and a symbol.',
+    'password.reused'                => "You've used this password before — please choose a new one.",
+
     // --- Error pages ---
     'core.error.403.title'           => "You don't have access to that.",
     'core.error.404.title'           => "That page doesn't exist.",

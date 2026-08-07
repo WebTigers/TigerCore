@@ -41,7 +41,12 @@ class Profile_Form_Password extends Tiger_Form
             ]],
             ['password', 'confirm_password', [
                 'required'   => true,
-                'validators' => [['Identical', false, ['token' => 'new_password']]],
+                // A clear, localized "Passwords do not match." instead of Zend's default
+                // "The two given tokens do not match" (the key is translated in _formErrors).
+                'validators' => [['Identical', false, [
+                    'token'    => 'new_password',
+                    'messages' => ['notSame' => 'core.form.password_mismatch'],
+                ]]],
                 'attribs'    => ['class' => 'form-control', 'autocomplete' => 'new-password'],
             ]],
         ];

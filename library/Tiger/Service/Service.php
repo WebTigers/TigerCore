@@ -181,6 +181,22 @@ abstract class Tiger_Service_Service
             return;
         }
 
+        // Localize each field's validator messages before they go to the client. A validator may set its
+        // message to a semantic KEY (e.g. 'password.too_short', 'core.form.password_mismatch') expecting
+        // translation — the same courtesy messages[] already get via Tiger_Model_MessageObject. Non-key
+        // prose (a stock Zend message) isn't translatable, so it passes through unchanged.
+        $translate = Zend_Registry::isRegistered('Zend_Translate') ? Zend_Registry::get('Zend_Translate') : null;
+        if ($translate) {
+            foreach ($errors as $field => $messages) {
+                if (!is_array($messages)) { continue; }
+                foreach ($messages as $key => $text) {
+                    if (is_string($text) && $translate->isTranslated($text)) {
+                        $errors[$field][$key] = $translate->translate($text);
+                    }
+                }
+            }
+        }
+
         $this->_response->form       = $errors;
         $this->_response->messages[] = new Tiger_Model_MessageObject('core.api.error.form', 'error');
     }
