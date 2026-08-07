@@ -209,8 +209,11 @@ class Tiger_Theme
     public static function active()
     {
         $dir = self::dir();
-        $key = defined('THEME') ? (string) THEME : ($dir !== '' ? basename($dir) : '');
         $man = self::_manifestAt($dir);
+        // Derive the key from the manifest, else the dir basename (minus a `theme-` module prefix) — so a
+        // runtime Tiger_ThemeDir override (an admin preview, or a test's temp theme) is reflected, not the
+        // boot-time THEME constant (which can't change mid-request).
+        $key = (string) ($man['key'] ?? ($dir !== '' ? preg_replace('/^theme-/', '', basename($dir)) : ''));
         return [
             'key'  => $key,
             'name' => (string) ($man['name'] ?? ($key !== '' ? ucfirst(str_replace('-', ' ', $key)) : '')),
