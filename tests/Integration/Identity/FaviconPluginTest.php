@@ -17,9 +17,10 @@ use Zend_View;
 
 /**
  * Identity_Plugin_Favicon — contributes the site favicon (config `tiger.site.favicon`, a media id) to
- * the head via TigerZF's `headLink` registry, as both `rel=icon` and `rel=apple-touch-icon`. Fail-open:
- * an unset or unresolvable favicon emits nothing. Wave-4 coverage: no config → silent, an unresolvable
- * id → silent, and a real media id → two head links pointing at the resolved media URL.
+ * the head via TigerZF's `headLink` registry, as both `rel=icon` and `rel=apple-touch-icon`. When no
+ * Site Identity favicon is set (or it's unresolvable), a baked-in Tiger paw default is emitted so every
+ * page has one; a configured favicon overrides it. Coverage: no config → the default paw, an
+ * unresolvable id → the default paw, and a real media id → two links pointing at the resolved media URL.
  *
  * The plugin has a process-wide emit-once latch (`$_done`); each test resets it via reflection.
  */
@@ -66,19 +67,21 @@ final class FaviconPluginTest extends IntegrationTestCase
     }
 
     #[Test]
-    public function emits_nothing_when_no_favicon_is_configured(): void
+    public function emits_the_default_paw_when_no_favicon_is_configured(): void
     {
         $this->faviconConfig('');
         $this->dispatch();
-        $this->assertSame('', trim($this->headLinks()), 'no config → no head links');
+        $out = $this->headLinks();
+        $this->assertStringContainsString('rel="icon"', $out, 'no config → the baked-in default favicon');
+        $this->assertStringContainsString(Identity_Plugin_Favicon::DEFAULT_FAVICON, $out, 'points at the stock Tiger paw');
     }
 
     #[Test]
-    public function emits_nothing_for_an_unresolvable_media_id(): void
+    public function falls_back_to_the_default_paw_for_an_unresolvable_media_id(): void
     {
         $this->faviconConfig('deadbeef-0000-7000-8000-000000000000');   // no such media row
         $this->dispatch();
-        $this->assertSame('', trim($this->headLinks()), 'unresolvable id → fail-open, nothing emitted');
+        $this->assertStringContainsString(Identity_Plugin_Favicon::DEFAULT_FAVICON, $this->headLinks(), 'unresolvable id → fail-safe to the default paw');
     }
 
     #[Test]

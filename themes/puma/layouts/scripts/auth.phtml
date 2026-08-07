@@ -33,6 +33,7 @@ $_lang = defined('LANG') ? LANG : 'en';
     <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/auth.css') ?>">
     <!-- Override playground — loads last so it wins the cascade. See themes/puma/assets/custom.css. -->
     <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/custom.css') ?>">
+<?= $this->headLink() ?><?php /* head-registry <link>s — chiefly the site favicon (Identity_Plugin_Favicon) */ ?>
 <?= $this->pageHead ?? '' ?><?php /* per-page <link>/styles a view registered via $this->pageStyle() */ ?>
 </head>
 <body class="tiger-auth-body">

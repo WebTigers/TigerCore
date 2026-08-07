@@ -6,11 +6,16 @@
  * site identity (config `tiger.site.favicon`, a media id), not SEO, but like the SEO head tags it
  * rides TigerZF's headLink registry so the layout renders it with no theme edit. A single high-res
  * square source is emitted as both `rel="icon"` (browsers downscale it for every tab size) and
- * `rel="apple-touch-icon"` (iOS) — the modern, derivative-free approach. Fail-open: a missing or
- * unresolvable favicon simply emits nothing (the browser falls back to /favicon.ico if present).
+ * `rel="apple-touch-icon"` (iOS) — the modern, derivative-free approach. When Site Identity sets no
+ * favicon, a baked-in Tiger paw default (DEFAULT_FAVICON — a puma base-theme asset whose `/_theme`
+ * symlink is always present for both admin and public) is emitted, so EVERY page has a favicon out of
+ * the box; a configured Site Identity favicon overrides it. Fail-open: any error emits nothing.
  */
 class Identity_Plugin_Favicon extends Zend_Controller_Plugin_Abstract
 {
+    /** The stock Tiger paw, shipped in tiger-core (themes/puma/assets/img) + served at the always-present /_theme base. */
+    const DEFAULT_FAVICON = '/_theme/img/tiger-favicon.png';
+
     /** Emit-once latch — the favicon is the same on every dispatch (incl. forwards). */
     private static $_done = false;
 
@@ -26,13 +31,12 @@ class Identity_Plugin_Favicon extends Zend_Controller_Plugin_Abstract
         self::$_done = true;
 
         try {
-            $id = self::_config('site.favicon');
-            if ($id === '') {
-                return;
-            }
-            $url = self::_mediaUrl($id, $request);
+            // A configured Site Identity favicon wins; otherwise fall back to the baked-in Tiger paw so
+            // every page (public / admin / auth) has a favicon by default.
+            $id  = self::_config('site.favicon');
+            $url = ($id !== '') ? self::_mediaUrl($id, $request) : '';
             if ($url === '') {
-                return;
+                $url = self::DEFAULT_FAVICON;
             }
             $view = self::_view();
             $view->headLink(['rel' => 'icon', 'href' => $url]);
