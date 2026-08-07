@@ -80,7 +80,10 @@ class Tiger_Form extends Zend_Form
         // no session cookie, so it's CSRF-immune by construction and MUST skip the check — see the
         // per-mode design in WEBSERVICES.md §8. The gateway flags token requests via the registry.
         if ($this->csrf() && !(Zend_Registry::isRegistered('tiger.auth.stateless') && Zend_Registry::get('tiger.auth.stateless'))) {
-            $this->addElement('hash', '_csrf', ['salt' => $this->csrfSalt(), 'timeout' => static::CSRF_TIMEOUT]);
+            // Tiger_Form_Element_Hash (not the stock 'hash'): a timeout-lived token instead of Zend's
+            // single-hop one, so a first submit that fails another field doesn't burn the token and leave
+            // the corrected resubmit with "security token expired". See that class + csrfSalt() below.
+            $this->addElement(new Tiger_Form_Element_Hash('_csrf', ['salt' => $this->csrfSalt(), 'timeout' => static::CSRF_TIMEOUT]));
         }
 
         // Declarative schema: [type, name, options].
