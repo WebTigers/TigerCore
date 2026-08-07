@@ -67,6 +67,7 @@ $_hasAgent = class_exists('Tiger_Agent') && Tiger_Agent::isAvailable();
     <!-- Override playground — loads last so it wins the cascade. See themes/puma/assets/custom.css. -->
     <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/custom.css') ?>">
 <?= $this->codeInject('head') ?>
+<?= $this->headLink() ?><?php /* head-registry <link>s — chiefly the site favicon (Identity_Plugin_Favicon) */ ?>
 <?= $this->pageHead ?? '' ?><?php /* per-page <link>/styles a view registered via $this->pageStyle() */ ?>
 </head>
 <body>
