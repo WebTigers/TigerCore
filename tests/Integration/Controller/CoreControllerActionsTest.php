@@ -432,8 +432,10 @@ final class CoreControllerActionsTest extends ControllerTestCase
             'page_key' => 'region',
             'locale'   => 'en',
             'title'    => 'Region Layout',
-            'body'     => '<div class="layout-wrap">[content]</div>',
-            'format'   => Tiger_Model_Page::FORMAT_HTML,
+            // phtml pulls the page body via $this->content (the renderer context var) — independent of
+            // whether the [content] shortcode is registered in this reduced test bootstrap.
+            'body'     => '<div class="layout-wrap"><?= $this->content ?></div>',
+            'format'   => Tiger_Model_Page::FORMAT_PHTML,
             'status'   => Tiger_Model_Page::STATUS_PUBLISHED,
         ]);
         $pageId = $this->seedPage([
