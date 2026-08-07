@@ -72,7 +72,12 @@ class Tiger_View_Helper_FormRecaptcha extends Zend_View_Helper_Abstract
                 . 'document.querySelectorAll("input.g-recaptcha-response").forEach(function(inp){'
                 . 'var form=inp.form; if(!form||form.__grcBound)return; form.__grcBound=true;'
                 . 'form.addEventListener("submit",function(e){'
-                . 'if(form.__grcOk)return; e.preventDefault();'
+                // Token ready (this is the re-submit): re-arm for the NEXT submit so retries mint a fresh,
+                // unused token — a v3 token is single-use — then let the form's own handler proceed.
+                . 'if(form.__grcOk){form.__grcOk=false;return;}'
+                // First submit: HOLD the form's own submit handler (Tiger forms AJAX on submit and would
+                // otherwise fire with an empty token) until the async token exists, then re-dispatch.
+                . 'e.preventDefault(); e.stopImmediatePropagation();'
                 . 'grecaptcha.execute(' . json_encode($site) . ',{action:' . json_encode($action) . '}).then(function(t){'
                 . 'inp.value=t; form.__grcOk=true;'
                 . 'if(typeof form.requestSubmit==="function")form.requestSubmit();else form.submit();});'

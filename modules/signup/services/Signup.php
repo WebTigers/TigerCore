@@ -41,6 +41,12 @@ class Signup_Service_Signup extends Tiger_Service_Service
         if (self::isPublicDisabled()) { $this->_error('signup.disabled'); return; }
         $form = new Signup_Form_Signup();
         if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        // Bot gate on this PUBLIC, account-creating endpoint — the same core reCAPTCHA validator the auth
+        // flow uses (Tiger_Validate_Recaptcha). A no-op when reCAPTCHA is disabled (the validator passes),
+        // so nothing changes on installs without keys; fail_open covers a Google outage.
+        if (!(new Tiger_Validate_Recaptcha(['action' => 'signup']))->isValid(null, $params)) {
+            $this->_error('signup.error.recaptcha'); return;
+        }
         $v = $form->getValues();
 
         try {

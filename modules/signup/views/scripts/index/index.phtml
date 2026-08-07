@@ -9,6 +9,9 @@
  */
 $form = $this->form;
 $el = function ($name) use ($form) { return $form->getElement($name); };
+// v3 site key for the JS to mint a token before this button-click AJAX submit (empty when off / v2).
+$rcSite = (class_exists('Tiger_Recaptcha') && Tiger_Recaptcha::isEnabled() && Tiger_Recaptcha::version() === 'v3')
+    ? (string) Tiger_Recaptcha::siteKey() : '';
 ?>
 <div class="tiger-auth-brand">
     <span class="tiger-auth-mark"><i class="fa-solid fa-paw"></i></span>
@@ -19,8 +22,10 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
 <div id="signup-feedback"></div>
 <div id="signup-done"></div>
 
-<form id="signup-form" data-tiger-validate data-module="signup" data-form="Signup" onsubmit="return false;" novalidate>
+<form id="signup-form" data-tiger-validate data-module="signup" data-form="Signup" onsubmit="return false;" novalidate data-recaptcha-site="<?= $this->escape($rcSite) ?>">
     <?= $el('_csrf') ?>
+    <?php /* Core reCAPTCHA (loads api.js + the badge/legal notice + a hidden g-recaptcha-response); the token is minted in JS before this AJAX submit. */ ?>
+    <?= $this->formRecaptcha('g-recaptcha-response', null, ['action' => 'signup']) ?>
 
     <div class="row g-3">
         <div class="col-sm-6" data-field>
@@ -116,11 +121,21 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
 document.addEventListener('DOMContentLoaded', function () {
     var form = document.getElementById('signup-form');
     var fb   = document.getElementById('signup-feedback');
+    var rcSite = form.getAttribute('data-recaptcha-site') || '';   // v3 site key (empty = off/v2 → skip)
+    function rcToken(action) {
+        if (!rcSite || !window.grecaptcha) { return Promise.resolve(''); }
+        return new Promise(function (resolve) {
+            try { grecaptcha.ready(function () { grecaptcha.execute(rcSite, { action: action }).then(resolve, function () { resolve(''); }); }); }
+            catch (e) { resolve(''); }
+        });
+    }
 
     document.getElementById('signup-submit').addEventListener('click', function () {
         var btn = this;
         form.querySelectorAll('.is-invalid').forEach(function (e) { e.classList.remove('is-invalid'); });
-
+        rcToken('signup').then(function (token) {
+        var hid = form.querySelector('input.g-recaptcha-response');
+        if (hid && token) { hid.value = token; }
         var fd = new URLSearchParams(new FormData(form));
         fd.set('module', 'signup'); fd.set('service', 'signup'); fd.set('method', 'create');
 
@@ -155,6 +170,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!res || !res.messages || !res.messages.length) { TigerDOM.notify(fb, 'Something went wrong. Please try again.', { type: 'error' }); }
         }).catch(function () {
             TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' });
+        });
         });
     });
 });
