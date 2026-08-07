@@ -46,33 +46,18 @@ class PageController extends Tiger_Controller_Action
         // The meta description (and other SEO) is no longer synthesized here — it lives in meta.seo and is
         // rendered through the head registry by TigerSEO (Seo_Plugin_Head → headMeta/headLink).
 
-        if (!empty($page->layout_key)) {
-            // Self-contained CMS layout owns the whole document (it disables the theme layout, so nothing
-            // the theme layout normally injects reaches it). Splice the same head + body bits the layout
-            // would have added: the SEO head registry (headMeta/headLink + JSON-LD), the analytics/tracking
-            // tags (tigerTracking placeholder, consent-gated), the admin head_html — and, before </body>,
-            // the admin body_scripts + the GDPR consent banner (self-checks; empty when not due).
-            $headInject = trim(
-                (string) $this->view->headMeta()
-                . (string) $this->view->headLink()
-                . (string) $this->view->placeholder('tigerJsonLd')
-                . (string) $this->view->placeholder('tigerTracking')
-                . "\n" . $head
-            );
-            $bodyInject = trim($scripts . "\n" . self::_consentBanner($this->view));
-            if ($headInject !== '') { $html = self::_injectBefore($html, '</head>', $headInject); }
-            if ($bodyInject !== '') { $html = self::_injectBefore($html, '</body>', $bodyInject); }
-            $this->_helper->layout()->disableLayout();
-            $this->_helper->viewRenderer->setNoRender(true);
-            $this->getResponse()->setBody($html);
-        } else {
-            // Body only — wrap in the theme's public layout (see page/view.phtml).
-            $this->view->title       = $page->title;
-            $this->view->cmsContent  = $html;
-            $this->view->pageHead    = $head;      // the theme layout emits this in <head>
-            $this->view->pageScripts = $scripts;   // …and this before </body>
-            $this->view->pageMeta    = $meta;      // whole meta -> the layout can read theme hints (e.g. skin)
-        }
+        // Every CMS page renders through the theme's public shell (layout.phtml). The SHELL owns the
+        // document + ALL injection points (SEO head registry, analytics/tracking, consent, assets,
+        // scripts, code-inject) — a layout never re-implements those. Tiger_Cms_Renderer has already
+        // wrapped the body in its layout_key CONTENT-REGION layout (a full-width / sidebar / column
+        // composition that renders INSIDE the shell's <main>), or returned the bare body. A layout is a
+        // content-region template, not a whole page — so a CMS user never touches the shell plumbing.
+        // (Formerly a layout_key was treated as a self-contained full document; retired — see AUTHORING.md.)
+        $this->view->title       = $page->title;
+        $this->view->cmsContent  = $html;
+        $this->view->pageHead    = $head;      // the shell emits this in <head>
+        $this->view->pageScripts = $scripts;   // …and this before </body>
+        $this->view->pageMeta    = $meta;      // whole meta -> the shell can read theme hints (e.g. skin)
     }
 
     /**
@@ -130,22 +115,4 @@ class PageController extends Tiger_Controller_Action
         $this->_helper->viewRenderer->setScriptAction('view');   // reuse core/views/scripts/page/view.phtml
     }
 
-    /** Splice a fragment immediately before a tag in an HTML string (append if the tag is absent). */
-    protected static function _injectBefore($html, $tag, $fragment)
-    {
-        $pos = stripos($html, $tag);
-        return $pos !== false
-            ? substr($html, 0, $pos) . $fragment . "\n" . substr($html, $pos)
-            : $html . $fragment;
-    }
-
-    /** Render the active theme's consent banner partial for splicing (empty if absent/not due). */
-    protected static function _consentBanner($view)
-    {
-        try {
-            return (string) $view->render('_partials/consent-banner.phtml');
-        } catch (Throwable $e) {
-            return '';   // a theme without the partial (or no consent) simply contributes nothing
-        }
-    }
 }

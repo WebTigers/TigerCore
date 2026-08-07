@@ -35,14 +35,25 @@ from?"** There are exactly three sources: **blank**, a **core Bootstrap-5 starte
 Getting this boundary right is what keeps a theme swap from breaking pages, and lets a layout "contain
 nothing in the head, or whatever the author desires":
 
-| Layer | Owns | Lives as | Swappable? |
+| Layer | Owns | Lives as | Injection code? |
 |---|---|---|---|
-| **The shell** | `<!doctype><html><head>…</head><body>` + which CSS/JS load | a **theme file** (`layouts/scripts/*.phtml`) | yes — this is the theme axis (PUMA loads Bootstrap; a React theme loads a bundle) |
-| **The body skeleton** | the page's structure — `[partial]` slots + the `[content]` slot | a **CMS `layout` row** (`type=layout`) | it's data — edit it, no deploy |
+| **The shell** | `<!doctype><html><head>…</head><body>` + assets + **all injection points** (SEO/analytics/consent/code-inject), the header/footer *placement*, scripts | a **theme file** (`layouts/scripts/*.phtml`) | all of it |
+| **The content-region layout** | what goes **inside `<main>`** — full-width, sidebars, columns: `[content]` + `[partial]` (aside) slots | a **CMS `layout` row** (`type=layout`) | **none — ever** |
 
+- **A `layout` is a *content-region* template, not a whole page.** It renders **inside** the shell's
+  `<main>` — `Tiger_Cms_Renderer` wraps the page body in it, and `PageController::viewAction` no longer
+  treats a `layout_key` as a self-contained document (that behavior is retired). So a CMS user composing
+  a layout (full-width, sidebar-left/right, two-sidebar) never sees the shell plumbing, and a layout is
+  structurally incapable of carrying injection code.
+- **Header/footer are chrome the *shell* renders**, in the theme's view scope — they need `themeAssets`,
+  the nav helper, and the auth placeholders, which a CMS render can't supply. Their *content* is editable
+  via the partial editor; they simply aren't re-placed per layout. That keeps the dynamic chrome working
+  while the layout owns the content region.
+- PUMA ships the starter set as forkable `tiger:layout` files: **Full Width · Sidebar Left · Sidebar
+  Right · Two Sidebars** (+ a `Sidebar` partial).
 - **Core emits no shell.** The shell is a theme concern; Core emits *data* (rows) + semantic default
-  views (ARCHITECTURE §9). A `type=layout` row **never** owns `<html>`/`<head>` — it's the *body*
-  skeleton, rendered inside the active theme's shell.
+  views (ARCHITECTURE §9). A `type=layout` row **never** owns `<html>`/`<head>` — it's the content
+  region, rendered inside the active theme's shell.
 - **Per-page head control already exists.** The page's `head_html` / `body_scripts` fields fill the
   shell's `pageHead` / `pageScripts` slots (THEMES §8a). "Nothing in the head" = leave them empty;
   "whatever you desire" = fill them. No new mechanism.
