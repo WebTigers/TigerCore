@@ -2,12 +2,17 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
- * Security tab — change your own password (verify current → set new). Two-factor auth has its own
- * home at /auth/security; this tab links to it. Rendered as a partial: the parent passes the model
- * (incl. `passwordForm` for its CSRF token). Saves via /api (Profile_Service_Security).
+ * Security tab — change your own password. Rendered as a partial: the parent passes the model
+ * (incl. `passwordForm` for its CSRF token). The new-password field carries a live strength meter
+ * (tiger.password-strength.js, loaded here since this partial lives in the account layout, not auth);
+ * the two fields are matched client-side before the round trip, and server field errors render inline.
+ * Saves via /api (Profile_Service_Security).
  */
-$t = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
+$t  = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
+$ta = isset($this->themeAssets) && $this->themeAssets ? $this->themeAssets : '/_theme';
 ?>
+<script src="<?= $this->asset($ta . '/js/tiger.password-strength.js') ?>"></script>
+
 <form id="profile-security-form" onsubmit="return false;" novalidate class="card">
     <div class="card-body">
         <?= $this->passwordForm->getElement('_csrf') ?>
@@ -15,10 +20,12 @@ $t = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
             <div class="col-md-6">
                 <label class="form-label" for="profile-new-password"><?= $t('profile.security.new') ?></label>
                 <input type="password" class="form-control" id="profile-new-password" name="new_password" autocomplete="new-password" data-tiger-strength="1">
+                <div class="invalid-feedback"></div>
             </div>
             <div class="col-md-6">
                 <label class="form-label" for="profile-confirm-password"><?= $t('profile.security.confirm') ?></label>
                 <input type="password" class="form-control" id="profile-confirm-password" name="confirm_password" autocomplete="new-password">
+                <div class="invalid-feedback"></div>
             </div>
         </div>
     </div>
@@ -31,24 +38,47 @@ $t = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
 </form>
 
 <script>
-document.getElementById('profile-security-save').addEventListener('click', function () {
+(function () {
     var form = document.getElementById('profile-security-form');
     var fb   = document.getElementById('profile-feedback');
-    var fd   = new URLSearchParams(new FormData(form));
-    fd.set('module', 'profile'); fd.set('service', 'security'); fd.set('method', 'changePassword');
-    TigerButton.run(this, function () {
-        return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
-            .then(function (r) { return r.json().catch(function () { return {}; }); });
-    }).then(function (res) {
-        if (res && res.result === 1) {
-            TigerDOM.notify(fb, 'Password changed.', { type: 'success' });
-            form.reset();
-            return;
-        }
-        if (res && res.form) { Object.keys(res.form).forEach(function (f) {
-            var el = form.querySelector('[name="' + f + '"]'); if (el) { el.classList.add('is-invalid'); }
-        }); }
-        (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
-    }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
-});
+    var np   = form.querySelector('[name="new_password"]');
+    var cp   = form.querySelector('[name="confirm_password"]');
+    var MISMATCH = <?= json_encode($t('core.form.password_mismatch')) ?>;
+
+    // Find the field's .invalid-feedback within its column (the strength meter injects nodes right
+    // after the input, so nextElementSibling isn't reliable). Force-show with d-block since the meter's
+    // markup can sit between the input and the feedback, breaking Bootstrap's sibling display rule.
+    function feedbackFor(el) { var w = el.closest('.col-md-6') || el.parentNode; return w ? w.querySelector('.invalid-feedback') : null; }
+    function setError(el, msg) { el.classList.add('is-invalid'); var f = feedbackFor(el); if (f) { f.textContent = msg || ''; f.classList.add('d-block'); } }
+    function clearError(el) { el.classList.remove('is-invalid'); var f = feedbackFor(el); if (f) { f.textContent = ''; f.classList.remove('d-block'); } }
+
+    // Correcting a field clears its error immediately.
+    [np, cp].forEach(function (el) { el.addEventListener('input', function () { clearError(el); }); });
+
+    document.getElementById('profile-security-save').addEventListener('click', function () {
+        clearError(np); clearError(cp);
+
+        // Cheap client-side match — no round trip just to be told the two don't match.
+        if (np.value !== cp.value) { setError(cp, MISMATCH); cp.focus(); return; }
+
+        var fd = new URLSearchParams(new FormData(form));
+        fd.set('module', 'profile'); fd.set('service', 'security'); fd.set('method', 'changePassword');
+        TigerButton.run(this, function () {
+            return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
+                .then(function (r) { return r.json().catch(function () { return {}; }); });
+        }).then(function (res) {
+            if (res && res.result === 1) { TigerDOM.notify(fb, 'Password changed.', { type: 'success' }); form.reset(); return; }
+            // Render each field's (now localized) validator message inline.
+            if (res && res.form) {
+                Object.keys(res.form).forEach(function (name) {
+                    var el = form.querySelector('[name="' + name + '"]'); if (!el) { return; }
+                    var msgs = res.form[name];
+                    var text = (msgs && typeof msgs === 'object') ? (Object.values(msgs)[0] || '') : (msgs || '');
+                    setError(el, text);
+                });
+            }
+            (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
+        }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+    });
+})();
 </script>
