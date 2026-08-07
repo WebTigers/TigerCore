@@ -422,34 +422,39 @@ final class CoreControllerActionsTest extends ControllerTestCase
     }
 
     #[Test]
-    public function page_view_renders_a_self_contained_layout_page_into_the_body(): void
+    public function page_view_wraps_a_layout_page_in_its_content_region_layout(): void
     {
-        // A layout row + a page that references it → PageController emits a self-contained document
-        // (the theme layout is disabled and the HTML is set as the response body).
+        // A layout row + a page that references it → the page body is composed by its CONTENT-REGION
+        // layout and rendered THROUGH the theme shell (a layout is not a self-contained document; the
+        // shell owns <html>/<head> + all injection points). See PageController::viewAction / AUTHORING.md.
         (new Tiger_Model_Page())->insert([
             'type'     => Tiger_Model_Page::TYPE_LAYOUT,
-            'page_key' => 'full-doc',
+            'page_key' => 'region',
             'locale'   => 'en',
-            'title'    => 'Full Doc Layout',
-            // A phtml layout self-injects the page body via $this->content (renderer context var).
-            'body'     => '<html><head></head><body><?= $this->content ?></body></html>',
+            'title'    => 'Region Layout',
+            // phtml pulls the page body via $this->content (the renderer context var) — independent of
+            // whether the [content] shortcode is registered in this reduced test bootstrap.
+            'body'     => '<div class="layout-wrap"><?= $this->content ?></div>',
             'format'   => Tiger_Model_Page::FORMAT_PHTML,
             'status'   => Tiger_Model_Page::STATUS_PUBLISHED,
         ]);
         $pageId = $this->seedPage([
             'title'      => 'Landing',
             'body'       => '<h1>Landing body</h1>',
-            'layout_key' => 'full-doc',
+            'layout_key' => 'region',
             'meta'       => json_encode(['head_html' => '<meta name="x" content="y">', 'body_scripts' => '<script>void 0;</script>']),
         ]);
 
         $res  = $this->dispatchAction(PageController::class, 'view', ['cms_page_id' => $pageId], 'GET');
-        $body = $res->getBody();
-
         $this->assertSame(200, $res->getHttpResponseCode());
-        $this->assertStringContainsString('Landing body', $body, 'the layout-wrapped page is emitted as the response body');
-        $this->assertStringContainsString('<meta name="x"', $body, 'the admin-authored head_html is spliced into <head>');
-        $this->assertStringContainsString('void 0;', $body, 'the admin-authored body scripts are spliced before </body>');
+
+        $view = $this->controller()->view;
+        $this->assertStringContainsString('Landing body', (string) $view->cmsContent, 'the page body is wrapped in its layout');
+        $this->assertStringContainsString('layout-wrap', (string) $view->cmsContent, 'the content-region layout composed around the body');
+        $this->assertStringNotContainsString('<html', (string) $view->cmsContent, 'a layout is a content region, not a whole document — the shell owns that');
+        // The admin-authored head/body escape hatches flow to the shell's slots (it emits them).
+        $this->assertStringContainsString('<meta name="x"', (string) $view->pageHead, 'head_html reaches the shell <head> slot');
+        $this->assertStringContainsString('void 0;', (string) $view->pageScripts, 'body scripts reach the shell body slot');
     }
 
     #[Test]

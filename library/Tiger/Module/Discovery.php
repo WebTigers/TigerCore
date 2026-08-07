@@ -43,12 +43,18 @@ class Tiger_Module_Discovery
                 // and many modules declare a `vendor` (e.g. WebTigers) rather than an `author`.
                 $author = $m['author'] ?? ($m['vendor'] ?? '');
                 if (is_array($author)) { $author = $author['name'] ?? ''; }
-                $type = (string) ($m['type'] ?? ($isTheme ? 'theme' : ($isSnippets ? 'code' : 'module')));
+                // Taxonomy travels WITH the module (its manifest), so it's retained from wherever it was
+                // installed — the same type/category the Add Module registry showed. An untyped routed
+                // module defaults to `plugin` (the WordPress model), a themes to `theme`, a snippets pack
+                // to `code`. See AUTHORING.md / MARKETPLACE.md + the registry taxonomy.json vocabulary.
+                $type = (string) ($m['type'] ?? ($isTheme ? 'theme' : ($isSnippets ? 'code' : 'plugin')));
+                $cats = isset($m['category']) ? array_values(array_filter(array_map('strval', (array) $m['category']))) : [];
 
                 $modules[$slug] = [
                     'slug'         => $slug,
                     'area'         => $root['area'],
-                    'type'         => $type,                                  // module | theme
+                    'type'         => $type,                                  // app | plugin | theme | code | developer
+                    'category'     => $cats,                                  // taxonomy categories (registry vocabulary)
                     // The theme KEY (what tiger.theme stores → _initTheme resolves modules/theme-<key>).
                     // From the manifest, else the slug minus its `theme-` prefix.
                     'key'          => (string) ($m['key'] ?? preg_replace('/^theme-/', '', $slug)),

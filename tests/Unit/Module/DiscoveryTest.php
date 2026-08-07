@@ -73,7 +73,7 @@ final class DiscoveryTest extends UnitTestCase
 
         $all = Tiger_Module_Discovery::all();
         $this->assertArrayHasKey('fixrouted', $all);
-        $this->assertSame('module', $all['fixrouted']['type']);
+        $this->assertSame('plugin', $all['fixrouted']['type'], 'an untyped routed module defaults to plugin (WP model)');
         $this->assertSame('app', $all['fixrouted']['area']);
         $this->assertSame('Fix Routed', $all['fixrouted']['name']);
         $this->assertSame('1.0.0', $all['fixrouted']['version']);
@@ -90,7 +90,7 @@ final class DiscoveryTest extends UnitTestCase
 
         $all = Tiger_Module_Discovery::all();
         $this->assertArrayHasKey('fixctrl', $all);
-        $this->assertSame('module', $all['fixctrl']['type']);
+        $this->assertSame('plugin', $all['fixctrl']['type'], 'an untyped routed module defaults to plugin');
         $this->assertFalse($all['fixctrl']['has_manifest'], 'no manifest was shipped');
         $this->assertSame('Fixctrl', $all['fixctrl']['name'], 'name falls back to ucfirst(slug)');
     }

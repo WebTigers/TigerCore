@@ -204,6 +204,48 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
             if (!empty($attrs['id']))    { $options['id']    = $attrs['id']; }
             return Tiger_Menu::getHTML($key, $options);
         });
+
+        // [partial name="x"] -> render a published `type=partial` page row (DB, org-cascade: an org's own
+        // partial wins over the global one), RECURSIVELY — a partial can contain widgets ([menu], …) and
+        // nested [partial]s — with a cycle + depth guard. This is the composition primitive: everything
+        // (header, footer, hero, section, …) is just a labeled partial dropped into a page or layout.
+        Tiger_Cms_Renderer::registerShortcode('partial', static function ($attrs, $inner = null, array $context = []) {
+            $name = trim((string) ($attrs['name'] ?? ($attrs['key'] ?? '')));
+            if ($name === '') { return ''; }
+
+            $stack = (isset($context['_partialStack']) && is_array($context['_partialStack'])) ? $context['_partialStack'] : [];
+            if (in_array($name, $stack, true) || count($stack) >= 10) {
+                return '<!-- [partial name="' . htmlspecialchars($name, ENT_QUOTES) . '"] skipped (cycle or too deep) -->';
+            }
+            try {
+                $model = new Tiger_Model_Page();
+                $orgId = class_exists('Tiger_Model_Org') ? (string) Tiger_Model_Org::siteOrgId() : '';
+                $row   = $model->fetchRow(
+                    $model->activeSelect()
+                        ->where('type = ?', Tiger_Model_Page::TYPE_PARTIAL)
+                        ->where('page_key = ?', $name)
+                        ->where('status = ?', Tiger_Model_Page::STATUS_PUBLISHED)
+                        ->where('org_id IN (?)', [$orgId, ''])
+                        ->order('org_id DESC')   // an org-specific partial wins over the global one
+                        ->limit(1)
+                );
+                if (!$row) { return ''; }
+                return (new Tiger_Cms_Renderer())->renderBody(
+                    (string) $row->body, (string) $row->format,
+                    $context + ['_partialStack' => array_merge($stack, [$name])]
+                );
+            } catch (Throwable $e) {
+                return '';
+            }
+        });
+
+        // [content] -> the page body, when a LAYOUT wraps a page (Tiger_Cms_Renderer::render passes it as
+        // $context['content']). This is the one reserved slot that lets a VISUALLY-BUILT layout be "just a
+        // partial": [partial name="site-header"] [content] [partial name="site-footer"]. Empty (harmless)
+        // when rendered outside a layout, so it never leaks a stray body elsewhere.
+        Tiger_Cms_Renderer::registerShortcode('content', static function ($attrs, $inner = null, array $context = []) {
+            return isset($context['content']) ? (string) $context['content'] : '';
+        });
     }
 
     /**

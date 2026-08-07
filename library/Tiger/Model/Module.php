@@ -99,6 +99,10 @@ class Tiger_Model_Module extends Tiger_Model_Table
             'repository' => $meta['repository'] ?? null,
             'ref'        => $meta['ref']        ?? null,
             'source'     => $meta['source']     ?? self::SOURCE_URL,
+            // Taxonomy captured from the source (listing/manifest) so it's retained after install — the
+            // same type/category Add Module showed (migration 0042). NULL when the source declared none.
+            'type'       => $meta['type']       ?? null,
+            'category'   => $meta['category']   ?? null,
             'active'     => 1,
             'status'     => 'active',
         ];

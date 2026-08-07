@@ -13,6 +13,10 @@ return [
     'cms.page.forked'   => 'Template customized — now editing your copy.',
     'cms.page.exists'   => 'That template is already customized — opening it.',
 
+    'cms.block.saved'          => 'Block saved.',
+    'cms.block.name_required'  => 'Give the block a name first.',
+    'cms.block.empty'          => 'There is nothing to save as a block.',
+
     'cms.settings.saved' => 'Settings saved.',
 
     'cms.menu.item_saved'   => 'Menu item saved.',

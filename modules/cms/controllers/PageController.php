@@ -38,23 +38,13 @@ class Cms_PageController extends Tiger_Controller_Admin_Action
         $this->view->title         = 'Content — Tiger Admin';
         $this->view->useDataTables = true;   // the layout loads jQuery + DataTables when set
 
-        // The ACTIVE theme's page templates (served from files) — surfaced so an author can
-        // CUSTOMIZE one: fork it into an editable page that overrides the file. Flag which are
-        // already customized (a published/draft page row claims the slug).
-        $templates = Tiger_Theme::pages();
-        if ($templates) {
-            $bySlug = [];
-            foreach ($this->_pages->fetchAll(
-                $this->_pages->activeSelect()->where('type = ?', Tiger_Model_Page::TYPE_PAGE)
-            ) as $p) {
-                if ($p->slug !== null && $p->slug !== '') { $bySlug[$p->slug] = $p->page_id; }
-            }
-            foreach ($templates as &$t) { $t['page_id'] = $bySlug[$t['slug']] ?? ''; }
-            unset($t);
-        }
-        $man = Tiger_Theme::manifest();
-        $this->view->themeName      = (string) ($man['name'] ?? '');
-        $this->view->themeTemplates = $templates;
+        // The ACTIVE theme's forkable material — pages/layouts/partials it serves from files
+        // (AUTHORING.md §3.3), surfaced in the "Theme Templates" tab so an author can CUSTOMIZE one (fork
+        // it into an editable row that overrides the file). An installed-but-inactive theme has no asset
+        // symlink, so its content can't render and never surfaces. The tab is a server-side DataTable
+        // (Cms_Service_Page::themeTemplates); here we only need the count for the tab badge (cheap —
+        // Tiger_Theme::forkables is fingerprint-cached).
+        $this->view->themeCount = count(Tiger_Theme::forkables());
     }
 
     /**
@@ -110,17 +100,173 @@ class Cms_PageController extends Tiger_Controller_Admin_Action
             $menus[$key] = Tiger_Menu::getHTML($key);
         }
 
+        // Named partials for the builder's Partial widget — a {name: {label, html}} map: `label` for
+        // the picker, `html` a live-rendered preview. The widget exports [partial name="x"] (dynamic),
+        // never the preview markup, so editing the partial updates everywhere it's dropped.
+        $partials = [];
+        try {
+            $pm = new Tiger_Model_Page();
+            foreach ($pm->fetchAll(
+                $pm->activeSelect()
+                    ->where('type = ?', Tiger_Model_Page::TYPE_PARTIAL)
+                    ->where('status = ?', Tiger_Model_Page::STATUS_PUBLISHED)
+                    ->order('page_key ASC')
+            ) as $r) {
+                if (!$r->page_key) { continue; }
+                $partials[$r->page_key] = [
+                    'label' => (string) (($r->title !== null && $r->title !== '') ? $r->title : $r->page_key),
+                    'html'  => (new Tiger_Cms_Renderer())->renderBody((string) $r->body, (string) $r->format, []),
+                ];
+            }
+        } catch (\Throwable $e) { $partials = []; }
+
         // The ACTIVE theme's builder components (its components/*.phtml) + the CSS to load into
         // the GrapesJS canvas so those blocks preview in the theme's own style (THEMES.md Tier 2).
         $manifest = Tiger_Theme::manifest();
 
+        // User-authored BLOCKS — reusable fragments placed by COPY. Passed to the builder's "My Blocks"
+        // palette; dropping one inlines its editable HTML into the page (detached from the source), the
+        // twin of the reference-placed Partial widget. Body is inserted raw so the author edits real
+        // markup (GrapesJS absorbs any <style>); shortcodes it contains carry through.
+        $userBlocks = [];
+        try {
+            foreach ($this->_pages->fetchAll(
+                $this->_pages->activeSelect()
+                    ->where('type = ?', Tiger_Model_Page::TYPE_BLOCK)
+                    ->where('status = ?', Tiger_Model_Page::STATUS_PUBLISHED)
+                    ->order('title ASC')
+            ) as $b) {
+                $userBlocks[] = [
+                    'id'      => (string) $b->page_id,
+                    'label'   => (string) (($b->title !== null && $b->title !== '') ? $b->title : $b->page_key),
+                    'content' => (string) $b->body,
+                ];
+            }
+        } catch (\Throwable $e) { $userBlocks = []; }
+
+        // --- Fragment editing (partial OR block): a fragment can't be edited in a vacuum — it only reads
+        // correctly INSIDE a layout's chrome (+ the theme CSS). This is the page builder inverted: the
+        // layout becomes the locked context and the fragment is the one editable region. A PARTIAL
+        // resolves its associated layout (layout_key) and splits it at the partial's slot into chrome-
+        // before / chrome-after; a fragment with no CMS layout falls back to the theme's real header/
+        // footer (the view), editing in the content area. `layoutOptions` feeds the [Layout ▾] picker.
+        $isPartial    = ($page->type === Tiger_Model_Page::TYPE_PARTIAL);
+        $isBlock      = ($page->type === Tiger_Model_Page::TYPE_BLOCK);
+        $isFragment   = ($isPartial || $isBlock);
+        $chromeBefore = null;
+        $chromeAfter  = null;
+        $layoutOpts   = [];
+        if ($isFragment) {
+            $layoutOpts = $this->_layoutOptions();
+            if (!empty($page->layout_key)) {
+                $layout = $this->_findLayout((string) $page->layout_key, $page);
+                if ($layout) {
+                    [$chromeBefore, $chromeAfter] = $this->_splitLayoutForPartial($layout, $page);
+                }
+            }
+        }
+
         $this->_helper->layout()->disableLayout();   // full-screen — the view is a complete document
-        $this->view->title       = $page->title;
-        $this->view->page        = $page;
-        $this->view->projectData = !empty($meta['builder']) ? $meta['builder'] : null;
-        $this->view->menus       = $menus;
-        $this->view->themeBlocks = Tiger_Theme::components();
-        $this->view->canvasCss   = isset($manifest['canvasCss']) ? (array) $manifest['canvasCss'] : [];
+        $this->view->title           = $page->title;
+        $this->view->page            = $page;
+        $this->view->projectData     = !empty($meta['builder']) ? $meta['builder'] : null;
+        $this->view->menus           = $menus;
+        $this->view->partials        = $partials;
+        $this->view->userBlocks      = $userBlocks;
+        $this->view->themeBlocks     = Tiger_Theme::components();
+        $this->view->canvasCss       = isset($manifest['canvasCss']) ? (array) $manifest['canvasCss'] : [];
+        $this->view->partialMode     = $isFragment;
+        $this->view->fragmentLabel   = $isBlock ? 'Block' : ($isPartial ? 'Partial' : '');
+        $this->view->chromeBefore    = $chromeBefore;   // null (page, or fragment w/o CMS layout) -> view uses theme header/footer
+        $this->view->chromeAfter     = $chromeAfter;
+        $this->view->layoutOptions   = $layoutOpts;
+        $this->view->partialLayoutKey = $isFragment ? (string) ($page->layout_key ?? '') : '';
+    }
+
+    /**
+     * Every CMS layout row as [page_key => label] — the choices for the partial editor's
+     * "preview against [layout ▾]" picker (empty selection = the theme's default header/footer).
+     *
+     * @return array<string,string>
+     */
+    protected function _layoutOptions(): array
+    {
+        $out = [];
+        foreach ($this->_pages->fetchAll(
+            $this->_pages->activeSelect()
+                ->where('type = ?', Tiger_Model_Page::TYPE_LAYOUT)
+                ->order('page_key ASC')
+        ) as $r) {
+            if (!$r->page_key) { continue; }
+            $out[(string) $r->page_key] = (string) (($r->title !== null && $r->title !== '') ? $r->title : $r->page_key);
+        }
+        return $out;
+    }
+
+    /**
+     * Resolve a layout row by its key — locale-tolerant (the partial's own locale first, then the
+     * shared '' rows), tenant row winning over global. Null if no such layout.
+     *
+     * @param  string $key  the layout's page_key
+     * @param  object $page the partial being edited (for its locale)
+     * @return Zend_Db_Table_Row_Abstract|null
+     */
+    protected function _findLayout(string $key, $page)
+    {
+        foreach ([(string) ($page->locale ?? ''), ''] as $loc) {
+            $row = $this->_pages->fetchRow(
+                $this->_pages->activeSelect()
+                    ->where('page_key = ?', $key)
+                    ->where('type = ?', Tiger_Model_Page::TYPE_LAYOUT)
+                    ->where('locale = ?', $loc)
+                    ->order('org_id DESC')
+                    ->limit(1)
+            );
+            if ($row) { return $row; }
+        }
+        return null;
+    }
+
+    /**
+     * Split a layout around the partial's slot for in-context editing: render the layout with THIS
+     * partial replaced by a marker (all OTHER partials, [menu]s, and the [content] placeholder expand
+     * as locked context), then cut the rendered HTML on the marker into [before, after]. Routing is
+     * automatic — a partial the layout NAMES ([partial name="key"]) edits in its own slot (a header or
+     * footer); any other partial edits in the [content] area (a hero / CTA / section). <style>/<script>
+     * are stripped (static, non-editable preview, never baked into the saved partial).
+     *
+     * @param  object $layout  the associated layout row
+     * @param  object $partial the partial being edited
+     * @return array{0:string,1:string} chrome-before and chrome-after HTML
+     */
+    protected function _splitLayoutForPartial($layout, $partial): array
+    {
+        $MARK = '@@TIGER_PARTIAL_SLOT@@';
+        $body = (string) $layout->body;
+        $key  = (string) $partial->page_key;
+
+        $refPat = '/\[partial\s+[^\]]*name="' . preg_quote($key, '/') . '"[^\]]*\]/i';
+        if ($key !== '' && preg_match($refPat, $body)) {
+            $body = preg_replace($refPat, $MARK, $body, 1);              // chrome partial — its own slot
+        } elseif (strpos($body, '[content]') !== false) {
+            $body = str_replace('[content]', $MARK, $body);             // content partial — the body slot
+        } else {
+            $body .= $MARK;                                             // no content slot — after the layout
+        }
+
+        $hint = '<div class="text-center text-body-secondary small py-5 my-3"'
+              . ' style="border:1px dashed var(--bs-border-color);border-radius:.5rem;">— page content —</div>';
+        try {
+            $rendered = (new Tiger_Cms_Renderer())->renderBody($body, (string) $layout->format, ['content' => $hint]);
+        } catch (\Throwable $e) {
+            $rendered = $MARK;
+        }
+
+        $parts  = explode($MARK, $rendered, 2);
+        $strip  = ['#<style\b[^>]*>.*?</style>#is', '#<script\b[^>]*>.*?</script>#is'];
+        $before = trim((string) preg_replace($strip, '', $parts[0] ?? ''));
+        $after  = trim((string) preg_replace($strip, '', $parts[1] ?? ''));
+        return [$before, $after];
     }
 
     /** Map a page row to editor form values. */

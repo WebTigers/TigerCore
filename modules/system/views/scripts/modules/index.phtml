@@ -3,14 +3,19 @@
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
  * Modules admin — the installed-modules list (the WordPress "Plugins" screen for Tiger).
- * Server-rendered from Tiger_Module_Discovery + module state; activate/deactivate
- * post to System_Service_Modules over /api, then reload. "Add New" lands the Module Installer.
- * A filter toolbar (All | Core | Addon pills + a search box) and per-row "more/less"
- * description toggles are wired client-side over the rendered rows.
+ * Server-rendered rows (Tiger_Module_Discovery + state) presented as a CLIENT-SIDE DataTable
+ * (sort / page / search — the module count is getting numerous). A TYPE filter mirrors the Add
+ * Module screen's data-driven taxonomy pills (All | Apps | Themes | Plugins | Code | Developer …).
+ * Activate/deactivate + delete post to System_Service_Modules over /api (delegated, so they survive
+ * DataTables redraws); "Add New" lands the Module Installer.
  */
-$modules = $this->modules ?? [];
-$cat = static function (array $m) { return (($m['area'] ?? '') === 'core') ? 'core' : 'addon'; };
-// Source badge: platform = 'bundled', everything installed = 'addon'. License → a short tag.
+$modules    = $this->modules ?? [];
+$typeLabels = $this->typeLabels ?? [];   // {type_id: label} from the registry taxonomy (may be empty offline)
+$humanize   = static function ($id) { return ucwords(str_replace(['-', '_'], ' ', (string) $id)); };
+$typeOf     = static function (array $m) { return (string) ($m['type'] ?? 'module'); };
+$labelOf    = static function (array $m) use ($typeLabels, $humanize, $typeOf) { $t = $typeOf($m); return $typeLabels[$t] ?? $humanize($t); };
+
+// License → a short tag. Source badge: bundled (platform) vs addon (installed).
 $srcLabel = static function ($src) { return $src === 'bundled' ? 'bundled' : 'addon'; };
 $licShort = static function ($lic) {
     $l = (string) $lic;
@@ -21,19 +26,31 @@ $licShort = static function ($lic) {
     if (preg_match('/proprietary|licenseref|commercial/i', $l)) { return 'Commercial'; }
     return $l;
 };
-$coreCount = 0; foreach ($modules as $m) { if ($cat($m) === 'core') { $coreCount++; } }
-$addonCount = count($modules) - $coreCount;
+
+// Type pills: All + one per type PRESENT among installed modules, ordered by the taxonomy (then any
+// leftover present types), each with a count. Pills filter the DataTable by the module's type id.
+$counts = [];
+foreach ($modules as $m) { $t = $typeOf($m); $counts[$t] = ($counts[$t] ?? 0) + 1; }
+$typePills = [];   // [id => label]
+foreach ($typeLabels as $id => $label) { if (isset($counts[$id])) { $typePills[$id] = $label; } }
+foreach (array_keys($counts) as $id) { if (!isset($typePills[$id])) { $typePills[$id] = $humanize($id); } }
+
 // Delete-confirmation token ("<vendor>/<name>") + a slug→module map for naming dependents.
 $tokenOf = static function (array $m) { $v = trim((string) ($m['author'] ?? '')); $n = trim((string) ($m['name'] ?? '')); return $v !== '' ? ($v . '/' . $n) : $n; };
 $bySlug  = []; foreach ($modules as $mm) { $bySlug[$mm['slug']] = $mm; }
+$typeIcon = static function ($t) {
+    switch ($t) {
+        case 'theme':  return 'fa-palette';
+        case 'code':   return 'fa-code';
+        case 'app':    return 'fa-cubes';
+        case 'plugin': return 'fa-plug';
+        default:       return 'fa-cube';
+    }
+};
 ?>
 <style>
-/* functional-only: 1-line description clamp + the more/less affordance (animated via JS) */
-.mods-desc{overflow:hidden;}
-.mods-desc[data-collapsed]{max-height:1.4rem;}
-.mods-more{cursor:pointer;text-decoration:none;white-space:nowrap;font-weight:600;}
-.mods-more:hover{text-decoration:underline;}
-.mods-empty{display:none;}
+/* functional-only: 2-line description clamp (full text in the cell's title tooltip) */
+.mods-desc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 </style>
 
 <div class="d-flex align-items-center justify-content-between mb-4">
@@ -44,76 +61,70 @@ $bySlug  = []; foreach ($modules as $mm) { $bySlug[$mm['slug']] = $mm; }
     <a href="/system/modules/add" class="btn btn-primary"><i class="fa-solid fa-plus me-2"></i>Add New</a>
 </div>
 
-<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-    <ul class="nav nav-pills" id="mods-filter" role="tablist">
-        <li class="nav-item"><a class="nav-link active" href="#" data-filter="all" role="tab">All <span class="badge rounded-pill text-bg-light ms-1"><?= count($modules) ?></span></a></li>
-        <li class="nav-item"><a class="nav-link" href="#" data-filter="core" role="tab">Core <span class="badge rounded-pill text-bg-light ms-1"><?= $coreCount ?></span></a></li>
-        <li class="nav-item"><a class="nav-link" href="#" data-filter="addon" role="tab">Addon <span class="badge rounded-pill text-bg-light ms-1"><?= $addonCount ?></span></a></li>
-    </ul>
-    <div class="ms-auto position-relative">
-        <i class="fa-solid fa-magnifying-glass position-absolute top-50 translate-middle-y text-body-secondary" style="left:.75rem;"></i>
-        <input type="search" id="mods-search" class="form-control form-control-sm" placeholder="Filter modules…" autocomplete="off" style="min-width:240px;padding-left:2.25rem;padding-top:.375rem;padding-bottom:.375rem;">
-    </div>
-</div>
+<ul class="nav nav-pills mb-3" id="mods-type-filter" role="tablist">
+    <li class="nav-item"><a class="nav-link active" href="#" data-type="" role="tab">All <span class="badge rounded-pill text-bg-light ms-1"><?= count($modules) ?></span></a></li>
+<?php foreach ($typePills as $id => $label): ?>
+    <li class="nav-item"><a class="nav-link" href="#" data-type="<?= $this->escape($id) ?>" role="tab"><i class="fa-solid <?= $typeIcon($id) ?> me-1"></i><?= $this->escape($label) ?> <span class="badge rounded-pill text-bg-light ms-1"><?= (int) ($counts[$id] ?? 0) ?></span></a></li>
+<?php endforeach; ?>
+</ul>
 
 <div class="card">
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" id="mods-table">
-            <thead>
-                <tr>
-                    <th style="width:45%;">Module</th>
-                    <th>Version</th>
-                    <th>Source</th>
-                    <th>Status</th>
-                    <th class="text-end">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php foreach ($modules as $m): ?>
-                <?php $search = strtolower(trim(($m['name'] ?? '') . ' ' . ($m['slug'] ?? '') . ' ' . ($m['description'] ?? '') . ' ' . ($m['author'] ?? '') . ' ' . ($m['license'] ?? '') . ' ' . $licShort($m['license'] ?? '') . ' ' . $srcLabel($m['source']))); ?>
-                <tr data-cat="<?= $cat($m) ?>" data-search="<?= $this->escape($search) ?>">
-                    <td>
-                        <div class="fw-semibold"><?= $this->escape($m['name']) ?>
-                            <code class="text-body-secondary fw-normal ms-1">/<?= $this->escape($m['slug']) ?></code>
-                            <?php if (($m['type'] ?? '') === 'theme'): ?><span class="badge text-bg-primary-subtle text-primary-emphasis border border-primary-subtle ms-1"><i class="fa-solid fa-palette me-1"></i>Theme</span><?php endif; ?>
-                            <?php if ($m['protected']): ?><i class="fa-solid fa-lock text-body-secondary ms-1" title="Protected — always active"></i><?php endif; ?>
-                        </div>
-                        <?php if (!empty($m['description'])): ?><div class="small text-body-secondary mods-desc"><?= $this->escape($m['description']) ?></div><?php endif; ?>
-                        <div class="small text-body-secondary">
-                            <?php if (!empty($m['author'])): ?><span><?= $this->escape($m['author']) ?></span><?php endif; ?>
-                            <?php if (!empty($m['license'])): ?><span class="ms-2 badge text-bg-light" title="<?= $this->escape($m['license']) ?>"><?= $this->escape($licShort($m['license'])) ?></span><?php endif; ?>
-                        </div>
-                        <?php if (!empty($m['compat']) && empty($m['compat']['ok']) && !empty($m['compat']['message'])): ?>
-                            <div class="small text-warning-emphasis mt-1"><i class="fa-solid fa-triangle-exclamation me-1"></i><?= $this->escape($m['compat']['message']) ?></div>
-                        <?php endif; ?>
-                    </td>
-                    <td class="text-body-secondary"><?= $m['version'] ? $this->escape($m['version']) : '—' ?></td>
-                    <td><span class="badge text-bg-<?= $m['source'] === 'bundled' ? 'secondary' : 'info' ?>"><?= $srcLabel($m['source']) ?></span></td>
-                    <td>
-                        <?php if ($m['active']): ?><span class="badge text-bg-success">Active</span>
-                        <?php else: ?><span class="badge text-bg-secondary">Inactive</span><?php endif; ?>
-                    </td>
-                    <td class="text-end text-nowrap">
-                        <?php if ($m['protected']): ?>
-                            <span class="text-body-secondary small">always on</span>
-                        <?php elseif ($m['active']): ?>
-                            <button type="button" class="btn btn-sm btn-outline-warning" data-mod-toggle="deactivate" data-slug="<?= $this->escape($m['slug']) ?>" data-theme="<?= (($m['type'] ?? '') === 'theme') ? 1 : 0 ?>" data-required-by="<?= $this->escape(implode(',', array_values($m['required_by'] ?? []))) ?>"><i class="fa-solid fa-pause me-1"></i>Deactivate</button>
-                        <?php else: ?>
-                            <button type="button" class="btn btn-sm btn-outline-success" data-mod-toggle="activate" data-slug="<?= $this->escape($m['slug']) ?>" data-theme="<?= (($m['type'] ?? '') === 'theme') ? 1 : 0 ?>"><i class="fa-solid fa-play me-1"></i>Activate</button>
-                        <?php endif; ?>
-                        <?php $deletable = !$m['protected'] && (($m['area'] ?? '') !== 'core') && !$m['active']; ?>
-                        <?php if ($deletable): ?>
-                            <?php $depTokens = array_map(function ($s) use ($bySlug, $tokenOf) { return $tokenOf($bySlug[$s] ?? ['name' => $s]); }, Tiger_Module_Dependency::dependents($m['slug'])); ?>
-                            <button type="button" class="btn btn-sm btn-outline-danger ms-1" data-mod-delete data-slug="<?= $this->escape($m['slug']) ?>" data-token="<?= $this->escape($tokenOf($m)) ?>" data-name="<?= $this->escape($m['name']) ?>" data-deps="<?= $this->escape(implode(', ', $depTokens)) ?>" title="Delete this module"><i class="fa-solid fa-trash-can"></i></button>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-                <tr class="mods-empty">
-                    <td colspan="5" class="text-center text-body-secondary py-4">No modules match your filter.</td>
-                </tr>
-            </tbody>
-        </table>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="mods-table" style="width:100%;">
+                <thead>
+                    <tr>
+                        <th>Module</th>
+                        <th>Type</th>
+                        <th>Version</th>
+                        <th>Source</th>
+                        <th>Status</th>
+                        <th class="text-end" data-orderable="false">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($modules as $m): ?>
+                    <tr data-type="<?= $this->escape($typeOf($m)) ?>">
+                        <td data-order="<?= $this->escape($m['name']) ?>">
+                            <div class="fw-semibold"><?= $this->escape($m['name']) ?>
+                                <code class="text-body-secondary fw-normal ms-1">/<?= $this->escape($m['slug']) ?></code>
+                                <?php if ($m['protected']): ?><i class="fa-solid fa-lock text-body-secondary ms-1" title="Protected — always active"></i><?php endif; ?>
+                            </div>
+                            <?php if (!empty($m['description'])): ?><div class="small text-body-secondary mods-desc" title="<?= $this->escape($m['description']) ?>"><?= $this->escape($m['description']) ?></div><?php endif; ?>
+                            <div class="small text-body-secondary">
+                                <?php if (!empty($m['author'])): ?><span><?= $this->escape($m['author']) ?></span><?php endif; ?>
+                                <?php if (!empty($m['license'])): ?><span class="ms-2 badge text-bg-light" title="<?= $this->escape($m['license']) ?>"><?= $this->escape($licShort($m['license'])) ?></span><?php endif; ?>
+                            </div>
+                            <?php if (!empty($m['compat']) && empty($m['compat']['ok']) && !empty($m['compat']['message'])): ?>
+                                <div class="small text-warning-emphasis mt-1"><i class="fa-solid fa-triangle-exclamation me-1"></i><?= $this->escape($m['compat']['message']) ?></div>
+                            <?php endif; ?>
+                        </td>
+                        <td><span class="badge text-bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle"><i class="fa-solid <?= $typeIcon($typeOf($m)) ?> me-1"></i><?= $this->escape($labelOf($m)) ?></span></td>
+                        <td class="text-body-secondary"><?= $m['version'] ? $this->escape($m['version']) : '—' ?></td>
+                        <td><span class="badge text-bg-<?= $m['source'] === 'bundled' ? 'secondary' : 'info' ?>"><?= $srcLabel($m['source']) ?></span></td>
+                        <td data-order="<?= $m['active'] ? 1 : 0 ?>">
+                            <?php if ($m['active']): ?><span class="badge text-bg-success">Active</span>
+                            <?php else: ?><span class="badge text-bg-secondary">Inactive</span><?php endif; ?>
+                        </td>
+                        <td class="text-end text-nowrap">
+                            <?php if ($m['protected']): ?>
+                                <span class="text-body-secondary small">always on</span>
+                            <?php elseif ($m['active']): ?>
+                                <button type="button" class="btn btn-sm btn-outline-warning" data-mod-toggle="deactivate" data-slug="<?= $this->escape($m['slug']) ?>" data-theme="<?= (($m['type'] ?? '') === 'theme') ? 1 : 0 ?>" data-required-by="<?= $this->escape(implode(',', array_values($m['required_by'] ?? []))) ?>"><i class="fa-solid fa-pause me-1"></i>Deactivate</button>
+                            <?php else: ?>
+                                <button type="button" class="btn btn-sm btn-outline-success" data-mod-toggle="activate" data-slug="<?= $this->escape($m['slug']) ?>" data-theme="<?= (($m['type'] ?? '') === 'theme') ? 1 : 0 ?>"><i class="fa-solid fa-play me-1"></i>Activate</button>
+                            <?php endif; ?>
+                            <?php $deletable = !$m['protected'] && (($m['area'] ?? '') !== 'core') && !$m['active']; ?>
+                            <?php if ($deletable): ?>
+                                <?php $depTokens = array_map(function ($s) use ($bySlug, $tokenOf) { return $tokenOf($bySlug[$s] ?? ['name' => $s]); }, Tiger_Module_Dependency::dependents($m['slug'])); ?>
+                                <button type="button" class="btn btn-sm btn-outline-danger ms-1" data-mod-delete data-slug="<?= $this->escape($m['slug']) ?>" data-token="<?= $this->escape($tokenOf($m)) ?>" data-name="<?= $this->escape($m['name']) ?>" data-deps="<?= $this->escape(implode(', ', $depTokens)) ?>" title="Delete this module"><i class="fa-solid fa-trash-can"></i></button>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -142,48 +153,74 @@ $bySlug  = []; foreach ($modules as $mm) { $bySlug[$mm['slug']] = $mm; }
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-    /* ---- activate / deactivate (conflict-aware) ---- */
-    document.querySelectorAll('[data-mod-toggle]').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var method = btn.getAttribute('data-mod-toggle'), slug = btn.getAttribute('data-slug');
-            var isTheme = btn.getAttribute('data-theme') === '1';
-            var requiredBy = (btn.getAttribute('data-required-by') || '').split(',').filter(Boolean);
-            if (method === 'deactivate') {
-                var msg;
-                if (requiredBy.length) {
-                    // Advisory only — never a block. The admin can always proceed.
-                    msg = 'This module is required by ' + requiredBy.join(', ') + ' to function. Deactivate anyway?';
-                } else if (isTheme) {
-                    msg = 'Deactivate the "' + slug + '" theme? The public site reverts to the default theme.';
-                } else {
-                    msg = 'Deactivate "' + slug + '"? Its routes stop working until you reactivate it. Nothing is deleted.';
-                }
-                if (!confirm(msg)) { return; }
-            }
-            function send(extra) {
-                var body = new URLSearchParams(Object.assign({ module: 'system', service: 'modules', method: method, slug: slug }, extra || {}));
-                return TigerButton.run(btn, function () {
-                    return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
-                        .then(function (r) { return r.json(); });
-                });
-            }
-            send().then(function (res) {
-                if (res.result === 1) { window.location.reload(); return; }
-                // Mutually-exclusive module: offer to deactivate the active conflict(s) and retry.
-                if (res.data && res.data.conflicts && res.data.conflicts.length) {
-                    var names = res.data.conflicts.map(function (c) { return '"' + (c.name || c.slug) + '"'; }).join(', ');
-                    if (confirm('Activating "' + slug + '" will deactivate ' + names + ' (only one can be active at a time). Continue?')) {
-                        send({ confirm: '1' }).then(function (r2) {
-                            if (r2.result === 1) { window.location.reload(); return; }
-                            (r2.messages || []).forEach(function (m) { alert(m.message); });
-                        }).catch(function () {});
-                    }
-                    return;
-                }
-                (res.messages || []).forEach(function (m) { alert(m.message); });
-            }).catch(function () {});
+    /* ---- the client-side DataTable (sort / page / search; BS5-styled by the loaded integration) ---- */
+    var table = null;
+    if (window.jQuery && jQuery.fn && jQuery.fn.DataTable) {
+        table = jQuery('#mods-table').DataTable({
+            pageLength: 25,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],
+            order: [[0, 'asc']],
+            columnDefs: [{ targets: 5, orderable: false, searchable: false }],
+            language: { search: '', searchPlaceholder: 'Filter modules…' }
         });
-    });
+
+        /* Type filter: a custom search scoped to THIS table, matching each row's data-type. */
+        var activeType = '';
+        jQuery.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+            if (settings.nTable.id !== 'mods-table') { return true; }
+            if (!activeType) { return true; }
+            var tr = settings.aoData[dataIndex].nTr;
+            return !!tr && tr.getAttribute('data-type') === activeType;
+        });
+        document.querySelectorAll('#mods-type-filter [data-type]').forEach(function (pill) {
+            pill.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelectorAll('#mods-type-filter .nav-link').forEach(function (x) { x.classList.remove('active'); });
+                pill.classList.add('active');
+                activeType = pill.getAttribute('data-type');
+                table.draw();
+            });
+        });
+    }
+
+    /* ---- activate / deactivate (conflict-aware) — DELEGATED so it survives DataTables redraws ---- */
+    function handleToggle(btn) {
+        var method = btn.getAttribute('data-mod-toggle'), slug = btn.getAttribute('data-slug');
+        var isTheme = btn.getAttribute('data-theme') === '1';
+        var requiredBy = (btn.getAttribute('data-required-by') || '').split(',').filter(Boolean);
+        if (method === 'deactivate') {
+            var msg;
+            if (requiredBy.length) {
+                msg = 'This module is required by ' + requiredBy.join(', ') + ' to function. Deactivate anyway?';
+            } else if (isTheme) {
+                msg = 'Deactivate the "' + slug + '" theme? The public site reverts to the default theme.';
+            } else {
+                msg = 'Deactivate "' + slug + '"? Its routes stop working until you reactivate it. Nothing is deleted.';
+            }
+            if (!confirm(msg)) { return; }
+        }
+        function send(extra) {
+            var body = new URLSearchParams(Object.assign({ module: 'system', service: 'modules', method: method, slug: slug }, extra || {}));
+            return TigerButton.run(btn, function () {
+                return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
+                    .then(function (r) { return r.json(); });
+            });
+        }
+        send().then(function (res) {
+            if (res.result === 1) { window.location.reload(); return; }
+            if (res.data && res.data.conflicts && res.data.conflicts.length) {
+                var names = res.data.conflicts.map(function (c) { return '"' + (c.name || c.slug) + '"'; }).join(', ');
+                if (confirm('Activating "' + slug + '" will deactivate ' + names + ' (only one can be active at a time). Continue?')) {
+                    send({ confirm: '1' }).then(function (r2) {
+                        if (r2.result === 1) { window.location.reload(); return; }
+                        (r2.messages || []).forEach(function (m) { alert(m.message); });
+                    }).catch(function () {});
+                }
+                return;
+            }
+            (res.messages || []).forEach(function (m) { alert(m.message); });
+        }).catch(function () {});
+    }
 
     /* ---- delete (nuclear): dependents block → toast; else type-to-confirm DANGER modal ---- */
     var delEl    = document.getElementById('mod-delete-modal');
@@ -194,25 +231,32 @@ document.addEventListener('DOMContentLoaded', function () {
     var delFb    = document.getElementById('mod-delete-feedback');
     var delCtx   = { slug: '', token: '' };
 
-    document.querySelectorAll('[data-mod-delete]').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var deps = (btn.getAttribute('data-deps') || '').trim();
-            if (deps) {                                  // a dependent would break — refuse, don't open the modal
-                var many = deps.indexOf(',') !== -1;
-                var msg = "'" + deps + "' depend" + (many ? '' : 's') + " on this module. Deactivate and/or delete "
-                    + (many ? 'them' : 'it') + " before you can delete this module.";
-                if (window.TigerDOM) { TigerDOM.toast(msg, { type: 'error' }); } else { alert(msg); }
-                return;
-            }
-            delCtx.slug  = btn.getAttribute('data-slug');
-            delCtx.token = btn.getAttribute('data-token') || btn.getAttribute('data-name');
-            if (delToken) { delToken.textContent = delCtx.token; }
-            if (delInput) { delInput.value = ''; }
-            if (delBtn)   { delBtn.disabled = true; }
-            if (delFb)    { delFb.innerHTML = ''; }
-            if (delModal) { delModal.show(); } else { alert('Delete unavailable — modal failed to load.'); }
-        });
+    function handleDeleteTrigger(btn) {
+        var deps = (btn.getAttribute('data-deps') || '').trim();
+        if (deps) {                                  // a dependent would break — refuse, don't open the modal
+            var many = deps.indexOf(',') !== -1;
+            var msg = "'" + deps + "' depend" + (many ? '' : 's') + " on this module. Deactivate and/or delete "
+                + (many ? 'them' : 'it') + " before you can delete this module.";
+            if (window.TigerDOM) { TigerDOM.toast(msg, { type: 'error' }); } else { alert(msg); }
+            return;
+        }
+        delCtx.slug  = btn.getAttribute('data-slug');
+        delCtx.token = btn.getAttribute('data-token') || btn.getAttribute('data-name');
+        if (delToken) { delToken.textContent = delCtx.token; }
+        if (delInput) { delInput.value = ''; }
+        if (delBtn)   { delBtn.disabled = true; }
+        if (delFb)    { delFb.innerHTML = ''; }
+        if (delModal) { delModal.show(); } else { alert('Delete unavailable — modal failed to load.'); }
+    }
+
+    /* One delegated listener handles both toggle + delete triggers across every DataTables redraw. */
+    document.addEventListener('click', function (e) {
+        var toggle = e.target.closest('[data-mod-toggle]');
+        if (toggle) { handleToggle(toggle); return; }
+        var del = e.target.closest('[data-mod-delete]');
+        if (del) { handleDeleteTrigger(del); return; }
     });
+
     if (delInput) {
         delInput.addEventListener('input', function () { if (delBtn) { delBtn.disabled = (delInput.value !== delCtx.token); } });
     }
@@ -232,58 +276,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .catch(function () { if (delFb) { delFb.textContent = 'Network error — please try again.'; } });
         });
-    }
-
-    /* ---- description more/less (smooth height, matches TigerDOM easing) ---- */
-    var EASE = 'cubic-bezier(.4, 0, .2, 1)';
-    function toggleDesc(el, link) {
-        var expanding = el.hasAttribute('data-collapsed');
-        var from = el.getBoundingClientRect().height;
-        if (expanding) { el.removeAttribute('data-collapsed'); } else { el.setAttribute('data-collapsed', ''); }
-        var to = el.getBoundingClientRect().height;              // measured with the target clamp applied
-        el.style.overflow = 'hidden'; el.style.maxHeight = 'none';
-        var anim = el.animate([{ height: from + 'px' }, { height: to + 'px' }], { duration: 240, easing: EASE });
-        anim.finished.then(function () { el.style.height = ''; el.style.overflow = ''; el.style.maxHeight = ''; }).catch(function () {});
-        link.textContent = expanding ? 'less' : 'more';
-    }
-    document.querySelectorAll('.mods-desc').forEach(function (d) {
-        d.setAttribute('data-collapsed', '');
-        if (d.scrollHeight - d.clientHeight < 2) { d.removeAttribute('data-collapsed'); return; }  // fits 1 line — no toggle
-        var link = document.createElement('a');
-        link.className = 'mods-more small text-primary ms-1';
-        link.href = '#'; link.setAttribute('role', 'button'); link.textContent = 'more';
-        d.insertAdjacentElement('afterend', link);
-        link.addEventListener('click', function (e) { e.preventDefault(); toggleDesc(d, link); });
-    });
-
-    /* ---- filter: All | Core | Addon pills + search ---- */
-    var rows = Array.prototype.slice.call(document.querySelectorAll('#mods-table tbody tr[data-cat]'));
-    var empty = document.querySelector('.mods-empty');
-    var pills = document.querySelectorAll('#mods-filter .nav-link');
-    var searchEl = document.getElementById('mods-search');
-    var state = { cat: 'all', q: '' };
-    function apply() {
-        var shown = 0;
-        rows.forEach(function (tr) {
-            var okCat = state.cat === 'all' || tr.getAttribute('data-cat') === state.cat;
-            var okQ = state.q === '' || (tr.getAttribute('data-search') || '').indexOf(state.q) !== -1;
-            var show = okCat && okQ;
-            tr.style.display = show ? '' : 'none';
-            if (show) { shown++; }
-        });
-        if (empty) { empty.style.display = shown ? 'none' : ''; }
-    }
-    pills.forEach(function (p) {
-        p.addEventListener('click', function (e) {
-            e.preventDefault();
-            pills.forEach(function (x) { x.classList.remove('active'); });
-            p.classList.add('active');
-            state.cat = p.getAttribute('data-filter');
-            apply();
-        });
-    });
-    if (searchEl) {
-        searchEl.addEventListener('input', function () { state.q = searchEl.value.trim().toLowerCase(); apply(); });
     }
 });
 </script>

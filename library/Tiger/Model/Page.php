@@ -22,6 +22,11 @@ class Tiger_Model_Page extends Tiger_Model_Table
     const TYPE_PAGE    = 'page';
     const TYPE_LAYOUT  = 'layout';
     const TYPE_PARTIAL = 'partial';
+    // A "block" is a reusable fragment placed by COPY: dropping it in the builder inlines its editable
+    // HTML into the page (detached from the source), vs a PARTIAL which is placed by REFERENCE
+    // ([partial name] — a live, immutable placeholder). A block is a builder library source only; it is
+    // never resolved at render time (there is no [block name] shortcode). See cms/AGENTS.md + THEMES.md.
+    const TYPE_BLOCK   = 'block';
 
     const STATUS_DRAFT     = 'draft';
     const STATUS_PUBLISHED = 'published';

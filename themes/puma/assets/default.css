@@ -41,3 +41,26 @@ footer.tiger-foot {
 .post-body a{color:var(--bs-primary);}
 .post-footer{margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--bs-border-color);}
 .post-terms a{text-decoration:none;}
+
+/* ── Named content-width containers (theme base — apply under EVERY skin) ─────
+   Pick one per <section> instead of a hand-set max-width. Complete containers
+   (centered, standard Bootstrap gutters) — except -full-bleed, edge-to-edge with
+   NO padding or margin. Names don't collide with Bootstrap's .container-{sm..xxl}/-fluid. */
+.container-narrow,.container-menu,.container-wide{
+  width:100%;margin-right:auto;margin-left:auto;
+  padding-right:calc(var(--bs-gutter-x,1.5rem)*.5);
+  padding-left:calc(var(--bs-gutter-x,1.5rem)*.5);
+}
+.container-narrow{max-width:760px;}   /* a tight reading/prose column */
+.container-wide{max-width:1440px;}    /* roomier than the menu bar */
+
+/* matches the main menu bar (the public navbar + footer use Bootstrap .container) */
+.container-menu{max-width:100%;}
+@media(min-width:576px){.container-menu{max-width:540px;}}
+@media(min-width:768px){.container-menu{max-width:720px;}}
+@media(min-width:992px){.container-menu{max-width:960px;}}
+@media(min-width:1200px){.container-menu{max-width:1140px;}}
+@media(min-width:1400px){.container-menu{max-width:1320px;}}
+
+/* edge-to-edge: no max-width, no padding, no margin */
+.container-full-bleed{width:100%;max-width:none;margin:0;padding:0;}

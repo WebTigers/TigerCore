@@ -20,7 +20,7 @@
     height: '100%',
     fromElement: false,
     storageManager: false,            // Tiger owns persistence, via /api
-    canvas: { styles: cfg.canvasCss || [] },   // load the ACTIVE theme's CSS so blocks preview in its style
+    canvas: { styles: (cfg.canvasStyles || []).concat(cfg.canvasCss || []) },   // base front-end CSS (bootstrap/default/skin/FA) + theme block CSS, injected into the canvas iframe
     // Choosing/uploading an image opens the shared Tiger Media Library (TigerMediaPicker
     // over Media_Service_Media) instead of GrapesJS's default uploader — so page media is
     // real TigerMedia (public URL / CDN), never a base64 blob inlined into the body.
@@ -49,9 +49,11 @@
   // Tiger additions: a live-rendering Menu component + a Bootstrap 5 block library. Base set —
   // enough to show where this goes (a Divi/Elementor-class kit); dress up later.
   registerMenuComponent(editor);
+  registerPartialComponent(editor);
   registerBootstrapBlocks(editor);
   registerVideoPicker(editor);
   registerThemeBlocks(editor);
+  registerUserBlocks(editor);
 
   // Seed the canvas: prefer the lossless project blob, else import the body HTML.
   try {
@@ -71,20 +73,36 @@
 
   var saving = false;
   var dirty  = false;
+  var suppressUpdate = false;   // set while save() pulls/re-adds the chrome, so that churn isn't "dirty"
+  var pendingLayoutKey = null;  // partial mode: a [Layout ▾] change to persist with the next save
 
-  function save() {
+  function save(done) {
     if (saving) { return; }
     saving = true;
     setStatus('Saving…', 'saving');
+
+    // Remove the header/footer preview from ALL saved data (body, css, AND the project blob) — it's
+    // view-only chrome, and its deep nesting blows past MariaDB's 32-level JSON limit (the meta
+    // json_valid CHECK). Capture with it gone, then re-inject for continued editing. suppressUpdate
+    // keeps this churn from marking the doc dirty / flickering the status.
+    suppressUpdate = true;
+    editor.getWrapper().find('[data-tiger-chrome]').forEach(function (c) { c.remove(); });
+    var outHtml    = editor.getHtml();
+    var outCss     = editor.getCss();
+    var outProject = JSON.stringify(editor.getProjectData());
+    tbInjectChrome();
+    suppressUpdate = false;
 
     var body = new URLSearchParams();
     body.set('module', 'cms');
     body.set('service', 'page');
     body.set('method', 'saveDesign');
     body.set('page_id', cfg.pageId || '');
-    body.set('html', editor.getHtml());
-    body.set('css', editor.getCss());
-    body.set('project', JSON.stringify(editor.getProjectData()));
+    body.set('html', tbStripChrome(outHtml));   // belt-and-suspenders (chrome already removed above)
+    body.set('css', outCss);
+    body.set('project', outProject);
+    // Partial mode: persist a changed preview-layout association alongside the design.
+    if (pendingLayoutKey !== null) { body.set('layout_key', pendingLayoutKey); }
 
     fetch(cfg.api || '/api', {
       method: 'POST',
@@ -94,7 +112,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (res) {
-        if (res && res.result) { dirty = false; setStatus('Saved ✓', 'ok'); }
+        if (res && res.result) { dirty = false; setStatus('Saved ✓', 'ok'); if (typeof done === 'function') { done(); } }
         else { setStatus('Save failed', 'err'); }
       })
       .catch(function () { setStatus('Save failed', 'err'); })
@@ -102,7 +120,90 @@
   }
 
   var saveBtn = document.getElementById('tb-save');
-  if (saveBtn) { saveBtn.addEventListener('click', save); }
+  if (saveBtn) { saveBtn.addEventListener('click', function () { save(); }); }
+
+  // Partial mode: the [Layout ▾] picker re-previews this partial inside a different layout's chrome.
+  // The server assembles the locked chrome, so we save the current design (persisting the new
+  // association) and reload to pick up the freshly-split chrome around the partial.
+  var layoutSel = document.getElementById('tb-layout');
+  if (layoutSel) {
+    layoutSel.addEventListener('change', function () {
+      pendingLayoutKey = layoutSel.value;
+      setStatus('Switching layout…', 'saving');
+      save(function () { window.location.reload(); });
+    });
+  }
+
+  // Canvas light/dark — mirror the site's data-bs-theme INSIDE the canvas iframe (Bootstrap reads it
+  // on the iframe's <html>; our skins define both modes), toggleable from the top-bar sun/moon.
+  // Init to the builder's OWN theme (theme-init.js set it from the cookie), so the first frame:load
+  // applies the right mode immediately — no light default to flash from.
+  var tbMode = document.documentElement.getAttribute('data-bs-theme') || 'light';
+  // GrapesJS hardcodes a white "paper" bg on the canvas body, which ignores --bs-body-bg — so the body
+  // stayed white while token-driven sections went dark. Tie html/body to the Bootstrap body token so
+  // it follows the theme (background only forced; text-* utilities keep their own colors).
+  function tbApplyCanvasBg() {
+    try {
+      var doc = editor.Canvas.getDocument();
+      if (!doc || doc.querySelector('style[data-tiger="canvas-bg"]')) { return; }
+      var st = doc.createElement('style');
+      st.setAttribute('data-tiger', 'canvas-bg');
+      st.textContent = 'html,body{background-color:var(--bs-body-bg)!important;color:var(--bs-body-color);}';
+      (doc.head || doc.documentElement).appendChild(st);
+    } catch (e) {}
+  }
+  function tbCanvasTheme(mode) {
+    tbMode = mode;
+    try {
+      var doc = editor.Canvas.getDocument();
+      if (doc && doc.documentElement) { doc.documentElement.setAttribute('data-bs-theme', mode); }
+    } catch (e) {}
+    var icon = document.querySelector('#tb-theme i');
+    if (icon) { icon.className = 'fa-solid ' + (mode === 'dark' ? 'fa-moon' : 'fa-sun'); }
+  }
+  // Default the canvas to whatever the builder itself is in (theme-init.js set it from the cookie),
+  // and re-apply after a device switch (which reloads the canvas frame).
+  editor.on('load', function () { tbApplyCanvasBg(); tbCanvasTheme(document.documentElement.getAttribute('data-bs-theme') || 'light'); });
+  editor.on('canvas:frame:load', function () { tbApplyCanvasBg(); tbCanvasTheme(tbMode); });
+  var themeBtn = document.getElementById('tb-theme');
+  if (themeBtn) { themeBtn.addEventListener('click', function () { tbCanvasTheme(tbMode === 'dark' ? 'light' : 'dark'); }); }
+  // Safety: the canvas frame is hidden by builder.css until .tb-canvas-ready — always reveal it, even if
+  // 'load' never fires, so it can't stay blank.
+  setTimeout(function () { document.body.classList.add('tb-canvas-ready'); }, 2500);
+
+  // ---- Non-editable theme chrome: render the real header + footer in the canvas for context
+  // (Elementor-style), LOCKED so they can't be edited/moved/deleted, and STRIPPED from the saved
+  // body so they never bake into the page (the live layout provides the real header/footer). ----
+  function tbLock(c) {
+    c.set({ selectable: false, editable: false, hoverable: false, highlightable: false, draggable: false,
+            droppable: false, removable: false, copyable: false, layerable: false, badgable: false });
+    var kids = c.components && c.components();
+    if (kids && kids.forEach) { kids.forEach(tbLock); }
+  }
+  function tbInjectChrome() {
+    var w = editor.getWrapper();
+    if (!w) { return; }
+    try { w.find('[data-tiger-chrome]').forEach(function (c) { c.remove(); }); } catch (e) {}   // drop any stale copy restored from the project
+    try {
+      if (cfg.footerHtml) { w.append('<div data-tiger-chrome="footer">' + cfg.footerHtml + '</div>'); }
+      if (cfg.headerHtml) { w.append('<div data-tiger-chrome="header">' + cfg.headerHtml + '</div>', { at: 0 }); }
+      w.find('[data-tiger-chrome]').forEach(tbLock);
+    } catch (e) {}
+  }
+  function tbStripChrome(html) {
+    try {
+      var d = new DOMParser().parseFromString('<body>' + (html || '') + '</body>', 'text/html');
+      var nodes = d.querySelectorAll('[data-tiger-chrome]');
+      for (var i = 0; i < nodes.length; i++) { nodes[i].parentNode.removeChild(nodes[i]); }
+      return d.body.innerHTML;
+    } catch (e) { return html; }
+  }
+  editor.on('load', function () {
+    tbInjectChrome();
+    // Theme is applied + chrome placed — reveal the canvas (hidden until now to kill the light→dark
+    // FOUC; see builder.css). rAF lets the themed repaint land before the fade-in.
+    requestAnimationFrame(function () { document.body.classList.add('tb-canvas-ready'); });
+  });
 
   // Ctrl/Cmd+S saves without leaving the builder.
   document.addEventListener('keydown', function (e) {
@@ -112,7 +213,7 @@
   // Track unsaved edits; warn before closing. GrapesJS fires 'update' after its initial
   // seed, so arm the flag only once the editor has settled.
   editor.on('load', function () {
-    setTimeout(function () { editor.on('update', function () { dirty = true; setStatus('Unsaved changes', ''); }); }, 400);
+    setTimeout(function () { editor.on('update', function () { if (suppressUpdate) { return; } dirty = true; setStatus('Unsaved changes', ''); }); }, 400);
   });
   window.addEventListener('beforeunload', function (e) {
     if (dirty) { e.preventDefault(); e.returnValue = ''; }
@@ -143,10 +244,50 @@
         onRender: function () {
           var key = this.model.get('menuKey') || 'primary';
           var m = (window.TIGER_BUILDER && window.TIGER_BUILDER.menus) || {};
-          this.el.innerHTML = (m[key] != null && m[key] !== '')
+          var inner = (m[key] != null && m[key] !== '')
             ? '<nav class="tb-menu-preview">' + m[key] + '</nav>'
             : '<div class="p-2 small text-muted border rounded bg-light">[menu name="' + key + '"] — no preview</div>';
-          this.el.style.pointerEvents = 'none';   // canvas preview only
+          // pointer-events off on the PREVIEW only — so GrapesJS can still hover/select/move the component.
+          this.el.innerHTML = '<div style="pointer-events:none;">' + inner + '</div>';
+        }
+      }
+    });
+  }
+
+  // The PARTIAL widget: drop it, pick a named partial (a type=partial page), it renders a LIVE preview
+  // and exports [partial name="x"] — dynamic at view time, so editing the partial updates everywhere.
+  // The composition primitive for "everything is a partial" (header/footer/hero/section/…). Twin of the
+  // Menu widget above.
+  function registerPartialComponent(editor) {
+    var partials = (window.TIGER_BUILDER && window.TIGER_BUILDER.partials) || {};
+    var names = Object.keys(partials);
+
+    editor.Components.addType('tiger-partial', {
+      isComponent: function (el) { return el && el.getAttribute && el.getAttribute('data-tiger-partial') !== null; },
+      model: {
+        defaults: {
+          partialName: names[0] || '',
+          draggable: true, droppable: false, editable: false, highlightable: true,
+          attributes: { 'data-tiger-partial': '' },
+          traits: [{
+            type: names.length ? 'select' : 'text', name: 'partialName', label: 'Partial', changeProp: 1,
+            options: names.map(function (n) { return { id: n, name: (partials[n] && partials[n].label) || n }; })
+          }]
+        },
+        init: function () { this.on('change:partialName', function () { if (this.view) { this.view.render(); } }); },
+        // Export the SHORTCODE, not the preview — the partial stays dynamic + editable in its own editor.
+        toHTML: function () { return '[partial name="' + (this.get('partialName') || '') + '"]'; }
+      },
+      view: {
+        onRender: function () {
+          var name = this.model.get('partialName') || '';
+          var p = (window.TIGER_BUILDER && window.TIGER_BUILDER.partials) || {};
+          var html = (p[name] && p[name].html != null) ? p[name].html : '';
+          var inner = (html !== '')
+            ? html
+            : '<div class="p-3 small text-muted border rounded bg-light">[partial name="' + (name || '?') + '"] — pick a partial in the trait panel</div>';
+          // pointer-events off on the PREVIEW only — GrapesJS keeps hover/select/move/delete on the widget.
+          this.el.innerHTML = '<div style="pointer-events:none;">' + inner + '</div>';
         }
       }
     });
@@ -194,6 +335,7 @@
     add('tb-accordion', 'Accordion', 'Components', accordionHtml(), 'fa-bars-staggered');
 
     bm.add('tb-menu', { label: 'Menu', category: 'Components', media: '<i class="fa-solid fa-bars"></i>', content: { type: 'tiger-menu' } });
+    bm.add('tb-partial', { label: 'Partial', category: 'Components', media: '<i class="fa-solid fa-puzzle-piece"></i>', content: { type: 'tiger-partial' } });
   }
 
   // ---- Video ↔ Media Library. The native video component takes its src from a trait, not the
@@ -228,6 +370,66 @@
       if (component && component.get && component.get('type') === 'video' && !component.get('src')) {
         editor.runCommand('tiger-video-pick', { target: component });
       }
+    });
+  }
+
+  // ---- user-authored BLOCKS: reusable fragments placed by COPY (window.TIGER_BUILDER.userBlocks) ----
+  // Each drops its saved HTML into the canvas as EDITABLE components, detached from the source — the twin
+  // of the reference-placed Partial widget (which drops a live [partial name] placeholder). Grouped under
+  // "My Blocks"; authored via the "Save as Block" button (addUserBlock adds one to the palette live).
+  function registerUserBlocks(editor) {
+    var blocks = (window.TIGER_BUILDER && window.TIGER_BUILDER.userBlocks) || [];
+    blocks.forEach(function (b) { addUserBlock({ page_id: b.id, label: b.label, html: b.content }); });
+  }
+  function addUserBlock(b) {
+    if (!b || !b.page_id) { return; }
+    try {
+      editor.BlockManager.add('userblock-' + b.page_id, {
+        label:    b.label || 'Block',
+        category: 'My Blocks',
+        media:    '<i class="fa-solid fa-cube"></i>',
+        content:  b.html || ''
+      });
+    } catch (e) {}
+  }
+
+  // "Save as Block": persist the SELECTED element as a reusable Block (a copy-in fragment) and add it to
+  // the "My Blocks" palette immediately. Copy semantics — the page keeps its element; the Block is a new,
+  // independent source. Chrome is stripped so locked header/footer can never be captured into a block.
+  var saveBlockBtn = document.getElementById('tb-save-block');
+  if (saveBlockBtn) {
+    saveBlockBtn.addEventListener('click', function () {
+      var sel = editor.getSelected();
+      if (!sel) { setStatus('Select an element first', 'err'); return; }
+      var name = window.prompt('Name this block:', '');
+      if (name === null) { return; }
+      name = String(name).trim();
+      if (!name) { setStatus('A name is required', 'err'); return; }
+
+      var html = '', css = '';
+      try { html = sel.toHTML(); } catch (e) {}
+      try { css = editor.getCss({ component: sel }) || ''; } catch (e) {}
+      html = tbStripChrome(html);
+      if (!html || !html.trim()) { setStatus('Nothing to save', 'err'); return; }
+
+      var body = new URLSearchParams();
+      body.set('module', 'cms'); body.set('service', 'page'); body.set('method', 'saveBlock');
+      body.set('name', name); body.set('html', html); body.set('css', css);
+
+      saveBlockBtn.disabled = true;
+      setStatus('Saving block…', 'saving');
+      fetch(cfg.api || '/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+        body: body.toString(), credentials: 'same-origin'
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+          if (res && res.result && res.data) { addUserBlock(res.data); setStatus('Block saved ✓ — see “My Blocks”', 'ok'); }
+          else { setStatus('Block save failed', 'err'); }
+        })
+        .catch(function () { setStatus('Block save failed', 'err'); })
+        .finally(function () { saveBlockBtn.disabled = false; });
     });
   }
 

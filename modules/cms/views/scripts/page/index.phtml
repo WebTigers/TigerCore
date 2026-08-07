@@ -25,9 +25,9 @@
     <li class="nav-item" role="presentation">
         <button class="nav-link active" id="tab-pages-btn" data-bs-toggle="tab" data-bs-target="#tab-pages" type="button" role="tab" aria-controls="tab-pages" aria-selected="true"><i class="fa-solid fa-file-lines me-2"></i>Pages</button>
     </li>
-    <?php if (!empty($this->themeTemplates)): ?>
+    <?php if (!empty($this->themeCount)): ?>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-templates-btn" data-bs-toggle="tab" data-bs-target="#tab-templates" type="button" role="tab" aria-controls="tab-templates" aria-selected="false"><i class="fa-solid fa-swatchbook me-2"></i>Theme Templates <span class="badge text-bg-secondary-subtle text-secondary-emphasis ms-1"><?= count($this->themeTemplates) ?></span></button>
+        <button class="nav-link" id="tab-templates-btn" data-bs-toggle="tab" data-bs-target="#tab-templates" type="button" role="tab" aria-controls="tab-templates" aria-selected="false"><i class="fa-solid fa-swatchbook me-2"></i>Theme Templates <span class="badge text-bg-secondary-subtle text-secondary-emphasis ms-1"><?= (int) $this->themeCount ?></span></button>
     </li>
     <?php endif; ?>
 </ul>
@@ -53,6 +53,7 @@
                             <option value="page">Page</option>
                             <option value="layout">Layout</option>
                             <option value="partial">Partial</option>
+                            <option value="block">Block</option>
                         </select>
                     </div>
                     <div class="col-auto">
@@ -82,19 +83,28 @@
         </div>
     </div>
 
-    <?php if (!empty($this->themeTemplates)): ?>
+    <?php if (!empty($this->themeCount)): ?>
     <div class="tab-pane fade" id="tab-templates" role="tabpanel" aria-labelledby="tab-templates-btn">
         <div class="card">
-            <div class="card-body">
-                <p class="text-body-secondary small mb-3">
-                    <?php if ($this->themeName): ?><span class="badge text-bg-light me-1"><?= $this->escape($this->themeName) ?></span><?php endif; ?>
-                    Pages the active theme serves from files — <strong>Customize</strong> makes an editable copy that overrides the file. The theme file is never changed.
+            <div class="card-header bg-transparent">
+                <p class="text-body-secondary small mb-0">
+                    Pages, layouts, and partials your installed themes serve from files — <strong>Customize</strong> makes an editable copy that overrides the file. The theme file is never changed.
                 </p>
-                <div class="mb-3"><input type="search" id="tpl-search" class="form-control form-control-sm" placeholder="Search <?= count($this->themeTemplates) ?> templates…"></div>
-                <div id="tpl-grid" class="row g-3"></div>
-                <div class="text-center mt-3">
-                    <button type="button" id="tpl-more" class="btn btn-sm btn-outline-secondary" hidden>Show more</button>
-                    <div id="tpl-empty" class="small text-body-secondary" hidden>No templates match.</div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="cms-templates-table" class="table table-hover align-middle" style="width:100%;">
+                        <thead>
+                            <tr>
+                                <th>Kind</th>
+                                <th>Theme</th>
+                                <th>Title</th>
+                                <th>Handle</th>
+                                <th>Status</th>
+                                <th class="text-end" data-orderable="false">Actions</th>
+                            </tr>
+                        </thead>
+                    </table>
                 </div>
             </div>
         </div>
@@ -102,20 +112,12 @@
     <?php endif; ?>
 </div>
 
-<?php if (!empty($this->themeTemplates)): ?>
-<script>
-window.CMS_THEME_TEMPLATES = <?= json_encode(array_map(static function ($t) {
-    return ['slug' => $t['slug'], 'title' => $t['title'], 'layout' => $t['layout'], 'page_id' => $t['page_id']];
-}, $this->themeTemplates), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
-</script>
-<?php endif; ?>
-
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     if (typeof tigerDataTable !== 'function') { return; }
     var $   = jQuery;
     var esc = tigerDataTable.esc;
-    var TYPE_ICON = { page: 'fa-file-lines', layout: 'fa-table-columns', partial: 'fa-puzzle-piece' };
+    var TYPE_ICON = { page: 'fa-file-lines', layout: 'fa-table-columns', partial: 'fa-puzzle-piece', block: 'fa-cube' };
     var BADGE     = { published: 'success', draft: 'secondary', archived: 'warning' };
     function cap(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
 
@@ -156,7 +158,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 var html = '';
                 if (row.can_edit) {
                     html += '<a href="/cms/page/edit/id/' + encodeURIComponent(row.page_id) + '" class="btn btn-sm btn-outline-secondary" title="Edit" aria-label="Edit"><i class="fa-solid fa-pen"></i></a> ';
-                    if (row.type === 'page') {
+                    // Pages, partials, AND blocks open in the visual builder (a fragment edits inside its
+                    // layout's chrome — see Cms_PageController::designAction); layouts stay text-edited.
+                    if (row.type === 'page' || row.type === 'partial' || row.type === 'block') {
                         html += '<a href="/cms/page/design/id/' + encodeURIComponent(row.page_id) + '" class="btn btn-sm btn-outline-primary" title="Design visually" aria-label="Design visually"><i class="fa-solid fa-panorama"></i></a> ';
                     }
                 }
@@ -178,52 +182,69 @@ document.addEventListener('DOMContentLoaded', function () {
         table.ajax.reload();
     });
 
-    // Theme templates: client-render with search + a cap (a theme may ship hundreds — Porto ~830).
+    // Theme Templates: a SERVER-SIDE DataTable (a theme may ship hundreds — Porto ~830). Built lazily on
+    // first tab show — DataTables mis-measures column widths if initialized while its tab is hidden.
     (function () {
-        var all  = window.CMS_THEME_TEMPLATES || [];
-        var grid = document.getElementById('tpl-grid');
-        if (!grid || !all.length) { return; }
-        var searchEl = document.getElementById('tpl-search');
-        var moreBtn  = document.getElementById('tpl-more');
-        var emptyEl  = document.getElementById('tpl-empty');
-        var PAGE = 24, shown = PAGE, filtered = all;
-
-        function card(t) {
-            var actions = t.page_id
-                ? '<a href="/cms/page/edit/id/' + encodeURIComponent(t.page_id) + '" class="btn btn-sm btn-outline-primary flex-grow-1"><i class="fa-solid fa-pen me-1"></i>Edit copy</a>'
-                    + '<span class="badge text-bg-success-subtle text-success-emphasis border border-success-subtle text-nowrap">Customized</span>'
-                : '<button type="button" class="btn btn-sm btn-primary flex-grow-1" data-theme-fork="' + esc(t.slug) + '"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Customize</button>';
-            return '<div class="col-sm-6 col-lg-4"><div class="border rounded p-3 h-100 d-flex flex-column">'
-                 + '<div class="fw-semibold text-truncate" title="' + esc(t.title) + '">' + esc(t.title) + '</div>'
-                 + '<div class="small text-body-secondary mb-3 text-truncate"><code>/' + esc(t.slug) + '</code>'
-                 +   (t.layout ? ' <span class="ms-1"><i class="fa-solid fa-table-columns fa-fw"></i> ' + esc(t.layout) + '</span>' : '') + '</div>'
-                 + '<div class="mt-auto d-flex align-items-center gap-2">'
-                 +   '<a href="/' + esc(t.slug) + '" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Preview" aria-label="Preview"><i class="fa-solid fa-eye"></i></a>'
-                 +   actions + '</div></div></div>';
-        }
-        function render() {
-            var slice = filtered.slice(0, shown);
-            grid.innerHTML = slice.map(card).join('');
-            moreBtn.hidden  = shown >= filtered.length;
-            moreBtn.textContent = 'Show more (' + (filtered.length - slice.length) + ')';
-            emptyEl.hidden  = filtered.length > 0;
-        }
-        function apply() {
-            var q = (searchEl.value || '').toLowerCase().trim();
-            filtered = q ? all.filter(function (t) { return (t.title + ' ' + t.slug).toLowerCase().indexOf(q) > -1; }) : all;
-            shown = PAGE; render();
-        }
-        var td;
-        searchEl.addEventListener('input', function () { clearTimeout(td); td = setTimeout(apply, 150); });
-        moreBtn.addEventListener('click', function () { shown += PAGE; render(); });
-        render();
+        var tabBtn = document.getElementById('tab-templates-btn');
+        if (!tabBtn || typeof tigerDataTable !== 'function') { return; }
+        var KIND = { page: { l: 'Page', i: 'fa-file-lines' }, layout: { l: 'Layout', i: 'fa-table-columns' }, partial: { l: 'Partial', i: 'fa-puzzle-piece' } };
+        var built = false;
+        tabBtn.addEventListener('shown.bs.tab', function () {
+            if (built) { return; }
+            built = true;
+            tigerDataTable('#cms-templates-table', {
+                service: { module: 'cms', service: 'page', action: 'themeTemplates' },
+                order: [[1, 'asc']],
+                language: { search: '', searchPlaceholder: 'Search templates…' },
+                columns: [
+                    { data: 'kind', render: function (t, type) {
+                        if (type !== 'display') { return t; }
+                        var k = KIND[t] || { l: t, i: 'fa-file' };
+                        return '<i class="fa-solid ' + k.i + ' fa-fw text-body-secondary me-1"></i>' + esc(k.l);
+                    } },
+                    { data: 'theme', render: function (t, type) {
+                        return type !== 'display' ? t : '<span class="badge text-bg-secondary-subtle text-secondary-emphasis">' + esc(t) + '</span>';
+                    } },
+                    { data: 'title', render: function (t, type, row) {
+                        if (type !== 'display') { return t; }
+                        return row.customized
+                            ? '<a href="/cms/page/edit/id/' + encodeURIComponent(row.page_id) + '" class="fw-semibold text-decoration-none">' + esc(t) + '</a>'
+                            : '<span class="fw-semibold">' + esc(t) + '</span>';
+                    } },
+                    { data: 'handle', render: function (t, type) {
+                        return type !== 'display' ? t : '<code class="text-body-secondary">' + esc(t) + '</code>';
+                    } },
+                    { data: 'customized', render: function (t, type) {
+                        if (type !== 'display') { return t ? 1 : 0; }
+                        return t
+                            ? '<span class="badge text-bg-success-subtle text-success-emphasis border border-success-subtle">Customized</span>'
+                            : '<span class="text-body-tertiary small">Available</span>';
+                    } },
+                    { data: null, orderable: false, searchable: false, className: 'text-end text-nowrap', render: function (t, type, row) {
+                        if (type !== 'display') { return ''; }
+                        var h = '';
+                        if (row.kind === 'page') {
+                            h += '<a href="/' + esc(row.slug) + '" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Preview" aria-label="Preview"><i class="fa-solid fa-eye"></i></a> ';
+                        }
+                        if (row.customized) {
+                            h += '<a href="/cms/page/edit/id/' + encodeURIComponent(row.page_id) + '" class="btn btn-sm btn-outline-primary" title="Edit copy"><i class="fa-solid fa-pen me-1"></i>Edit copy</a>';
+                        } else if (row.can_edit) {
+                            h += '<button type="button" class="btn btn-sm btn-primary" data-theme-fork="' + esc(row.slug) + '" data-fork-kind="' + esc(row.kind) + '" data-fork-theme="' + esc(row.theme_key) + '" title="Customize"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Customize</button>';
+                        }
+                        return h || '<span class="text-body-secondary">—</span>';
+                    } }
+                ]
+            });
+        });
     })();
 
-    // Customize a theme template: fork it into an editable page (server), then open the editor.
+    // Customize a theme template: fork it (page/layout/partial) into an editable row (server), then open it.
     document.addEventListener('click', function (e) {
         var btn = e.target.closest('[data-theme-fork]');
         if (!btn) { return; }
-        var body = new URLSearchParams({ module: 'cms', service: 'page', method: 'forkTheme', slug: btn.getAttribute('data-theme-fork') });
+        var body = new URLSearchParams({ module: 'cms', service: 'page', method: 'forkTheme',
+            slug: btn.getAttribute('data-theme-fork'), kind: btn.getAttribute('data-fork-kind') || 'page',
+            theme: btn.getAttribute('data-fork-theme') || '' });
         TigerButton.run(btn, function () {
             return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body }).then(function (r) { return r.json(); });
         }).then(function (res) {

@@ -124,13 +124,11 @@ final class CmsControllerTest extends ControllerTestCase
         $view = $this->controller()->view;
         $this->assertSame('Content — Tiger Admin', $view->title);
         $this->assertTrue($view->useDataTables);
-        $this->assertSame('Test Theme', $view->themeName);
-        $this->assertNotEmpty($view->themeTemplates, 'the active theme templates are surfaced');
-
-        $welcome = null;
-        foreach ($view->themeTemplates as $t) { if ($t['slug'] === 'welcome') { $welcome = $t; } }
-        $this->assertNotNull($welcome, 'the welcome template appears');
-        $this->assertSame($id, $welcome['page_id'], 'the template is flagged customized (a page claims its slug)');
+        // The theme templates now load via a server-side DataTable (Cms_Service_Page::themeTemplates);
+        // the index shell only exposes the count for the tab badge.
+        $this->assertGreaterThan(0, (int) $view->themeCount, 'the active theme surfaces forkable templates');
+        // (the seeded 'welcome' page is what a themeTemplates row flags "customized" — covered there.)
+        $this->assertNotNull($id);
     }
 
     #[Test]

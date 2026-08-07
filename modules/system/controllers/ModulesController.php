@@ -38,6 +38,12 @@ class System_ModulesController extends Tiger_Controller_Admin_Action
             // A theme's active state is the tiger.theme config (its KEY, one per scope); a module's is its flag.
             $active  = $isTheme ? ($activeTheme === ($m['key'] ?? $slug)) : ($row ? ((int) $row->active === 1) : true);
             $source  = $row ? $row->source : ($m['area'] === 'core' ? 'bundled' : 'custom');
+            // Taxonomy resolution (AUTHORING.md): the value STORED at install (retained from the source
+            // listing/manifest) wins; else the live manifest that Discovery read; else its default. Read
+            // via toArray() so a pre-0042 DB (no columns) degrades gracefully to the manifest.
+            $rowArr = $row ? $row->toArray() : [];
+            if (!empty($rowArr['type']))     { $m['type']     = (string) $rowArr['type']; }
+            if (!empty($rowArr['category'])) { $m['category'] = array_values(array_filter(explode(',', (string) $rowArr['category']))); }
             $modules[] = $m + [
                 'active'    => $active,
                 'source'    => $source,
@@ -49,9 +55,23 @@ class System_ModulesController extends Tiger_Controller_Admin_Action
             ];
         }
 
+        // Type labels for the filter pills + the Type column, from the SAME data-driven registry taxonomy
+        // the Add Module screen uses (Apps / Themes / Plugins / Code / Developer …). Best-effort + cached;
+        // a derived humanize is the fallback, so the screen never depends on the registry being reachable.
+        $typeLabels = [];
+        try {
+            $tax = Tiger_Module_Registry::taxonomy();
+            foreach (($tax['types'] ?? []) as $t) {
+                if (!empty($t['id'])) { $typeLabels[(string) $t['id']] = (string) ($t['label'] ?? $t['id']); }
+            }
+        } catch (Throwable $e) {
+        }
+
         $this->view->title       = 'Modules — Tiger Admin';
         $this->view->modules     = $modules;
         $this->view->activeTheme = $activeTheme;
+        $this->view->typeLabels  = $typeLabels;
+        $this->view->useDataTables = true;   // the list is a client-side DataTable (sort / page / search)
     }
 
     /**
