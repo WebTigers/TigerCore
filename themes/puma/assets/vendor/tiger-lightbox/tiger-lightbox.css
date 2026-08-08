@@ -50,6 +50,18 @@ html.tlb-open { overflow: hidden; }
 }
 .tlb-caption[hidden] { display: none; }
 
+/* Watermark stamp overlaid on the media (e.g. "PAID" on an invoice PDF). Presentational only. */
+.tlb-stamp {
+    position: absolute; top: 9%; right: 8%; z-index: 3; pointer-events: none;
+    font: 800 clamp(1.5rem, 3.6vw, 3rem)/1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    letter-spacing: .12em; text-transform: uppercase; white-space: nowrap;
+    color: #198754; border: .16em solid #198754; border-radius: .18em;
+    padding: .12em .42em; transform: rotate(-14deg); opacity: .88;
+    background: rgba(255, 255, 255, .35);
+}
+.tlb-stamp--danger  { color: #dc3545; border-color: #dc3545; }
+.tlb-stamp--warning { color: #b8860b; border-color: #b8860b; }
+
 .tlb-counter {
     position: absolute; top: 1rem; left: 1.1rem; z-index: 2;
     color: var(--tlb-fg); opacity: .78; font: 13px system-ui, sans-serif;
