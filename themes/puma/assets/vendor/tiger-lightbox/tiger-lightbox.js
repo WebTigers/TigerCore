@@ -1,5 +1,5 @@
 /*!
- * TigerLightbox v1.0.0 — a tiny, dependency-free lightbox & media viewer.
+ * TigerLightbox v1.1.0 — a tiny, dependency-free lightbox & media viewer.
  * https://github.com/WebTigers/TigerLightbox · MIT License
  *
  * Zero dependencies, ~5KB. Handles images, video, PDFs/iframes, and embeds, with gallery
@@ -8,11 +8,16 @@
  * Attribute API (auto-wired, works with dynamically-added elements):
  *   <a href="big.jpg" data-tiger-lightbox="gallery" data-caption="A view">…</a>
  *   items sharing the same group value form one gallery.
- *   optional: data-src (overrides href), data-type (image|video|pdf|iframe), data-title.
+ *   optional: data-src (overrides href), data-type (image|video|pdf|iframe), data-title,
+ *             data-stamp (a watermark, e.g. "PAID"), data-stamp-variant (success|danger|warning).
  *
  * JS API:
- *   TigerLightbox.open([{type,src,caption,title}], startIndex)
+ *   TigerLightbox.open([{type,src,caption,title,stamp,stampVariant}], startIndex)
  *   TigerLightbox.close()
+ *
+ * `stamp` overlays a rotated watermark on the media (e.g. "PAID" on an invoice PDF); `stampVariant`
+ * tints it (default green/success). Purely presentational + pointer-events:none, so it never blocks
+ * interacting with the media beneath.
  */
 (function (global, document) {
     'use strict';
@@ -84,6 +89,15 @@
             node.src = item.src;
         }
         media.appendChild(node);
+
+        // Optional watermark stamp overlaid on the media (e.g. "PAID" on an invoice PDF). Presentational
+        // only (pointer-events:none) so it never blocks scrolling/interacting with the media beneath.
+        if (item.stamp) {
+            var variant = (item.stampVariant || '').replace(/[^a-z]/g, '');
+            var stamp = elem('div', 'tlb-stamp' + (variant ? ' tlb-stamp--' + variant : ''));
+            stamp.textContent = item.stamp;
+            media.appendChild(stamp);
+        }
 
         cap.textContent = item.caption || item.title || '';
         cap.hidden = !cap.textContent;
@@ -168,7 +182,9 @@
             type: el.getAttribute('data-type') || guessType(src),
             src: src,
             caption: el.getAttribute('data-caption') || '',
-            title: el.getAttribute('data-title') || ''
+            title: el.getAttribute('data-title') || '',
+            stamp: el.getAttribute('data-stamp') || '',
+            stampVariant: el.getAttribute('data-stamp-variant') || ''
         };
     }
 
@@ -184,5 +200,5 @@
         open(nodes.map(nodeToItem), nodes.indexOf(t));
     });
 
-    global.TigerLightbox = { open: open, close: close, version: '1.0.0' };
+    global.TigerLightbox = { open: open, close: close, version: '1.1.0' };
 })(window, document);
