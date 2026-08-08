@@ -124,6 +124,7 @@ $_hasAgent = class_exists('Tiger_Agent') && Tiger_Agent::isAvailable();
 <?php endif; ?>
 <script src="<?= $this->asset($this->themeAssets . '/js/tiger.dom.js') ?>"></script>
 <script src="<?= $this->asset($this->themeAssets . '/js/tiger.button.js') ?>"></script>
+<script src="<?= $this->asset($this->themeAssets . '/js/tiger.modal.js') ?>"></script>
 <!-- Reusable schedule control (data-schedule-form / data-schedule-run → schedule/setSchedule|runNow).
      Loaded globally so an embedded schedule-control (e.g. in Backup) works with zero per-page wiring. -->
 <script src="<?= $this->asset($this->themeAssets . '/js/tiger.schedule.js') ?>"></script>

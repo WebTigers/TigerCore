@@ -67,6 +67,7 @@ $_lang = defined('LANG') ? LANG : 'en';
 <?= $this->render('_partials/consent-banner.phtml') ?><?php /* GDPR cookie-consent bar — self-checks Tiger_Consent, renders nothing when not due */ ?>
 
 <script src="<?= $this->asset($this->themeAssets . '/js/bootstrap.bundle.js') ?>"></script>
+<script src="<?= $this->asset($this->themeAssets . '/js/tiger.modal.js') ?>"></script>
 <script src="<?= $this->asset($this->themeAssets . '/js/tiger.tabs.js') ?>"></script>
 <script src="<?= $this->asset($this->themeAssets . '/js/tiger.prefs.js') ?>"></script>
 <!-- ⌘K public search launcher (renders only when the header shows a [data-tiger-search] box). -->

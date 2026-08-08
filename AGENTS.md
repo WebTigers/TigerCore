@@ -143,6 +143,16 @@ again.**
 - **`TigerDOM.expand/collapse/toggle`** — the underlying reveal primitives (Web Animations API,
   interruptible, `prefers-reduced-motion`-aware). Reach for these for any show/hide (submenus,
   accordions, panels) instead of a jQuery slide or a raw `display` flip.
+- **`TigerModal.confirm/prompt/alert`** (`tiger.modal.js`) — the in-app replacement for the browser's
+  native `confirm()`/`prompt()`/`alert()`, which are **never** used (unstyled, un-themeable, freeze the
+  tab). Promise-based, themed, and it builds its one reusable Bootstrap modal on demand so a view needs
+  no modal markup: `confirm()`→`Promise<boolean>`, `prompt()`→`Promise<string|null>` (`null` on cancel,
+  mirroring `window.prompt` so `if (v === null) return;` swaps straight in). Enter submits; the field
+  focuses on open. Depends only on Bootstrap (loaded ahead of it in every layout).
+  ```js
+  TigerModal.confirm({ title: 'Remove card', body: 'Remove this card?', confirmLabel: 'Remove', variant: 'danger' })
+      .then(function (ok) { if (!ok) { return; } /* … */ });
+  ```
 
 The rule of thumb: **a control should always say what it's doing.** A save button that just sits
 there, or a message that blinks into existence and never leaves, is the tell of a cheap UI. These
