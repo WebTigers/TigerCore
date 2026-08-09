@@ -168,6 +168,83 @@ class Cms_Service_Menu extends Tiger_Service_Service
         }
     }
 
+    /**
+     * Clone the active theme's declared menus (`configs/menus.ini`) into editable DB rows.
+     *
+     * The explicit "import starter content" step (THEMES.md §4/§5) for menus: it never runs on
+     * install/activate — the theme's `.ini` already renders live via `Tiger_Menu`'s base-tier
+     * fallback; this copies it into `menu` rows so the drag-drop builder can edit it, after which
+     * the DB copy overrides the file. **Idempotent:** a menu key that already has rows in the
+     * target scope is skipped, so re-running never clobbers an edited menu. Pass `menu_key` to
+     * import just one; omit it to import all the theme declares.
+     *
+     * @param  array $params the request payload (optional `menu_key`, optional `org_id`)
+     * @return void
+     */
+    public function importFromTheme(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+
+        $themeMenus = Tiger_Theme_Menus::all();
+        if (!$themeMenus) { $this->_error('cms.menu.import_none'); return; }
+
+        $orgId    = (string) ($params['org_id'] ?? '');
+        $only     = trim((string) ($params['menu_key'] ?? ''));
+        $model    = new Tiger_Model_Menu();
+        $imported = [];
+        $skipped  = [];
+
+        try {
+            $this->_transaction(function () use ($model, $themeMenus, $orgId, $only, &$imported, &$skipped) {
+                foreach ($themeMenus as $key => $tree) {
+                    if (($only !== '' && $key !== $only) || !$tree) { continue; }
+                    if ($model->itemsForEditor((string) $key, $orgId)) { $skipped[] = $key; continue; }
+                    $this->_importNodes($model, $tree, (string) $key, $orgId, null);
+                    $imported[] = $key;
+                }
+            });
+        } catch (Throwable $e) {
+            $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
+            return;
+        }
+
+        if ($imported) {
+            $this->_success(['imported' => $imported, 'skipped' => $skipped], 'cms.menu.imported', '/cms/menu');
+        } elseif ($skipped) {
+            $this->_success(['imported' => [], 'skipped' => $skipped], 'cms.menu.import_present', '/cms/menu');
+        } else {
+            $this->_error('cms.menu.import_none');
+        }
+    }
+
+    /** Insert a theme menu tree (recursively) as `menu` rows, parents first to map child parent_ids. */
+    protected function _importNodes(Tiger_Model_Menu $model, array $nodes, string $menuKey, string $orgId, ?string $parentId): void
+    {
+        $sort = 0;
+        foreach ($nodes as $node) {
+            $id = $model->insert([
+                'menu_key'    => $menuKey,
+                'org_id'      => $orgId,
+                'parent_id'   => $parentId,
+                'sort_order'  => $sort++,
+                'label'       => (string) ($node['label'] ?? ''),
+                'page_key'    => $this->_nn($node['page_key']    ?? ''),
+                'url'         => $this->_nn($node['url']         ?? ''),
+                'icon'        => $this->_nn($node['icon']        ?? ''),
+                'css_class'   => $this->_nn($node['css_class']   ?? ''),
+                'dom_id'      => $this->_nn($node['dom_id']      ?? ''),
+                'link_target' => $this->_nn($node['link_target'] ?? ''),
+                'link_rel'    => $this->_nn($node['link_rel']    ?? ''),
+                'resource'    => $this->_nn($node['resource']    ?? ''),
+                'privilege'   => $this->_nn($node['privilege']   ?? ''),
+                'status'      => Tiger_Model_Menu::STATUS_PUBLISHED,
+            ]);
+            if (!empty($node['children'])) {
+                $this->_importNodes($model, $node['children'], $menuKey, $orgId, (string) $id);
+            }
+        }
+    }
+
     /** Trim to a value, or null when empty — keeps NULLs clean for optional columns. */
     protected function _nn($value): ?string
     {

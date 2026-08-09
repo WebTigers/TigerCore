@@ -25,4 +25,7 @@ return [
     'cms.menu.reordered'    => 'Menu order updated.',
     'cms.menu.key_required' => 'Give the menu a key first.',
     'cms.menu.label_hint'   => 'e.g. Home, or nav.label.home',
+    'cms.menu.imported'       => 'Theme menus imported — edit them here to override the theme.',
+    'cms.menu.import_present' => 'The theme\'s menus are already in place — nothing new to import.',
+    'cms.menu.import_none'    => 'The active theme ships no menus to import.',
 ];

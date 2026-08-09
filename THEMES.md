@@ -275,6 +275,52 @@ This avoids the "which layout wins?" ambiguity: structure is a file, author temp
 
 ---
 
+## 7a. Menus: a theme ships `configs/menus.ini` (base tier), the CMS overrides it
+
+A theme's chrome needs navigation (a header menu, footer columns). Rather than hardcode those `<ul>`s
+in the layout — where nobody can edit them — a theme declares them in a static **`configs/menus.ini`**,
+and they meet the CMS menu system through the **live-override pattern** (AGENTS.md), the same shape as
+config and translations: **file = base tier, the `menu` DB table = the override tier.**
+
+- **Render.** The layout calls the existing seam — `<?= $this->menu('primary', ['class' => 'navbar-nav']) ?>`
+  (or `[menu name="primary"]`, or `Tiger_Menu::getHTML('primary')`). For a Bootstrap navbar pass the blanket
+  item/link classes: `$this->menu('primary', ['class'=>'navbar-nav','item_class'=>'nav-item','link_class'=>'nav-link'])`. `Tiger_Menu` resolves the DB first;
+  when a key has **no** DB rows it **falls back to the active theme's `menus.ini`** (`Tiger_Theme_Menus`),
+  parsed into the very same node shape `Tiger_Model_Menu::tree()` yields — so auth-filtering, translation,
+  href resolution (`page_key` → slug), and active-state all ride the unchanged pipeline. **A theme's menus
+  therefore render out-of-box with nothing seeded.**
+- **Override.** Editing a menu in the CMS **Menus** admin, or importing it (below), creates DB rows for
+  that key — and the DB tier then **wins** over the file. Per-org override is menu-level, as always.
+- **Import (clone), explicit.** The Menus admin's **Import from theme** button
+  (`Cms_Service_Menu::importFromTheme`) copies the active theme's declared menus into editable DB rows so
+  the drag-drop builder can work them. It is the **explicit** starter-content step (§4/§5) — **never run on
+  install/activate** (the `.ini` already renders live, so no seeding is needed) — and **idempotent**: a menu
+  key that already has rows is skipped, so re-running never clobbers an edited menu.
+
+The `.ini` schema — one `[section]` per menu key, an ordered `items` map with author-friendly field names
+(mapped to the `menu` columns), nesting via `children`:
+
+```ini
+[primary]
+items.home.label      = "Home"
+items.home.url        = "/"
+items.services.label  = "Services"
+items.services.children.residential.label = "Residential"
+items.services.children.residential.url   = "/services/residential"
+
+[footer-social]
+items.tw.label  = "Twitter"
+items.tw.url    = "https://twitter.com/acme"
+items.tw.target = "_blank"          ; -> link_target; page_key/icon/class/id/rel/resource/privilege also map
+```
+
+Fields: `label` · `url` **or** `page_key` (a CMS page key → its live slug; wins over `url`) · `icon` ·
+`class` (→ `css_class`) · `id` (→ `dom_id`) · `target` (→ `link_target`) · `rel` (→ `link_rel`) ·
+`resource`/`privilege` (ACL gate — the item hides when the live role can't reach it). This is Tier-3
+starter content done as the live-override tier: nothing is a live CMS row until the user imports or edits.
+
+---
+
 ## 8. What a theme module ships
 
 ```
@@ -287,7 +333,7 @@ modules/theme-aurora/           (a `theme-<name>` module; resolved purely by pat
   components/             ; Tier 2 — GrapesJS block partials (+ tiger:block hint)     [prototyped §8a]
   content/                ; theme-shipped PAGES as body partials (+ tiger:page hint)  [prototyped §8a]
   source/                 ; pristine vendor .html — extraction INPUT, need not ship   [prototyped §8a]
-  configs/                ; acl.ini / routes.ini as any module
+  configs/                ; acl.ini / routes.ini as any module — plus menus.ini (§7a: the theme's menus)
 ```
 
 The **manifest** (`theme.json`) declares: the theme `key`; the `assetBase` (its `public/_<x>`

@@ -27,16 +27,22 @@ class Tiger_Menu
     /**
      * Render a menu to auth-filtered HTML (a `<ul>`).
      *
-     * $options: ['class'=>ulClass,'id'=>ulId,'org'=>orgId].
+     * $options: ['class'=>ulClass,'id'=>ulId,'org'=>orgId,'item_class'=>liClass,'link_class'=>aClass].
+     * `item_class` is added to every `<li>` and `link_class` to every `<a>` — so a Bootstrap navbar is
+     * `$this->menu('primary', ['class'=>'navbar-nav','item_class'=>'nav-item','link_class'=>'nav-link'])`.
      *
      * @param  string $menuKey the menu key (the rows sharing this key form the tree)
-     * @param  array  $options render options: `class`, `id`, `org`
+     * @param  array  $options render options: `class`, `id`, `org`, `item_class`, `link_class`
      * @return string the `<ul>…</ul>` markup, or '' when the menu is empty or fully filtered out
      */
     public static function getHTML($menuKey, array $options = [])
     {
         [$orgId, $locale] = self::_context($options);
         $tree = (new Tiger_Model_Menu())->tree((string) $menuKey, $orgId, true);
+        if (!$tree) {
+            // Live-override base tier: fall back to the active theme's menus.ini (THEMES.md).
+            $tree = Tiger_Theme_Menus::tree((string) $menuKey);
+        }
         if (!$tree) {
             return '';
         }
@@ -48,7 +54,10 @@ class Tiger_Menu
         $translate = Zend_Registry::isRegistered('Zend_Translate') ? Zend_Registry::get('Zend_Translate') : null;
         $path      = self::_currentPath();
 
-        $inner = self::_renderPages($nav->getPages(), $acl, $role, $translate, $path);
+        $itemClass = isset($options['item_class']) ? (string) $options['item_class'] : '';
+        $linkClass = isset($options['link_class']) ? (string) $options['link_class'] : '';
+
+        $inner = self::_renderPages($nav->getPages(), $acl, $role, $translate, $path, $itemClass, $linkClass);
         if ($inner === '') {
             return '';
         }
@@ -72,28 +81,36 @@ class Tiger_Menu
     {
         [$org, $locale] = self::_context(['org' => $orgId]);
         $tree = (new Tiger_Model_Menu())->tree((string) $menuKey, $org, true);
+        if (!$tree) {
+            // Live-override base tier: fall back to the active theme's menus.ini (THEMES.md).
+            $tree = Tiger_Theme_Menus::tree((string) $menuKey);
+        }
         return self::_decorate($tree, $locale, $org);
     }
 
     // ----- rendering ---------------------------------------------------------
 
-    /** Recursively render Zend_Navigation pages to nested <li>/<ul>, ACL-filtered. */
-    protected static function _renderPages($pages, $acl, $role, $translate, $path)
+    /**
+     * Recursively render Zend_Navigation pages to nested <li>/<ul>, ACL-filtered. `$itemClass` /
+     * `$linkClass` are the caller's blanket <li> / <a> classes (e.g. `nav-item` / `nav-link`).
+     */
+    protected static function _renderPages($pages, $acl, $role, $translate, $path, $itemClass = '', $linkClass = '')
     {
         $html = '';
         foreach ($pages as $page) {
             if (!self::_accept($page, $acl, $role)) {
                 continue;
             }
-            $childHtml   = self::_renderPages($page->getPages(), $acl, $role, $translate, $path);
+            $childHtml   = self::_renderPages($page->getPages(), $acl, $role, $translate, $path, $itemClass, $linkClass);
             $hasChildren = ($childHtml !== '');
 
             $label = $translate ? $translate->translate($page->getLabel()) : $page->getLabel();
             $href  = (string) $page->getHref();
             $active = ($href !== '' && $href !== '#' && self::_isActive($href, $path));
 
-            // css_class + state classes live on the <li>; dom_id is the <li> id.
+            // item_class (caller) + css_class (item) + state classes live on the <li>; dom_id is the <li> id.
             $classes = [];
+            if ($itemClass !== '')  { $classes[] = $itemClass; }
             if ($page->getClass()) { $classes[] = (string) $page->getClass(); }
             if ($hasChildren)      { $classes[] = 'has-children'; }
             if ($active)           { $classes[] = 'active'; }
@@ -109,12 +126,14 @@ class Tiger_Menu
             $html .= '<li' . $liAttr . '>';
             if ($href === '' || $href === '#') {
                 // No link target -> a heading/label item.
-                $html .= '<span class="tiger-menu-text">' . $iconHtml . $labelEsc . '</span>';
+                $spanClass = ($linkClass !== '') ? $linkClass : 'tiger-menu-text';
+                $html .= '<span class="' . htmlspecialchars($spanClass, ENT_QUOTES) . '">' . $iconHtml . $labelEsc . '</span>';
             } else {
                 $target = $page->get('target');
                 $rel    = $page->get('rel');
                 if ($target === '_blank' && !$rel) { $rel = 'noopener noreferrer'; }
                 $a  = '<a href="' . htmlspecialchars($href, ENT_QUOTES) . '"';
+                if ($linkClass !== '') { $a .= ' class="' . htmlspecialchars($linkClass, ENT_QUOTES) . '"'; }
                 if ($target) { $a .= ' target="' . htmlspecialchars((string) $target, ENT_QUOTES) . '"'; }
                 if ($rel)    { $a .= ' rel="' . htmlspecialchars((string) $rel, ENT_QUOTES) . '"'; }
                 $a .= '>' . $iconHtml . $labelEsc . '</a>';

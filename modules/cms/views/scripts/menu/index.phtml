@@ -12,8 +12,15 @@
         <h1 class="h3 mb-1">Menus</h1>
         <p class="text-body-secondary mb-0">Custom navigation menus — reusable by any theme via <code>&lt;?= $this-&gt;menu('key') ?&gt;</code>, the <code>[menu]</code> shortcode, or <code>Tiger_Menu::getHTML()</code>.</p>
     </div>
-    <a href="/cms/menu/edit" class="btn btn-primary"><i class="fa-solid fa-plus me-2"></i>New Menu</a>
+    <div class="text-nowrap">
+        <button type="button" id="cms-menu-import-theme" class="btn btn-outline-secondary me-2" title="Clone the active theme's menus into editable rows">
+            <i class="fa-solid fa-file-import me-2"></i>Import from theme
+        </button>
+        <a href="/cms/menu/edit" class="btn btn-primary"><i class="fa-solid fa-plus me-2"></i>New Menu</a>
+    </div>
 </div>
+
+<div id="cms-menus-feedback"></div>
 
 <div class="card">
     <div class="card-body">
@@ -67,6 +74,21 @@ document.addEventListener('DOMContentLoaded', function () {
             } }
         ]
     });
+
+    var importBtn = document.getElementById('cms-menu-import-theme');
+    if (importBtn) {
+        importBtn.addEventListener('click', function () {
+            var fb   = document.getElementById('cms-menus-feedback');
+            var body = new URLSearchParams({ module: 'cms', service: 'menu', method: 'importFromTheme' });
+            TigerButton.run(this, function () {
+                return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
+                    .then(function (r) { return r.json().catch(function () { return {}; }); });
+            }).then(function (res) {
+                (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
+                if (res && res.result === 1) { table.ajax.reload(null, false); }
+            }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+        });
+    }
 
     $('#cms-menus-table tbody').on('click', '[data-menu-delete]', function () {
         var key = this.getAttribute('data-menu-delete');
