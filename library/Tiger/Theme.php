@@ -222,6 +222,28 @@ class Tiger_Theme
     }
 
     /**
+     * Display names of every INSTALLED theme, keyed by theme key — so a menu/page can be labelled by
+     * the theme it came from even when that theme isn't the active one (or has been deactivated).
+     * Scans the theme.json manifests under the app + core theme locations.
+     *
+     * @return array<string,string> theme key => display name
+     */
+    public static function names()
+    {
+        $dirs = [];
+        if (defined('APPLICATION_PATH')) { $dirs = array_merge($dirs, (array) glob(APPLICATION_PATH . '/modules/theme-*', GLOB_ONLYDIR)); }
+        if (defined('TIGER_CORE_PATH'))  { $dirs = array_merge($dirs, (array) glob(TIGER_CORE_PATH . '/themes/*', GLOB_ONLYDIR)); }
+        $out = [];
+        foreach ($dirs as $dir) {
+            $man = self::_manifestAt($dir);
+            if (!empty($man['key'])) {
+                $out[(string) $man['key']] = (string) ($man['name'] ?? $man['key']);
+            }
+        }
+        return $out;
+    }
+
+    /**
      * Scan `content/**‍/*.phtml` for files carrying $hintTag (skipping any that carry an $exclude tag),
      * returning the fork-list shape. The shared engine behind pages()/layouts()/partials().
      *

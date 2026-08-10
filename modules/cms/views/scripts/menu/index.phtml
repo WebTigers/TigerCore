@@ -12,15 +12,8 @@
         <h1 class="h3 mb-1">Menus</h1>
         <p class="text-body-secondary mb-0">Custom navigation menus — reusable by any theme via <code>&lt;?= $this-&gt;menu('key') ?&gt;</code>, the <code>[menu]</code> shortcode, or <code>Tiger_Menu::getHTML()</code>.</p>
     </div>
-    <div class="text-nowrap">
-        <button type="button" id="cms-menu-import-theme" class="btn btn-outline-secondary me-2" title="Clone the active theme's menus into editable rows">
-            <i class="fa-solid fa-file-import me-2"></i>Import from theme
-        </button>
-        <a href="/cms/menu/edit" class="btn btn-primary"><i class="fa-solid fa-plus me-2"></i>New Menu</a>
-    </div>
+    <a href="/cms/menu/edit" class="btn btn-primary"><i class="fa-solid fa-plus me-2"></i>New Menu</a>
 </div>
-
-<div id="cms-menus-feedback"></div>
 
 <div class="card">
     <div class="card-body">
@@ -29,6 +22,7 @@
                 <thead>
                     <tr>
                         <th>Menu</th>
+                        <th>Type</th>
                         <th>Source</th>
                         <th>Items</th>
                         <th>Updated</th>
@@ -57,18 +51,22 @@ document.addEventListener('DOMContentLoaded', function () {
                 return '<a href="/cms/menu/edit/key/' + encodeURIComponent(t) + '" class="fw-semibold text-decoration-none">'
                     + '<i class="fa-solid fa-bars fa-fw text-body-secondary me-1"></i>' + esc(t) + '</a>' + org;
             } },
-            { data: 'source', render: function (t, type) {
+            { data: 'type', render: function (t, type) {
                 if (type !== 'display') { return t; }
-                var map = { theme: ['secondary', 'Theme'], custom: ['primary', 'Custom'], overridden: ['info', 'Overridden'] };
-                var m = map[t] || ['light', t];
+                var m = (t === 'theme') ? ['secondary', 'Theme'] : ['primary', 'Custom'];
                 return '<span class="badge text-bg-' + m[0] + '">' + esc(m[1]) + '</span>';
+            } },
+            { data: 'source_name', render: function (t, type) {
+                if (type !== 'display') { return t; }
+                return t ? '<span class="text-body-secondary"><i class="fa-solid fa-palette fa-fw me-1"></i>' + esc(t) + '</span>'
+                         : '<span class="text-body-secondary">—</span>';
             } },
             { data: 'items', className: 'text-center' },
             { data: 'updated', render: function (t, type) { return (type === 'display' && !t) ? '<span class="text-body-secondary">—</span>' : t; } },
             { data: null, orderable: false, searchable: false, className: 'text-end text-nowrap', render: function (t, type, row) {
                 var html = '';
                 if (row.can_edit) {
-                    var title = row.source === 'theme' ? 'Edit (customize)' : 'Edit';
+                    var title = row.type === 'theme' ? 'Edit (customize)' : 'Edit';
                     html += '<a href="/cms/menu/edit/key/' + encodeURIComponent(row.menu_key) + '" class="btn btn-sm btn-outline-secondary" title="' + title + '" aria-label="' + title + '"><i class="fa-solid fa-pen"></i></a> ';
                 }
                 if (row.can_revert) {
@@ -81,21 +79,6 @@ document.addEventListener('DOMContentLoaded', function () {
             } }
         ]
     });
-
-    var importBtn = document.getElementById('cms-menu-import-theme');
-    if (importBtn) {
-        importBtn.addEventListener('click', function () {
-            var fb   = document.getElementById('cms-menus-feedback');
-            var body = new URLSearchParams({ module: 'cms', service: 'menu', method: 'importFromTheme' });
-            TigerButton.run(this, function () {
-                return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
-                    .then(function (r) { return r.json().catch(function () { return {}; }); });
-            }).then(function (res) {
-                (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
-                if (res && res.result === 1) { table.ajax.reload(null, false); }
-            }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
-        });
-    }
 
     function menuAction(btn, method, key, org, confirmOpts) {
         TigerModal.confirm(confirmOpts).then(function (ok) {

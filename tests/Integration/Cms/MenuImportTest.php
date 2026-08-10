@@ -31,6 +31,7 @@ final class MenuImportTest extends IntegrationTestCase
         parent::setUp();
         $this->dir = sys_get_temp_dir() . '/tigthememenu-' . uniqid('', true);
         mkdir($this->dir . '/configs', 0777, true);
+        file_put_contents($this->dir . '/theme.json', json_encode(['key' => 'fixture-theme', 'name' => 'Fixture Theme']));
         file_put_contents($this->dir . '/configs/menus.ini', <<<INI
         [primary]
         items.home.label     = "Home"
@@ -55,6 +56,7 @@ final class MenuImportTest extends IntegrationTestCase
             Zend_Registry::getInstance()->offsetUnset('Tiger_ThemeDir');
         }
         @unlink($this->dir . '/configs/menus.ini');
+        @unlink($this->dir . '/theme.json');
         @rmdir($this->dir . '/configs');
         @rmdir($this->dir);
         try { $this->db->query('DELETE FROM menu'); } catch (\Throwable $e) { /* ignore */ }
@@ -142,9 +144,10 @@ final class MenuImportTest extends IntegrationTestCase
 
         $rows = [];
         foreach ($res->data['data'] as $r) { $rows[$r['menu_key']] = $r; }
-        $this->assertSame('theme', $rows['primary']['source']);
+        $this->assertSame('theme', $rows['primary']['type']);
+        $this->assertSame('Fixture Theme', $rows['primary']['source_name'], 'source shows the origin theme name');
         $this->assertSame(4, $rows['primary']['items'], '3 top-level + 1 nested');
-        $this->assertSame('theme', $rows['footer-social']['source']);
+        $this->assertSame('theme', $rows['footer-social']['type']);
         $this->assertFalse($rows['primary']['can_delete'], 'a theme menu has no DB rows to delete');
         $this->assertFalse($rows['primary']['can_revert']);
         $this->assertSame(0, $this->countRows('primary'), 'listing wrote nothing');
@@ -163,6 +166,29 @@ final class MenuImportTest extends IntegrationTestCase
         $labels = array_map(static fn($n) => $n['label'], (new Tiger_Model_Menu())->tree('primary', '', false));
         $this->assertContains('Renamed', $labels, 'the edited item took the new label');
         $this->assertContains('Services', $labels, 'the untouched items kept their theme labels');
+
+        // Forked rows are provenance-stamped so they survive + stay labelled after deactivation.
+        $prov = $this->db->fetchRow("SELECT source, source_key FROM menu WHERE menu_key = 'primary' LIMIT 1");
+        $this->assertSame('theme', $prov['source']);
+        $this->assertSame('fixture-theme', $prov['source_key']);
+    }
+
+    #[Test]
+    public function a_forked_menu_survives_theme_deactivation_and_stays_typed_theme(): void
+    {
+        $this->loginAs('admin');
+        $this->call('importFromTheme');                 // materialize while the theme is active
+        $this->assertGreaterThan(0, $this->countRows('primary'));
+
+        // Deactivate the theme: no active theme / no menus.ini.
+        Zend_Registry::getInstance()->offsetUnset('Tiger_ThemeDir');
+
+        $this->assertGreaterThan(0, $this->countRows('primary'), 'DB rows are not touched by deactivation');
+        $rows = [];
+        foreach ($this->call('datatable', ['draw' => 1, 'start' => 0, 'length' => 25])->data['data'] as $r) { $rows[$r['menu_key']] = $r; }
+        $this->assertSame('theme', $rows['primary']['type'], 'still typed Theme by its stored provenance');
+        $this->assertTrue($rows['primary']['can_revert']);
+        $this->assertNotSame('', $rows['primary']['source_name'], 'still shows an origin (name or key)');
     }
 
     #[Test]

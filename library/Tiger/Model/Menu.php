@@ -208,8 +208,10 @@ class Tiger_Model_Menu extends Tiger_Model_Table
         $sel = $db->select()->from($this->_name, [
             'menu_key',
             'org_id',
-            'items'   => new Zend_Db_Expr('COUNT(*)'),
-            'updated' => new Zend_Db_Expr('MAX(COALESCE(updated_at, created_at))'),
+            'items'      => new Zend_Db_Expr('COUNT(*)'),
+            'updated'    => new Zend_Db_Expr('MAX(COALESCE(updated_at, created_at))'),
+            'source'     => new Zend_Db_Expr('MAX(source)'),        // uniform per menu (stamped on fork/import)
+            'source_key' => new Zend_Db_Expr('MAX(source_key)'),
         ])->where('deleted = 0')->group(['org_id', 'menu_key']);
         if ($orgId !== null) {
             $sel->where('org_id = ?', (string) $orgId);
