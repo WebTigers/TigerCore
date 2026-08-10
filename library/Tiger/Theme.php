@@ -222,6 +222,19 @@ class Tiger_Theme
     }
 
     /**
+     * The active theme's SCOPE (THEMES.md §5d): `'site'` (default — the theme provides the chrome for
+     * the whole public site, CMS pages included, the WordPress model) or `'content'` (the theme styles
+     * ONLY its own shipped pages; the rest of the site — CMS pages, the home page, the default menu —
+     * keeps the base theme's chrome). From the manifest's `scope`; anything but `'content'` is `'site'`.
+     *
+     * @return string 'site' | 'content'
+     */
+    public static function scope()
+    {
+        return (strtolower((string) (self::manifest()['scope'] ?? 'site')) === 'content') ? 'content' : 'site';
+    }
+
+    /**
      * Display names of every INSTALLED theme, keyed by theme key — so a menu/page can be labelled by
      * the theme it came from even when that theme isn't the active one (or has been deactivated).
      * Scans the theme.json manifests under the app + core theme locations.

@@ -384,11 +384,23 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
         }
         Zend_Registry::set('Tiger_ThemeDir', $themeDir);   // the theme-content fallback plugin reads this
 
+        // Theme SCOPE (THEMES.md §5d): a 'site' theme (the default) provides the chrome for the WHOLE
+        // public site — CMS pages included (the WordPress model). A 'content' theme styles ONLY its own
+        // shipped pages (served via Tiger_Controller_Plugin_ThemeContent → PageController::themeContentAction,
+        // which switches to the theme's layout per page); the rest of the site — CMS pages, the home page,
+        // the default menu — keeps the BASE theme's chrome. So the layout / skins / view scripts below build
+        // from the CHROME theme, while Tiger_ThemeDir stays the ACTIVE theme (its content pages, assets, and
+        // the CMS Menus admin still resolve to it). A 'content' theme is thus additive, never a takeover.
+        $scope      = Tiger_Theme::scope();
+        $baseDir    = TIGER_CORE_PATH . '/themes/puma';
+        $chromeDir  = ($scope === 'content') ? $baseDir : $themeDir;
+        $chromeName = ($scope === 'content') ? 'puma'   : $theme;
+
         // Available skins = the CSS files on disk. The active skin may be overridden
         // per-request by the `tiger_skin` cookie (the skin switcher) — validated
         // against the file list, so the cookie can never point outside the skins dir.
         $availableSkins = [];
-        foreach (glob($themeDir . '/assets/skins/*.css') ?: [] as $skinFile) {
+        foreach (glob($chromeDir . '/assets/skins/*.css') ?: [] as $skinFile) {
             $availableSkins[] = basename($skinFile, '.css');
         }
         sort($availableSkins);
@@ -413,19 +425,18 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
         // requests use the active theme's layout, admin/auth fall back to puma. Added at LOW priority
         // (Zend_Layout adds the active theme's layout path at render time, so it always wins the public
         // `layout.phtml`; only the base-theme-only `admin.phtml`/`auth.phtml`/partials fall through here).
-        $baseDir = TIGER_CORE_PATH . '/themes/puma';
-        if ($themeDir !== $baseDir) {
+        if ($chromeDir !== $baseDir) {
             if (is_dir($baseDir . '/views/scripts'))   { $view->addScriptPath($baseDir . '/views/scripts'); }
             if (is_dir($baseDir . '/layouts/scripts')) { $view->addScriptPath($baseDir . '/layouts/scripts'); }
         }
-        if (is_dir($themeDir . '/views/scripts')) {
-            $view->addScriptPath($themeDir . '/views/scripts');
+        if (is_dir($chromeDir . '/views/scripts')) {
+            $view->addScriptPath($chromeDir . '/views/scripts');
         }
         if (is_dir(APPLICATION_PATH . '/views/scripts')) {
             $view->addScriptPath(APPLICATION_PATH . '/views/scripts');
         }
 
-        $view->theme       = $theme;
+        $view->theme       = $chromeName;   // the chrome theme (base, for a 'content' active theme)
         $view->skin        = $skin;
         $view->skins       = $availableSkins;   // for the skin switcher
         $view->themeAssets = '/_theme';
@@ -437,10 +448,11 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
 
         Zend_Controller_Action_HelperBroker::getStaticHelper('viewRenderer')->setView($view);
 
-        // Layout from the active theme:
-        if (is_dir($themeDir . '/layouts/scripts')) {
+        // Global layout from the CHROME theme (the active theme for a 'site' theme; the base theme for a
+        // 'content' theme — its own pages switch to their layout in PageController::themeContentAction).
+        if (is_dir($chromeDir . '/layouts/scripts')) {
             $layout = Zend_Layout::startMvc([
-                'layoutPath' => $themeDir . '/layouts/scripts',
+                'layoutPath' => $chromeDir . '/layouts/scripts',
                 'layout'     => 'layout',
             ]);
             $layout->setView($view);

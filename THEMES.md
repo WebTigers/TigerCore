@@ -248,6 +248,31 @@ Implementation: branch the theme lookup on the request area (the dispatcher alre
 module/controller — `admin`/`auth` → base; else → the active-theme config). Small change, and it
 retires the POC workaround (a public theme borrowing puma's admin layouts).
 
+### 5d. Theme scope — a `site` theme vs a `content` theme
+
+A theme declares in `theme.json` **how much of the site it takes over**:
+
+```json
+"scope": "site"      // default — provides the chrome for the WHOLE public site
+"scope": "content"   // styles ONLY its own shipped pages; the rest keeps the base theme
+```
+
+- **`site`** (default, the WordPress model): activating it makes the active theme's `layout.phtml` wrap
+  **every** public request — CMS pages, the home page, everything. This is what a real full-site
+  redesign wants. Omitting `scope` means `site`, so existing themes are unchanged.
+- **`content`**: the theme is **additive, not a takeover**. Its own bundled pages
+  (`content/*.phtml`, served via `Tiger_Controller_Plugin_ThemeContent`) render in **its** layout, but
+  everything else — the CMS home page, other CMS pages, the default menu — keeps the **base theme**
+  (puma). Use this for a vendor demo theme (e.g. the Crafto interior-design POC) whose layout + nav are
+  built for *its* pages and shouldn't hijack the site's home.
+
+**Mechanism (`Bootstrap::_initTheme` + `PageController::themeContentAction`):** `Tiger_ThemeDir` stays
+the **active** theme so its content pages, assets, and the CMS Menus admin still resolve to it — but the
+**global** layout / skins / view-scripts build from a **chrome** dir that is the base theme when the
+active theme is `content`-scoped. A theme's own pages then re-assert the theme's layout per request
+(`themeContentAction` sets the layout path to the active theme). So a `content` theme's demo pages look
+right while `/` and the CMS keep the default chrome + menu. `Tiger_Theme::scope()` is the accessor.
+
 ---
 
 ## 6. Multi-tenant: the payoff WP can't match
