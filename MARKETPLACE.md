@@ -116,9 +116,25 @@ git-native, zero-infra. Its manifest carries:
 - an optional **catalog** (for browsing) — a marketplace is simply a `TigerVendor` that also ships a catalog;
   a single paid module is a `TigerVendor` with just a key + authority. **Same shape, different richness.**
 
-**Pin on connect.** Show the owner, repo, and **key fingerprint** (`Tiger_Crypto_Signature::fingerprint`) in
-a consent gate — "this can serve code that runs on your server; add only if you trust it." A later silent key
-change is a takeover signal → warn + re-consent.
+**The manifest is `tigervendor.json`** at the repo root (mirrors the `module.json`/`theme.json` convention):
+
+```json
+{
+  "vendor":     "acme/TigerVendor",
+  "api_base":   "https://store.acme.com/shop/authority",
+  "public_key": "<base64 Ed25519 public key>",
+  "catalog":    "https://store.acme.com/marketplace.json"
+}
+```
+
+The buyer client reads + validates it with **`Tiger_License_Vendor`** (an `https` `api_base` + a real 32-byte
+Ed25519 key are required, else the anchor is refused). (Seller follow-up: `TigerLicense`'s `vendor-sign`
+tooling emits this file alongside publishing the public key.)
+
+**Pin on connect.** `Tiger_License_Vendor::connect()` shows the owner, repo, and **key fingerprint**
+(`Tiger_Crypto_Signature::fingerprint`) in a consent gate — "this can serve code that runs on your server;
+add only if you trust it." `pin()` records the trust in the `option` tier; a later silent key change is a
+takeover signal (`connect()` returns `changed:true`) → warn + re-consent.
 
 ---
 
