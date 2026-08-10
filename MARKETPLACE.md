@@ -180,6 +180,11 @@ BUY       a paid listing → a popup WINDOW to the seller's own hosted checkout 
           checkout can't be framed, and 3DS breaks in iframes). The seller keeps the money on their own
           Stripe; the buyer's install never sees a card. On success the seller issues a domain-bound
           license key → Tiger_License_Checker::remember() stores it.
+          KEY HAND-OFF (seamless; the seller checkout implements it): the install opens the checkout with
+          `?product=<slug>&origin=<install-origin>`; on success the checkout does
+          `window.opener.postMessage({ tiger_license_key: "<key>", product: "<slug>" }, <install-origin>)`
+          and closes — the Add screen catches it (origin-checked) and auto-installs. If it doesn't fire
+          (popup blocked / seller hasn't wired it), the buyer pastes the key (the always-works baseline).
 INSTALL   installFromAuthority: POST {key, product, domain} to the authority's /download → it verifies the
           license server-side and returns a short-lived SIGNED GitHub asset URL (it never proxies the
           bytes; its repo token never leaves it). The client streams from the CDN, VERIFIES the artifact
