@@ -289,13 +289,19 @@ config and translations: **file = base tier, the `menu` DB table = the override 
   parsed into the very same node shape `Tiger_Model_Menu::tree()` yields — so auth-filtering, translation,
   href resolution (`page_key` → slug), and active-state all ride the unchanged pipeline. **A theme's menus
   therefore render out-of-box with nothing seeded.**
-- **Override.** Editing a menu in the CMS **Menus** admin, or importing it (below), creates DB rows for
-  that key — and the DB tier then **wins** over the file. Per-org override is menu-level, as always.
-- **Import (clone), explicit.** The Menus admin's **Import from theme** button
-  (`Cms_Service_Menu::importFromTheme`) copies the active theme's declared menus into editable DB rows so
-  the drag-drop builder can work them. It is the **explicit** starter-content step (§4/§5) — **never run on
-  install/activate** (the `.ini` already renders live, so no seeding is needed) — and **idempotent**: a menu
-  key that already has rows is skipped, so re-running never clobbers an edited menu.
+- **Listed as static-but-editable.** The CMS **Menus** admin **merges** the active theme's `menus.ini`
+  menus into its list, badged **Theme** (a global DB menu for the same key shows as **Overridden**;
+  a DB-only menu as **Custom**). So a theme's menus are *visible and editable* without any import — exactly
+  like theme-provided pages.
+- **Override = fork on first edit.** Opening a Theme menu loads its items in the builder with synthetic
+  ids; the **first** real change (add/edit/reorder/delete) **materializes** it into DB rows
+  (`Cms_Service_Menu::_ensureForked`, which returns a synthetic→real id map the editor applies in place),
+  and the DB tier then **wins**. Merely opening and closing writes nothing. A **Revert to theme** action
+  (`revertToTheme`) soft-deletes the DB rows so the `.ini` renders again. This is content fork-on-edit
+  (§4c) applied to menus — nothing is a live row until you actually edit.
+- **Bulk import (optional).** The Menus admin also has an **Import from theme** button
+  (`Cms_Service_Menu::importFromTheme`) that materializes *all* the theme's menus at once — **idempotent**
+  (a key that already has rows is skipped) and, like fork-on-edit, **never run on install/activate** (§4/§5).
 
 The `.ini` schema — one `[section]` per menu key, an ordered `items` map with author-friendly field names
 (mapped to the `menu` columns), nesting via `children`:

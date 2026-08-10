@@ -105,16 +105,21 @@ class Tiger_Theme_Menus
         return $all[(string) $menuKey] ?? [];
     }
 
-    /** Build ordered nodes (DB-column keyed) from an ordered `.ini` items map, recursing children. */
-    protected static function _nodes(array $items)
+    /**
+     * Build ordered nodes (DB-column keyed) from an ordered `.ini` items map, recursing children.
+     * Each node carries `_source_key` — the `.ini` item key path (e.g. `services/res`) — so a fork
+     * can map a synthetic editor id back to the row it materializes, order-independently.
+     */
+    protected static function _nodes(array $items, $prefix = '')
     {
         $out  = [];
         $sort = 0;
-        foreach ($items as $item) {
+        foreach ($items as $ikey => $item) {
             if (!is_array($item)) {
                 continue;
             }
-            $node = ['sort_order' => $sort, 'children' => []];
+            $path = ($prefix === '') ? (string) $ikey : $prefix . '/' . $ikey;
+            $node = ['sort_order' => $sort, '_source_key' => $path, 'children' => []];
             foreach (self::$_map as $from => $col) {
                 if (isset($item[$from]) && (string) $item[$from] !== '') {
                     $node[$col] = (string) $item[$from];
@@ -125,7 +130,7 @@ class Tiger_Theme_Menus
                 continue;
             }
             if (!empty($item['children']) && is_array($item['children'])) {
-                $node['children'] = self::_nodes($item['children']);
+                $node['children'] = self::_nodes($item['children'], $path);
             }
             $out[] = $node;
             $sort++;

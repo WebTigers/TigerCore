@@ -75,6 +75,13 @@ $collect($this->tree);
     <a href="/cms/menu" class="btn btn-outline-secondary"><i class="fa-solid fa-angle-left me-1"></i>All menus</a>
 </div>
 
+<?php if (!empty($this->isTheme)): ?>
+<div class="alert alert-info d-flex align-items-center" role="alert">
+    <i class="fa-solid fa-palette me-2"></i>
+    <div>This menu comes from the active <strong>theme</strong>. Edit it and your first change is saved as an override that replaces the theme's version — until then the theme menu is untouched.</div>
+</div>
+<?php endif; ?>
+
 <div class="row g-3 menu-builder">
     <!-- LEFT: sources -->
     <div class="col-lg-4">
@@ -207,11 +214,25 @@ document.addEventListener('DOMContentLoaded', function () {
     function setDepth(li, d) { li.dataset.depth = d; li.style.setProperty('--depth', d); }
     function prevItem(li) { var p = li.previousElementSibling; while (p && !p.classList.contains('menu-item')) { p = p.previousElementSibling; } return p; }
 
+    // Editing a theme menu forks it server-side on the first change; the response carries an
+    // {syntheticId: realId} map. Rewrite the DOM ids + MENU_ITEMS keys in place so the next
+    // action targets the real rows — no reload, and the theme banner's items become editable rows.
+    function applyIdMap(map) {
+        if (!map) { return; }
+        Object.keys(map).forEach(function (syn) {
+            var real = map[syn];
+            var li = root.querySelector('li.menu-item[data-menu-id="' + syn + '"]');
+            if (li) { li.dataset.menuId = real; }
+            if (MENU_ITEMS[syn]) { MENU_ITEMS[real] = MENU_ITEMS[syn]; delete MENU_ITEMS[syn]; }
+            if (editId === syn) { editId = real; }
+        });
+    }
     function api(method, params) {
         var body = new URLSearchParams(params || {});
         body.set('module', 'cms'); body.set('service', 'menu'); body.set('method', method);
         return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
-            .then(function (r) { return r.json().catch(function () { return {}; }); });
+            .then(function (r) { return r.json().catch(function () { return {}; }); })
+            .then(function (res) { if (res && res.data && res.data.idmap) { applyIdMap(res.data.idmap); } return res; });
     }
     function chipHTML(d) {
         var hint = d.page_key ? ('#' + d.page_key) : (d.url && d.url !== '#' ? d.url : (d.url === '#' ? '(set link)' : 'heading'));
@@ -352,12 +373,14 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!li) { return; }
         if (open) { openModal(li.dataset.menuId); }
         else if (del) {
-            if (!confirm('Remove this item (and any sub-items)?')) { return; }
-            api('delete', { menu_id: li.dataset.menuId }).then(function () {
-                var depth = depthOf(li), n = li.nextElementSibling;
-                li.remove();
-                while (n) { var nn = n.nextElementSibling; if (n.classList.contains('menu-item') && depthOf(n) > depth) { n.remove(); } else { break; } n = nn; }
-                schedulePersist(); TigerDOM.toast('Item removed', { type: 'success' });
+            TigerModal.confirm({ title: 'Remove item', body: 'Remove this item (and any sub-items)?', confirmLabel: 'Remove', variant: 'danger' }).then(function (ok) {
+                if (!ok) { return; }
+                api('delete', { menu_id: li.dataset.menuId, menu_key: currentKey(), org_id: ORG }).then(function () {
+                    var depth = depthOf(li), n = li.nextElementSibling;
+                    li.remove();
+                    while (n) { var nn = n.nextElementSibling; if (n.classList.contains('menu-item') && depthOf(n) > depth) { n.remove(); } else { break; } n = nn; }
+                    schedulePersist(); TigerDOM.toast('Item removed', { type: 'success' });
+                });
             });
         }
     });

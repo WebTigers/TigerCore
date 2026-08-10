@@ -28,4 +28,5 @@ return [
     'cms.menu.imported'       => 'Theme menus imported — edit them here to override the theme.',
     'cms.menu.import_present' => 'The theme\'s menus are already in place — nothing new to import.',
     'cms.menu.import_none'    => 'The active theme ships no menus to import.',
+    'cms.menu.reverted'       => 'Reverted to the theme menu.',
 ];

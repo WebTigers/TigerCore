@@ -23,32 +23,83 @@ class Cms_Service_Menu extends Tiger_Service_Service
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
 
-        $dt   = $this->_dtParams($params);
-        $data = (new Tiger_Model_Menu())->datatable([
-            'search'   => $dt['search'],
-            'orderCol' => isset($dt['order'][0]) ? $dt['order'][0]['column'] : -1,
-            'orderDir' => isset($dt['order'][0]) ? $dt['order'][0]['dir'] : '',
-            'offset'   => $dt['start'],
-            'limit'    => $dt['length'],
-        ]);
-
+        $dt        = $this->_dtParams($params);
         $canEdit   = $this->_isAdmin(static::class, 'save');
         $canDelete = $this->_isAdmin(static::class, 'deleteMenu');
 
-        $rows = [];
-        foreach ($data['rows'] as $r) {
-            $global = ((string) $r['org_id'] === '');
-            $rows[] = [
-                'menu_key'   => $r['menu_key'],
-                'org_id'     => (string) $r['org_id'],
-                'scope'      => $global ? 'Global' : 'Org',
-                'items'      => (int) $r['items'],
-                'updated'    => substr((string) $r['updated'], 0, 16),
-                'can_edit'   => $canEdit,
-                'can_delete' => $canDelete,
+        // Override tier: the DB menus, keyed "org|key".
+        $db = [];
+        foreach ((new Tiger_Model_Menu())->groupList() as $r) {
+            $db[$r['org_id'] . '|' . $r['menu_key']] = $r;
+        }
+        // Base tier: the active theme's file menus (global scope).
+        $themeCounts = [];
+        foreach (Tiger_Theme_Menus::all() as $key => $tree) {
+            $themeCounts[$key] = $this->_countNodes($tree);
+        }
+
+        // Merge: a theme menu shows as 'theme' (static) unless a global DB menu overrides it.
+        $merged = [];
+        foreach ($themeCounts as $key => $count) {
+            if (isset($db['|' . $key])) { continue; }   // overridden — emitted in the DB pass
+            $merged[] = ['menu_key' => $key, 'org_id' => '', 'items' => $count, 'updated' => '', 'source' => 'theme'];
+        }
+        foreach ($db as $r) {
+            $isGlobal = ((string) $r['org_id'] === '');
+            $merged[] = [
+                'menu_key' => $r['menu_key'],
+                'org_id'   => (string) $r['org_id'],
+                'items'    => (int) $r['items'],
+                'updated'  => substr((string) $r['updated'], 0, 16),
+                'source'   => ($isGlobal && isset($themeCounts[$r['menu_key']])) ? 'overridden' : 'custom',
             ];
         }
-        $this->_dtResponse($dt['draw'], $data['total'], $data['filtered'], $rows);
+
+        // Search + sort + paginate in PHP (menus are few).
+        $total  = count($merged);
+        $search = trim((string) $dt['search']);
+        if ($search !== '') {
+            $needle = mb_strtolower($search);
+            $merged = array_values(array_filter($merged, static function ($m) use ($needle) {
+                return mb_strpos(mb_strtolower($m['menu_key']), $needle) !== false;
+            }));
+        }
+        $filtered = count($merged);
+
+        $cols = [0 => 'menu_key', 1 => 'source', 2 => 'items', 3 => 'updated'];
+        $ck   = $cols[(int) ($dt['order'][0]['column'] ?? 0)] ?? 'menu_key';
+        $dir  = (strtoupper((string) ($dt['order'][0]['dir'] ?? 'asc')) === 'DESC') ? -1 : 1;
+        usort($merged, static function ($a, $b) use ($ck, $dir) {
+            $av = $a[$ck] ?? ''; $bv = $b[$ck] ?? '';
+            return (($ck === 'items') ? ($av <=> $bv) : strcasecmp((string) $av, (string) $bv)) * $dir;
+        });
+        $page = array_slice($merged, (int) $dt['start'], (int) $dt['length']);
+
+        $rows = [];
+        foreach ($page as $m) {
+            $rows[] = [
+                'menu_key'   => $m['menu_key'],
+                'org_id'     => (string) $m['org_id'],
+                'scope'      => ((string) $m['org_id'] === '') ? 'Global' : 'Org',
+                'items'      => (int) $m['items'],
+                'updated'    => (string) $m['updated'],
+                'source'     => $m['source'],   // theme | custom | overridden
+                'can_edit'   => $canEdit,
+                'can_delete' => $canDelete && $m['source'] === 'custom',
+                'can_revert' => $canDelete && $m['source'] === 'overridden',
+            ];
+        }
+        $this->_dtResponse($dt['draw'], $total, $filtered, $rows);
+    }
+
+    /** Total node count of a menu tree (item + descendants). */
+    protected function _countNodes(array $nodes): int
+    {
+        $n = 0;
+        foreach ($nodes as $node) {
+            $n += 1 + $this->_countNodes($node['children'] ?? []);
+        }
+        return $n;
     }
 
     /**
@@ -82,23 +133,28 @@ class Cms_Service_Menu extends Tiger_Service_Service
             'status'      => ($v['status'] === 'draft') ? 'draft' : 'published',
         ];
 
-        $model  = new Tiger_Model_Menu();
-        $menuId = !empty($params['menu_id']) ? (string) $params['menu_id'] : null;
+        $model = new Tiger_Model_Menu();
+        $orgId = (string) ($params['org_id'] ?? '');
 
         try {
-            if ($menuId) {
-                $model->update($data, $model->getAdapter()->quoteInto('menu_id = ?', $menuId));
-                $id = $menuId;
-            } else {
-                $orgId    = (string) ($params['org_id'] ?? '');
-                $parentId = !empty($params['parent_id']) ? (string) $params['parent_id'] : null;
-                $data['menu_key']   = $menuKey;
-                $data['org_id']     = $orgId;
-                $data['parent_id']  = $parentId;
-                $data['sort_order'] = $model->nextSort($menuKey, $orgId, $parentId);
-                $id = $model->insert($data);
-            }
-            $this->_success(['menu_id' => $id], 'cms.menu.item_saved',
+            $out = $this->_transaction(function () use ($model, $menuKey, $orgId, $params, $data) {
+                // First edit of a theme menu materializes it (fork); map any synthetic editor ids.
+                $map      = $this->_ensureForked($menuKey, $orgId);
+                $menuId   = !empty($params['menu_id']) ? $this->_mapId($params['menu_id'], $map) : null;
+                if ($menuId) {
+                    $model->update($data, $model->getAdapter()->quoteInto('menu_id = ?', $menuId));
+                    $id = $menuId;
+                } else {
+                    $parentId           = !empty($params['parent_id']) ? $this->_mapId($params['parent_id'], $map) : null;
+                    $data['menu_key']   = $menuKey;
+                    $data['org_id']     = $orgId;
+                    $data['parent_id']  = $parentId;
+                    $data['sort_order'] = $model->nextSort($menuKey, $orgId, $parentId);
+                    $id = $model->insert($data);
+                }
+                return ['id' => $id, 'idmap' => $map];
+            });
+            $this->_success(['menu_id' => $out['id'], 'idmap' => $out['idmap']], 'cms.menu.item_saved',
                 '/cms/menu/edit/key/' . rawurlencode($menuKey));
         } catch (Throwable $e) {
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
@@ -116,9 +172,14 @@ class Cms_Service_Menu extends Tiger_Service_Service
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
         $id = (string) ($params['menu_id'] ?? '');
         if ($id === '') { $this->_error('core.api.error.general'); return; }
+        $menuKey = (string) ($params['menu_key'] ?? '');
+        $orgId   = (string) ($params['org_id'] ?? '');
         try {
-            $n = (new Tiger_Model_Menu())->deleteItem($id);
-            $this->_success(['deleted' => $n], 'cms.menu.item_deleted');
+            // Deleting an item from a theme menu materializes it first (fork), then drops the item.
+            $map    = $this->_ensureForked($menuKey, $orgId);
+            $model  = new Tiger_Model_Menu();
+            $n      = $model->deleteItem($this->_mapId($id, $map));
+            $this->_success(['deleted' => $n, 'idmap' => $map], 'cms.menu.item_deleted');
         } catch (Throwable $e) {
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
         }
@@ -161,8 +222,17 @@ class Cms_Service_Menu extends Tiger_Service_Service
         $items   = json_decode((string) ($params['tree'] ?? ''), true);
         if ($menuKey === '' || !is_array($items)) { $this->_error('core.api.error.general'); return; }
         try {
+            // A drag on a theme menu materializes it (fork), then persists the order against real ids.
+            $map   = $this->_ensureForked($menuKey, $orgId);
+            if ($map) {
+                foreach ($items as &$it) {
+                    $it['menu_id'] = $this->_mapId($it['menu_id'] ?? '', $map);
+                    if (!empty($it['parent_id'])) { $it['parent_id'] = $this->_mapId($it['parent_id'], $map); }
+                }
+                unset($it);
+            }
             $n = (new Tiger_Model_Menu())->reorder($items, $menuKey, $orgId);
-            $this->_success(['updated' => $n], 'cms.menu.reordered');
+            $this->_success(['updated' => $n, 'idmap' => $map], 'cms.menu.reordered');
         } catch (Throwable $e) {
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
         }
@@ -243,6 +313,92 @@ class Cms_Service_Menu extends Tiger_Service_Service
                 $this->_importNodes($model, $node['children'], $menuKey, $orgId, (string) $id);
             }
         }
+    }
+
+    /**
+     * Revert an overridden menu to the theme's version by soft-deleting its DB rows — the base-tier
+     * `menus.ini` then renders again (the inverse of forking).
+     *
+     * @param  array $params the request payload (`menu_key`, `org_id`)
+     * @return void
+     */
+    public function revertToTheme(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        $menuKey = (string) ($params['menu_key'] ?? '');
+        $orgId   = (string) ($params['org_id'] ?? '');
+        if ($menuKey === '') { $this->_error('core.api.error.general'); return; }
+        try {
+            $model = new Tiger_Model_Menu();
+            $db    = $model->getAdapter();
+            $model->softDelete($db->quoteInto('menu_key = ?', $menuKey) . ' AND ' . $db->quoteInto('org_id = ?', $orgId));
+            $this->_success(['menu_key' => $menuKey], 'cms.menu.reverted', '/cms/menu');
+        } catch (Throwable $e) {
+            $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
+        }
+    }
+
+    /**
+     * Fork-on-edit: if a menu has no DB rows in this scope but the active theme declares it,
+     * materialize the theme menu into DB rows now and return a `['theme:<sourceKey>' => realId]`
+     * map so the caller can translate the editor's synthetic ids. Returns [] when there's nothing
+     * to fork (already DB-backed, or not a theme menu).
+     *
+     * @param  string $menuKey the menu key
+     * @param  string $orgId   the tenant scope ('' = global)
+     * @return array<string,string> synthetic-id => new real menu_id
+     */
+    protected function _ensureForked(string $menuKey, string $orgId): array
+    {
+        $model = new Tiger_Model_Menu();
+        if ($menuKey === '' || $model->itemsForEditor($menuKey, $orgId)) {
+            return [];   // no key, or already DB-backed — nothing to fork
+        }
+        $tree = Tiger_Theme_Menus::tree($menuKey);
+        if (!$tree) {
+            return [];
+        }
+        $map = [];
+        $this->_forkNodes($model, $tree, $menuKey, $orgId, null, $map);
+        return $map;
+    }
+
+    /** Materialize theme nodes into `menu` rows, recording each node's synthetic id -> new real id. */
+    protected function _forkNodes(Tiger_Model_Menu $model, array $nodes, string $menuKey, string $orgId, ?string $parentId, array &$map): void
+    {
+        $sort = 0;
+        foreach ($nodes as $node) {
+            $id = $model->insert([
+                'menu_key'    => $menuKey,
+                'org_id'      => $orgId,
+                'parent_id'   => $parentId,
+                'sort_order'  => $sort++,
+                'label'       => (string) ($node['label'] ?? ''),
+                'page_key'    => $this->_nn($node['page_key']    ?? ''),
+                'url'         => $this->_nn($node['url']         ?? ''),
+                'icon'        => $this->_nn($node['icon']        ?? ''),
+                'css_class'   => $this->_nn($node['css_class']   ?? ''),
+                'dom_id'      => $this->_nn($node['dom_id']      ?? ''),
+                'link_target' => $this->_nn($node['link_target'] ?? ''),
+                'link_rel'    => $this->_nn($node['link_rel']    ?? ''),
+                'resource'    => $this->_nn($node['resource']    ?? ''),
+                'privilege'   => $this->_nn($node['privilege']   ?? ''),
+                'status'      => Tiger_Model_Menu::STATUS_PUBLISHED,
+            ]);
+            if (!empty($node['_source_key'])) {
+                $map['theme:' . $node['_source_key']] = $id;
+            }
+            if (!empty($node['children'])) {
+                $this->_forkNodes($model, $node['children'], $menuKey, $orgId, (string) $id, $map);
+            }
+        }
+    }
+
+    /** Translate a synthetic theme id to its materialized real id; a real id passes through. */
+    protected function _mapId($id, array $map): ?string
+    {
+        $id = (string) $id;
+        return $id === '' ? null : ($map[$id] ?? $id);
     }
 
     /** Trim to a value, or null when empty — keeps NULLs clean for optional columns. */

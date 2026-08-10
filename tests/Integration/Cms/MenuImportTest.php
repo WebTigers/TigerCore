@@ -133,4 +133,66 @@ final class MenuImportTest extends IntegrationTestCase
         $this->assertEqualsCanonicalizing(['primary', 'footer-social'], $res->data['skipped']);
         $this->assertSame($before, $this->countRows('primary'), 'no duplicate rows');
     }
+
+    #[Test]
+    public function datatable_lists_theme_menus_as_static_without_writing(): void
+    {
+        $this->loginAs('admin');
+        $res = $this->call('datatable', ['draw' => 1, 'start' => 0, 'length' => 25]);
+
+        $rows = [];
+        foreach ($res->data['data'] as $r) { $rows[$r['menu_key']] = $r; }
+        $this->assertSame('theme', $rows['primary']['source']);
+        $this->assertSame(4, $rows['primary']['items'], '3 top-level + 1 nested');
+        $this->assertSame('theme', $rows['footer-social']['source']);
+        $this->assertFalse($rows['primary']['can_delete'], 'a theme menu has no DB rows to delete');
+        $this->assertFalse($rows['primary']['can_revert']);
+        $this->assertSame(0, $this->countRows('primary'), 'listing wrote nothing');
+    }
+
+    #[Test]
+    public function editing_a_theme_menu_forks_it_on_first_save(): void
+    {
+        $this->loginAs('admin');
+        $res = $this->call('save', ['menu_key' => 'primary', 'menu_id' => 'theme:home', 'label' => 'Renamed']);
+
+        $this->assertSame(1, (int) $res->result);
+        $this->assertArrayHasKey('theme:home', $res->data['idmap'], 'synthetic->real map returned');
+        $this->assertSame(4, $this->countRows('primary'), 'the whole theme menu materialized, not just one item');
+
+        $labels = array_map(static fn($n) => $n['label'], (new Tiger_Model_Menu())->tree('primary', '', false));
+        $this->assertContains('Renamed', $labels, 'the edited item took the new label');
+        $this->assertContains('Services', $labels, 'the untouched items kept their theme labels');
+    }
+
+    #[Test]
+    public function a_reorder_forks_a_theme_menu(): void
+    {
+        $this->loginAs('admin');
+        $tree = json_encode([
+            ['menu_id' => 'theme:services',     'parent_id' => null,             'sort_order' => 0],
+            ['menu_id' => 'theme:services/res', 'parent_id' => 'theme:services', 'sort_order' => 0],
+            ['menu_id' => 'theme:home',         'parent_id' => null,             'sort_order' => 1],
+            ['menu_id' => 'theme:contact',      'parent_id' => null,             'sort_order' => 2],
+        ]);
+        $res = $this->call('reorder', ['menu_key' => 'primary', 'tree' => $tree]);
+
+        $this->assertSame(1, (int) $res->result);
+        $this->assertNotEmpty($res->data['idmap']);
+        $this->assertSame(4, $this->countRows('primary'), 'forked by the drag');
+        $this->assertSame('Services', (new Tiger_Model_Menu())->tree('primary', '', false)[0]['label'], 'new order applied');
+    }
+
+    #[Test]
+    public function revert_to_theme_drops_the_db_rows_and_the_ini_renders_again(): void
+    {
+        $this->loginAs('admin');
+        $this->call('importFromTheme');
+        $this->assertGreaterThan(0, $this->countRows('primary'));
+
+        $res = $this->call('revertToTheme', ['menu_key' => 'primary']);
+        $this->assertSame(1, (int) $res->result);
+        $this->assertSame(0, $this->countRows('primary'), 'DB rows removed');
+        $this->assertCount(3, Tiger_Menu::getData('primary'), 'the theme .ini renders again');
+    }
 }

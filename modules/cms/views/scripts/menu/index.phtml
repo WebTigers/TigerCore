@@ -29,7 +29,7 @@
                 <thead>
                     <tr>
                         <th>Menu</th>
-                        <th>Scope</th>
+                        <th>Source</th>
                         <th>Items</th>
                         <th>Updated</th>
                         <th class="text-end" data-orderable="false">Actions</th>
@@ -53,19 +53,26 @@ document.addEventListener('DOMContentLoaded', function () {
         columns: [
             { data: 'menu_key', render: function (t, type, row) {
                 if (type !== 'display') { return t; }
+                var org = (row.scope === 'Org') ? ' <span class="badge text-bg-info">Org</span>' : '';
                 return '<a href="/cms/menu/edit/key/' + encodeURIComponent(t) + '" class="fw-semibold text-decoration-none">'
-                    + '<i class="fa-solid fa-bars fa-fw text-body-secondary me-1"></i>' + esc(t) + '</a>';
+                    + '<i class="fa-solid fa-bars fa-fw text-body-secondary me-1"></i>' + esc(t) + '</a>' + org;
             } },
-            { data: 'scope', render: function (t, type) {
-                return type !== 'display' ? t
-                    : '<span class="badge text-bg-' + (t === 'Global' ? 'light' : 'info') + '">' + esc(t) + '</span>';
+            { data: 'source', render: function (t, type) {
+                if (type !== 'display') { return t; }
+                var map = { theme: ['secondary', 'Theme'], custom: ['primary', 'Custom'], overridden: ['info', 'Overridden'] };
+                var m = map[t] || ['light', t];
+                return '<span class="badge text-bg-' + m[0] + '">' + esc(m[1]) + '</span>';
             } },
             { data: 'items', className: 'text-center' },
-            { data: 'updated' },
+            { data: 'updated', render: function (t, type) { return (type === 'display' && !t) ? '<span class="text-body-secondary">—</span>' : t; } },
             { data: null, orderable: false, searchable: false, className: 'text-end text-nowrap', render: function (t, type, row) {
                 var html = '';
                 if (row.can_edit) {
-                    html += '<a href="/cms/menu/edit/key/' + encodeURIComponent(row.menu_key) + '" class="btn btn-sm btn-outline-secondary" title="Edit" aria-label="Edit"><i class="fa-solid fa-pen"></i></a> ';
+                    var title = row.source === 'theme' ? 'Edit (customize)' : 'Edit';
+                    html += '<a href="/cms/menu/edit/key/' + encodeURIComponent(row.menu_key) + '" class="btn btn-sm btn-outline-secondary" title="' + title + '" aria-label="' + title + '"><i class="fa-solid fa-pen"></i></a> ';
+                }
+                if (row.can_revert) {
+                    html += '<button type="button" class="btn btn-sm btn-outline-secondary" data-menu-revert="' + esc(row.menu_key) + '" data-org="' + esc(row.org_id) + '" title="Revert to theme" aria-label="Revert to theme"><i class="fa-solid fa-rotate-left"></i></button> ';
                 }
                 if (row.can_delete) {
                     html += '<button type="button" class="btn btn-sm btn-outline-danger" data-menu-delete="' + esc(row.menu_key) + '" data-org="' + esc(row.org_id) + '" title="Delete menu" aria-label="Delete menu"><i class="fa-solid fa-trash"></i></button>';
@@ -90,17 +97,26 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    function menuAction(btn, method, key, org, confirmOpts) {
+        TigerModal.confirm(confirmOpts).then(function (ok) {
+            if (!ok) { return; }
+            var body = new URLSearchParams({ module: 'cms', service: 'menu', method: method, menu_key: key, org_id: org || '' });
+            TigerButton.run(btn, function () {
+                return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
+                    .then(function (r) { return r.json().catch(function () { return {}; }); });
+            }).then(function () { table.ajax.reload(null, false); })
+              .catch(function () { table.ajax.reload(null, false); });
+        });
+    }
     $('#cms-menus-table tbody').on('click', '[data-menu-delete]', function () {
         var key = this.getAttribute('data-menu-delete');
-        if (!confirm('Delete the entire "' + key + '" menu and all its items?')) { return; }
-        var btn  = this;
-        var body = new URLSearchParams({ module: 'cms', service: 'menu', method: 'deleteMenu', menu_key: key, org_id: this.getAttribute('data-org') || '' });
-        TigerButton.run(btn, function () {
-            return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
-                .then(function (r) { return r.json(); });
-        })
-            .then(function () { table.ajax.reload(null, false); })
-            .catch(function () { table.ajax.reload(null, false); });
+        menuAction(this, 'deleteMenu', key, this.getAttribute('data-org'),
+            { title: 'Delete menu', body: 'Delete the entire "' + key + '" menu and all its items?', confirmLabel: 'Delete', variant: 'danger' });
+    });
+    $('#cms-menus-table tbody').on('click', '[data-menu-revert]', function () {
+        var key = this.getAttribute('data-menu-revert');
+        menuAction(this, 'revertToTheme', key, this.getAttribute('data-org'),
+            { title: 'Revert to theme', body: 'Discard your changes to "' + key + '" and restore the theme menu?', confirmLabel: 'Revert' });
     });
 });
 </script>
