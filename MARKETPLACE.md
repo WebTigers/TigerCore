@@ -5,7 +5,9 @@ and how a seller **runs a license authority** to sell them — a decentralized, 
 a WebTigers-only service. Read this before touching the pricing schema, the license checker, the signature
 gate, or the install-from-authority path. For the platform *why* read [ARCHITECTURE.md](ARCHITECTURE.md);
 for the sibling designs read [THEMES.md](THEMES.md) (themes as modules) and [CODE.md](CODE.md); for the
-`/api` contract read [WEBSERVICES.md](WEBSERVICES.md).
+`/api` contract read [WEBSERVICES.md](WEBSERVICES.md). **This doc is the *protocol* + the *buyer* client —
+for the *seller's* journey (list a free module / sell a paid one → a buyer's Add Module screen) and the
+build status of that half, read [SELLING.md](SELLING.md).**
 
 > **Status.** The **buyer-side client is built** in core (the classes named below): the pricing schema,
 > the artifact-signature gate, the license checker, install-from-authority, and the update gate. The
