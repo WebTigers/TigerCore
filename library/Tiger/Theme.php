@@ -222,6 +222,41 @@ class Tiger_Theme
     }
 
     /**
+     * The active theme's SCOPE (THEMES.md §5d): `'site'` (default — the theme provides the chrome for
+     * the whole public site, CMS pages included, the WordPress model) or `'content'` (the theme styles
+     * ONLY its own shipped pages; the rest of the site — CMS pages, the home page, the default menu —
+     * keeps the base theme's chrome). From the manifest's `scope`; anything but `'content'` is `'site'`.
+     *
+     * @return string 'site' | 'content'
+     */
+    public static function scope()
+    {
+        return (strtolower((string) (self::manifest()['scope'] ?? 'site')) === 'content') ? 'content' : 'site';
+    }
+
+    /**
+     * Display names of every INSTALLED theme, keyed by theme key — so a menu/page can be labelled by
+     * the theme it came from even when that theme isn't the active one (or has been deactivated).
+     * Scans the theme.json manifests under the app + core theme locations.
+     *
+     * @return array<string,string> theme key => display name
+     */
+    public static function names()
+    {
+        $dirs = [];
+        if (defined('APPLICATION_PATH')) { $dirs = array_merge($dirs, (array) glob(APPLICATION_PATH . '/modules/theme-*', GLOB_ONLYDIR)); }
+        if (defined('TIGER_CORE_PATH'))  { $dirs = array_merge($dirs, (array) glob(TIGER_CORE_PATH . '/themes/*', GLOB_ONLYDIR)); }
+        $out = [];
+        foreach ($dirs as $dir) {
+            $man = self::_manifestAt($dir);
+            if (!empty($man['key'])) {
+                $out[(string) $man['key']] = (string) ($man['name'] ?? $man['key']);
+            }
+        }
+        return $out;
+    }
+
+    /**
      * Scan `content/**‍/*.phtml` for files carrying $hintTag (skipping any that carry an $exclude tag),
      * returning the fork-list shape. The shared engine behind pages()/layouts()/partials().
      *

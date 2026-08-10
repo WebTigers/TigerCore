@@ -110,6 +110,11 @@ class PageController extends Tiger_Controller_Action
         if ($layout === 'none') {
             $this->_helper->layout()->disableLayout();
         } else {
+            // A theme's OWN pages always render in the theme's layout — even when the theme is
+            // 'content'-scoped and the global site chrome is the base theme (see Bootstrap::_initTheme).
+            if (is_dir($dir . '/layouts/scripts')) {
+                $this->_helper->layout()->setLayoutPath($dir . '/layouts/scripts');
+            }
             $this->_helper->layout()->setLayout($layout !== '' ? $layout : 'layout');
         }
         $this->_helper->viewRenderer->setScriptAction('view');   // reuse core/views/scripts/page/view.phtml

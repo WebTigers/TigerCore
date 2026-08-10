@@ -248,6 +248,31 @@ Implementation: branch the theme lookup on the request area (the dispatcher alre
 module/controller — `admin`/`auth` → base; else → the active-theme config). Small change, and it
 retires the POC workaround (a public theme borrowing puma's admin layouts).
 
+### 5d. Theme scope — a `site` theme vs a `content` theme
+
+A theme declares in `theme.json` **how much of the site it takes over**:
+
+```json
+"scope": "site"      // default — provides the chrome for the WHOLE public site
+"scope": "content"   // styles ONLY its own shipped pages; the rest keeps the base theme
+```
+
+- **`site`** (default, the WordPress model): activating it makes the active theme's `layout.phtml` wrap
+  **every** public request — CMS pages, the home page, everything. This is what a real full-site
+  redesign wants. Omitting `scope` means `site`, so existing themes are unchanged.
+- **`content`**: the theme is **additive, not a takeover**. Its own bundled pages
+  (`content/*.phtml`, served via `Tiger_Controller_Plugin_ThemeContent`) render in **its** layout, but
+  everything else — the CMS home page, other CMS pages, the default menu — keeps the **base theme**
+  (puma). Use this for a vendor demo theme (e.g. the Crafto interior-design POC) whose layout + nav are
+  built for *its* pages and shouldn't hijack the site's home.
+
+**Mechanism (`Bootstrap::_initTheme` + `PageController::themeContentAction`):** `Tiger_ThemeDir` stays
+the **active** theme so its content pages, assets, and the CMS Menus admin still resolve to it — but the
+**global** layout / skins / view-scripts build from a **chrome** dir that is the base theme when the
+active theme is `content`-scoped. A theme's own pages then re-assert the theme's layout per request
+(`themeContentAction` sets the layout path to the active theme). So a `content` theme's demo pages look
+right while `/` and the CMS keep the default chrome + menu. `Tiger_Theme::scope()` is the accessor.
+
 ---
 
 ## 6. Multi-tenant: the payoff WP can't match
@@ -275,6 +300,64 @@ This avoids the "which layout wins?" ambiguity: structure is a file, author temp
 
 ---
 
+## 7a. Menus: a theme ships `configs/menus.ini` (base tier), the CMS overrides it
+
+A theme's chrome needs navigation (a header menu, footer columns). Rather than hardcode those `<ul>`s
+in the layout — where nobody can edit them — a theme declares them in a static **`configs/menus.ini`**,
+and they meet the CMS menu system through the **live-override pattern** (AGENTS.md), the same shape as
+config and translations: **file = base tier, the `menu` DB table = the override tier.**
+
+- **Render.** The layout calls the existing seam — `<?= $this->menu('primary', ['class' => 'navbar-nav']) ?>`
+  (or `[menu name="primary"]`, or `Tiger_Menu::getHTML('primary')`). For a Bootstrap navbar pass the blanket
+  item/link classes: `$this->menu('primary', ['class'=>'navbar-nav','item_class'=>'nav-item','link_class'=>'nav-link'])`. `Tiger_Menu` resolves the DB first;
+  when a key has **no** DB rows it **falls back to the active theme's `menus.ini`** (`Tiger_Theme_Menus`),
+  parsed into the very same node shape `Tiger_Model_Menu::tree()` yields — so auth-filtering, translation,
+  href resolution (`page_key` → slug), and active-state all ride the unchanged pipeline. **A theme's menus
+  therefore render out-of-box with nothing seeded.**
+- **Listed as static-but-editable.** The CMS **Menus** admin **merges** the active theme's `menus.ini`
+  menus into its list. Each row carries a **Type** — *Theme* or *Custom* — and, for Theme rows, a
+  **Source** = the originating theme's display name. So a theme's menus are *visible and editable*
+  without any import step — exactly like theme-provided pages.
+- **Override = fork on first edit.** Opening a Theme menu loads its items in the builder with synthetic
+  ids; the **first** real change (add/edit/reorder/delete) **materializes** it into DB rows
+  (`Cms_Service_Menu::_ensureForked`, which returns a synthetic→real id map the editor applies in place),
+  and the DB tier then **wins**. Merely opening and closing writes nothing. A **Revert to theme** action
+  (`revertToTheme`) soft-deletes the DB rows so the `.ini` renders again. This is content fork-on-edit
+  (§4c) applied to menus — nothing is a live row until you actually edit.
+- **Provenance — survives deactivation.** A forked/imported menu's rows are stamped `source='theme'` +
+  `source_key=<theme key>` (migration 0043). Because they're ordinary DB rows they **persist when the
+  theme is deactivated or switched** — and the stored `source_key` keeps them typed *Theme* and labelled
+  with the origin theme's name (resolved from installed manifests, falling back to the key). A
+  user-authored menu is `source='user'` → Type *Custom*.
+- **Bulk materialize (programmatic).** `Cms_Service_Menu::importFromTheme` still materializes *all* the
+  theme's menus at once — **idempotent** (a key that already has rows is skipped) and, like fork-on-edit,
+  **never run on install/activate** (§4/§5). (There's no longer a button for it — fork-on-edit covers the
+  interactive case.)
+
+The `.ini` schema — one `[section]` per menu key, an ordered `items` map with author-friendly field names
+(mapped to the `menu` columns), nesting via `children`:
+
+```ini
+[primary]
+items.home.label      = "Home"
+items.home.url        = "/"
+items.services.label  = "Services"
+items.services.children.residential.label = "Residential"
+items.services.children.residential.url   = "/services/residential"
+
+[footer-social]
+items.tw.label  = "Twitter"
+items.tw.url    = "https://twitter.com/acme"
+items.tw.target = "_blank"          ; -> link_target; page_key/icon/class/id/rel/resource/privilege also map
+```
+
+Fields: `label` · `url` **or** `page_key` (a CMS page key → its live slug; wins over `url`) · `icon` ·
+`class` (→ `css_class`) · `id` (→ `dom_id`) · `target` (→ `link_target`) · `rel` (→ `link_rel`) ·
+`resource`/`privilege` (ACL gate — the item hides when the live role can't reach it). This is Tier-3
+starter content done as the live-override tier: nothing is a live CMS row until the user imports or edits.
+
+---
+
 ## 8. What a theme module ships
 
 ```
@@ -287,7 +370,7 @@ modules/theme-aurora/           (a `theme-<name>` module; resolved purely by pat
   components/             ; Tier 2 — GrapesJS block partials (+ tiger:block hint)     [prototyped §8a]
   content/                ; theme-shipped PAGES as body partials (+ tiger:page hint)  [prototyped §8a]
   source/                 ; pristine vendor .html — extraction INPUT, need not ship   [prototyped §8a]
-  configs/                ; acl.ini / routes.ini as any module
+  configs/                ; acl.ini / routes.ini as any module — plus menus.ini (§7a: the theme's menus)
 ```
 
 The **manifest** (`theme.json`) declares: the theme `key`; the `assetBase` (its `public/_<x>`

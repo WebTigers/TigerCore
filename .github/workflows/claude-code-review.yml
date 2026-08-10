@@ -45,4 +45,4 @@ jobs:
           # Calibration lives in the repo-root REVIEW.md (highest-priority instruction to every agent).
           # Sonnet 5 is the cost/quality default (~half of Opus). For a deep security pass, switch the
           # model to claude-opus-4-8.
-          claude_args: "--max-turns 12 --model claude-sonnet-5"
+          claude_args: "--max-turns 30 --model claude-sonnet-5"

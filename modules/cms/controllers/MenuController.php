@@ -44,12 +44,46 @@ class Cms_MenuController extends Tiger_Controller_Admin_Action
         $orgId = '';   // global scope for now (per-tenant menu editing is a later concern)
 
         $model = new Tiger_Model_Menu();
+        $tree  = ($key !== '') ? $model->tree($key, $orgId, false) : [];
+
+        // No DB rows but the active theme declares this menu -> edit the theme's version (base tier),
+        // rendered with synthetic ids; the first save materializes it (fork-on-edit). See Cms_Service_Menu.
+        $isTheme = false;
+        if ($key !== '' && !$tree) {
+            $themeTree = Tiger_Theme_Menus::tree($key);
+            if ($themeTree) {
+                $tree    = $this->_themeEditorTree($themeTree);
+                $isTheme = true;
+            }
+        }
+
         $this->view->menuKey = $key;
         $this->view->orgId   = $orgId;
-        $this->view->tree    = ($key !== '') ? $model->tree($key, $orgId, false) : [];
+        $this->view->tree    = $tree;
+        $this->view->isTheme = $isTheme;
         $this->view->form    = new Cms_Form_MenuItem();
         $this->view->pages   = $this->_pagePalette();
         $this->view->title   = ($key !== '' ? 'Edit Menu' : 'New Menu') . ' — Tiger Admin';
+    }
+
+    /**
+     * Normalize a theme menu tree (Tiger_Theme_Menus) into the editor's row shape: a synthetic
+     * `theme:<sourceKey>` menu_id, a full column set, and published status — so the builder renders
+     * it like any menu, and the first mutation forks it (Cms_Service_Menu::_ensureForked).
+     */
+    protected function _themeEditorTree(array $nodes)
+    {
+        $cols = ['label' => null, 'page_key' => null, 'url' => null, 'icon' => null, 'css_class' => null,
+                 'dom_id' => null, 'link_target' => null, 'link_rel' => null, 'resource' => null, 'privilege' => null];
+        $out = [];
+        foreach ($nodes as $n) {
+            $row             = array_merge($cols, array_intersect_key($n, $cols));
+            $row['menu_id']  = 'theme:' . ($n['_source_key'] ?? '');
+            $row['status']   = Tiger_Model_Menu::STATUS_PUBLISHED;
+            $row['children'] = $this->_themeEditorTree($n['children'] ?? []);
+            $out[] = $row;
+        }
+        return $out;
     }
 
     /** Published pages with a stable key — the "Pages" source column for the builder. */

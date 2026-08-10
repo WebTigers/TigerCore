@@ -196,6 +196,30 @@ class Tiger_Model_Menu extends Tiger_Model_Table
     }
 
     /**
+     * All distinct menus (one per org_id + menu_key) with their item count and last-touched time,
+     * unpaginated — the admin list merges these with the active theme's file menus.
+     *
+     * @param  string|null $orgId restrict to a tenant scope, or null for all scopes
+     * @return array<int,array<string,mixed>> rows: menu_key, org_id, items, updated
+     */
+    public function groupList($orgId = null)
+    {
+        $db  = $this->getAdapter();
+        $sel = $db->select()->from($this->_name, [
+            'menu_key',
+            'org_id',
+            'items'      => new Zend_Db_Expr('COUNT(*)'),
+            'updated'    => new Zend_Db_Expr('MAX(COALESCE(updated_at, created_at))'),
+            'source'     => new Zend_Db_Expr('MAX(source)'),        // uniform per menu (stamped on fork/import)
+            'source_key' => new Zend_Db_Expr('MAX(source_key)'),
+        ])->where('deleted = 0')->group(['org_id', 'menu_key']);
+        if ($orgId !== null) {
+            $sel->where('org_id = ?', (string) $orgId);
+        }
+        return $db->fetchAll($sel);
+    }
+
+    /**
      * Every live item for a menu scope, flat + ordered — the admin editor's working set.
      *
      * @param string $menuKey the menu's key
