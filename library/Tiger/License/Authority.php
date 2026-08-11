@@ -86,9 +86,13 @@ class Tiger_License_Authority
         if (self::$transport !== null) {
             return (self::$transport)($url, $payload);
         }
+        // Send a User-Agent: a WAF-protected authority (ours sits behind one) blocks a UA-less request
+        // (AWS CommonRuleSet's NoUserAgent_HEADER → 403), which would otherwise refuse every /download and
+        // make a valid, paid license look unauthorized. A named UA also identifies the caller in logs.
         $ctx = stream_context_create(['http' => [
             'method'        => 'POST',
-            'header'        => "Content-Type: application/json\r\nAccept: application/json\r\n",
+            'header'        => "Content-Type: application/json\r\nAccept: application/json\r\n"
+                             . "User-Agent: Tiger-License-Authority\r\n",
             'content'       => (string) json_encode($payload),
             'timeout'       => 15,
             'ignore_errors' => true,

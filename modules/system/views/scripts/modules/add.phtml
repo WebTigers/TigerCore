@@ -301,6 +301,20 @@ document.addEventListener('DOMContentLoaded', function () {
             foot.innerHTML = '<button type="button" class="btn btn-warning" id="mod-getpass"><i class="fa-solid fa-paw me-1"></i>Get TigerPASS</button>';
             var gp = document.getElementById('mod-getpass');
             if (gp){ gp.addEventListener('click', function(){ modal.hide(); openPass(m.name); }); }
+        } else if (avail === 'paid'){
+            // Per-vendor paid (single-module direct-buy): Buy (popup checkout + postMessage hand-off) or
+            // paste an existing key. Both first pin the vendor's signing key (one-time consent).
+            var buyVendor = (x.pricing && x.pricing.vendor) || '';
+            var buyProduct = m.slug;
+            var buyCheckout = (x.pricing && (x.pricing.checkout_url || x.pricing.pro_url)) || '';
+            foot.innerHTML =
+                (buyVendor && buyCheckout ? '<button type="button" class="btn btn-primary" id="mod-buy"><i class="fa-solid fa-cart-shopping me-1"></i>Buy</button> ' : '') +
+                (buyVendor ? '<button type="button" class="btn btn-outline-secondary" id="mod-havekey"><i class="fa-solid fa-key me-1"></i>I have a key</button>'
+                           : '<span class="text-body-secondary small">This paid module doesn\'t declare a vendor to buy from.</span>');
+            var buyBtn = document.getElementById('mod-buy');
+            if (buyBtn){ buyBtn.addEventListener('click', function(){ startBuy(buyVendor, buyProduct, buyCheckout, m.name); }); }
+            var haveKey = document.getElementById('mod-havekey');
+            if (haveKey){ haveKey.addEventListener('click', function(){ pasteKey(buyVendor, buyProduct, m.name); }); }
         } else {
             foot.innerHTML = '<button type="button" class="btn btn-primary" id="mod-do"><i class="fa-solid fa-download me-1"></i>Install</button>';
             var doBtn = document.getElementById('mod-do');
@@ -317,6 +331,94 @@ document.addEventListener('DOMContentLoaded', function () {
             if (res.result===1){ window.location=res.redirect||'/system/modules'; return; }
             modal.hide(); fb.innerHTML=''; (res.messages||[]).forEach(function(m){ TigerDOM.notify(fb, m.message, { type: m.class, replace: false }); }); window.scrollTo({top:0,behavior:'smooth'});
         }).catch(function(){});
+    }
+
+    // ---------- per-vendor paid buy flow (connect/pin → checkout popup → postMessage → installLicensed) ----------
+    // One-time consent: fetch the vendor's key, show its fingerprint, pin it. Resolves true when trusted.
+    function ensureVendor(vendor, name){
+        if (!vendor){ TigerDOM.notify(fb, 'This module declares no vendor to trust.', { type: 'error' }); return Promise.resolve(false); }
+        return api('connectVendor', { vendor: vendor }).then(function(res){
+            if (res.result !== 1){ (res.messages||[]).forEach(function(mm){ TigerDOM.notify(fb, mm.message, { type: mm.class }); }); return false; }
+            var c = res.data;
+            if (c.pinned && !c.changed){ return true; }   // already trusted, key unchanged
+            return TigerModal.confirm({
+                title: c.changed ? 'This vendor’s key changed — re-confirm' : 'Trust this vendor?',
+                body: name + ' is sold by ' + vendor + '. Its code runs on your server, verified against key '
+                    + c.fingerprint + '. ' + (c.changed
+                        ? 'Its signing key CHANGED since you last trusted it — only continue if you expected this.'
+                        : 'You only do this once per vendor.'),
+                confirmLabel: 'Trust & continue', variant: c.changed ? 'danger' : 'primary'
+            }).then(function(ok){
+                if (!ok){ return false; }
+                return api('pinVendor', { vendor: vendor }).then(function(r){
+                    if (r.result !== 1){ (r.messages||[]).forEach(function(mm){ TigerDOM.notify(fb, mm.message, { type: mm.class }); }); return false; }
+                    return true;
+                });
+            });
+        });
+    }
+
+    // Install a bought/pasted key via the authority (signed download → verify → install → remember license).
+    function installBought(vendor, product, key, name){
+        foot.innerHTML = '<span class="text-body-secondary"><span class="spinner-border spinner-border-sm me-2"></span>Installing ' + esc(name) + '…</span>';
+        return api('installLicensed', { vendor: vendor, product: product, key: key }).then(function(res){
+            if (res.result === 1){ window.location = res.redirect || '/system/modules'; return; }
+            (res.messages||[]).forEach(function(mm){ TigerDOM.notify(fb, mm.message, { type: mm.class }); });
+            foot.innerHTML = '<button type="button" class="btn btn-outline-secondary" id="mod-retrykey"><i class="fa-solid fa-key me-1"></i>Try your key again</button>';
+            var rk = document.getElementById('mod-retrykey'); if (rk){ rk.addEventListener('click', function(){ pasteKey(vendor, product, name); }); }
+        }).catch(function(){ TigerDOM.notify(fb, 'Install failed — network error.', { type: 'error' }); });
+    }
+
+    // Buy: pin (once) → open the seller's hosted checkout in a popup → auto-install on the postMessage
+    // hand-off ({tiger_license_key, product} from the checkout's origin); paste fallback if it doesn't fire.
+    function startBuy(vendor, product, checkout, name){
+        ensureVendor(vendor, name).then(function(trusted){
+            if (!trusted){ return; }
+            var origin = ''; try { origin = new URL(checkout).origin; } catch(e){}
+            // Hand the checkout the product + where to post the key back.
+            var url = checkout + (checkout.indexOf('?') < 0 ? '?' : '&') +
+                'product=' + encodeURIComponent(product) + '&origin=' + encodeURIComponent(location.origin);
+            var pop = window.open(url, 'tigerbuy', 'width=540,height=760');
+            if (!pop){ TigerDOM.notify(fb, 'Your browser blocked the checkout window. Buy it in a new tab, then click “I have a key”.', { type: 'alert' }); return; }
+
+            var done = false;
+            function stop(){ done = true; window.removeEventListener('message', onMsg); clearInterval(poll); }
+            function onMsg(e){
+                if (done) { return; }
+                if (origin && e.origin !== origin) { return; }             // only the seller's checkout origin
+                var d2 = e.data || {};
+                var key = d2.tiger_license_key || (d2.tiger === 'license' ? d2.key : '');
+                if (key){ stop(); try { pop.close(); } catch(_){} installBought(vendor, (d2.product || product), String(key), name); }
+            }
+            window.addEventListener('message', onMsg);
+
+            foot.innerHTML = '<span class="text-body-secondary"><span class="spinner-border spinner-border-sm me-2"></span>Waiting for your purchase…</span> '
+                + '<button type="button" class="btn btn-sm btn-link" id="mod-buykey">enter a key instead</button>';
+            var bk = document.getElementById('mod-buykey'); if (bk){ bk.addEventListener('click', function(){ stop(); try { pop.close(); } catch(_){} pasteKey(vendor, product, name); }); }
+
+            // If they close the popup without the hand-off firing, offer the paste path.
+            var poll = setInterval(function(){
+                if (pop.closed && !done){ stop();
+                    foot.innerHTML = '<button type="button" class="btn btn-primary" id="mod-afterbuy"><i class="fa-solid fa-key me-1"></i>Enter your license key</button>';
+                    var ab = document.getElementById('mod-afterbuy'); if (ab){ ab.addEventListener('click', function(){ pasteKey(vendor, product, name); }); }
+                }
+            }, 700);
+        });
+    }
+
+    // Fallback: paste a key you already have (or bought without the auto hand-off).
+    function pasteKey(vendor, product, name){
+        ensureVendor(vendor, name).then(function(trusted){
+            if (!trusted){ return; }
+            TigerModal.prompt({
+                title: 'Enter your license key', label: 'License key for ' + name,
+                placeholder: 'from your purchase (e.g. 019f88b1-…)', confirmLabel: 'Install'
+            }).then(function(key){
+                if (key === null){ return; }
+                key = String(key).trim(); if (!key){ return; }
+                installBought(vendor, product, key, name);
+            });
+        });
     }
 
     document.getElementById('mod-check').addEventListener('click', function(){ var u=urlEl.value.trim(); if(u){ openDetail(u, refEl.value.trim(), {}, this); } });

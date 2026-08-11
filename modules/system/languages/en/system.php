@@ -40,4 +40,10 @@ return [
     'system.source.err_url'       => 'Enter a valid http(s) index URL.',
     'system.source.err_unknown'   => 'No such source.',
     'system.source.err_not_removable' => 'Only connected marketplaces can be removed — disable it instead.',
+    'system.vendor.required'      => 'Which vendor? (owner/repo)',
+    'system.vendor.unreachable'   => 'Couldn\'t read that vendor\'s TigerVendor repo — it\'s missing or has no valid tigervendor.json.',
+    'system.vendor.connected'     => 'Vendor read — review the key fingerprint before you trust it.',
+    'system.vendor.pinned'        => 'Vendor trusted. You can now install its paid modules.',
+    'system.vendor.not_connected' => 'Connect + trust this vendor first (review its key fingerprint).',
+    'system.license.incomplete'   => 'A licensed install needs the vendor, the product, and your license key.',
 ];

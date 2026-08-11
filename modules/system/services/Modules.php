@@ -817,4 +817,97 @@ class System_Service_Modules extends Tiger_Service_Service
             $this->_error('Install failed — ' . $e->getMessage());
         }
     }
+
+    // ----- per-vendor paid modules (single-module direct-buy; MARKETPLACE.md §6a) --------------------
+
+    /**
+     * CONNECT step: fetch a paid module vendor's `tigervendor.json` and return the consent payload
+     * (api_base + key fingerprint + pin/changed state) the Add-screen gate shows before trusting it.
+     * This does NOT pin — that's the deliberate second click (pinVendor).
+     *
+     * @param  array $params the /api payload (expects `vendor` = "owner/repo")
+     * @return void
+     */
+    public function connectVendor(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        $vendor = trim((string) ($params['vendor'] ?? ''));
+        if ($vendor === '') { $this->_error('system.vendor.required'); return; }
+
+        $consent = Tiger_License_Vendor::connect($vendor);
+        if ($consent === null) { $this->_error('system.vendor.unreachable'); return; }
+        $this->_success($consent, 'system.vendor.connected');
+    }
+
+    /**
+     * Pin (trust) a vendor after the buyer consents. Re-fetches the manifest server-side and pins THAT
+     * (never a client-supplied key), so a tampered payload can't install trust. Idempotent — overwrites
+     * a prior pin (the re-consent path after a reviewed key change).
+     *
+     * @param  array $params the /api payload (expects `vendor` = "owner/repo")
+     * @return void
+     */
+    public function pinVendor(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        $vendor = trim((string) ($params['vendor'] ?? ''));
+        if ($vendor === '') { $this->_error('system.vendor.required'); return; }
+
+        $m = Tiger_License_Vendor::manifest($vendor);
+        if ($m === null) { $this->_error('system.vendor.unreachable'); return; }
+        Tiger_License_Vendor::pin($vendor, $m);
+        $this->_success(
+            ['vendor' => $m['vendor'], 'fingerprint' => Tiger_License_Vendor::fingerprint($m['public_key'])],
+            'system.vendor.pinned'
+        );
+    }
+
+    /**
+     * Install a `licensed` module from its vendor's authority with a bought key: resolves the PINNED
+     * vendor key (the vendor must be connected first), asks the authority for a signed download, verifies
+     * the artifact signature, installs, and remembers the license so update-gating works. This is the
+     * per-vendor paid path (distinct from the TigerPASS subscription in activatePass).
+     *
+     * @param  array $params the /api payload (expects `vendor`, `product`|`slug`, `key`; optional `repository`, `force`)
+     * @return void
+     */
+    public function installLicensed(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+
+        $vendor  = trim((string) ($params['vendor'] ?? ''));
+        $product = trim((string) ($params['product'] ?? $params['slug'] ?? ''));
+        $key     = trim((string) ($params['key'] ?? ''));
+        if ($vendor === '' || $product === '' || $key === '') { $this->_error('system.license.incomplete'); return; }
+
+        $pin = Tiger_License_Vendor::pinned($vendor);
+        if ($pin === null) { $this->_error('system.vendor.not_connected'); return; }
+
+        try {
+            $r = Tiger_Module_Installer::installFromAuthority(
+                (string) $pin['api_base'],
+                $key,
+                [
+                    'product'    => $product,
+                    'vendor'     => $vendor,
+                    'public_key' => (string) $pin['public_key'],
+                    'domain'     => $this->_installDomain(),
+                    'repository' => ($params['repository'] ?? null) !== '' ? ($params['repository'] ?? null) : null,
+                ],
+                ['force' => !empty($params['force'])]
+            );
+            $this->_success($r, 'system.module.installed', '/system/modules');
+        } catch (Throwable $e) {
+            $this->_error('Install failed — ' . $e->getMessage());
+        }
+    }
+
+    /** This install's domain (for the domain-bound license); the authority normalizes subdomains. */
+    protected function _installDomain(): string
+    {
+        $front = Zend_Controller_Front::getInstance();
+        $req   = $front->getRequest();
+        $host  = $req ? (string) $req->getHttpHost() : (string) ($_SERVER['HTTP_HOST'] ?? '');
+        return strtolower(preg_replace('/:\d+$/', '', $host));
+    }
 }

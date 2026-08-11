@@ -116,9 +116,25 @@ git-native, zero-infra. Its manifest carries:
 - an optional **catalog** (for browsing) — a marketplace is simply a `TigerVendor` that also ships a catalog;
   a single paid module is a `TigerVendor` with just a key + authority. **Same shape, different richness.**
 
-**Pin on connect.** Show the owner, repo, and **key fingerprint** (`Tiger_Crypto_Signature::fingerprint`) in
-a consent gate — "this can serve code that runs on your server; add only if you trust it." A later silent key
-change is a takeover signal → warn + re-consent.
+**The manifest is `tigervendor.json`** at the repo root (mirrors the `module.json`/`theme.json` convention):
+
+```json
+{
+  "vendor":     "acme/TigerVendor",
+  "api_base":   "https://store.acme.com/shop/authority",
+  "public_key": "<base64 Ed25519 public key>",
+  "catalog":    "https://store.acme.com/marketplace.json"
+}
+```
+
+The buyer client reads + validates it with **`Tiger_License_Vendor`** (an `https` `api_base` + a real 32-byte
+Ed25519 key are required, else the anchor is refused). (Seller follow-up: `TigerLicense`'s `vendor-sign`
+tooling emits this file alongside publishing the public key.)
+
+**Pin on connect.** `Tiger_License_Vendor::connect()` shows the owner, repo, and **key fingerprint**
+(`Tiger_Crypto_Signature::fingerprint`) in a consent gate — "this can serve code that runs on your server;
+add only if you trust it." `pin()` records the trust in the `option` tier; a later silent key change is a
+takeover signal (`connect()` returns `changed:true`) → warn + re-consent.
 
 ---
 
@@ -164,6 +180,11 @@ BUY       a paid listing → a popup WINDOW to the seller's own hosted checkout 
           checkout can't be framed, and 3DS breaks in iframes). The seller keeps the money on their own
           Stripe; the buyer's install never sees a card. On success the seller issues a domain-bound
           license key → Tiger_License_Checker::remember() stores it.
+          KEY HAND-OFF (seamless; the seller checkout implements it): the install opens the checkout with
+          `?product=<slug>&origin=<install-origin>`; on success the checkout does
+          `window.opener.postMessage({ tiger_license_key: "<key>", product: "<slug>" }, <install-origin>)`
+          and closes — the Add screen catches it (origin-checked) and auto-installs. If it doesn't fire
+          (popup blocked / seller hasn't wired it), the buyer pastes the key (the always-works baseline).
 INSTALL   installFromAuthority: POST {key, product, domain} to the authority's /download → it verifies the
           license server-side and returns a short-lived SIGNED GitHub asset URL (it never proxies the
           bytes; its repo token never leaves it). The client streams from the CDN, VERIFIES the artifact
