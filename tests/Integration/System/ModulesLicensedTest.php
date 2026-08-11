@@ -66,7 +66,7 @@ final class ModulesLicensedTest extends IntegrationTestCase
     #[Test]
     public function connect_then_pin_a_vendor(): void
     {
-        $this->loginAs('admin');
+        $this->loginAs('superadmin');   // System_Service_Modules is superadmin-gated (module management)
         $this->serveManifest(json_encode(['api_base' => 'https://store.acme.com/shop/authority', 'public_key' => $this->pub]));
 
         $c = $this->call('connectVendor', ['vendor' => 'acme/TigerVendor']);
@@ -83,7 +83,7 @@ final class ModulesLicensedTest extends IntegrationTestCase
     #[Test]
     public function connect_fails_on_an_unreadable_vendor(): void
     {
-        $this->loginAs('admin');
+        $this->loginAs('superadmin');   // System_Service_Modules is superadmin-gated (module management)
         $this->serveManifest(null);
         $this->assertStringContainsString('unreachable', json_encode($this->call('connectVendor', ['vendor' => 'acme/TigerVendor'])->messages));
     }
@@ -91,7 +91,7 @@ final class ModulesLicensedTest extends IntegrationTestCase
     #[Test]
     public function install_licensed_requires_a_connected_vendor(): void
     {
-        $this->loginAs('admin');
+        $this->loginAs('superadmin');   // System_Service_Modules is superadmin-gated (module management)
         $res = $this->call('installLicensed', ['vendor' => 'acme/TigerVendor', 'product' => 'acme-widget', 'key' => 'a-license-key']);
         $this->assertSame(0, (int) $res->result);
         $this->assertStringContainsString('not_connected', json_encode($res->messages), 'must connect+pin the vendor first');
@@ -100,7 +100,7 @@ final class ModulesLicensedTest extends IntegrationTestCase
     #[Test]
     public function install_licensed_needs_vendor_product_and_key(): void
     {
-        $this->loginAs('admin');
+        $this->loginAs('superadmin');   // System_Service_Modules is superadmin-gated (module management)
         $res = $this->call('installLicensed', ['vendor' => 'acme/TigerVendor']);   // no product, no key
         $this->assertSame(0, (int) $res->result);
         $this->assertStringContainsString('incomplete', json_encode($res->messages));
