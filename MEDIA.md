@@ -116,6 +116,35 @@ scanners in per deploy).
   gallery field) can select existing media or upload new — returning `media_id`(s).
 - **Drag-drop uploader** with a per-file progress list, then the new tiles stream into the grid.
 
+## 5a. Static (module-shipped) media — discovered, never inserted
+
+Any **active** module (a theme, but also a plugin/app/code module) can ship images it wants surfaced in
+the Media Library — a vendor theme's demo photos, a module's illustration set. These are **read-only files
+the module owns**, so they are **discovered live, never written to the `media` table** (the same
+files-are-the-source-of-truth model as theme forkables and code snippets).
+
+- **Manifest — `media.json`** at the module root: `{ "imageDir": "images", "match": ["demo-*"], "images":
+  [ "images/hero.webp", { "file":"images/team.webp", "title":"…", "alt":"…" } ] }`. `imageDir` sweeps every
+  image under `assets/<dir>` (recursive); `match` (fnmatch globs) curates that sweep so chrome — favicons,
+  avatars, sprites — stays out; `images` is an always-included explicit list. Paths are relative to the
+  module's `assets/` (the dir the public symlink points at).
+- **Discovery — `Tiger_Media_Manifest`** (`library/Tiger/Media/`). `entries()` reads the `media.json` of
+  every module **not** in `Tiger_Model_Module::inactiveSlugs()`, resolving each file's public URL from the
+  module's asset base (a theme's `assetBase` symlink `/_crafto`, else `/_modules/<slug>`) — and only if that
+  symlink exists. `file(id)` resolves a static id (`static:<slug>:<relpath>`) back to an absolute path,
+  traversal-guarded **and** required to be declared in the manifest (a copy can't reach an arbitrary asset).
+- **One feed, two roles.** `Media_Service_Media::datatable()` **merges** the static entries ahead of the
+  managed rows (a two-segment page slice), so they appear read-only in **both** the Manager grid and the
+  reusable picker — badged by their origin module, with a **Copy to Library** control instead of Edit/Delete.
+- **Copy — `copyToLibrary()`.** A deliberate, one-click action (never automatic on select) copies the bytes
+  into managed storage + an ordinary `media` row the admin then owns. **Idempotent by `checksum`** — the same
+  bytes already copied by the org return the existing row, no duplicate. Afterward the static entry and its
+  managed copy **both** show — two genuinely different things (a module file vs. your durable copy).
+- **Lifecycle is automatic and lossless — why there's no migration and no activate/deactivate hook.** Because
+  static entries are discovered from *active* modules: **activating** a module makes its media appear (no
+  write); **deactivating** it makes the static entries vanish (no delete); and anything **copied** is a real
+  `media` row discovery never touches, so copies persist. No marker column, nothing to find-and-delete.
+
 ## 6. Serving & security
 
 Public files: adapter `url()` (direct / CDN). Private files: `MediaController::fileAction`

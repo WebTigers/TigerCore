@@ -32,7 +32,12 @@
             '.tmp-tile img{width:100%;height:100%;object-fit:cover;display:block;}' +
             '.tmp-ico{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:.3rem;color:var(--bs-secondary-color);}' +
             '.tmp-tile.tmp-sel{border-color:var(--bs-primary);}' +
-            '.tmp-tile.tmp-sel::after{content:"\\f00c";font-family:"Font Awesome 6 Free";font-weight:900;position:absolute;top:.25rem;right:.35rem;color:#fff;background:var(--bs-primary);border-radius:50%;width:20px;height:20px;line-height:20px;text-align:center;font-size:.7rem;}';
+            '.tmp-tile.tmp-sel::after{content:"\\f00c";font-family:"Font Awesome 6 Free";font-weight:900;position:absolute;top:.25rem;right:.35rem;color:#fff;background:var(--bs-primary);border-radius:50%;width:20px;height:20px;line-height:20px;text-align:center;font-size:.7rem;}' +
+            // Static (module/theme-shipped) media: an origin badge + a hover Copy-to-library button.
+            '.tmp-tile.tmp-static::before{content:attr(data-badge);position:absolute;top:.25rem;left:.3rem;background:rgba(0,0,0,.62);color:#fff;font-size:.58rem;padding:.1rem .32rem;border-radius:.3rem;z-index:1;pointer-events:none;max-width:calc(100% - .6rem);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}' +
+            '.tmp-copy{position:absolute;bottom:.25rem;right:.3rem;width:24px;height:24px;border:0;border-radius:50%;background:rgba(var(--bs-primary-rgb),.92);color:#fff;font-size:.7rem;cursor:pointer;z-index:2;display:none;align-items:center;justify-content:center;}' +
+            '.tmp-tile:hover .tmp-copy{display:flex;}' +
+            '.tmp-copy[disabled]{display:flex;background:rgba(var(--bs-success-rgb),.92);cursor:default;}';
         document.head.appendChild(s);
     }
 
@@ -70,7 +75,11 @@
         q('[data-tmp-kind]').addEventListener('change', function () { load(true); });
         q('[data-tmp-more]').addEventListener('click', function () { load(false); });
         q('[data-tmp-file]').addEventListener('change', function () { uploadFiles(this.files); this.value = ''; });
-        q('[data-tmp-grid]').addEventListener('click', function (e) { var tile = e.target.closest('[data-tmp-id]'); if (tile) { toggle(tile.getAttribute('data-tmp-id')); } });
+        q('[data-tmp-grid]').addEventListener('click', function (e) {
+            var cp = e.target.closest('[data-tmp-copy]');
+            if (cp) { e.stopPropagation(); copyToLibrary(cp); return; }   // Copy button: don't toggle selection
+            var tile = e.target.closest('[data-tmp-id]'); if (tile) { toggle(tile.getAttribute('data-tmp-id')); }
+        });
         q('[data-tmp-ok]').addEventListener('click', confirm);
     }
 
@@ -99,7 +108,13 @@
             var inner = (row.kind === 'image' && row.thumb)
                 ? '<img src="' + esc(row.thumb) + '" alt="' + esc(row.filename || '') + '">'
                 : '<div class="tmp-ico">' + icon(row.kind) + '<span class="small text-uppercase">' + esc(row.extension || row.kind) + '</span></div>';
-            return '<div class="tmp-tile' + (picked[row.media_id] ? ' tmp-sel' : '') + '" data-tmp-id="' + esc(row.media_id) + '" title="' + esc(row.filename || '') + '">' + inner + '</div>';
+            // Static (module-shipped) tiles: an origin badge + a Copy-to-library button (deliberate, never auto).
+            var copy = row.is_static
+                ? '<button type="button" class="tmp-copy" data-tmp-copy="' + esc(row.media_id) + '"' + (row.in_library ? ' disabled title="Already in your library"' : ' title="Copy to media library"') + '><i class="fa-solid ' + (row.in_library ? 'fa-check' : 'fa-download') + '"></i></button>'
+                : '';
+            var cls   = 'tmp-tile' + (picked[row.media_id] ? ' tmp-sel' : '') + (row.is_static ? ' tmp-static' : '');
+            var badge = row.is_static ? ' data-badge="' + esc(row.source_name || 'Theme') + '"' : '';
+            return '<div class="' + cls + '" data-tmp-id="' + esc(row.media_id) + '"' + badge + ' title="' + esc(row.filename || '') + '">' + inner + copy + '</div>';
         }).join('');
         modalEl.querySelector('[data-tmp-more]').hidden = rows.length >= total;
         modalEl.querySelector('[data-tmp-note]').hidden = rows.length > 0;
@@ -126,6 +141,25 @@
         if (!items.length) { return; }
         bs.hide();
         if (opts.onSelect) { opts.onSelect(opts.multiple ? items : items[0]); }
+    }
+
+    // Copy a static (module/theme-shipped) image into managed media, then reload so the durable copy
+    // appears alongside it. Deliberate (a click) — the picker never auto-copies on select.
+    function copyToLibrary(btn) {
+        if (btn.disabled) { return; }
+        btn.disabled = true;
+        fetch('/api', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'},
+            body:new URLSearchParams({ module:'media', service:'media', method:'copyToLibrary', media_id:btn.getAttribute('data-tmp-copy') }) })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (res && res.result === 1) {
+                    if (global.TigerDOM) { TigerDOM.toast((res.data && res.data.existing) ? 'Already in your library.' : 'Copied to your media library.', { type:'success' }); }
+                    load(true);
+                } else {
+                    btn.disabled = false;
+                    if (global.TigerDOM) { TigerDOM.toast('Could not copy that file.', { type:'error' }); }
+                }
+            }).catch(function () { btn.disabled = false; });
     }
 
     function uploadFiles(files) {
