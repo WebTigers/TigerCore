@@ -35,5 +35,7 @@ class Media_IndexController extends Tiger_Controller_Admin_Action
         $this->view->thumbPx     = ($var && (int) $var->get('thumbnail') > 0) ? (int) $var->thumbnail : 200;
         $this->view->title         = 'Media Library — Tiger Admin';
         $this->view->useDataTables = true;
+        // Active modules that contribute static media -> the source filter dropdown ("Uploads" + each).
+        $this->view->mediaSources  = Tiger_Media_Manifest::sources();
     }
 }

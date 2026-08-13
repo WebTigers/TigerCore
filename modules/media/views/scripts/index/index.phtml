@@ -45,6 +45,21 @@
                     <option value="archive">Archives</option>
                 </select>
             </div>
+<?php if (!empty($this->mediaSources)): ?>
+            <div class="col-auto dropdown" id="media-source-wrap">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" title="Filter by source">
+                    <i class="fa-solid fa-layer-group me-1"></i>Sources
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-2" style="min-width:220px;">
+                    <label class="dropdown-item d-flex align-items-center gap-2 px-2 py-1 mb-1"><input type="checkbox" class="form-check-input mt-0" id="media-src-all" checked> <strong>All</strong></label>
+                    <div class="dropdown-divider my-1"></div>
+                    <label class="dropdown-item d-flex align-items-center gap-2 px-2 py-1"><input type="checkbox" class="form-check-input mt-0 media-src" value="uploads" checked> <i class="fa-solid fa-arrow-up-from-bracket text-body-secondary"></i> Uploads</label>
+                    <?php foreach ((array) $this->mediaSources as $s): ?>
+                    <label class="dropdown-item d-flex align-items-center gap-2 px-2 py-1"><input type="checkbox" class="form-check-input mt-0 media-src" value="<?= $this->escape($s['slug']) ?>" checked> <i class="fa-solid fa-palette text-body-secondary"></i> <?= $this->escape($s['name']) ?></label>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+<?php endif; ?>
             <div class="col-auto" id="media-size-wrap" hidden>
                 <select id="media-size" class="form-select form-select-sm" title="Tile size">
                     <option value="thumbnail">Thumbnail</option>
@@ -168,14 +183,16 @@ document.addEventListener('DOMContentLoaded', function () {
         service: { module:'media', service:'media', action:'datatable' },
         order: [[1,'desc']],
         layout: { topEnd: null },   // drop DataTables' built-in search — the shared search header drives it
-        extraData: function(){ return { kind: kindEl.value }; },
+        extraData: function(){ return { kind: kindEl.value, sources: currentSources() }; },
         columns: [
             { data:null, orderable:false, className:'text-center', render:function(t,type,row){
                 if (row.kind==='image' && (row.small||row.thumb)) { return imgAnchor(row, row.small||row.thumb, 'class="rounded" style="max-width:180px;max-height:180px;width:auto;height:auto;object-fit:contain;cursor:zoom-in;"'); }
                 return '<span class="d-inline-flex align-items-center justify-content-center rounded bg-body-secondary text-body-secondary" style="width:64px;height:64px;">'+icon(row.kind)+'</span>'; } },
             { data:'filename', render:function(t,type,row){ if(type!=='display')return t;
                 return '<div class="fw-semibold text-truncate" style="max-width:340px;">'+esc(row.filename||row.title||'(file)')+'</div>'
-                     + (row.title && row.title!==row.filename ? '<div class="small text-body-secondary text-truncate" style="max-width:340px;">'+esc(row.title)+'</div>' : ''); } },
+                     + (row.is_static
+                         ? '<div class="small text-body-secondary text-truncate" style="max-width:340px;"><i class="fa-solid fa-palette me-1"></i>'+esc(row.source_name||'Theme')+' · read-only</div>'
+                         : (row.title && row.title!==row.filename ? '<div class="small text-body-secondary text-truncate" style="max-width:340px;">'+esc(row.title)+'</div>' : '')); } },
             { data:'kind', render:function(t,type){ return type!=='display'?t:'<span class="badge text-bg-light">'+icon(t)+' '+esc(t)+'</span>'; } },
             { data:'file_size', render:function(t,type){ return type!=='display'?t:human(t); } },
             { data:null, orderable:false, searchable:false, className:'text-body-secondary text-nowrap', render:function(t,type,row){
@@ -184,6 +201,11 @@ document.addEventListener('DOMContentLoaded', function () {
             { data:null, orderable:false, searchable:false, className:'text-end text-nowrap', render:function(t,type,row){
                 var h = '<a href="'+esc(row.url)+'" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Open" aria-label="Open"><i class="fa-solid fa-up-right-from-square"></i></a> ';
                 h += '<button type="button" class="btn btn-sm btn-outline-secondary" data-media-copy="'+esc(row.url)+'" title="Copy URL" aria-label="Copy URL"><i class="fa-solid fa-link"></i></button> ';
+                // Static (module-shipped) media is read-only: offer Copy-to-library instead of Edit/Delete.
+                if (row.is_static) {
+                    h += '<button type="button" class="btn btn-sm '+(row.in_library?'btn-outline-success':'btn-outline-primary')+'" data-media-copy-lib="'+esc(row.media_id)+'"'+(row.in_library?' disabled':'')+' title="'+(row.in_library?'Already in your library':'Copy to media library')+'"><i class="fa-solid '+(row.in_library?'fa-check':'fa-download')+'"></i></button>';
+                    return h;
+                }
                 h += '<button type="button" class="btn btn-sm btn-outline-secondary" '+editAttrs(row)+' title="Edit" aria-label="Edit"><i class="fa-solid fa-pen"></i></button>';
                 if (row.can_delete) { h += ' <button type="button" class="btn btn-sm btn-outline-danger" data-media-delete="'+esc(row.media_id)+'" title="Delete" aria-label="Delete"><i class="fa-solid fa-trash"></i></button>'; }
                 return h; } }
@@ -193,21 +215,29 @@ document.addEventListener('DOMContentLoaded', function () {
     // ---------- Grid (vanilla) ----------
     var gRows = [], gOffset = 0, gTotal = 0, GLEN = 60, gBusy = false;
     function variantSrc(row){ var m={thumbnail:'thumb',small:'small',medium:'medium',large:'large'}; return row[m[sizeEl.value]] || row.thumb || row.url; }
+    // A static (module/theme-shipped) image shows a Copy-to-library control + an origin badge; a managed
+    // item shows the Edit pen. Static media is read-only (a file the module owns), so no edit/delete on it.
+    function copyBtn(row){ return '<button class="media-tile-copy" data-media-copy-lib="'+esc(row.media_id)+'"'
+        +(row.in_library?' disabled title="Already in your library"':' title="Copy to media library"')
+        +'><i class="fa-solid '+(row.in_library?'fa-check':'fa-download')+'"></i></button>'; }
     function tile(row){
-        var del = '<button class="media-tile-edit" '+editAttrs(row)+' title="Edit" aria-label="Edit"><i class="fa-solid fa-pen"></i></button>';
+        var ctl  = row.is_static ? copyBtn(row)
+                 : '<button class="media-tile-edit" '+editAttrs(row)+' title="Edit" aria-label="Edit"><i class="fa-solid fa-pen"></i></button>';
+        var badge = row.is_static ? '<span class="media-tile-badge" title="Shipped by '+esc(row.source_name||'a theme')+' — read-only">'+esc(row.source_name||'Theme')+'</span>' : '';
         var name = '<div class="media-tile-name" title="'+esc(row.filename||'')+'">'+esc(row.title||row.filename||'')+'</div>';
+        var cls  = 'media-tile'+(row.is_static?' media-tile-static':'');
         if (row.kind==='image'){
-            return '<div class="media-tile" data-media-id="'+esc(row.media_id)+'">'
+            return '<div class="'+cls+'" data-media-id="'+esc(row.media_id)+'">'
                  + '<a href="'+esc(row.large||row.url)+'" data-tiger-lightbox="media" data-type="image" data-caption="'+esc(row.title||row.filename||'')+'">'
-                 + '<img src="'+esc(variantSrc(row))+'" loading="lazy" alt="'+esc(row.alt_text||row.filename||'')+'"></a>'+del+name+'</div>';
+                 + '<img src="'+esc(variantSrc(row))+'" loading="lazy" alt="'+esc(row.alt_text||row.filename||'')+'"></a>'+ctl+badge+name+'</div>';
         }
         if (row.kind==='pdf'){
             // Icon now; pdf.js paints the first page into this anchor after render (opens in the lightbox).
-            return '<div class="media-tile" data-media-id="'+esc(row.media_id)+'">'
-                 + '<a href="'+esc(row.url)+'" data-tiger-lightbox="media" data-type="pdf" data-caption="'+esc(row.title||row.filename||'')+'" class="media-tile-icon" data-pdf-src="'+esc(row.url)+'">'+icon('pdf')+'<span class="small text-uppercase">pdf</span></a>'+del+name+'</div>';
+            return '<div class="'+cls+'" data-media-id="'+esc(row.media_id)+'">'
+                 + '<a href="'+esc(row.url)+'" data-tiger-lightbox="media" data-type="pdf" data-caption="'+esc(row.title||row.filename||'')+'" class="media-tile-icon" data-pdf-src="'+esc(row.url)+'">'+icon('pdf')+'<span class="small text-uppercase">pdf</span></a>'+ctl+badge+name+'</div>';
         }
-        return '<div class="media-tile" data-media-id="'+esc(row.media_id)+'">'
-             + '<a href="'+esc(row.url)+'" target="_blank" rel="noopener" class="media-tile-icon">'+icon(row.kind)+'<span class="small text-uppercase">'+esc(row.extension||row.kind)+'</span></a>'+del+name+'</div>';
+        return '<div class="'+cls+'" data-media-id="'+esc(row.media_id)+'">'
+             + '<a href="'+esc(row.url)+'" target="_blank" rel="noopener" class="media-tile-icon">'+icon(row.kind)+'<span class="small text-uppercase">'+esc(row.extension||row.kind)+'</span></a>'+ctl+badge+name+'</div>';
     }
     function renderGrid(){
         grid.style.setProperty('--tile', (TILE_PX[sizeEl.value]||168)+'px');
@@ -250,7 +280,7 @@ document.addEventListener('DOMContentLoaded', function () {
         gBusy = true;
         if (reset) { gOffset = 0; gRows = []; }
         var body = new URLSearchParams({ module:'media', service:'media', method:'datatable', draw:1, start:gOffset, length:GLEN });
-        body.set('search[value]', searchEl.value); body.set('kind', kindEl.value);
+        body.set('search[value]', searchEl.value); body.set('kind', kindEl.value); body.set('sources', currentSources());
         fetch('/api', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body:body })
             .then(function(r){ return r.json(); })
             .then(function(res){
@@ -270,6 +300,30 @@ document.addEventListener('DOMContentLoaded', function () {
     var t;
     searchEl.addEventListener('input', function(){ clearTimeout(t); t=setTimeout(function(){ if(mode==='grid') gridFetch(true); else table.search(searchEl.value).draw(); }, 250); });
     kindEl.addEventListener('change', function(){ if(mode==='grid') gridFetch(true); else table.ajax.reload(); });
+
+    // ---------- source filter (Uploads + each active module's static media) ----------
+    // The `sources` param: '' when everything is checked (no filter), 'none' when nothing is, else a
+    // comma list of the checked source keys ('uploads' + module slugs).
+    function currentSources(){
+        var boxes = Array.prototype.slice.call(document.querySelectorAll('.media-src'));
+        if (!boxes.length) { return ''; }
+        var on = boxes.filter(function(b){ return b.checked; });
+        if (on.length === boxes.length) { return ''; }
+        if (on.length === 0) { return 'none'; }
+        return on.map(function(b){ return b.value; }).join(',');
+    }
+    var srcAll = document.getElementById('media-src-all');
+    if (srcAll) {
+        var srcBoxes = Array.prototype.slice.call(document.querySelectorAll('.media-src'));
+        srcBoxes.forEach(function(b){ b.addEventListener('change', function(){
+            srcAll.checked = srcBoxes.every(function(x){ return x.checked; });
+            refresh();
+        }); });
+        srcAll.addEventListener('change', function(){
+            var on = srcAll.checked; srcBoxes.forEach(function(b){ b.checked = on; });
+            refresh();
+        });
+    }
 
     function setMode(m){
         mode = m;
@@ -366,6 +420,22 @@ document.addEventListener('DOMContentLoaded', function () {
             if(i){ i.className='fa-solid fa-check text-success'; setTimeout(function(){ i.className=old; }, 1000); }
             copiedPopper(b);
         }).catch(function(){ TigerDOM.toast('Could not copy the URL.', { type:'error' }); });
+    });
+
+    // ---------- copy a STATIC (module/theme-shipped) image into the managed Library (delegated) ----------
+    // Deliberate, one-click: the file is copied to managed media (a real row) and the view refreshes, so
+    // the static tile and its new managed copy both show (idempotent — a second click won't duplicate it).
+    document.addEventListener('click', function(e){
+        var b = e.target.closest('[data-media-copy-lib]');
+        if (!b || b.disabled) { return; }
+        TigerButton.run(b, function(){
+            return fetch('/api', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'},
+                body:new URLSearchParams({ module:'media', service:'media', method:'copyToLibrary', media_id:b.getAttribute('data-media-copy-lib') }) })
+                .then(function(r){ return r.json(); });
+        }).then(function(res){
+            if (res && res.result===1) { TigerDOM.toast((res.data&&res.data.existing)?'Already in your library.':'Copied to your media library.', { type:'success' }); refresh(); return; }
+            ((res&&res.messages)||[]).forEach(function(m){ TigerDOM.toast(m.message, { type:m.class }); });
+        }).catch(function(){ TigerDOM.toast('Network error — please try again.', { type:'error' }); });
     });
 
     // ---------- upload (TigerUpload engine → BOTH views as independent subscribers) ----------

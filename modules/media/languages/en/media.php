@@ -6,12 +6,14 @@
  */
 return [
     'media.uploaded'        => 'File uploaded.',
+    'media.copied'          => 'Copied to your media library.',
     'media.saved'           => 'Media updated.',
     'media.settings.saved'  => 'Media settings saved.',
     'media.deleted'         => 'Media deleted.',
     'media.error.upload'    => 'The upload did not complete. Please try again.',
     'media.error.too_large' => 'That file is too large.',
     'media.error.type'      => 'That file type is not allowed.',
+    'media.error.static_missing' => 'That media is no longer available (its module may have been deactivated).',
     'media.error.infected'  => 'That file was rejected by the virus scanner.',
     'media.error.moderation'=> 'That image was rejected by content moderation.',
     'media.migrate.copied'  => 'Media copied to the selected disk.',

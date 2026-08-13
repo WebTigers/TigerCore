@@ -131,21 +131,172 @@ class Media_Service_Media extends Tiger_Service_Service
         $dt   = $this->_dtParams($params);
         $kinds = [Tiger_Model_Media::KIND_IMAGE, Tiger_Model_Media::KIND_DOCUMENT, Tiger_Model_Media::KIND_PDF,
                   Tiger_Model_Media::KIND_VIDEO, Tiger_Model_Media::KIND_AUDIO, Tiger_Model_Media::KIND_ARCHIVE, Tiger_Model_Media::KIND_OTHER];
-        $data = (new Tiger_Model_Media())->datatable([
-            'search'   => $dt['search'],
-            'kind'     => in_array(($params['kind'] ?? ''), $kinds, true) ? (string) $params['kind'] : '',
-            'orderCol' => isset($dt['order'][0]) ? $dt['order'][0]['column'] : -1,
-            'orderDir' => isset($dt['order'][0]) ? $dt['order'][0]['dir'] : '',
-            'offset'   => $dt['start'],
-            'limit'    => $dt['length'],
-        ]);
+        $kindFilter = in_array(($params['kind'] ?? ''), $kinds, true) ? (string) $params['kind'] : '';
+
+        // Source filter (the dropdown): '' / absent = everything; a comma list of 'uploads' + module
+        // slugs = only those; 'none' = nothing checked. Uploads are all-or-nothing (managed rows carry
+        // no source); static entries filter by their owning module.
+        $srcRaw = trim((string) ($params['sources'] ?? ''));
+        $srcSet = $srcRaw !== '' ? array_flip(array_filter(array_map('trim', explode(',', $srcRaw)))) : null;
+        $includeUploads = ($srcSet === null) || isset($srcSet['uploads']);
+
+        // Static (module-shipped) media are always images, so they merge in only for image browsing.
+        // They lead the feed (a starter palette); managed rows fill the rest of the page. Because the
+        // static set is discovered (never inserted), pagination is a simple two-segment slice.
+        $allStatic = ($kindFilter === '' || $kindFilter === Tiger_Model_Media::KIND_IMAGE) ? Tiger_Media_Manifest::entries() : [];
+        if ($srcSet !== null) {
+            $allStatic = array_values(array_filter($allStatic, static function ($e) use ($srcSet) { return isset($srcSet[$e['module']]); }));
+        }
+        $needle = strtolower(trim((string) $dt['search']));
+        $static = ($needle === '') ? $allStatic : array_values(array_filter($allStatic, static function ($e) use ($needle) {
+            return strpos(strtolower($e['filename']), $needle) !== false || strpos(strtolower($e['moduleName']), $needle) !== false;
+        }));
+        $sAll = count($allStatic);
+        $sFil = count($static);
+
+        $staticSlice = array_slice($static, (int) $dt['start'], (int) $dt['length']);
+        $need        = $includeUploads ? ((int) $dt['length'] - count($staticSlice)) : 0;
+        $managedOff  = max(0, (int) $dt['start'] - $sFil);
+
+        // datatable() always returns total+filtered (separate COUNTs), so we always get the managed totals
+        // even on a page that's entirely static (we just discard the one row we had to ask for). Skip it
+        // entirely when Uploads is filtered out.
+        $data = $includeUploads
+            ? (new Tiger_Model_Media())->datatable([
+                'search'   => $dt['search'],
+                'kind'     => $kindFilter,
+                'orderCol' => isset($dt['order'][0]) ? $dt['order'][0]['column'] : -1,
+                'orderDir' => isset($dt['order'][0]) ? $dt['order'][0]['dir'] : '',
+                'offset'   => $managedOff,
+                'limit'    => max(1, $need),
+            ])
+            : ['rows' => [], 'total' => 0, 'filtered' => 0];
 
         $canDelete = $this->_isAdmin(static::class, 'delete');
         $rows = [];
-        foreach ($data['rows'] as $r) {
-            $rows[] = $this->_present($r) + ['can_delete' => $canDelete];
+        foreach ($staticSlice as $e) { $rows[] = $this->_presentStatic($e); }
+        if ($need > 0) {
+            $taken = 0;
+            foreach ($data['rows'] as $r) {
+                if ($taken >= $need) { break; }
+                $rows[] = $this->_present($r) + ['can_delete' => $canDelete, 'is_static' => false];
+                $taken++;
+            }
         }
-        $this->_dtResponse($dt['draw'], $data['total'], $data['filtered'], $rows);
+        $this->_dtResponse($dt['draw'], $sAll + (int) $data['total'], $sFil + (int) $data['filtered'], $rows);
+    }
+
+    /**
+     * Copy a static (module/theme-shipped) image into managed media — an ordinary `media` row the admin
+     * then owns (durable, editable, survives the source module's deactivation). Idempotent: the same bytes
+     * already copied by this org return the existing row instead of a duplicate.
+     *
+     * @param  array $params must carry `media_id` = a static entry id (`static:<slug>:<relpath>`)
+     * @return void
+     */
+    public function copyToLibrary(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+
+        $src = Tiger_Media_Manifest::file((string) ($params['media_id'] ?? $params['ref'] ?? ''));
+        if ($src === '') { $this->_error('media.error.static_missing'); return; }
+
+        $original = basename($src);
+        $ext      = strtolower((string) pathinfo($original, PATHINFO_EXTENSION));
+        $class    = Tiger_Model_Media::classify($ext);
+        if (!$class['allowed']) { $this->_error('media.error.type'); return; }
+
+        $checksum = @hash_file('sha256', $src) ?: null;
+        $model    = new Tiger_Model_Media();
+        $db       = $model->getAdapter();
+
+        // Idempotent: same bytes already in THIS org's library -> return it, don't duplicate the file.
+        if ($checksum) {
+            $existingId = $db->fetchOne($db->select()->from('media', ['media_id'])
+                ->where('deleted = 0')->where('org_id = ?', $this->_orgId())->where('checksum = ?', $checksum)->limit(1));
+            if ($existingId) {
+                $this->_success(['media' => $this->_present($model->findById($existingId)), 'existing' => true], 'media.copied');
+                return;
+            }
+        }
+
+        $mime       = $this->_mime($src, $ext);
+        $visibility = Tiger_Model_Media::VISIBILITY_PUBLIC;
+        $org        = preg_replace('/[^a-zA-Z0-9-]/', '', $this->_orgId()) ?: '_shared';
+        $folder     = Tiger_Model_Media::kindFolder($class['kind']);
+        $obfuscate  = Tiger_Model_Media::obfuscateEnabled($visibility, $this->_orgId());
+        $key        = $org . '/' . $folder . '/'
+                    . Tiger_Model_Media::storageBase($original, $obfuscate) . ($ext !== '' ? '.' . $ext : '');
+        $disk       = Tiger_Media_Storage::defaultDisk();
+
+        try {
+            Tiger_Media_Storage::disk($disk)->put($key, $src, $visibility, $mime);
+        } catch (Throwable $e) {
+            $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general'); return;
+        }
+
+        $dims = ($class['kind'] === Tiger_Model_Media::KIND_IMAGE) ? @getimagesize($src) : false;
+        try {
+            $id = $model->insert([
+                'org_id'      => $this->_orgId(),
+                'locale'      => '',
+                'disk'        => $disk,
+                'storage_key' => $key,
+                'visibility'  => $visibility,
+                'kind'        => $class['kind'],
+                'mime_type'   => $mime,
+                'extension'   => $ext,
+                'file_size'   => (int) @filesize($src),
+                'checksum'    => $checksum,
+                'width'       => $dims ? (int) $dims[0] : null,
+                'height'      => $dims ? (int) $dims[1] : null,
+                'filename'    => $original,
+                'title'       => (string) pathinfo($original, PATHINFO_FILENAME),
+            ]);
+        } catch (Throwable $e) {
+            Tiger_Media_Storage::disk($disk)->delete($key, $visibility);   // don't orphan the bytes
+            $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general'); return;
+        }
+
+        try {   // variants best-effort, same as upload()
+            $media = $model->findById($id)->toArray();
+            if (Tiger_Media_Image::supports($mime) && $this->_serverEnabled()) {
+                $this->_makeServerVariants($model, $id, $media, $src, $mime);
+            }
+        } catch (Throwable $e) {}
+
+        $this->_success(['media' => $this->_present($model->findById($id))], 'media.copied');
+    }
+
+    /** Shape a discovered static (module-shipped) media entry as a read-only, copyable Library row. */
+    protected function _presentStatic(array $e)
+    {
+        return [
+            'media_id'    => $e['id'],
+            'kind'        => Tiger_Model_Media::KIND_IMAGE,
+            'mime_type'   => '',
+            'extension'   => $e['ext'],
+            'file_size'   => (int) ($e['size'] ?? 0),
+            'filename'    => $e['filename'],
+            'title'       => $e['title'] !== '' ? $e['title'] : (string) pathinfo($e['filename'], PATHINFO_FILENAME),
+            'caption'     => null,
+            'alt_text'    => $e['alt'] !== '' ? $e['alt'] : null,
+            'description' => null,
+            'visibility'  => Tiger_Model_Media::VISIBILITY_PUBLIC,
+            'width'       => !empty($e['w']) ? (int) $e['w'] : null,
+            'height'      => !empty($e['h']) ? (int) $e['h'] : null,
+            'scan_status' => null,
+            'url'         => $e['url'],
+            'thumb'       => $e['url'],
+            'small'       => $e['url'],
+            'medium'      => $e['url'],
+            'large'       => $e['url'],
+            'is_static'   => true,
+            'can_copy'    => true,
+            'can_delete'  => false,
+            'source_name' => $e['moduleName'],
+            'in_library'  => false,
+        ];
     }
 
     /**
@@ -328,7 +479,8 @@ class Media_Service_Media extends Tiger_Service_Service
         if (function_exists('finfo_open')) {
             $fi = finfo_open(FILEINFO_MIME_TYPE);
             $m  = $fi ? finfo_file($fi, $tmp) : false;
-            if ($fi) { finfo_close($fi); }
+            // No finfo_close(): finfo is an object since PHP 8.1 (freed on GC), and finfo_close() is
+            // deprecated in 8.5.
             if ($m) { return (string) $m; }
         }
         return 'application/octet-stream';

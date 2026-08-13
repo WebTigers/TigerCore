@@ -238,6 +238,14 @@ body {
 .media-tile-edit { position:absolute; top:.3rem; right:.3rem; display:flex; align-items:center; justify-content:center; width:26px; height:26px; padding:0; border:0; border-radius:50%; background:rgba(0,0,0,.6); color:#fff; font-size:.72rem; cursor:pointer; opacity:0; transition:opacity .1s; }
 .media-tile:hover .media-tile-edit { opacity:1; }
 .media-tile-edit:hover { background:rgba(0,0,0,.82); }
+
+/* Static (module/theme-shipped) media: a persistent origin badge (top-left) + a Copy-to-library action.
+   Static tiles have no editable metadata, so they show Copy instead of the Edit pen. */
+.media-tile-badge { position:absolute; top:.3rem; left:.3rem; max-width:calc(100% - 3rem); display:inline-block; padding:.12rem .4rem; border-radius:.35rem; background:rgba(0,0,0,.6); color:#fff; font-size:.62rem; font-weight:500; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none; }
+.media-tile-copy { position:absolute; top:.3rem; right:.3rem; display:flex; align-items:center; justify-content:center; width:26px; height:26px; padding:0; border:0; border-radius:50%; background:rgba(var(--bs-primary-rgb),.85); color:#fff; font-size:.72rem; cursor:pointer; opacity:0; transition:opacity .1s; }
+.media-tile:hover .media-tile-copy { opacity:1; }
+.media-tile-copy:hover { background:var(--bs-primary); }
+.media-tile-copy[disabled] { background:rgba(var(--bs-success-rgb),.9); cursor:default; opacity:1; }
 /* "Copied!" confirmation popper (Copy-URL action) — floats just above the button, fades out */
 .media-copied-pop { position:absolute; transform:translate(-50%,-100%); margin-top:-6px; background:var(--bs-emphasis-color); color:var(--bs-body-bg); font-size:.72rem; font-weight:500; line-height:1; padding:.3rem .5rem; border-radius:.35rem; white-space:nowrap; pointer-events:none; opacity:0; transition:opacity .15s ease, margin-top .15s ease; z-index:2000; box-shadow:0 2px 8px rgba(0,0,0,.25); }
 .media-copied-pop.show { opacity:1; margin-top:-10px; }
