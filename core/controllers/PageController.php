@@ -58,6 +58,24 @@ class PageController extends Tiger_Controller_Action
         $this->view->pageHead    = $head;      // the shell emits this in <head>
         $this->view->pageScripts = $scripts;   // …and this before </body>
         $this->view->pageMeta    = $meta;      // whole meta -> the shell can read theme hints (e.g. skin)
+
+        // A page CUSTOMIZED FROM a theme (Cms_Service_Page fork stamps meta.source='theme') IS that
+        // theme's page, so render it in the theme's OWN layout — exactly like the theme's file pages
+        // (themeContentAction) — instead of the base site shell. This keeps the theme's chrome, CSS
+        // (loaded by its layout, so no baking needed) and body context even for a 'content'-scoped
+        // theme. Only when its source theme is the ACTIVE one (layout + assets live); a deactivated
+        // source theme falls back to the base shell + the page's baked head_html. Same view script
+        // (page/view.phtml echoes cmsContent) — only the layout differs.
+        if ((string) ($meta['source'] ?? '') === 'theme' && (string) ($meta['source_key'] ?? '') !== '') {
+            $active = '';
+            try { $m = Tiger_Theme::manifest(); $active = (string) ($m['key'] ?? ''); } catch (Throwable $e) {}
+            $dir = ((string) $meta['source_key'] === $active) ? (string) Tiger_Theme::dir() : '';
+            if ($dir !== '' && is_dir($dir . '/layouts/scripts')) {
+                $lay = isset($meta['layout']) ? preg_replace('/[^a-z0-9_-]/i', '', (string) $meta['layout']) : '';
+                $this->_helper->layout()->setLayoutPath($dir . '/layouts/scripts');
+                $this->_helper->layout()->setLayout($lay !== '' && $lay !== 'none' ? $lay : 'layout');
+            }
+        }
     }
 
     /**

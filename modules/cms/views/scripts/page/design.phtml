@@ -38,6 +38,14 @@ if ($this->chromeBefore !== null || $this->chromeAfter !== null) {
     $headerHtml = (string) $this->chromeBefore;   // already style/script-stripped by the controller
     $footerHtml = (string) $this->chromeAfter;
 } else {
+    // A content-scoped active theme keeps the base theme's GLOBAL chrome, so its own header/footer
+    // partials aren't in the view path here. Add the active theme's views (builder render only, highest
+    // priority) so a page previews in the ACTIVE theme's real header/footer — with its own menu — instead
+    // of falling back to the base theme's public chrome. A theme without these partials still falls back.
+    if (class_exists('Tiger_Theme')) {
+        $themeViews = rtrim((string) Tiger_Theme::dir(), '/') . '/views/scripts';
+        if ($themeViews !== '/views/scripts' && is_dir($themeViews)) { $this->addScriptPath($themeViews); }
+    }
     try { $headerHtml = trim((string) preg_replace($tbStrip, '', (string) $this->render('_partials/public-header.phtml'))); } catch (\Throwable $e) {}
     try { $footerHtml = trim((string) preg_replace($tbStrip, '', (string) $this->render('_partials/public-footer.phtml'))); } catch (\Throwable $e) {}
 }
@@ -113,6 +121,11 @@ if ($this->chromeBefore !== null || $this->chromeAfter !== null) {
     <script src="<?= $this->asset($va . '/js/tiger.media-picker.js') ?>"></script>
     <script src="<?= $this->asset($va . '/vendor/grapesjs/grapes.min.js') ?>"></script>
     <script src="<?= $this->asset($va . '/vendor/grapesjs/grapesjs-preset-webpage.js') ?>"></script>
+<?php if (!empty($this->builderJs)): ?>
+    <!-- Active theme's own builder components (registers window.TigerThemeBuilder) — MUST load before
+         the builder so its component types exist when the page HTML is parsed. -->
+    <script src="<?= $this->escape($this->builderJs) ?>"></script>
+<?php endif; ?>
     <script src="<?= $this->asset($va . '/js/tiger.page-builder.js') ?>"></script>
 </body>
 </html>
