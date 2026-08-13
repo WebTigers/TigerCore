@@ -169,12 +169,27 @@ class Cms_PageController extends Tiger_Controller_Admin_Action
         $this->_helper->layout()->disableLayout();   // full-screen — the view is a complete document
         $this->view->title           = $page->title;
         $this->view->page            = $page;
-        $this->view->projectData     = !empty($meta['builder']) ? $meta['builder'] : null;
+        // HTML is the SOURCE OF TRUTH — always seed the builder from the page's current body markup, never
+        // a stored GrapesJS project blob (which drifts from the HTML). Components re-parse their state on load.
+        $this->view->projectData     = null;
         $this->view->menus           = $menus;
         $this->view->partials        = $partials;
         $this->view->userBlocks      = $userBlocks;
         $this->view->themeBlocks     = Tiger_Theme::components();
         $this->view->canvasCss       = isset($manifest['canvasCss']) ? (array) $manifest['canvasCss'] : [];
+        // A theme may ship a JS file (theme.json "builderJs") that registers its OWN editable GrapesJS
+        // component types (sliders, marquees, …). Loaded before the builder seeds the canvas; cache-bust
+        // from the file mtime (the asset() helper only cache-busts theme-base URLs; this is absolute).
+        $builderJs = isset($manifest['builderJs']) ? (string) $manifest['builderJs'] : '';
+        if ($builderJs !== '' && class_exists('Tiger_Theme')) {
+            $base = (string) Tiger_Theme::assetBase();
+            $rel  = ($base !== '' && strpos($builderJs, $base) === 0) ? ltrim(substr($builderJs, strlen($base)), '/') : '';
+            $file = $rel !== '' ? rtrim((string) Tiger_Theme::dir(), '/') . '/assets/' . $rel : '';
+            if ($file !== '' && is_file($file)) {
+                $builderJs .= (strpos($builderJs, '?') === false ? '?v=' : '&v=') . filemtime($file);
+            }
+        }
+        $this->view->builderJs = $builderJs;
         $this->view->partialMode     = $isFragment;
         $this->view->fragmentLabel   = $isBlock ? 'Block' : ($isPartial ? 'Partial' : '');
         $this->view->chromeBefore    = $chromeBefore;   // null (page, or fragment w/o CMS layout) -> view uses theme header/footer

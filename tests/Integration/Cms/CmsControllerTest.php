@@ -176,7 +176,7 @@ final class CmsControllerTest extends ControllerTestCase
     }
 
     #[Test]
-    public function page_design_renders_the_builder_with_theme_blocks_and_the_builder_project(): void
+    public function page_design_renders_the_builder_seeding_from_body_html_not_a_stored_project(): void
     {
         $this->loginAs('admin');
         $builder = json_encode(['pages' => [['frames' => []]]]);
@@ -191,7 +191,9 @@ final class CmsControllerTest extends ControllerTestCase
 
         $view = $this->controller()->view;
         $this->assertSame('Designed', $view->title);
-        $this->assertNotNull($view->projectData, 'the lossless builder project is passed to the canvas');
+        // HTML is the source of truth — the builder always seeds from the body markup, never a stored
+        // GrapesJS project blob (which drifts). So projectData is null even when a legacy blob is present.
+        $this->assertNull($view->projectData, 'the builder seeds from body HTML, not a stored project blob');
         $this->assertNotEmpty($view->themeBlocks, 'the active theme components seed the block palette');
         $this->assertSame(['/theme/canvas.css'], $view->canvasCss, 'the manifest canvasCss is loaded into the canvas');
         $this->assertIsArray($view->menus, 'menus are pre-rendered for the live Menu-component preview');

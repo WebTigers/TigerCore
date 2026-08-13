@@ -230,6 +230,10 @@ class Cms_Service_Page extends Tiger_Service_Service
         }
 
         $data = [
+            // A customized theme page IS the public site's page, so it belongs to the SITE org (what
+            // PageDispatch resolves against) — never the editing admin's org, which may differ. Locale
+            // is left neutral ('') so it serves every language (resolveBySlug treats '' as a fallback).
+            'org_id'       => Tiger_Model_Org::siteOrgId(),
             'type'         => $type,
             'page_key'     => $pageKey,
             'slug'         => $isPage ? $key : null,
@@ -363,11 +367,10 @@ class Cms_Service_Page extends Tiger_Service_Service
             $decoded = is_array($page->meta) ? $page->meta : json_decode((string) $page->meta, true);
             if (is_array($decoded)) { $meta = $decoded; }
         }
-        $project = $params['project'] ?? null;
-        if (is_string($project) && $project !== '') {
-            $decodedProject = json_decode($project, true);
-            $meta['builder'] = is_array($decodedProject) ? $decodedProject : null;
-        }
+        // HTML is the SOURCE OF TRUTH: we do NOT persist the GrapesJS project blob (a shadow copy that
+        // drifts from the body markup — that drift corrupted widget components). Re-opening the builder
+        // re-seeds from the body HTML, and each component re-parses its state from it. Drop any legacy blob.
+        unset($meta['builder']);
 
         // A GrapesJS project can carry lone surrogates / invalid UTF-8 (JS strings), which make a strict
         // json_encode return FALSE — an empty string that fails the meta column's json_valid CHECK

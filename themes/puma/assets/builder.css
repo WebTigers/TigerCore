@@ -61,3 +61,104 @@ body { margin: 0; display: flex; flex-direction: column; overflow: hidden; }
    safety timeout also adds .tb-canvas-ready so the frame can never stay hidden. --- */
 .gjs-frame { opacity: 0; }
 body.tb-canvas-ready .gjs-frame { opacity: 1; transition: opacity .15s ease; }
+
+/* --- "Content": a NATIVE-styled Style Manager sector (injected above "General" by tiger.page-builder.js)
+   for editing a text component's content as plain text off-canvas. It reuses GrapesJS's own sector/field
+   classes, so it only needs the properties padding + a comfortable textarea height. --- */
+.tb-content-sector .gjs-sm-properties { padding: 10px; }
+.tb-content-sector:not(.gjs-sm-open) .gjs-sm-properties { display: none; }
+.tb-content-sector .gjs-field-textarea { width: 100%; }
+.tb-content-sector .tb-content-input { min-height: 68px; }
+
+/* Multi-line component trait (the 'textarea' trait type) — native GrapesJS field look. */
+.tb-trait-textarea {
+    width: 100%; box-sizing: border-box; min-height: 84px; resize: vertical;
+    color: inherit; background: var(--gjs-main-dark-color, #2a2f37);
+    border: none; border-radius: 2px; padding: 6px 8px; font: inherit;
+}
+.tb-trait-textarea:focus { outline: none; }
+
+/* Marquee phrase-list trait (theme-crafto-interior builder.js 'marquee-editor'): a text box per phrase
+   + remove, a "+ Add phrase" button, and a speed field. Native GrapesJS field look. */
+.tm-marquee-editor { display: block; width: 100%; }
+.tm-marquee-editor .tm-note {
+    font-size: .78em; line-height: 1.4; opacity: .72; margin-bottom: 9px;
+    padding-left: 8px; border-left: 2px solid var(--gjs-tertiary-color, #0d6efd);
+}
+.tm-marquee-editor .tm-note strong { opacity: .95; }
+.tm-marquee-editor .tm-row { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+.tm-marquee-editor .tm-phrase {
+    flex: 1 1 auto; min-width: 0; box-sizing: border-box; color: inherit; font: inherit;
+    background: var(--gjs-main-dark-color, #2a2f37); border: none; border-radius: 2px; padding: 5px 7px;
+}
+.tm-marquee-editor .tm-phrase:focus { outline: none; }
+.tm-marquee-editor .tm-del {
+    flex: 0 0 auto; width: 22px; height: 22px; line-height: 1; cursor: pointer; color: inherit;
+    background: transparent; border: 1px solid var(--gjs-main-dark-color, #3a3f47); border-radius: 2px;
+}
+.tm-marquee-editor .tm-del:hover { color: #fff; border-color: var(--gjs-tertiary-color, #0d6efd); }
+.tm-marquee-editor .tm-add {
+    margin: 2px 0 8px; cursor: pointer; color: inherit; font: inherit;
+    background: var(--gjs-main-dark-color, #2a2f37); border: none; border-radius: 2px; padding: 5px 9px;
+}
+.tm-marquee-editor .tm-add:hover { color: #fff; }
+.tm-marquee-editor .tm-speed-lbl { display: block; font-size: .8em; opacity: .8; }
+.tm-marquee-editor .tm-speed {
+    display: block; width: 100%; box-sizing: border-box; margin-top: 3px; color: inherit; font: inherit;
+    background: var(--gjs-main-dark-color, #2a2f37); border: none; border-radius: 2px; padding: 5px 7px;
+}
+.tm-marquee-editor .tm-speed:focus { outline: none; }
+
+/* Hover-gallery item-list trait (theme-crafto-interior builder.js 'gallery-editor'): per item a label, an
+   image URL (+ a Browse button → the media picker), and an optional link; "×" removes, "+ Add item"
+   appends. Native GrapesJS field look, matching the marquee editor. */
+.tg-gallery-editor { display: block; width: 100%; }
+.tg-gallery-editor .tg-note {
+    font-size: .78em; line-height: 1.4; opacity: .72; margin-bottom: 9px;
+    padding-left: 8px; border-left: 2px solid var(--gjs-tertiary-color, #0d6efd);
+}
+.tg-gallery-editor .tg-note strong { opacity: .95; }
+.tg-gallery-editor .tg-item {
+    margin-bottom: 9px; padding-bottom: 9px; border-bottom: 1px solid var(--gjs-main-dark-color, #3a3f47);
+}
+.tg-gallery-editor .tg-item-head,
+.tg-gallery-editor .tg-img-row { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+.tg-gallery-editor input {
+    flex: 1 1 auto; min-width: 0; box-sizing: border-box; color: inherit; font: inherit;
+    background: var(--gjs-main-dark-color, #2a2f37); border: none; border-radius: 2px; padding: 5px 7px;
+}
+.tg-gallery-editor input:focus { outline: none; }
+.tg-gallery-editor .tg-link { display: block; width: 100%; }
+.tg-gallery-editor .tg-del,
+.tg-gallery-editor .tg-browse {
+    flex: 0 0 auto; width: 24px; height: 26px; line-height: 1; cursor: pointer; color: inherit;
+    background: transparent; border: 1px solid var(--gjs-main-dark-color, #3a3f47); border-radius: 2px;
+}
+.tg-gallery-editor .tg-del:hover,
+.tg-gallery-editor .tg-browse:hover { color: #fff; border-color: var(--gjs-tertiary-color, #0d6efd); }
+.tg-gallery-editor .tg-add {
+    margin: 2px 0 4px; cursor: pointer; color: inherit; font: inherit;
+    background: var(--gjs-main-dark-color, #2a2f37); border: none; border-radius: 2px; padding: 5px 9px;
+}
+.tg-gallery-editor .tg-add:hover { color: #fff; }
+
+/* --- Resizable right panel: a drag handle on the panel's inner edge (tiger.page-builder.js updates
+   GrapesJS's own --gjs-left-width var, which resizes the panel + canvas). No vendor code touched. --- */
+.gjs-editor .tb-panel-resizer {
+    position: absolute; top: var(--gjs-canvas-top, 40px); bottom: 0;
+    right: var(--gjs-left-width, 15%); width: 7px; margin-right: -3px; z-index: 10;
+    cursor: col-resize; transition: background-color .12s ease;
+}
+.gjs-editor .tb-panel-resizer:hover,
+.gjs-editor .tb-panel-resizer.tb-dragging { background: var(--bs-primary, #0d6efd); opacity: .5; }
+
+/* Reflow the right-panel view tabs (Style / Settings / Layers / Blocks) to FILL the resizable panel —
+   they grow evenly as it widens instead of clustering with empty gaps. Scoped to the sidebar's tabs so
+   the top toolbar's icon buttons keep their natural size. */
+.gjs-pn-views .gjs-pn-buttons { width: 100%; gap: 2px; }
+.gjs-pn-views .gjs-pn-btn { flex: 1 1 0; margin-right: 0; }
+
+/* Reflow the Blocks palette into a RESPONSIVE grid — GrapesJS hardcodes .gjs-block to width:45% (always
+   2 columns). A grid with auto-fill adds columns as the resizable panel widens (2 → 3 → 4 …). */
+.gjs-blocks-c { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; padding: 8px; }
+.gjs-blocks-c .gjs-block { width: auto; min-width: 0; margin: 0; min-height: 82px; }

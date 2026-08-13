@@ -48,6 +48,7 @@
 
   // Tiger additions: a live-rendering Menu component + a Bootstrap 5 block library. Base set —
   // enough to show where this goes (a Divi/Elementor-class kit); dress up later.
+  registerTextareaTrait(editor);
   registerMenuComponent(editor);
   registerPartialComponent(editor);
   registerBootstrapBlocks(editor);
@@ -55,15 +56,44 @@
   registerThemeBlocks(editor);
   registerUserBlocks(editor);
 
-  // Seed the canvas: prefer the lossless project blob, else import the body HTML.
+  // Theme-provided builder components: a theme may ship a JS file (theme.json "builderJs", loaded by
+  // design.phtml BEFORE this script) that defines window.TigerThemeBuilder(editor) to register its OWN
+  // editable GrapesJS component types (sliders, marquees, counters, …). Run it here — after the core
+  // types, before the canvas is seeded — so GrapesJS recognizes those types in the page HTML. A broken
+  // theme component must never take down the builder.
+  if (typeof window.TigerThemeBuilder === 'function') {
+    try { window.TigerThemeBuilder(editor); } catch (e) { /* ignore — theme component registration failed */ }
+  }
+
+  // GrapesJS-exported bodies keep background-images in a page <style> as `#id{background-image:…}` rules,
+  // decoupled from the elements. Re-inline them BEFORE parsing so the HTML is self-contained — otherwise an
+  // opaque widget (whose child components are dropped) loses the CSS rules tied to those components and its
+  // backgrounds go blank. Runs on a detached node (no scripts execute); idempotent (skips already-inline).
+  function tbInlineBg(html) {
+    try {
+      var d = document.createElement('div');
+      d.innerHTML = html || '';
+      var css = '';
+      [].forEach.call(d.querySelectorAll('style'), function (s) { css += (s.textContent || ''); });
+      var re = /#([A-Za-z0-9_-]+)\s*\{[^}]*?background-image\s*:\s*([^;}]+)/g, m;
+      while ((m = re.exec(css))) {
+        var node = d.querySelector('[id="' + m[1] + '"]');
+        if (node && !node.style.backgroundImage) { node.style.backgroundImage = m[2].trim(); }
+      }
+      return d.innerHTML;
+    } catch (e) { return html; }
+  }
+
+  // Seed the canvas from the body HTML (the source of truth), with backgrounds re-inlined first.
+  var seedHtml = cfg.seedHtml ? tbInlineBg(cfg.seedHtml) : cfg.seedHtml;
   try {
     if (cfg.project) {
       editor.loadProjectData(cfg.project);
-    } else if (cfg.seedHtml) {
-      editor.setComponents(cfg.seedHtml);
+    } else if (seedHtml) {
+      editor.setComponents(seedHtml);
     }
   } catch (e) {
-    if (cfg.seedHtml) { try { editor.setComponents(cfg.seedHtml); } catch (e2) {} }
+    if (seedHtml) { try { editor.setComponents(seedHtml); } catch (e2) {} }
   }
 
   function setStatus(text, cls) {
@@ -218,6 +248,21 @@
   window.addEventListener('beforeunload', function (e) {
     if (dirty) { e.preventDefault(); e.returnValue = ''; }
   });
+
+  // ---- a reusable 'textarea' trait type (GrapesJS ships only single-line text) — for component traits
+  //      that edit multi-line values (e.g. a marquee's list of phrases). Native field look. ----
+  function registerTextareaTrait(editor) {
+    editor.TraitManager.addType('textarea', {
+      createInput: function () {
+        var ta = document.createElement('textarea');
+        ta.className = 'tb-trait-textarea';
+        ta.rows = 5;
+        return ta;
+      },
+      onEvent: function (o) { o.component.set(o.trait.get('name'), o.elInput.value); },
+      onUpdate: function (o) { var v = o.component.get(o.trait.get('name')); o.elInput.value = (v == null ? '' : v); }
+    });
+  }
 
   // ---- the live-rendering Menu component (renders in the canvas, exports the [menu] shortcode) ----
   function registerMenuComponent(editor) {
@@ -467,6 +512,120 @@
     };
     return '<div class="accordion" id="tbAccordion">' + item(1, true) + item(2, false) + '</div>';
   }
+
+  // ---- "Content" — a PLAIN-TEXT editor rendered as a NATIVE Style Manager sector, injected as the first
+  //      sector (above "General"). GrapesJS edits text inline on the canvas, which is unusable for a
+  //      heading wider than the viewport; this edits the selected text component's content as plain text
+  //      (no rich text) in a normal box. It reuses GrapesJS's own sector/field classes, so it looks and
+  //      collapses exactly like General/Dimension/etc. Shown only for text components.
+  function installContentEditor(editor) {
+    var CARET = '<svg viewBox="0 0 24 24" style="width:17px;height:17px;fill:currentColor;display:block;">'
+      + '<path d="M7 10l5 5 5-5z"></path></svg>';
+
+    // Editable text: a GrapesJS 'text' component, or any leaf element whose only content is text.
+    function isTextish(c) {
+      if (!c || c.get('editable') === false) { return false; }
+      if (c.get('type') === 'text') { return true; }
+      var el = c.getEl && c.getEl();
+      return !!(el && el.children.length === 0 && (el.textContent || '').trim() !== '');
+    }
+    function build() {
+      var sec = document.createElement('div');
+      sec.className = 'gjs-sm-sector gjs-sm-open tb-content-sector';
+      sec.innerHTML =
+        '<div class="gjs-sm-sector-title">'
+          + '<div class="gjs-sm-sector-caret">' + CARET + '</div>'
+          + '<div class="gjs-sm-sector-label">Content</div>'
+        + '</div>'
+        + '<div class="gjs-sm-properties">'
+          + '<div class="gjs-field gjs-field-textarea">'
+            + '<textarea class="tb-content-input" rows="4" spellcheck="true"></textarea>'
+          + '</div>'
+        + '</div>';
+      // Collapse/expand like a native sector (CSS reacts to .gjs-sm-open).
+      sec.querySelector('.gjs-sm-sector-title').addEventListener('click', function () {
+        sec.classList.toggle('gjs-sm-open');
+      });
+      // Apply on blur/change (not per keystroke). PLAIN TEXT: replace children with one text node.
+      sec.querySelector('.tb-content-input').addEventListener('change', function () {
+        var c = editor.getSelected();
+        if (!isTextish(c)) { return; }
+        c.components(this.value === '' ? [] : [{ type: 'textnode', content: this.value }]);
+        dirty = true; setStatus('Unsaved changes', '');
+      });
+      return sec;
+    }
+    // Ensure our sector is the FIRST child of the Style Manager's sector list (above "General"). Re-adds
+    // it if GrapesJS ever rebuilds the list.
+    function ensure() {
+      var sectors = document.querySelector('.gjs-sm-sectors');
+      if (!sectors) { return null; }
+      var sec = sectors.querySelector('.tb-content-sector');
+      if (!sec) { sec = build(); sectors.insertBefore(sec, sectors.firstChild); }
+      // Use the EXACT native caret markup (copied from a real sector) so the icon matches perfectly.
+      var mine = sec.querySelector('.gjs-sm-sector-caret');
+      var native = sectors.querySelector('.gjs-sm-sector:not(.tb-content-sector) .gjs-sm-sector-caret');
+      if (mine && native && native.innerHTML && mine.innerHTML !== native.innerHTML) {
+        mine.innerHTML = native.innerHTML;
+      }
+      return sec;
+    }
+    function refresh(c) {
+      var sec = ensure();
+      if (!sec) { return; }
+      c = c || editor.getSelected();
+      if (isTextish(c)) {
+        var el = c.getEl && c.getEl();
+        sec.querySelector('.tb-content-input').value = el ? (el.textContent || '') : (c.get('content') || '');
+        sec.style.display = '';
+      } else {
+        sec.style.display = 'none';
+      }
+    }
+    // Let GrapesJS finish (re)rendering the Style Manager before we inject/refresh.
+    editor.on('component:selected', function (c) { setTimeout(function () { refresh(c); }, 0); });
+    editor.on('component:deselected', function () {
+      var s = document.querySelector('.tb-content-sector'); if (s) { s.style.display = 'none'; }
+    });
+  }
+  editor.on('load', function () { installContentEditor(editor); });
+
+  // ---- Resizable right panel. GrapesJS exposes its right-panel width as the CSS var --gjs-left-width
+  //      (default 15%) and defines the canvas as calc(100% - that), so setting the var resizes BOTH with
+  //      no vendor edit. We add a drag handle on the panel's inner edge and remember the chosen width.
+  function installPanelResizer(editor) {
+    try {
+      var root = document.querySelector('.gjs-editor');
+      if (!root || root.querySelector('.tb-panel-resizer')) { return; }
+      var KEY = 'tbPanelWidth', MIN = 200, MAX = 680;
+      var saved = null;
+      try { saved = localStorage.getItem(KEY); } catch (e) {}
+      if (saved) { root.style.setProperty('--gjs-left-width', saved); }
+
+      var bar = document.createElement('div');
+      bar.className = 'tb-panel-resizer';
+      bar.title = 'Drag to resize the panel';
+      root.appendChild(bar);
+
+      var dragging = false;
+      bar.addEventListener('mousedown', function (e) {
+        dragging = true; bar.classList.add('tb-dragging');
+        document.body.style.userSelect = 'none'; e.preventDefault();
+      });
+      document.addEventListener('mousemove', function (e) {
+        if (!dragging) { return; }
+        var rect = root.getBoundingClientRect();
+        var w = Math.min(Math.max(rect.right - e.clientX, MIN), MAX);   // distance mouse→right edge = panel width
+        root.style.setProperty('--gjs-left-width', w + 'px');
+      });
+      document.addEventListener('mouseup', function () {
+        if (!dragging) { return; }
+        dragging = false; bar.classList.remove('tb-dragging'); document.body.style.userSelect = '';
+        try { localStorage.setItem(KEY, root.style.getPropertyValue('--gjs-left-width')); } catch (e) {}
+      });
+    } catch (e) {}
+  }
+  editor.on('load', function () { installPanelResizer(editor); });
 
   window.TigerBuilder = { editor: editor, save: save };
 })();

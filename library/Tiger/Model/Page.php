@@ -50,13 +50,18 @@ class Tiger_Model_Page extends Tiger_Model_Table
      */
     public function resolveBySlug($slug, $locale, $orgId = '', $type = null)
     {
+        // Locale cascade: an exact-locale row wins, but a locale-neutral row (locale '') serves as a
+        // fallback for any request — so a language-agnostic page (e.g. a customized theme page, which
+        // has no locale) answers every locale instead of 404ing. Exact beats neutral via the ORDER.
+        $locales = array_values(array_unique([(string) $locale, '']));
         $select = $this->activeSelect()
             ->where('slug = ?', (string) $slug)
-            ->where('locale = ?', (string) $locale)
+            ->where('locale IN (?)', $locales)
             ->where('org_id IN (?)', $this->_orgScope($orgId))
             ->where('status = ?', self::STATUS_PUBLISHED)
             ->where('published_at IS NULL OR published_at <= NOW()')
             ->order('org_id DESC')   // non-empty (tenant) sorts before '' (global)
+            ->order('locale DESC')   // exact locale sorts before the '' neutral fallback
             ->limit(1);
         // Root dispatch resolves only real pages; posts/articles are routed under /blog by
         // their module, so they don't answer at the site root even though they share the slug

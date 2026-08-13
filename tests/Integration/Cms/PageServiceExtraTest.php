@@ -172,7 +172,7 @@ final class PageServiceExtraTest extends IntegrationTestCase
     }
 
     #[Test]
-    public function save_design_stores_the_builder_body_strips_script_and_keeps_the_project(): void
+    public function save_design_stores_the_builder_body_strips_script_and_drops_the_project_blob(): void
     {
         $this->loginAs('admin');
         $id = (new Tiger_Model_Page())->insert([
@@ -196,8 +196,10 @@ final class PageServiceExtraTest extends IntegrationTestCase
         $this->assertStringContainsString('Hero', (string) $row->body);
         $this->assertStringNotContainsString('<script', (string) $row->body, 'script is stripped — builder is a SAFE format');
 
-        $meta = json_decode((string) $row->meta, true);
-        $this->assertArrayHasKey('builder', $meta, 'the lossless project JSON is preserved in meta.builder');
-        $this->assertSame('p', $meta['builder']['pages'][0]['name']);
+        // HTML is the SOURCE OF TRUTH: the GrapesJS project blob is deliberately NOT persisted (a shadow
+        // copy drifts from the body markup — that drift corrupted widget components). Re-opening the
+        // builder re-seeds from the body HTML, so a passed-in legacy `project` is dropped from meta.
+        $meta = json_decode((string) $row->meta, true) ?: [];
+        $this->assertArrayNotHasKey('builder', $meta, 'the project blob is intentionally not persisted');
     }
 }
