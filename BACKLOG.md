@@ -10,8 +10,8 @@ tracked separately in [ROADMAP-1.0.md](ROADMAP-1.0.md).
 
 ## Priorities (next up)
 
-These are the pre-1.0 cluster (they touch the auth / ACL / module `@api`, so they belong in the
-frozen surface — see [ROADMAP-1.0.md](ROADMAP-1.0.md)).
+The next-up features. **None block the 1.0 launch** — per [ROADMAP-1.0.md](ROADMAP-1.0.md) the only
+launch gate is the no-shell web installer; these ship continuously, whenever a use case pulls them.
 
 1. **App-level ACL — Phase 2 (maps + floor + token context)** *(design of record: [ACL.md](ACL.md)).*
    Phase 1 shipped: `Tiger_Acl_Acl::explain()` + the admin **ACL Simulator** (`/system/acl`, superadmin)

@@ -1,86 +1,53 @@
-# Tiger — Road to 1.0
+# Tiger — Road to 1.0 (Launch)
 
-What **1.0** means for Tiger, and the checklist to get there. 1.0 is **not** a feature count — per
-[ARCHITECTURE.md](ARCHITECTURE.md) §0/§1/§13 it is the release that **freezes the `@api`** and commits
-to semver on that surface (`@api` = stable/build-on-it; `@internal` = may change any release). Everything
-below serves one goal: make the public surface **complete + trustworthy**, then **lock it**.
+**1.0 = drop the `-beta` and launch.** Not an API-freeze ceremony — Tiger is pre-launch and shipped
+continuously via CI/CD. 1.0 is a **confidence marker**: the core is solid, a real target user can install
+and use it end to end, and we're ready to say "use this" out loud. We keep shipping after 1.0 exactly like
+before — minor = feature, patch = fix, don't gratuitously break. Semver applied with judgment, not a
+waterfall gate; if something breaks post-1.0 we bump and fix it, same as today.
 
-For the running feature/debt list see [BACKLOG.md](BACKLOG.md); this doc is only the 1.0 gate.
+For the running feature/debt list see [BACKLOG.md](BACKLOG.md).
 
----
+## Where we are
 
-## Status: the one named gate is MET ✅
+The engine is done and CI-green (tests, smoke 8.1–8.5, coverage ratchet ~74%, version-check, release-zip,
+one-click self-update). The platform is already feature-rich: multi-tenant substrate, auth incl. TOTP,
+ACL, CMS + visual builder, media, modules/marketplace, updates. So the question isn't "is it built" — it's
+**"can our target user (the WP/cPanel crowd, indie authors, small SaaS builders) get it running and get
+value without hitting a wall."**
 
-ARCHITECTURE §13 set a single hard prerequisite — *"a green suite is the gate for the stable 1.0 that
-freezes the `@api`."* That's done. On every PR, CI runs green:
+## The one real launch gate: onboarding on a no-shell host
 
-- **Tests** — PHPUnit unit + integration (~1,650 tests).
-- **Smoke** — boots on **PHP 8.1 / 8.3 / 8.4 / 8.5**.
-- **Coverage** — a **ratcheting floor** (currently ~72, sitting at **~74%**); the security-critical paths
-  are covered (auth/login + lockout, ACL deny-by-default, crypto/pepper rotation, module-install
-  extraction + zip-slip guard, the `/api` reserved-module guard).
-- **version-check** — asserts `Tiger_Version::VERSION` == the release tag on every tag push.
-- **review** — an AI review bot on every PR. **release-zip** — the pre-resolved vendored ZIP per release.
+The whole GTM (WP migration, cPanel hosts, "1-click, no shell") rides on **first-run install without a
+terminal**. The engine (`Tiger_Install`) + CLI (`install:admin`/`install:secrets`) exist; the missing
+piece is the browser front-end:
 
-So 1.0 is no longer blocked on tooling. It is now a **scope decision + an `@api` audit + a sign-off**.
+- [ ] **First-run web installer** — requirements pre-flight → DB creds → `local.ini` → migrate → admin,
+      with an `installed` sentinel ([INSTALL.md](INSTALL.md)). **This is the launch blocker.**
+- [x] composer create-project, vendored release ZIP, one-click self-update, Packagist auto-publish — done.
 
----
+## Launch polish (small; worth doing before we say "use this")
 
-## 1 — The defining act: freeze the `@api`
+- [ ] Clean **create-project → running app** path — the asset-symlink hook so a fresh app renders with zero manual steps.
+- [ ] Error pages i18n-keyed (`core.error.*`); align the stale `Zend_Version` constant.
+- [ ] A quick **security once-over** of the exposed paths (auth, ACL deny-by-default, install/extract, `/api` guard) — mostly test-covered already.
+- [ ] Skim FEATURES.md / the docs for "coming soon" that actually shipped (and the reverse).
 
-Do this **last** (after §2 lands), so we don't freeze a surface we're about to change.
+## Everything else = continuous delivery
 
-- [ ] **`@api` inventory** — enumerate every `@api` class + public method (the semver-guaranteed surface).
-      Mechanical; can be generated from the reference generator's input.
-- [ ] **Consistency audit** — signatures match docblocks (the [AGENTS.md](AGENTS.md) contract); no
-      `@internal` type leaking through an `@api` return; naming coherent across sibling classes.
-- [ ] **Deliberate sign-off** — a maintainer accepts the surface as stable. After 1.0, changing it is a
-      **major-version** event.
+Real and valuable, but **post-launch increments, not launch gates** — build each when a customer or use
+case pulls it, not to satisfy a checklist (YAGNI):
 
-## 2 — Pre-freeze scope (land BEFORE the freeze)
+- App-level ACL Phase 2 (named maps) · token-management admin + scoping · the `Tiger_Event` extension
+  model · the Vendor Library Registry infra · API-discovery Phase 3 (role-filtered) · a public Billing module.
 
-These touch the **auth / ACL / module** `@api` and interlock (the token carries the ACL-map context; deps
-feed modules), so they belong in the frozen surface rather than bolted on after. All are BACKLOG "Priorities".
+*(These are the trimmed [BACKLOG.md](BACKLOG.md) "Priorities" — they stay on the backlog, they just don't
+block the suffix flip.)*
 
-- [ ] **App-level ACL — Phase 2** — named policy maps, floor+map composition, `token→map`,
-      narrows-never-widens ([ACL.md](ACL.md)). *Biggest item.*
-- [ ] **Token auth — finish the surface** — token-management admin screen + org/map context + scoping.
-- [ ] **Module dependency provisioning — infra** — the Vendor Library Registry + CI bundle-builder + a
-      first real consumer ([DEPENDENCIES.md](DEPENDENCIES.md)). *Can slip to just-after-1.0 if cutting sooner.*
+## Cut it
 
-## 3 — Distribution completeness (the "1-click, no shell" promise)
+- [ ] Bump `Tiger_Version::VERSION` → **`1.0.0`** (skeleton in lockstep), tag `v1.0.0`, roll all envs, launch.
+- No freeze, no audit, no sign-off. Keep shipping.
 
-- [ ] **First-run web installer** — a browser setup wizard (requirements pre-flight → DB creds →
-      `local.ini` → migrate → `install:admin`) with an `installed` sentinel ([INSTALL.md](INSTALL.md)).
-      The engine (`Tiger_Install`) exists; this is the web front-end.
-- [ ] **WHM/cPanel plugin** — the host-side one-click channel (Softaculous-style). *Post-1.0 acceptable.*
-- [x] Vendored release ZIP + one-click core self-update — shipped.
-- [x] Packagist auto-publish on tag — shipped.
-
-## 4 — Trust & polish for a "stable" label
-
-- [ ] **Coverage decision** — ratify ~74% as the 1.0 bar (security-critical paths covered), or push toward
-      ~80%; the remaining tail is genuinely hard I/O (see `tests/COVERAGE-PLAN.md` §9).
-- [ ] **Security pass** over the frozen surface (auth, ACL, install/extract, `/api` guard) — largely
-      test-covered; a focused review before the lock.
-- [ ] **Tech-debt cleanups** — error-page `core.error.*` i18n; the stale `Zend_Version` constant.
-- [ ] **Docs sweep** — refresh ARCHITECTURE §13 "Pending" (CI is done); regenerate the `@api` reference;
-      confirm FEATURES.md parity with what actually shipped.
-
-## 5 — Cut 1.0
-
-- [ ] Bump `Tiger_Version::VERSION` → **`1.0.0`** (drop `-beta`); bump the `webtigers/tiger` skeleton in lockstep.
-- [ ] Tag `v1.0.0`, publish the release (version-check + release-zip fire; Packagist picks it up).
-- [ ] Roll all envs; **announce the `@api` freeze**.
-
----
-
-## Recommended sequencing
-
-Tooling/tests are done, so the critical path is:
-
-**ACL Phase 2 → token surface → first-run web installer → `@api` audit → cut 1.0.**
-
-The **vendor-registry infra** (§2.3) and the **WHM/cPanel plugin** (§3) are the two pieces that can
-reasonably ship *just after* 1.0 if we'd rather cut sooner — neither changes the `@api` in a way the
-freeze would regret. Coverage is a dial, not a blocker. Nothing else gates the release.
+**Bottom line:** the only thing between here and a legitimate 1.0 launch is **no-shell onboarding**. Land
+the web installer, do a light polish pass, flip the suffix, launch — then keep delivering continuously.
