@@ -45,6 +45,9 @@ class Tiger_Skill_Index
         $out = [];
         // Built-in: the official Anthropic Agent Skills collection (skills/*/SKILL.md).
         $out['anthropic-skills'] = new Tiger_Skill_Source_SkillsDir('anthropic-skills', 'Anthropic Skills', 'anthropics/skills', 'main', 'skills');
+        // Built-in: the Composio community collection — 100+ skills via its .claude-plugin/marketplace.json
+        // (ONE fetch, no per-SKILL.md scrape). Community-curated, NOT a Tiger endorsement — review before install.
+        $out['composio-skills'] = new Tiger_Skill_Source_Marketplace('composio-skills', 'Composio Skills (community)', 'ComposioHQ/awesome-claude-skills', 'master', 'composio-skills/.claude-plugin/marketplace.json', '');
 
         // Config-declared sources: tiger.agent.skills.sources.<id> = { label, repo|url, ref?, base?, enabled? }.
         $cfg = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
