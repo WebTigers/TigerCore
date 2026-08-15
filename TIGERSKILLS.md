@@ -69,9 +69,36 @@ curator's blessing.
 - **Search the supported repos** — each *supported* well-known repo gets a **`Tiger_Skill_Source`** adapter
   that knows THAT repo's layout, scans it, and normalizes its skills into one list. **`Tiger_Skill_Index`**
   runs the adapters, caches each independently (last-good on outage — the `Tiger_Module_Registry` pattern),
-  then merges + de-dupes + searches. The built-in supported source is the official **`anthropics/skills`**
-  collection (`Tiger_Skill_Source_SkillsDir` — the `skills/<name>/SKILL.md` layout); more are added as config
-  sources or by pasting a URL. **"Supported" = "Tiger can read its layout," NOT "Tiger trusts its skills."**
+  then merges + de-dupes + searches. Two built-in supported sources ship:
+  - **`anthropics/skills`** — the official collection, via **`Tiger_Skill_Source_SkillsDir`** (the raw
+    `skills/<name>/SKILL.md` layout: one git-trees call + a raw fetch per `SKILL.md`). Right for an
+    official-sized repo (~17 skills).
+  - **`ComposioHQ/awesome-claude-skills`** — a 100+-skill community collection, via
+    **`Tiger_Skill_Source_Marketplace`** (§2a). Community-curated, **not** a Tiger endorsement.
+
+  More are added as config sources or by pasting a URL. **"Supported" = "Tiger can read its layout," NOT
+  "Tiger trusts its skills."**
+
+#### 2a. Two adapter kinds — raw scan vs. a machine-readable manifest
+
+A big collection can't be scanned file-by-file inside the inline (zero-daemon) browse request — 800+ raw
+`SKILL.md` fetches is minutes of wall-clock and would time out. The fix is to read the repo's **manifest**
+when it has one:
+
+| Adapter | Reads | Cost | Use when |
+|---|---|---|---|
+| **`Tiger_Skill_Source_SkillsDir`** | every `<base>/<name>/SKILL.md` (git-trees + a raw fetch each) | O(N) fetches | small repos, no manifest |
+| **`Tiger_Skill_Source_Marketplace`** | the repo's **`.claude-plugin/marketplace.json`** (name+description+source per plugin) | **one fetch** | any repo publishing the Claude plugin-marketplace manifest |
+
+The **`.claude-plugin/marketplace.json`** standard (both `anthropics/skills` and ComposioHQ ship one) is the
+emerging machine-readable index — one HTTP call yields the whole curated list, so a 107-skill collection
+browses instantly and can't time out. The adapter handles both a **flat** plugin (`source` = the skill
+folder) and a **grouped** plugin (`skills[]` = many folders sharing a description), resolves paths against a
+configurable repo `root` (traversal-refused), and emits the same normalized entries as `SkillsDir` — so
+install/dedup/search are identical. **Roadmap:** the sibling registry conventions surfacing now
+(`.well-known/agent-skills/index.json`; the SkillMD `/v1/search`, OpenAgentSkill, skillregistry.io APIs) are
+the same idea behind an endpoint instead of a repo file — a thin `Tiger_Skill_Source_Index` adapter when one
+proves worth supporting. (`index.dev`, checked, is a dev-hiring marketplace — unrelated.)
 
 A normalized entry carries **provenance** (`sourceLabel` — "Anthropic Skills", "From github.com/…"), the
 `name` + `description`, and the `repo`/`ref`/`path` — so the user can **review the `SKILL.md` before
@@ -84,9 +111,10 @@ catalog is the **adapters + index** above, not Tiger's own registry: **Tiger is 
 owner.**
 
 > **BUILT (Phase 1):** `Tiger_Skill_Source` (+ `parseFrontmatter`, spec-correct: name + description, block
-> scalars), `Tiger_Skill_Source_SkillsDir`, `Tiger_Skill_Source_Url`, `Tiger_Skill_Index` (scan / cache /
-> merge / search). Proven live against `anthropics/skills` (17 skills). Next: install + the active-set (§3) +
-> the admin surface (§6).
+> scalars), `Tiger_Skill_Source_SkillsDir`, `Tiger_Skill_Source_Marketplace` (the `.claude-plugin/marketplace.json`
+> reader, §2a), `Tiger_Skill_Source_Url`, `Tiger_Skill_Index` (scan / cache / merge / search). Two built-in
+> sources: `anthropics/skills` (17, SkillsDir) + `ComposioHQ/awesome-claude-skills` (107, Marketplace).
+> Install + the active-set (§3) + the admin surface (§6) shipped in increment 2.
 
 ---
 
