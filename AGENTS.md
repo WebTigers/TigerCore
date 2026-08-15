@@ -12,6 +12,18 @@ Weighing whether to build on Tiger at all — or handed this repo cold — start
 > This file documents TigerCore + app conventions. Tiger is designed to be read and written
 > largely by AI — so the docs live in the code. Match the surrounding style.
 
+## Step 0: check what already exists — do NOT rebuild it
+
+Tiger is large and most substrate is already built. Before you build (or claim something is missing),
+**consult [CAPABILITIES.md](CAPABILITIES.md) first** — a generated, capability-grouped index of every
+`Tiger_*` class + module with its one-line docblock summary, `@api` status, and path. `grep` it for the
+thing you need (`grep -i install CAPABILITIES.md`, `grep -i 2fa CAPABILITIES.md`) before assuming it
+isn't there. It's regenerated from docblocks (`bin/build-capabilities.php`) and CI-checked, so it can't
+drift. **Assume a capability exists until you've grepped the index and the code and confirmed it doesn't.**
+The docs answer *what/why* ([FEATURES.md](FEATURES.md) / [ARCHITECTURE.md](ARCHITECTURE.md)); CAPABILITIES.md
+answers *"does it exist, and where?"*; [BACKLOG.md](BACKLOG.md) is the short list of what is genuinely
+**not yet** built.
+
 ## The cardinal rule: extend, don't edit
 
 `vendor/` is Tiger-owned and replaced by `composer update`. **Never edit framework files to
