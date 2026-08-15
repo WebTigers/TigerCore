@@ -42,11 +42,14 @@ skills/author-storefront/
 ```markdown
 ---
 name: author-storefront
-description: Set up an indie-author storefront — products, a paywalled member tier, and a download.
-when_to_use: The user wants to sell books / start a membership / stand up a store.
+description: Set up an indie-author storefront — products, a paywalled member tier, a download. Use when the user wants to sell books, start a membership, or stand up a store.
 ---
 <the instructions: the sequence of /api operations, the decisions, the gotchas>
 ```
+
+Per the Agent Skills spec the frontmatter carries **exactly two fields — `name` + `description`** (the
+`description` does double duty: *what it does AND when to use it*). `Tiger_Skill_Source::parseFrontmatter`
+reads those two and tolerates YAML block scalars (`description: |-`).
 
 **Why the Anthropic format, not a Tiger-specific one:** a skill folder is then **portable** — the *same repo*
 works in Claude Code, the Claude API, and TigerAgent — so we consume the growing skill ecosystem instead of
@@ -55,22 +58,35 @@ instructions steer any model.
 
 ---
 
-## 2. A skill pack = a module (`type: skill`) — distribution is already built
+## 2. Browse via source adapters — Tiger is NOT a trust authority
 
-A skill is distributed as a **module** flagged `type: "skill"` in its `module.json`. One repo ships **1..N**
-skills (a `skills/` dir), exactly as a `code` module ships N snippets. This buys the *entire* distribution
-chain for free — **no reinvention**:
+Users get skills two ways, and **neither makes Tiger vouch for anything.** Tiger *browses*, it does not
+*endorse* — the marketplace-federation ethos (MARKETPLACE.md §0): provenance + read-before-run, never a
+curator's blessing.
 
-- **Install from GitHub** — `Tiger_Module_Installer` (release tarball for a pinned tag → SHA-verify →
-  zip-slip-guarded extract → `application/modules/skill-<name>/`). Same "paste a public repo URL" path as any
-  module (MARKETPLACE.md §6a).
-- **Discover in the catalog** — `Tiger_Module_Registry` (multi-source), badged by the `skill` type filter in
-  the Module Manager.
-- **Update** — `Tiger_Update_Checker` diffs installed-vs-latest → update badges → one-click update via the
-  installer. `type:skill` is a *search label*; the **`skills/` dir is the capability** (capability-detection,
-  per THEMES.md).
+- **Paste a GitHub URL** — a repo, a branch, a subfolder, or a link straight to a `SKILL.md`. The
+  **`Tiger_Skill_Source_Url`** adapter resolves it and finds every skill at/under that point.
+- **Search the supported repos** — each *supported* well-known repo gets a **`Tiger_Skill_Source`** adapter
+  that knows THAT repo's layout, scans it, and normalizes its skills into one list. **`Tiger_Skill_Index`**
+  runs the adapters, caches each independently (last-good on outage — the `Tiger_Module_Registry` pattern),
+  then merges + de-dupes + searches. The built-in supported source is the official **`anthropics/skills`**
+  collection (`Tiger_Skill_Source_SkillsDir` — the `skills/<name>/SKILL.md` layout); more are added as config
+  sources or by pasting a URL. **"Supported" = "Tiger can read its layout," NOT "Tiger trusts its skills."**
 
-Nothing about a skill's *distribution* is new — it's a module whose payload happens to be `SKILL.md` files.
+A normalized entry carries **provenance** (`sourceLabel` — "Anthropic Skills", "From github.com/…"), the
+`name` + `description`, and the `repo`/`ref`/`path` — so the user can **review the `SKILL.md` before
+installing**. No source is a vouch; the safety wall stays the ACL (§0, §5) + read-before-activate.
+
+**Install** then pulls the chosen skill's files (its `SKILL.md` + any bundled resources) into a local skill
+store, where they're discovered + toggled per §3 (install ≠ activate ≠ remove). A *pack of many* skills can
+also ride the existing module installer as a `type:skill` module (MARKETPLACE.md §6a) — but the browse/search
+catalog is the **adapters + index** above, not Tiger's own registry: **Tiger is an aggregator, not a catalog
+owner.**
+
+> **BUILT (Phase 1):** `Tiger_Skill_Source` (+ `parseFrontmatter`, spec-correct: name + description, block
+> scalars), `Tiger_Skill_Source_SkillsDir`, `Tiger_Skill_Source_Url`, `Tiger_Skill_Index` (scan / cache /
+> merge / search). Proven live against `anthropics/skills` (17 skills). Next: install + the active-set (§3) +
+> the admin surface (§6).
 
 ---
 
@@ -84,7 +100,7 @@ snippets and theme components). A new static class **`Tiger_Agent_Skills`** mirr
 - The **active set is one config value** — `tiger.agent.skills = "author-storefront,seo-audit,…"` (the
   live-override tier, effective next request, config-discipline — *not* a `wp_options`-style table, *not* a
   new schema). `setActive($key,$on)` flips a key; `body($key)`/`resources($key)` read the file on demand.
-- `entries()` returns `{key, name, description, when_to_use, module, path}` for the admin list + the loader.
+- `entries()` returns `{key, name, description, module, path}` for the admin list + the loader.
 
 So a skill has **no DB row**; "what's active" is the only state, and it's a config key. Install ≠ activate:
 installing a pack surfaces its skills **inactive**; activation is a deliberate toggle.
@@ -96,7 +112,7 @@ installing a pack surfaces its skills **inactive**; activation is a deliberate t
 The model remembers nothing between turns (TIGERAGENT.md §5b); context is assembled per turn. Skills plug in
 with **progressive disclosure** so you can have 50 installed and pay for only the one that's relevant:
 
-1. **Always in the system prompt (cheap):** the active skills' **name + description + when_to_use** — a short
+1. **Always in the system prompt (cheap):** the active skills' **name + description** (the description says when to use it) — a short
    menu, one line each. The model sees *what skills exist and when to reach for them*, nothing more.
 2. **On demand (a read-tool):** a `load_skill(name)` tool — a **Scout-side read**, no permission gate (it only
    reads a shipped file) — pulls the **full `SKILL.md` body + referenced resources** into context when the
@@ -180,14 +196,15 @@ there.
 
 ## 8. Build order (phasing)
 
-1. **`Tiger_Agent_Skills`** — the discovery class (glob active packs' `SKILL.md`, parse frontmatter, the
-   `tiger.agent.skills` active-set config, `entries()`/`body()`/`resources()`). *(Mirrors `Tiger_Code_Modules`
-   — the cheapest, unblocks everything.)*
-2. **Loader** — inject the active skills' menu into the system prompt; add the `load_skill` read-tool.
-3. **Skills admin** — the "Agent" nav section + the Skills screen (list, activate/deactivate, view source,
-   update badges), per ADMIN.md.
-4. **`type:skill` registry listing** + the review gate (public-repo, `skills/`-dir capability-detection);
-   the script-bundling tier behind the Code trust model.
+1. **Browse engine — ✅ BUILT.** The source adapters (`Tiger_Skill_Source` + `parseFrontmatter`, `…_SkillsDir`,
+   `…_Url`) + `Tiger_Skill_Index` (scan / per-source cache / merge / search). Network-free unit tests; proven
+   live against `anthropics/skills` (17 skills). *(§2.)*
+2. **Install + the active-set** — `Tiger_Agent_Skills`: pull a chosen skill's files into a local store, glob
+   installed `SKILL.md`, the `tiger.agent.skills` active-set config, `entries()`/`body()`/`resources()`;
+   remove. *(§3 — mirrors `Tiger_Code_Modules`.)*
+3. **Loader** — inject the active skills' menu into the system prompt; add the `load_skill` read-tool. *(§4.)*
+4. **Skills admin** — the "Agent" nav section + the Skills screen (search the index, install, activate/
+   deactivate, view source, remove, add a source, update badges), per ADMIN.md. *(§6.)*
 5. **(later) MCP** — the outbound Connections surface + the inbound Server/Access adapter (the thin `/api`
    relay of §7), sequenced after the CMS/commerce line.
 

@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**169 classes** across **30 capabilities** · **17 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**173 classes** across **31 capabilities** · **17 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -188,6 +188,13 @@
 - **Tiger_Agent_Provider_OpenRouter** `@api` — OpenRouter: one key, many models (incl.  ·  `library/Tiger/Agent/Provider/OpenRouter.php`
 - **Tiger_Agent_Scout** `@api` — the agent's EYES: the read twin of the Forge (TIGERAGENT.md §2b).  ·  `library/Tiger/Agent/Scout.php`
 - **Tiger_Agent_Tools** `@api` — build the model's tool catalog + system prompt from the LIVE, role- filtered /api surface (TIGERAGENT.md §2, §5a).  ·  `library/Tiger/Agent/Tools.php`
+
+### Agent skills
+
+- **Tiger_Skill_Index** `@api` — the internal, searchable skill catalog built by running the source adapters.  ·  `library/Tiger/Skill/Index.php`
+- **Tiger_Skill_Source** `@api` — a browse adapter for one supported skill repo (scan + normalize, NOT endorse).  ·  `library/Tiger/Skill/Source.php`
+- **Tiger_Skill_Source_SkillsDir** `@api` — the adapter for the common "collection" layout: a repo whose skills live as `<base>/<name>/SKILL.md` folders (e.g.  ·  `library/Tiger/Skill/Source/SkillsDir.php`
+- **Tiger_Skill_Source_Url** `@api` — the "paste a GitHub URL" adapter.  ·  `library/Tiger/Skill/Source/Url.php`
 
 ### Scheduling
 

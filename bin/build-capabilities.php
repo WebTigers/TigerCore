@@ -45,6 +45,7 @@ $CAPS = [
     ['Logging',                       ['Tiger_Log']],
     ['Sessions',                      ['Tiger_Session']],
     ['AI agent',                      ['Tiger_Agent']],
+    ['Agent skills',                  ['Tiger_Skill_']],
     ['Scheduling',                    ['Tiger_Schedule', 'Tiger_Model_ScheduleRun']],
     ['Backup',                        ['Tiger_Backup', 'Tiger_Model_Backup']],
     ['Code area',                     ['Tiger_Code', 'Tiger_Model_Code']],
