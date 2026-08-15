@@ -56,4 +56,10 @@ return [
     'agent.aside.approve_all'   => 'Approve all',
     'agent.aside.thinking'      => 'Working…',
     'agent.aside.empty'         => 'Start a conversation — the agent acts with your permissions.',
+    'agent.skills.installed'      => 'Skill installed.',
+    'agent.skills.install_failed' => 'That skill could not be installed.',
+    'agent.skills.none_found'     => 'No SKILL.md found at that URL.',
+    'agent.skills.enabled'        => 'Skill turned on.',
+    'agent.skills.disabled'       => 'Skill turned off.',
+    'agent.skills.removed'        => 'Skill removed.',
 ];
