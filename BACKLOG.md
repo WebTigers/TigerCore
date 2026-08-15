@@ -13,12 +13,32 @@ tracked separately in [ROADMAP-1.0.md](ROADMAP-1.0.md).
 The next-up features. **None block the 1.0 launch** — per [ROADMAP-1.0.md](ROADMAP-1.0.md) the only
 launch gate is the no-shell web installer; these ship continuously, whenever a use case pulls them.
 
-1. **App-level ACL — Phase 2 (maps + floor + token context)** *(design of record: [ACL.md](ACL.md)).*
-   Phase 1 shipped: `Tiger_Acl_Acl::explain()` + the admin **ACL Simulator** (`/system/acl`, superadmin)
-   so "why am I locked out?" is answerable. Phase 2 is the access-changing half, built carefully: named
-   policy maps (`acl_map` + `map_id` storage), floor+map **composition** (floor immovable, deny-wins),
-   **token→map** selection (the token from #2 carries a map/org context), **narrows-never-widens**
-   enforcement, and per-tenant map authoring. *Biggest remaining item.*
+1. **Advanced ACL — one model: grants cascade UP, context narrows DOWN** *(design of record:
+   [ACL.md](ACL.md) = the floor/maps/token half; `~/Desktop/Update Zend ACL.txt` + Claude memory = the
+   groups/individual half — **fold into one doc when this is built**).* Today's ACL is **role-only**
+   (deny-by-default, role on `org_user`, resolved live). Two extensions were designed separately; they're
+   the **two axes of ONE model**, sharing one rule shape (resource = class · privilege = action ·
+   permission = allow|deny · org-scoped · owned by exactly one of role | group | user | map):
+   - **Grants build UP — the subject cascade** (most-specific-wins): `role → + groups → + individual
+     overrides`. *"What is this user granted?"* Tables `acl_group`/`_member`/`_rule` + `acl_user_rule`; a
+     generic `Tiger_Acl_Resolver` (mechanism) + `Tiger_Acl_Acl` (loader); the entry point widens to
+     `isAllowed($role, $resource, $privilege, $user = null)` (back-compat: `$user = null` = today's path).
+     The real work is **threading `$user` through the two enforcement seams**
+     (`Tiger_Controller_Plugin_Authorization` + `Tiger_Ajax_ServiceFactory`), not the tables.
+   - **Context narrows DOWN — floor + maps + token** (deny-wins, never widens): the immovable **floor**
+     (the platform ACL) composed with a selected **map** (a named policy set — `acl_map`, scope
+     platform|app|tenant; rules carry `map_id`, null = floor). A **token** or the org default *selects* a
+     map and can only **narrow**. *"What survives in this context?"* Feeds the token-auth item (#2).
+   - **One resolver, one request:** the subject cascade → intersect the active map, bounded by the floor →
+     decision; **`explain()` traces every layer** (role → group → individual → map → floor → final).
+
+   **Shipped (Phase 1):** `Tiger_Acl_Acl::explain()` + the admin **ACL Simulator** (`/system/acl`) on
+   today's single ACL — the "why am I locked out?" trace. **Decide before building:** (a) which axis first —
+   a real need pulls it (*groups* = "give this user extra / a read-only group"; *maps* = API-token
+   least-privilege + per-tenant policy); (b) **deny-precedence** — proposed model: the *cascade* is
+   most-specific-wins (an individual override can beat a group), but the *floor/map* layer is
+   **deny-wins + immovable** (a map/token can never un-gate a floor deny); the two don't conflict because
+   they act at different stages — confirm this. *Biggest remaining item.*
 
 2. **Stateless token auth — finish the surface** *(core built).* `Authorization: Bearer tgr_…`
    (a hashed `personal_access_token` credential) resolves identity and runs the **same ACL + services**,
