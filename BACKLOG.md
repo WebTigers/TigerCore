@@ -92,9 +92,10 @@ launch gate is the no-shell web installer; these ship continuously, whenever a u
 - **Sign-in history UI** — surface the append-only `login` audit log to users/admins.
 - **create-project post-install hook** — auto-symlink core assets (`_tiger`/`_theme`) on
   `composer create-project` so a fresh app renders with zero manual steps.
-- **Public Billing module (Stripe)** — *deferred.* The private TigerStripe/TigerMembership line covers
-  commerce today; a public, reusable **app-level** billing module (Stripe-only, org-scoped
-  customer/plans/subscriptions + Checkout/Portal + webhook) remains a gap for open-source consumers.
+
+<!-- NOTE: billing/payments live in separate app-level modules (their own repos), NOT in tiger-core.
+     They are not a free-platform gap — don't add a "billing module" item to this backlog. -->
+
 
 ## Issues / tech debt
 
