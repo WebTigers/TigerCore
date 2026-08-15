@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**173 classes** across **31 capabilities** · **17 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**174 classes** across **31 capabilities** · **17 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -187,6 +187,7 @@
 - **Tiger_Agent_Provider_OpenAiCompatible** `@api` — the base adapter for every provider that speaks the OpenAI `/chat/completions` wire format.  ·  `library/Tiger/Agent/Provider/OpenAiCompatible.php`
 - **Tiger_Agent_Provider_OpenRouter** `@api` — OpenRouter: one key, many models (incl.  ·  `library/Tiger/Agent/Provider/OpenRouter.php`
 - **Tiger_Agent_Scout** `@api` — the agent's EYES: the read twin of the Forge (TIGERAGENT.md §2b).  ·  `library/Tiger/Agent/Scout.php`
+- **Tiger_Agent_Skills** `@api` — the INSTALLED side of skills: pull a chosen skill's files into a local, app-owned store, discover what's installed, toggle each on/off, and remove.  ·  `library/Tiger/Agent/Skills.php`
 - **Tiger_Agent_Tools** `@api` — build the model's tool catalog + system prompt from the LIVE, role- filtered /api surface (TIGERAGENT.md §2, §5a).  ·  `library/Tiger/Agent/Tools.php`
 
 ### Agent skills
@@ -278,7 +279,7 @@
 ## Modules (`modules/*` — activatable features)
 
 - **Access** (`access`, plugin)  ·  services: Org, User  ·  `modules/access`
-- **Agent** (`agent`, app)  ·  services: Agent, Settings  ·  `modules/agent`
+- **Agent** (`agent`, app)  ·  services: Agent, Settings, Skills  ·  `modules/agent`
 - **Ally** (`ally`, plugin)  ·  services: Scan  ·  `modules/ally`
 - **Analytics** (`analytics`, app)  ·  services: Analytics, Reports  ·  `modules/analytics`
 - **Backup** (`backup`, app)  ·  services: Backup  ·  `modules/backup`

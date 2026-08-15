@@ -33,5 +33,14 @@ class Agent_Bootstrap extends Zend_Application_Module_Bootstrap
             'resource' => 'Agent_AdminController',
             'order'    => 45,
         ]);
+        // The Skills manager (browse/install/toggle/remove agent skills) — TIGERSKILLS.md.
+        Tiger_Admin_Settings::register([
+            'key'      => 'agent-skills',
+            'label'    => 'Agent Skills',
+            'icon'     => 'fa-wand-magic-sparkles',
+            'href'     => '/agent/skills',
+            'resource' => 'Agent_SkillsController',
+            'order'    => 46,
+        ]);
     }
 }

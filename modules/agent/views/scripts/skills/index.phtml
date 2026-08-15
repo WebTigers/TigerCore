@@ -1,0 +1,155 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * Agent Skills manager (admin shell). Browse/search the supported skill repos (Agent_Service_Skills over
+ * /api), install, and manage installed skills (turn on/off, remove, view source). Tiger is NOT a trust
+ * authority — results show PROVENANCE and you review the SKILL.md before installing (TIGERSKILLS.md).
+ */
+?>
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+        <h1 class="h3 mb-1">Agent Skills</h1>
+        <p class="text-body-secondary mb-0">Installable know-how for the AI agent. Tiger browses these repos — it does not vouch for them; review a skill before you install and turn it on.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card mb-4">
+      <div class="card-header fw-semibold"><i class="fa-solid fa-magnifying-glass me-2"></i>Browse skills</div>
+      <div class="card-body">
+        <div class="input-group input-group-sm mb-3">
+          <input type="search" id="sk-search" class="form-control" placeholder="Search skills across supported repos…">
+          <button type="button" id="sk-refresh" class="btn btn-outline-secondary" title="Re-scan sources"><i class="fa-solid fa-rotate"></i></button>
+        </div>
+        <div id="sk-results" class="d-grid gap-2"></div>
+        <div id="sk-results-empty" class="text-body-secondary py-3" hidden>No matches.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header fw-semibold"><i class="fa-brands fa-github me-2"></i>Add from a GitHub URL</div>
+      <div class="card-body">
+        <div class="input-group input-group-sm">
+          <input type="url" id="sk-url" class="form-control" placeholder="https://github.com/owner/repo (or a subfolder / a SKILL.md)">
+          <button type="button" id="sk-url-install" class="btn btn-primary"><i class="fa-solid fa-download me-1"></i>Install</button>
+        </div>
+        <div class="form-text">Any repo, branch, subfolder, or a link straight to a SKILL.md.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header fw-semibold"><i class="fa-solid fa-toggle-on me-2"></i>Installed</div>
+      <div class="card-body">
+        <div id="sk-installed" class="d-grid gap-2"></div>
+        <div id="sk-installed-empty" class="text-body-secondary py-3" hidden>No skills installed yet.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="sk-src-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title" id="sk-src-title">SKILL.md</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body"><pre id="sk-src-body" class="small mb-0" style="white-space:pre-wrap;"></pre></div>
+  </div></div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]; }); };
+    var srcModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('sk-src-modal')) : null;
+    function api(method, body) {
+        body = body || {}; body.module = 'agent'; body.service = 'skills'; body.method = method;
+        return fetch('/api', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body:new URLSearchParams(body) }).then(function (r) { return r.json(); });
+    }
+
+    // ---- Browse / search ----
+    var resultsEl = document.getElementById('sk-results'), searchEl = document.getElementById('sk-search');
+    function badge(label) { return '<span class="badge text-bg-light border">'+esc(label)+'</span>'; }
+    function resultCard(s) {
+        var right = s.installed
+            ? '<span class="btn btn-sm btn-outline-success disabled"><i class="fa-solid fa-check me-1"></i>Installed</span>'
+            : '<button type="button" class="btn btn-sm btn-primary sk-install" data-s=\''+esc(JSON.stringify({name:s.name,repo:s.repo,ref:s.ref,path:s.path,url:s.url,source:s.sourceLabel}))+'\'><i class="fa-solid fa-download me-1"></i>Install</button>';
+        return '<div class="border rounded p-2 d-flex justify-content-between align-items-start gap-2">'
+             + '<div style="min-width:0;"><div class="fw-semibold">'+esc(s.name)+' '+badge(s.sourceLabel)+'</div>'
+             + '<div class="small text-body-secondary">'+esc(s.description||'')+'</div></div>'
+             + '<div class="text-nowrap d-flex gap-1">'
+             + '<button type="button" class="btn btn-sm btn-outline-secondary sk-src" data-repo="'+esc(s.repo)+'" data-ref="'+esc(s.ref)+'" data-path="'+esc(s.path)+'" data-name="'+esc(s.name)+'" title="View SKILL.md">Source</button>'
+             + right + '</div></div>';
+    }
+    function search(refresh) {
+        api('search', { q: searchEl.value, refresh: refresh ? 1 : 0 }).then(function (res) {
+            var rows = (res && res.data && res.data.skills) || [];
+            resultsEl.innerHTML = rows.map(resultCard).join('');
+            document.getElementById('sk-results-empty').hidden = rows.length > 0;
+        });
+    }
+    var t; searchEl.addEventListener('input', function () { clearTimeout(t); t = setTimeout(function () { search(false); }, 300); });
+    document.getElementById('sk-refresh').addEventListener('click', function () { search(true); });
+
+    // ---- Installed ----
+    var instEl = document.getElementById('sk-installed');
+    function instCard(s) {
+        return '<div class="border rounded p-2">'
+             + '<div class="d-flex justify-content-between align-items-center gap-2">'
+             + '<div class="form-check form-switch mb-0"><input class="form-check-input sk-toggle" type="checkbox" data-key="'+esc(s.key)+'"'+(s.active?' checked':'')+'>'
+             + '<label class="form-check-label fw-semibold">'+esc(s.name)+'</label></div>'
+             + '<div class="text-nowrap d-flex gap-1">'
+             + '<button type="button" class="btn btn-sm btn-outline-secondary sk-src" data-key="'+esc(s.key)+'" data-name="'+esc(s.name)+'">Source</button>'
+             + '<button type="button" class="btn btn-sm btn-outline-danger sk-remove" data-key="'+esc(s.key)+'" title="Remove"><i class="fa-solid fa-trash"></i></button></div></div>'
+             + (s.sourceLabel ? '<div class="small text-body-secondary mt-1">'+esc(s.sourceLabel)+'</div>' : '')
+             + '</div>';
+    }
+    function loadInstalled() {
+        api('installed').then(function (res) {
+            var rows = (res && res.data && res.data.skills) || [];
+            instEl.innerHTML = rows.map(instCard).join('');
+            document.getElementById('sk-installed-empty').hidden = rows.length > 0;
+        });
+    }
+
+    // ---- Actions (delegated) ----
+    document.addEventListener('click', function (e) {
+        var b;
+        if ((b = e.target.closest('.sk-install'))) {
+            var s = JSON.parse(b.getAttribute('data-s'));
+            TigerButton.run(b, function () { return api('install', s); }).then(function (res) {
+                if (res && res.result === 1) { TigerDOM.toast('Skill installed.', { type:'success' }); search(false); loadInstalled(); }
+                else { ((res&&res.messages)||[]).forEach(function (m) { TigerDOM.toast(m.message, { type:m.class }); }); }
+            });
+        } else if ((b = e.target.closest('.sk-remove'))) {
+            var key = b.getAttribute('data-key');
+            TigerModal.confirm({ title:'Remove skill', body:'Remove this skill and its files?', confirmLabel:'Remove', variant:'danger' }).then(function (ok) {
+                if (!ok) { return; }
+                api('remove', { key: key }).then(function () { TigerDOM.toast('Skill removed.', { type:'success' }); search(false); loadInstalled(); });
+            });
+        } else if ((b = e.target.closest('.sk-src'))) {
+            document.getElementById('sk-src-title').textContent = (b.getAttribute('data-name') || 'SKILL') + '.md';
+            document.getElementById('sk-src-body').textContent = 'Loading…';
+            if (srcModal) { srcModal.show(); }
+            api('source', { key: b.getAttribute('data-key') || '', repo: b.getAttribute('data-repo') || '', ref: b.getAttribute('data-ref') || '', path: b.getAttribute('data-path') || '' })
+                .then(function (res) { document.getElementById('sk-src-body').textContent = (res && res.data && res.data.source) || '(empty)'; });
+        }
+    });
+    document.addEventListener('change', function (e) {
+        var t = e.target.closest('.sk-toggle');
+        if (!t) { return; }
+        api('toggle', { key: t.getAttribute('data-key'), active: t.checked ? 1 : 0 })
+            .then(function (res) { if (res && res.result === 1) { TigerDOM.toast(t.checked ? 'Skill on.' : 'Skill off.', { type:'success' }); } });
+    });
+    document.getElementById('sk-url-install').addEventListener('click', function () {
+        var url = document.getElementById('sk-url').value.trim();
+        if (!url) { return; }
+        TigerButton.run(this, function () { return api('install', { url: url }); }).then(function (res) {
+            if (res && res.result === 1) { TigerDOM.toast('Installed from URL.', { type:'success' }); document.getElementById('sk-url').value=''; search(false); loadInstalled(); }
+            else { ((res&&res.messages)||[]).forEach(function (m) { TigerDOM.toast(m.message, { type:m.class }); }); }
+        });
+    });
+
+    search(false);
+    loadInstalled();
+});
+</script>
