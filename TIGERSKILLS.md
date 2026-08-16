@@ -69,7 +69,9 @@ curator's blessing.
 - **Search the supported repos** — each *supported* well-known repo gets a **`Tiger_Skill_Source`** adapter
   that knows THAT repo's layout, scans it, and normalizes its skills into one list. **`Tiger_Skill_Index`**
   runs the adapters, caches each independently (last-good on outage — the `Tiger_Module_Registry` pattern),
-  then merges + de-dupes + searches. Two built-in supported sources ship:
+  then merges + de-dupes + searches. Three built-in supported sources ship:
+  - **`WebTigers/Skills`** — WebTigers' own **first-party** skills for building on Tiger (module, web
+    service, admin screen, design), via **`Tiger_Skill_Source_Marketplace`** (§2a). The reference pack.
   - **`anthropics/skills`** — the official collection, via **`Tiger_Skill_Source_SkillsDir`** (the raw
     `skills/<name>/SKILL.md` layout: one git-trees call + a raw fetch per `SKILL.md`). Right for an
     official-sized repo (~17 skills).
@@ -112,9 +114,10 @@ owner.**
 
 > **BUILT (Phase 1):** `Tiger_Skill_Source` (+ `parseFrontmatter`, spec-correct: name + description, block
 > scalars), `Tiger_Skill_Source_SkillsDir`, `Tiger_Skill_Source_Marketplace` (the `.claude-plugin/marketplace.json`
-> reader, §2a), `Tiger_Skill_Source_Url`, `Tiger_Skill_Index` (scan / cache / merge / search). Two built-in
-> sources: `anthropics/skills` (17, SkillsDir) + `ComposioHQ/awesome-claude-skills` (107, Marketplace).
-> Install + the active-set (§3) + the admin surface (§6) shipped in increment 2.
+> reader, §2a), `Tiger_Skill_Source_Url`, `Tiger_Skill_Index` (scan / cache / merge / search). Three built-in
+> sources: `WebTigers/Skills` (first-party, Marketplace) + `anthropics/skills` (17, SkillsDir) +
+> `ComposioHQ/awesome-claude-skills` (107, Marketplace). Install + the active-set (§3) + the admin surface
+> (§6) shipped in increment 2.
 
 ---
 
