@@ -26,7 +26,7 @@ use Tiger_Skill_Source_Url;
 final class SkillIndexTest extends UnitTestCase
 {
     /** Every built-in source id — each gets a FRESH empty cache so no test touches the network. */
-    private const BUILTIN_SOURCES = ['anthropic-skills', 'composio-skills'];
+    private const BUILTIN_SOURCES = ['webtigers-skills', 'anthropic-skills', 'composio-skills'];
 
     private array $builtinCaches = [];
 
@@ -127,6 +127,7 @@ final class SkillIndexTest extends UnitTestCase
     public function built_in_sources_are_registered(): void
     {
         $sources = Tiger_Skill_Index::sources();
+        $this->assertArrayHasKey('webtigers-skills', $sources, 'the first-party WebTigers collection ships as a supported source');
         $this->assertArrayHasKey('anthropic-skills', $sources, 'the official collection ships as a supported source');
         $this->assertArrayHasKey('composio-skills', $sources, 'the Composio community collection ships as a supported source');
     }

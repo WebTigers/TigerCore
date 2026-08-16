@@ -43,6 +43,8 @@ class Tiger_Skill_Index
     public static function sources()
     {
         $out = [];
+        // Built-in: WebTigers' own first-party skills for building on Tiger (via its .claude-plugin/marketplace.json).
+        $out['webtigers-skills'] = new Tiger_Skill_Source_Marketplace('webtigers-skills', 'WebTigers Skills', 'WebTigers/Skills', 'main', '.claude-plugin/marketplace.json', '');
         // Built-in: the official Anthropic Agent Skills collection (skills/*/SKILL.md).
         $out['anthropic-skills'] = new Tiger_Skill_Source_SkillsDir('anthropic-skills', 'Anthropic Skills', 'anthropics/skills', 'main', 'skills');
         // Built-in: the Composio community collection — 100+ skills via its .claude-plugin/marketplace.json
