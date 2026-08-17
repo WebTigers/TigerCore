@@ -79,6 +79,26 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     function toast(res) { ((res && res.messages) || []).forEach(function (m) { TigerDOM.toast(m.message, { type: m.class }); }); }
 
+    // A skill entry rides on the button as individual data-* attrs (NOT a JSON blob: esc() doesn't
+    // quote-escape, so JSON in a double-quoted attribute breaks). attr() adds the missing "-escape.
+    function attr(s) { return esc(s).replace(/"/g, '&quot;'); }
+    function entryAttrs(row) {
+        return ' data-source="' + attr(row.source) + '" data-sourcelabel="' + attr(row.sourceLabel) + '"'
+             + ' data-name="' + attr(row.name) + '" data-repo="' + attr(row.repo) + '"'
+             + ' data-ref="' + attr(row.ref) + '" data-path="' + attr(row.path) + '" data-url="' + attr(row.url) + '"';
+    }
+    function readEntry(el) {
+        return {
+            source:      el.getAttribute('data-source')      || '',
+            sourceLabel: el.getAttribute('data-sourcelabel') || '',
+            name:        el.getAttribute('data-name')        || '',
+            repo:        el.getAttribute('data-repo')        || '',
+            ref:         el.getAttribute('data-ref')         || '',
+            path:        el.getAttribute('data-path')        || '',
+            url:         el.getAttribute('data-url')         || ''
+        };
+    }
+
     var table = tigerDataTable('#sk-table', {
         service: { module: 'agent', service: 'skills', action: 'datatable' },
         ordering: false,               // installed-first pinning is authoritative (server-side)
@@ -109,13 +129,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 var h = '';
                 // View source (always) — key if installed, else the repo/ref/path for a live fetch.
                 h += '<button type="button" class="btn btn-sm btn-outline-secondary sk-src" title="View source" aria-label="View source"'
-                   + ' data-key="' + esc(row.installed ? row.key : '') + '" data-name="' + esc(row.name) + '"'
-                   + ' data-repo="' + esc(row.repo) + '" data-ref="' + esc(row.ref) + '" data-path="' + esc(row.path) + '"'
-                   + ' data-entry="' + esc(JSON.stringify({ source: row.source, sourceLabel: row.sourceLabel, name: row.name, repo: row.repo, ref: row.ref, path: row.path, url: row.url })) + '">'
+                   + ' data-key="' + esc(row.installed ? row.key : '') + '"' + entryAttrs(row) + '>'
                    + '<i class="fa-solid fa-file-lines"></i></button> ';
                 if (!row.installed) {
-                    h += '<button type="button" class="btn btn-sm btn-primary sk-install"'
-                       + ' data-entry="' + esc(JSON.stringify({ source: row.source, sourceLabel: row.sourceLabel, name: row.name, repo: row.repo, ref: row.ref, path: row.path, url: row.url })) + '">'
+                    h += '<button type="button" class="btn btn-sm btn-primary sk-install"' + entryAttrs(row) + '>'
                        + '<i class="fa-solid fa-download me-1"></i>Install</button>';
                 } else {
                     h += row.active
@@ -130,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ---- actions (delegated) ----
     $('#sk-table tbody').on('click', '.sk-install', function () {
-        var entry = JSON.parse(this.getAttribute('data-entry') || '{}');
+        var entry = readEntry(this);
         TigerButton.run(this, function () { return api('install', entry); }).then(function (res) {
             toast(res); table.ajax.reload(null, false);
         });
@@ -155,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function () {
     $('#sk-table tbody').on('click', '.sk-src', function () {
         var b = this;
         var key = b.getAttribute('data-key');
-        srcEntry = key ? null : JSON.parse(b.getAttribute('data-entry') || '{}');
+        srcEntry = key ? null : readEntry(b);
         document.getElementById('sk-src-title').textContent = (b.getAttribute('data-name') || 'SKILL') + '.md';
         document.getElementById('sk-src-sub').textContent   = b.getAttribute('data-repo') || '';
         document.getElementById('sk-src-body').textContent  = 'Loading…';
