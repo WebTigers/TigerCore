@@ -38,7 +38,7 @@ class Agent_Bootstrap extends Zend_Application_Module_Bootstrap
             'key'      => 'agent-skills',
             'label'    => 'Agent Skills',
             'icon'     => 'fa-wand-magic-sparkles',
-            'href'     => '/agent/skills',
+            'href'     => '/admin/settings/agent/skills',   // pretty alias (routes.ini); /agent/skills still works
             'resource' => 'Agent_SkillsController',
             'order'    => 46,
         ]);
