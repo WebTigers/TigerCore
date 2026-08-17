@@ -16,6 +16,7 @@ class Agent_SkillsController extends Tiger_Controller_Admin_Action
     /** Render the Skills manager (search catalog + installed list). */
     public function indexAction()
     {
-        $this->view->title = 'Agent Skills — Tiger Admin';
+        $this->view->title         = 'Agent Skills — Tiger Admin';
+        $this->view->useDataTables = true;   // opt into the DataTables + tiger.datatable.js assets (admin.phtml)
     }
 }
