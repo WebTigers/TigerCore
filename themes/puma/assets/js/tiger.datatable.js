@@ -80,9 +80,13 @@
         return $(selector).DataTable(config);
     }
 
-    // Small shared escaper for column renderers (prevents XSS from row data).
+    // Shared HTML escaper for column renderers (prevents XSS from row data). Escapes & < > " ' so it's
+    // safe for BOTH element text AND attribute values — a render can drop row data straight into a data-*
+    // attribute without the quotes breaking out (matches tiger.media-picker.js / tiger-upload-list.js).
     tigerDataTable.esc = function (s) {
-        return window.jQuery('<div>').text(s == null ? '' : String(s)).html();
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
     };
 
     window.tigerDataTable = tigerDataTable;
