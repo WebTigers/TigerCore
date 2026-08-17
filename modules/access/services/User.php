@@ -64,6 +64,7 @@ class Access_Service_User extends Tiger_Service_Service
      * Create or update a user identity (insert when user_id is empty).
      *
      * @param  array $params the submitted form values + user_id
+     * @apiRequest Access_Form_User
      * @return void
      */
     public function save(array $params): void

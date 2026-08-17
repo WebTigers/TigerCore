@@ -64,6 +64,7 @@ class Blog_Service_Post extends Tiger_Service_Service
      * Create or update an article (insert when post_id is empty).
      *
      * @param  array $params the submitted form values + post_id
+     * @apiRequest Blog_Form_Post
      * @return void
      */
     public function save(array $params): void

@@ -112,6 +112,33 @@ class Tiger_OpenApi_Generator
         ];
     }
 
+    /**
+     * Request (input) JSON Schemas keyed by `<module>/<service>/<method>` — the same Form-derived schemas
+     * `generate()` puts in each operation's `requestBody`, extracted for reuse (e.g. MCP `tools/list`
+     * `inputSchema`). A method with an `@apiRequest <FormClass>` gets a typed object schema; a form-less
+     * method gets a generic permissive object. See TIGERMCP.md §4.
+     *
+     * @param  array $serviceClasses the discovered @api service class names
+     * @return array<string,array> op key => JSON Schema
+     */
+    public function schemasByOp(array $serviceClasses)
+    {
+        $out = [];
+        foreach ($serviceClasses as $class) {
+            if (!$this->_isService($class)) {
+                continue;
+            }
+            [$module, $service] = $this->_moduleService($class);
+            foreach ($this->_operations($class) as $method) {
+                $schema = $this->_requestSchema($this->_docblock($method));
+                if ($schema !== null) {
+                    $out[$module . '/' . $service . '/' . $method->getName()] = $schema;
+                }
+            }
+        }
+        return $out;
+    }
+
     // ============================================================================= operations
 
     /** One OpenAPI operation from a reflected service method. */

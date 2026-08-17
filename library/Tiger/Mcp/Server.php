@@ -71,20 +71,39 @@ class Tiger_Mcp_Server
         ];
     }
 
-    /** tools/list = the role-filtered /api catalog, one MCP tool per operation. */
+    /** tools/list = the role-filtered /api catalog, one MCP tool per operation, args typed from the Form. */
     protected static function _toolsList($role)
     {
-        $tools = [];
+        $schemas = self::_inputSchemas();   // module/service/method → JSON Schema (from the method's Form)
+        $tools   = [];
         foreach (Tiger_Agent_Tools::catalog($role) as $module => $ops) {
             foreach ($ops as $op) {
+                $key = $module . '/' . $op['service'] . '/' . $op['method'];
                 $tools[] = [
                     'name'        => self::toolName((string) $module, (string) $op['service'], (string) $op['method']),
                     'description' => (string) ($op['summary'] ?? ''),
-                    'inputSchema' => ['type' => 'object'],   // permissive in v1; typed from the Form in increment 2
+                    'inputSchema' => $schemas[$key] ?? ['type' => 'object'],   // typed from the Form, else permissive
                 ];
             }
         }
         return ['tools' => $tools];
+    }
+
+    /**
+     * The Form-derived input schemas keyed by `<module>/<service>/<method>`, reflected once from the OpenAPI
+     * generator (which maps each method's `@apiRequest` Form → a JSON Schema). Fault-tolerant: a schema is a
+     * nicety, so any failure falls back to a permissive object per tool.
+     *
+     * @return array<string,array>
+     */
+    protected static function _inputSchemas()
+    {
+        try {
+            $gen = new Tiger_OpenApi_Generator();
+            return $gen->schemasByOp($gen->discover($gen->moduleServiceDirs()));
+        } catch (Throwable $e) {
+            return [];
+        }
     }
 
     /** tools/call → dispatch the named /api op through the seam, wrap the envelope as MCP content. */

@@ -259,6 +259,7 @@ class Cms_Service_Page extends Tiger_Service_Service
      * Create or update a page (insert when page_id is empty).
      *
      * @param  array $params the editor form payload
+     * @apiRequest Cms_Form_Page
      * @return void
      */
     public function save(array $params): void
