@@ -9,4 +9,5 @@ Reference docs: @ARCHITECTURE.md (the why) · @FEATURES.md (what the platform do
 @CODE.md (code modules & the Code Area — shareable snippets) ·
 @MARKETPLACE.md (buying/selling paid modules — the open licensing protocol + the buyer-side client) ·
 @SELLING.md (the seller's guide + model: list free / sell paid → Add Module, and the build status) ·
-@TIGERAGENT.md (the in-platform AI agent) · @TIGERSKILLS.md (agent Skills — installable know-how + the Skills/MCP surface).
+@TIGERAGENT.md (the in-platform AI agent) · @TIGERSKILLS.md (agent Skills — installable know-how + the Skills/MCP surface) ·
+@TIGERMCP.md (Tiger as an MCP server — external AI clients drive the install over /api).
