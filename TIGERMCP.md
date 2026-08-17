@@ -8,10 +8,14 @@ the in-app agent read [TIGERAGENT.md](TIGERAGENT.md); for the sibling extension 
 [TIGERSKILLS.md](TIGERSKILLS.md) (§7 frames Skills vs MCP); for the admin-screen template read
 [ADMIN.md](ADMIN.md).
 
-> **Status: SCOPED, not built.** This is the design-of-record so we don't relitigate it when the code
-> lands. The hard prerequisites already exist (§2); what's left is a thin protocol adapter (§8). First
-> increment is **inbound** (Tiger *is* an MCP server) over a **stdio bridge** to **one** endpoint,
-> **`/mcp`**, shipped as a **core module that is OFF by default**.
+> **Status: increment 1 BUILT (the `/mcp` server); the rest scoped.** The `modules/mcp` core module ships
+> the JSON-RPC endpoint — `initialize` / `tools/list` / `tools/call` / `ping`, Bearer auth via the existing
+> `ServiceFactory` path, `tools/list` reflected from `Tiger_Agent_Tools::catalog(role)`, `tools/call`
+> proxied to `/api` — **OFF by default** (`tiger.mcp.enabled`). Still scoped, not built: tool `inputSchema`
+> from Forms (increment 2), the stdio bridge + admin Connect screen (increment 3), scoped/org tokens +
+> metering (increment 4). This doc is the design-of-record for all of it. First-increment shape: **inbound**
+> (Tiger *is* an MCP server) over a **stdio bridge** to **one** endpoint, **`/mcp`**, a **core module OFF by
+> default**.
 
 ---
 
@@ -231,9 +235,12 @@ MCP** IA (TIGERSKILLS §6): `MCP ▸ Server/Access` (inbound, this doc) and `MCP
 
 ## 11. Build order (increments)
 
-1. **The `/mcp` server** — `modules/mcp` (off by default): the JSON-RPC endpoint, `initialize` / `tools/list`
-   / `tools/call` / `ping`, Bearer auth via the existing ServiceFactory path, request/response transport.
-   `tools/list` from `Tiger_Agent_Tools::catalog(role)`; `tools/call` proxied to `/api`.
+1. **The `/mcp` server — ✅ BUILT.** `modules/mcp` (off by default): `Tiger_Mcp` (enable gate + version
+   negotiation) + `Tiger_Mcp_Server` (the JSON-RPC engine — `initialize` / `tools/list` / `tools/call` /
+   `ping`) + `Mcp_ServerController` (the `/mcp` HTTP surface: Bearer-or-session identity, request/response).
+   `tools/list` from `Tiger_Agent_Tools::catalog(role)`; `tools/call` proxied to `/api` via `ServiceFactory`.
+   Route ingested from `modules/mcp/configs/routes.ini`; controller public in `acl.ini` (token + per-service
+   ACL gate). Verified live: 404 disabled → `initialize` handshake → `tools/list` reflects the role surface.
 2. **Tool `inputSchema`** — wire the `Tiger_OpenApi_Generator` Form→JSON-Schema mapper into `tools/list` so
    arguments are typed (not just a permissive object).
 3. **The stdio bridge** — `bin/mcp-bridge.php` (zero-Node) + the admin **Connect** screen (enable toggle,

@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**176 classes** across **31 capabilities** · **17 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**178 classes** across **32 capabilities** · **18 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -198,6 +198,11 @@
 - **Tiger_Skill_Source_SkillsDir** `@api` — the adapter for the common "collection" layout: a repo whose skills live as `<base>/<name>/SKILL.md` folders (e.g.  ·  `library/Tiger/Skill/Source/SkillsDir.php`
 - **Tiger_Skill_Source_Url** `@api` — the "paste a GitHub URL" adapter.  ·  `library/Tiger/Skill/Source/Url.php`
 
+### MCP server
+
+- **Tiger_Mcp** `@api` — the facade for the MCP server (Tiger as an MCP server; see TIGERMCP.md).  ·  `library/Tiger/Mcp.php`
+- **Tiger_Mcp_Server** `@api` — the MCP JSON-RPC 2.0 protocol engine (transport-agnostic; TIGERMCP.md §3-5).  ·  `library/Tiger/Mcp/Server.php`
+
 ### Scheduling
 
 - **Tiger_Model_ScheduleRun** `@api` — ScheduleRun — one execution record of a Tiger_Schedule job (the run log + the "last run" state).  ·  `library/Tiger/Model/ScheduleRun.php`
@@ -289,6 +294,7 @@
 - **CMS** (`cms`, app)  ·  services: Menu, Page, Settings  ·  `modules/cms`
 - **Code** (`code`, developer)  ·  services: Code  ·  `modules/code`
 - **Identity** (`identity`, plugin)  ·  services: Identity  ·  `modules/identity`
+- **Mcp** (`mcp`, module)  ·  `modules/mcp`
 - **Media** (`media`, plugin)  ·  services: Media, Settings  ·  `modules/media`
 - **Profile** (`profile`, plugin)  ·  services: Address, Avatar, Base, Contact, Org, OrgAddress, OrgContact, OrgLogo, Security, User  ·  `modules/profile`
 - **Register** (`register`, plugin)  ·  services: Registration, Status  ·  `modules/register`
