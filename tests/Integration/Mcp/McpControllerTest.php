@@ -89,6 +89,14 @@ final class McpControllerTest extends ControllerTestCase
         $this->assertNotEmpty($out['result']['tools'], 'an admin sees a non-empty tool surface');
         $this->assertMatchesRegularExpression('/^[a-z0-9-]+__[a-z]+__[a-z0-9_]+$/i', $out['result']['tools'][0]['name']);
         $this->assertArrayHasKey('inputSchema', $out['result']['tools'][0]);
+
+        // A method that declares @apiRequest gets a TYPED inputSchema from its Form (increment 2).
+        $byName = array_column($out['result']['tools'], null, 'name');
+        $this->assertArrayHasKey('cms__page__save', $byName, 'the page-save tool is exposed to an admin');
+        $schema = $byName['cms__page__save']['inputSchema'];
+        $this->assertSame('object', $schema['type']);
+        $this->assertArrayHasKey('title', $schema['properties'], 'the Cms_Form_Page fields are typed into the schema');
+        $this->assertArrayHasKey('slug', $schema['properties']);
     }
 }
 

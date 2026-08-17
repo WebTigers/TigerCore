@@ -67,6 +67,7 @@ class Access_Service_Org extends Tiger_Service_Service
      * Create or update an org (insert when org_id is empty).
      *
      * @param  array $params the submitted form values + org_id
+     * @apiRequest Access_Form_Org
      * @return void
      */
     public function save(array $params): void

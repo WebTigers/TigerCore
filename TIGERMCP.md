@@ -8,13 +8,14 @@ the in-app agent read [TIGERAGENT.md](TIGERAGENT.md); for the sibling extension 
 [TIGERSKILLS.md](TIGERSKILLS.md) (§7 frames Skills vs MCP); for the admin-screen template read
 [ADMIN.md](ADMIN.md).
 
-> **Status: increments 1 + 3 BUILT; 2 + 4 scoped.** The `modules/mcp` core module ships the JSON-RPC
+> **Status: increments 1 + 2 + 3 BUILT; 4 scoped.** The `modules/mcp` core module ships the JSON-RPC
 > endpoint (increment 1 — `initialize` / `tools/list` / `tools/call` / `ping`, Bearer auth, `tools/list` from
 > `Tiger_Agent_Tools::catalog(role)`, `tools/call` proxied to `/api`) AND the connect experience (increment 3
 > — the zero-Node PHP **stdio bridge** `bin/mcp-bridge.php` + the admin **Connect screen** `/mcp/admin`:
 > enable toggle, mint/list/revoke tokens, copy-paste `mcpServers` config for npx-`mcp-remote` or the PHP
-> bridge, bridge download). **OFF by default** (`tiger.mcp.enabled`). Still scoped, not built: tool
-> `inputSchema` from Forms (increment 2), scoped/org-scoped tokens + per-token metering (increment 4). This
+> bridge, bridge download). Tool arguments are **typed** (increment 2 — `tools/list` `inputSchema` comes
+> from each method's `@apiRequest` Form via the OpenAPI generator's mapper). **OFF by default**
+> (`tiger.mcp.enabled`). Still scoped, not built: scoped/org-scoped tokens + per-token metering (increment 4). This
 > doc is the design-of-record for all of it. Shape: **inbound**, a **stdio bridge** to **one** endpoint,
 > **`/mcp`**, a **core module OFF by default**.
 
@@ -242,8 +243,12 @@ MCP** IA (TIGERSKILLS §6): `MCP ▸ Server/Access` (inbound, this doc) and `MCP
    `tools/list` from `Tiger_Agent_Tools::catalog(role)`; `tools/call` proxied to `/api` via `ServiceFactory`.
    Route ingested from `modules/mcp/configs/routes.ini`; controller public in `acl.ini` (token + per-service
    ACL gate). Verified live: 404 disabled → `initialize` handshake → `tools/list` reflects the role surface.
-2. **Tool `inputSchema`** — wire the `Tiger_OpenApi_Generator` Form→JSON-Schema mapper into `tools/list` so
-   arguments are typed (not just a permissive object).
+2. **Tool `inputSchema` — ✅ BUILT.** `Tiger_OpenApi_Generator::schemasByOp()` exposes the Form→JSON-Schema
+   mapping keyed by `module/service/method`; `Tiger_Mcp_Server::_toolsList` reflects it into each tool's
+   `inputSchema` (fault-tolerant — a permissive object if reflection fails). A method types its arguments by
+   declaring `@apiRequest <FormClass>`; the curated create/edit tools now carry it (`Cms_Form_Page`,
+   `Blog_Form_Post`, `Access_Form_User`, `Access_Form_Org`). **Follow-on:** backfill `@apiRequest` across the
+   rest of the writable services (benefits `/api/openapi` too — same mechanism).
 3. **The stdio bridge + Connect screen — ✅ BUILT.** `bin/mcp-bridge.php` (zero-Node PHP stdio↔HTTP relay:
    env `TIGER_MCP_URL`/`TIGER_MCP_TOKEN`, guards the stdout channel, JSON-RPC errors on transport failure) +
    `Mcp_AdminController` `/mcp/admin` (the Connect screen: enable toggle via `Mcp_Service_Settings`, mint/
