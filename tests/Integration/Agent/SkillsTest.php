@@ -21,6 +21,9 @@ final class SkillsTest extends IntegrationTestCase
 {
     private string $skillDir = '';
 
+    /** @var string[] seeded index caches to clean up */
+    private array $indexCaches = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -29,6 +32,13 @@ final class SkillsTest extends IntegrationTestCase
         @mkdir($this->skillDir, 0775, true);
         file_put_contents($this->skillDir . '/SKILL.md', "---\nname: demo\ndescription: A demo skill.\n---\nDo the thing.");
         file_put_contents($this->skillDir . '/source.json', json_encode(['sourceLabel' => 'Anthropic Skills', 'repo' => 'anthropics/skills']));
+        // Short-circuit every built-in source's network scan with a FRESH, empty cache (datatable calls all()).
+        @mkdir(APPLICATION_ROOT . '/var/cache/skills', 0775, true);
+        foreach (['webtigers-skills', 'anthropic-skills', 'composio-skills'] as $id) {
+            $file = APPLICATION_ROOT . '/var/cache/skills/' . $id . '.json';
+            file_put_contents($file, json_encode(['at' => time(), 'entries' => []]));
+            $this->indexCaches[] = $file;
+        }
     }
 
     protected function tearDown(): void
@@ -36,6 +46,7 @@ final class SkillsTest extends IntegrationTestCase
         foreach (['/SKILL.md', '/source.json'] as $f) { @unlink($this->skillDir . $f); }
         @rmdir($this->skillDir);
         @rmdir(Tiger_Agent_Skills::dir());
+        foreach ($this->indexCaches as $f) { @unlink($f); }
         parent::tearDown();
     }
 
@@ -114,5 +125,41 @@ final class SkillsTest extends IntegrationTestCase
         $this->loginAs('admin');
         $this->assertSame(0, (int) $this->call('toggle', ['key' => 'nope__nope', 'active' => 1])->result);
         $this->assertSame(0, (int) $this->call('remove', ['key' => 'nope__nope'])->result);
+    }
+
+    #[Test]
+    public function datatable_merges_and_pins_installed_to_the_top(): void
+    {
+        $this->loginAs('admin');
+        // The catalog is short-circuited to empty (seeded caches), so only the installed demo appears.
+        $res = $this->call('datatable', ['draw' => 1, 'start' => 0, 'length' => 25]);
+        $this->assertSame(1, (int) $res->result);
+        $this->assertSame(1, (int) $res->data['draw']);
+
+        $rows = $res->data['data'];
+        $demo = array_values(array_filter($rows, fn($r) => $r['key'] === 'anthropic-skills__demo'));
+        $this->assertNotEmpty($demo, 'the installed skill is a grid row');
+        $this->assertTrue($demo[0]['installed'], 'status flags it installed');
+        $this->assertFalse($demo[0]['active'], 'off by default');
+        // Installed rows sort ahead of any not-installed row.
+        $this->assertTrue((bool) $rows[0]['installed'], 'installed is pinned to the top');
+    }
+
+    #[Test]
+    public function datatable_active_state_follows_the_config_set(): void
+    {
+        $this->loginAs('admin');
+        Tiger_Agent_Skills::setActive('anthropic-skills__demo', true);
+        $res = $this->call('datatable', ['draw' => 2, 'start' => 0, 'length' => 25]);
+        $demo = array_values(array_filter($res->data['data'], fn($r) => $r['key'] === 'anthropic-skills__demo'));
+        $this->assertTrue($demo[0]['active'], 'a turned-on skill reads active in the grid');
+    }
+
+    #[Test]
+    public function datatable_is_denied_for_a_guest(): void
+    {
+        $this->login('anon', 'org-test', 'guest');
+        $res = $this->call('datatable', ['draw' => 1, 'start' => 0, 'length' => 25]);
+        $this->assertSame(0, (int) $res->result);
     }
 }

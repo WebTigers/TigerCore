@@ -2,154 +2,186 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
- * Agent Skills manager (admin shell). Browse/search the supported skill repos (Agent_Service_Skills over
- * /api), install, and manage installed skills (turn on/off, remove, view source). Tiger is NOT a trust
- * authority — results show PROVENANCE and you review the SKILL.md before installing (TIGERSKILLS.md).
+ * Agent Skills manager — ONE DataTables grid (like the Modules screen): the browse catalog merged with
+ * what's installed, so a row's Status + action controls tell you whether it's installed. Installed skills
+ * pin to the top. Data loads from Agent_Service_Skills::datatable over /api; install / toggle / remove /
+ * view-source are /api calls. Tiger is NOT a trust authority — the grid shows PROVENANCE and you review the
+ * SKILL.md before installing (TIGERSKILLS.md §2, §5).
  */
 ?>
 <div class="d-flex align-items-center justify-content-between mb-3">
     <div>
         <h1 class="h3 mb-1">Agent Skills</h1>
-        <p class="text-body-secondary mb-0">Installable know-how for the AI agent. Tiger browses these repos — it does not vouch for them; review a skill before you install and turn it on.</p>
+        <p class="text-body-secondary mb-0">Installable know-how for the AI agent. Tiger browses these repos — it does not vouch for them; review a skill's source before you install and turn it on. Installed skills are pinned to the top.</p>
+    </div>
+    <div class="text-nowrap ms-3">
+        <button type="button" id="sk-rescan" class="btn btn-outline-secondary" title="Re-scan the sources"><i class="fa-solid fa-rotate me-2"></i>Rescan</button>
     </div>
 </div>
 
-<div class="row g-4">
-  <div class="col-lg-7">
-    <div class="card mb-4">
-      <div class="card-header fw-semibold"><i class="fa-solid fa-magnifying-glass me-2"></i>Browse skills</div>
-      <div class="card-body">
-        <div class="input-group input-group-sm mb-3">
-          <input type="search" id="sk-search" class="form-control" placeholder="Search skills across supported repos…">
-          <button type="button" id="sk-refresh" class="btn btn-outline-secondary" title="Re-scan sources"><i class="fa-solid fa-rotate"></i></button>
-        </div>
-        <div id="sk-results" class="d-grid gap-2"></div>
-        <div id="sk-results-empty" class="text-body-secondary py-3" hidden>No matches.</div>
-      </div>
+<div class="card mb-3">
+  <div class="card-body">
+    <label for="sk-url" class="form-label fw-semibold mb-1"><i class="fa-brands fa-github me-2"></i>Add from a GitHub URL</label>
+    <div class="input-group input-group-sm">
+      <input type="url" id="sk-url" class="form-control" placeholder="https://github.com/owner/repo (or a subfolder / a SKILL.md)">
+      <button type="button" id="sk-url-install" class="btn btn-primary"><i class="fa-solid fa-download me-1"></i>Install</button>
     </div>
-    <div class="card">
-      <div class="card-header fw-semibold"><i class="fa-brands fa-github me-2"></i>Add from a GitHub URL</div>
-      <div class="card-body">
-        <div class="input-group input-group-sm">
-          <input type="url" id="sk-url" class="form-control" placeholder="https://github.com/owner/repo (or a subfolder / a SKILL.md)">
-          <button type="button" id="sk-url-install" class="btn btn-primary"><i class="fa-solid fa-download me-1"></i>Install</button>
-        </div>
-        <div class="form-text">Any repo, branch, subfolder, or a link straight to a SKILL.md.</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-lg-5">
-    <div class="card">
-      <div class="card-header fw-semibold"><i class="fa-solid fa-toggle-on me-2"></i>Installed</div>
-      <div class="card-body">
-        <div id="sk-installed" class="d-grid gap-2"></div>
-        <div id="sk-installed-empty" class="text-body-secondary py-3" hidden>No skills installed yet.</div>
-      </div>
-    </div>
+    <div class="form-text">Any repo, branch, subfolder, or a link straight to a SKILL.md — not just the listed sources.</div>
   </div>
 </div>
 
-<div class="modal fade" id="sk-src-modal" tabindex="-1" aria-hidden="true">
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table id="sk-table" class="table table-hover align-middle" style="width:100%;">
+                <thead>
+                    <tr>
+                        <th>Skill</th>
+                        <th>Description</th>
+                        <th>Source</th>
+                        <th>Status</th>
+                        <th class="text-end" data-orderable="false">Actions</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- View-source modal: read the SKILL.md before installing (read-before-you-run). -->
+<div class="modal fade" id="sk-src-modal" tabindex="-1" aria-hidden="true" aria-labelledby="sk-src-title" role="dialog">
   <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
-    <div class="modal-header"><h5 class="modal-title" id="sk-src-title">SKILL.md</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-header">
+      <div>
+        <h5 class="modal-title mb-0" id="sk-src-title">SKILL.md</h5>
+        <div class="small text-body-secondary" id="sk-src-sub"></div>
+      </div>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
     <div class="modal-body"><pre id="sk-src-body" class="small mb-0" style="white-space:pre-wrap;"></pre></div>
+    <div class="modal-footer">
+      <span class="text-body-secondary small me-auto"><i class="fa-solid fa-circle-info me-1"></i>Provenance only — review before you install.</span>
+      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      <button type="button" class="btn btn-primary" id="sk-src-install" hidden><i class="fa-solid fa-download me-2"></i>Install</button>
+    </div>
   </div></div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]; }); };
-    var srcModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('sk-src-modal')) : null;
+    if (typeof tigerDataTable !== 'function') { return; }
+    var $ = jQuery, esc = tigerDataTable.esc;
+    var rescan = false;   // one-shot: next load re-scans the sources
+
     function api(method, body) {
         body = body || {}; body.module = 'agent'; body.service = 'skills'; body.method = method;
-        return fetch('/api', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body:new URLSearchParams(body) }).then(function (r) { return r.json(); });
+        return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: new URLSearchParams(body) }).then(function (r) { return r.json(); });
     }
+    function toast(res) { ((res && res.messages) || []).forEach(function (m) { TigerDOM.toast(m.message, { type: m.class }); }); }
 
-    // ---- Browse / search ----
-    var resultsEl = document.getElementById('sk-results'), searchEl = document.getElementById('sk-search');
-    function badge(label) { return '<span class="badge text-bg-light border">'+esc(label)+'</span>'; }
-    function resultCard(s) {
-        var right = s.installed
-            ? '<span class="btn btn-sm btn-outline-success disabled"><i class="fa-solid fa-check me-1"></i>Installed</span>'
-            : '<button type="button" class="btn btn-sm btn-primary sk-install" data-s=\''+esc(JSON.stringify({name:s.name,repo:s.repo,ref:s.ref,path:s.path,url:s.url,source:s.sourceLabel}))+'\'><i class="fa-solid fa-download me-1"></i>Install</button>';
-        return '<div class="border rounded p-2 d-flex justify-content-between align-items-start gap-2">'
-             + '<div style="min-width:0;"><div class="fw-semibold">'+esc(s.name)+' '+badge(s.sourceLabel)+'</div>'
-             + '<div class="small text-body-secondary">'+esc(s.description||'')+'</div></div>'
-             + '<div class="text-nowrap d-flex gap-1">'
-             + '<button type="button" class="btn btn-sm btn-outline-secondary sk-src" data-repo="'+esc(s.repo)+'" data-ref="'+esc(s.ref)+'" data-path="'+esc(s.path)+'" data-name="'+esc(s.name)+'" title="View SKILL.md">Source</button>'
-             + right + '</div></div>';
-    }
-    function search(refresh) {
-        api('search', { q: searchEl.value, refresh: refresh ? 1 : 0 }).then(function (res) {
-            var rows = (res && res.data && res.data.skills) || [];
-            resultsEl.innerHTML = rows.map(resultCard).join('');
-            document.getElementById('sk-results-empty').hidden = rows.length > 0;
-        });
-    }
-    var t; searchEl.addEventListener('input', function () { clearTimeout(t); t = setTimeout(function () { search(false); }, 300); });
-    document.getElementById('sk-refresh').addEventListener('click', function () { search(true); });
-
-    // ---- Installed ----
-    var instEl = document.getElementById('sk-installed');
-    function instCard(s) {
-        return '<div class="border rounded p-2">'
-             + '<div class="d-flex justify-content-between align-items-center gap-2">'
-             + '<div class="form-check form-switch mb-0"><input class="form-check-input sk-toggle" type="checkbox" data-key="'+esc(s.key)+'"'+(s.active?' checked':'')+'>'
-             + '<label class="form-check-label fw-semibold">'+esc(s.name)+'</label></div>'
-             + '<div class="text-nowrap d-flex gap-1">'
-             + '<button type="button" class="btn btn-sm btn-outline-secondary sk-src" data-key="'+esc(s.key)+'" data-name="'+esc(s.name)+'">Source</button>'
-             + '<button type="button" class="btn btn-sm btn-outline-danger sk-remove" data-key="'+esc(s.key)+'" title="Remove"><i class="fa-solid fa-trash"></i></button></div></div>'
-             + (s.sourceLabel ? '<div class="small text-body-secondary mt-1">'+esc(s.sourceLabel)+'</div>' : '')
-             + '</div>';
-    }
-    function loadInstalled() {
-        api('installed').then(function (res) {
-            var rows = (res && res.data && res.data.skills) || [];
-            instEl.innerHTML = rows.map(instCard).join('');
-            document.getElementById('sk-installed-empty').hidden = rows.length > 0;
-        });
-    }
-
-    // ---- Actions (delegated) ----
-    document.addEventListener('click', function (e) {
-        var b;
-        if ((b = e.target.closest('.sk-install'))) {
-            var s = JSON.parse(b.getAttribute('data-s'));
-            TigerButton.run(b, function () { return api('install', s); }).then(function (res) {
-                if (res && res.result === 1) { TigerDOM.toast('Skill installed.', { type:'success' }); search(false); loadInstalled(); }
-                else { ((res&&res.messages)||[]).forEach(function (m) { TigerDOM.toast(m.message, { type:m.class }); }); }
-            });
-        } else if ((b = e.target.closest('.sk-remove'))) {
-            var key = b.getAttribute('data-key');
-            TigerModal.confirm({ title:'Remove skill', body:'Remove this skill and its files?', confirmLabel:'Remove', variant:'danger' }).then(function (ok) {
-                if (!ok) { return; }
-                api('remove', { key: key }).then(function () { TigerDOM.toast('Skill removed.', { type:'success' }); search(false); loadInstalled(); });
-            });
-        } else if ((b = e.target.closest('.sk-src'))) {
-            document.getElementById('sk-src-title').textContent = (b.getAttribute('data-name') || 'SKILL') + '.md';
-            document.getElementById('sk-src-body').textContent = 'Loading…';
-            if (srcModal) { srcModal.show(); }
-            api('source', { key: b.getAttribute('data-key') || '', repo: b.getAttribute('data-repo') || '', ref: b.getAttribute('data-ref') || '', path: b.getAttribute('data-path') || '' })
-                .then(function (res) { document.getElementById('sk-src-body').textContent = (res && res.data && res.data.source) || '(empty)'; });
-        }
+    var table = tigerDataTable('#sk-table', {
+        service: { module: 'agent', service: 'skills', action: 'datatable' },
+        ordering: false,               // installed-first pinning is authoritative (server-side)
+        language: { search: '', searchPlaceholder: 'Search skills…' },
+        extraData: function () { var r = rescan ? 1 : 0; rescan = false; return { refresh: r }; },
+        columns: [
+            { data: 'name', render: function (t, type, row) {
+                if (type !== 'display') { return t; }
+                return '<span class="fw-semibold">' + esc(t) + '</span>';
+            } },
+            { data: 'description', className: 'text-body-secondary small', render: function (t, type) {
+                if (type !== 'display') { return t; }
+                t = String(t || ''); if (t.length > 160) { t = t.slice(0, 160) + '…'; }
+                return esc(t);
+            } },
+            { data: 'sourceLabel', render: function (t, type) {
+                if (type !== 'display') { return t; }
+                return t ? '<span class="badge text-bg-light border">' + esc(t) + '</span>' : '<span class="text-body-secondary">—</span>';
+            } },
+            { data: 'installed', className: 'text-nowrap', render: function (t, type, row) {
+                if (type !== 'display') { return t ? 1 : 0; }
+                if (!row.installed) { return '<span class="badge text-bg-light border text-body-secondary">Available</span>'; }
+                return row.active
+                    ? '<span class="badge text-bg-success">On</span>'
+                    : '<span class="badge text-bg-secondary">Installed</span>';
+            } },
+            { data: null, orderable: false, searchable: false, className: 'text-end text-nowrap', render: function (t, type, row) {
+                var h = '';
+                // View source (always) — key if installed, else the repo/ref/path for a live fetch.
+                h += '<button type="button" class="btn btn-sm btn-outline-secondary sk-src" title="View source" aria-label="View source"'
+                   + ' data-key="' + esc(row.installed ? row.key : '') + '" data-name="' + esc(row.name) + '"'
+                   + ' data-repo="' + esc(row.repo) + '" data-ref="' + esc(row.ref) + '" data-path="' + esc(row.path) + '"'
+                   + ' data-entry="' + esc(JSON.stringify({ source: row.source, sourceLabel: row.sourceLabel, name: row.name, repo: row.repo, ref: row.ref, path: row.path, url: row.url })) + '">'
+                   + '<i class="fa-solid fa-file-lines"></i></button> ';
+                if (!row.installed) {
+                    h += '<button type="button" class="btn btn-sm btn-primary sk-install" title="Install" aria-label="Install"'
+                       + ' data-entry="' + esc(JSON.stringify({ source: row.source, sourceLabel: row.sourceLabel, name: row.name, repo: row.repo, ref: row.ref, path: row.path, url: row.url })) + '">'
+                       + '<i class="fa-solid fa-download"></i></button>';
+                } else {
+                    h += row.active
+                        ? '<button type="button" class="btn btn-sm btn-outline-warning sk-toggle" data-key="' + esc(row.key) + '" data-active="0" title="Turn off" aria-label="Turn off"><i class="fa-solid fa-pause"></i></button> '
+                        : '<button type="button" class="btn btn-sm btn-outline-success sk-toggle" data-key="' + esc(row.key) + '" data-active="1" title="Turn on" aria-label="Turn on"><i class="fa-solid fa-play"></i></button> ';
+                    h += '<button type="button" class="btn btn-sm btn-outline-danger sk-remove" data-key="' + esc(row.key) + '" title="Remove" aria-label="Remove"><i class="fa-solid fa-trash"></i></button>';
+                }
+                return h;
+            } }
+        ]
     });
-    document.addEventListener('change', function (e) {
-        var t = e.target.closest('.sk-toggle');
-        if (!t) { return; }
-        api('toggle', { key: t.getAttribute('data-key'), active: t.checked ? 1 : 0 })
-            .then(function (res) { if (res && res.result === 1) { TigerDOM.toast(t.checked ? 'Skill on.' : 'Skill off.', { type:'success' }); } });
+
+    // ---- actions (delegated) ----
+    $('#sk-table tbody').on('click', '.sk-install', function () {
+        var entry = JSON.parse(this.getAttribute('data-entry') || '{}');
+        TigerButton.run(this, function () { return api('install', entry); }).then(function (res) {
+            toast(res); table.ajax.reload(null, false);
+        });
+    });
+    $('#sk-table tbody').on('click', '.sk-toggle', function () {
+        var btn = this;
+        TigerButton.run(btn, function () { return api('toggle', { key: btn.getAttribute('data-key'), active: btn.getAttribute('data-active') }); })
+            .then(function (res) { toast(res); table.ajax.reload(null, false); });
+    });
+    $('#sk-table tbody').on('click', '.sk-remove', function () {
+        var btn = this, key = btn.getAttribute('data-key');
+        TigerModal.confirm({ title: 'Remove skill', body: 'Remove this skill and its files? (It stays in the catalog to reinstall.)', confirmLabel: 'Remove', variant: 'danger' }).then(function (ok) {
+            if (!ok) { return; }
+            api('remove', { key: key }).then(function (res) { toast(res); table.ajax.reload(null, false); });
+        });
+    });
+
+    // ---- view source (+ install-from-modal for a not-yet-installed skill) ----
+    var srcModalEl = document.getElementById('sk-src-modal');
+    var srcModal   = (srcModalEl && window.bootstrap) ? new bootstrap.Modal(srcModalEl) : null;
+    var srcEntry   = null;   // set when the open row isn't installed (enables the modal Install)
+    $('#sk-table tbody').on('click', '.sk-src', function () {
+        var b = this;
+        var key = b.getAttribute('data-key');
+        srcEntry = key ? null : JSON.parse(b.getAttribute('data-entry') || '{}');
+        document.getElementById('sk-src-title').textContent = (b.getAttribute('data-name') || 'SKILL') + '.md';
+        document.getElementById('sk-src-sub').textContent   = b.getAttribute('data-repo') || '';
+        document.getElementById('sk-src-body').textContent  = 'Loading…';
+        var inst = document.getElementById('sk-src-install'); inst.hidden = !!key;
+        if (srcModal) { srcModal.show(); }
+        api('source', { key: key || '', repo: b.getAttribute('data-repo') || '', ref: b.getAttribute('data-ref') || '', path: b.getAttribute('data-path') || '' })
+            .then(function (res) { document.getElementById('sk-src-body').textContent = (res && res.data && res.data.source) || '(empty)'; });
+    });
+    document.getElementById('sk-src-install').addEventListener('click', function () {
+        if (!srcEntry) { return; }
+        TigerButton.run(this, function () { return api('install', srcEntry); }).then(function (res) {
+            toast(res); if (res && res.result === 1 && srcModal) { srcModal.hide(); } table.ajax.reload(null, false);
+        });
+    });
+
+    // ---- header controls ----
+    document.getElementById('sk-rescan').addEventListener('click', function () {
+        rescan = true; TigerButton.run(this, function () { return Promise.resolve(table.ajax.reload(null, false)); });
     });
     document.getElementById('sk-url-install').addEventListener('click', function () {
         var url = document.getElementById('sk-url').value.trim();
         if (!url) { return; }
         TigerButton.run(this, function () { return api('install', { url: url }); }).then(function (res) {
-            if (res && res.result === 1) { TigerDOM.toast('Installed from URL.', { type:'success' }); document.getElementById('sk-url').value=''; search(false); loadInstalled(); }
-            else { ((res&&res.messages)||[]).forEach(function (m) { TigerDOM.toast(m.message, { type:m.class }); }); }
+            toast(res);
+            if (res && res.result === 1) { document.getElementById('sk-url').value = ''; table.ajax.reload(null, false); }
         });
     });
-
-    search(false);
-    loadInstalled();
 });
 </script>
