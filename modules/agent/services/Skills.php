@@ -67,25 +67,32 @@ class Agent_Service_Skills extends Tiger_Service_Service
         $search  = strtolower(trim((string) $dt['search']));
         $refresh = !empty($params['refresh']);
 
-        // Installed skills keyed by install key (key == safeKey(source__name), which installKey() mirrors).
+        // Installed skills, indexed two ways: by install key AND by canonical identity (repo|path). The
+        // canonical index is what dedups a skill installed via one source (e.g. a pasted URL → key
+        // `url__x`) against the SAME skill in a catalog (key `webtigers-skills__x`) — same repo+path, one row.
         $installed = [];
-        foreach (Tiger_Agent_Skills::installed() as $s) { $installed[$s['key']] = $s; }
+        $byLoc     = [];
+        foreach (Tiger_Agent_Skills::installed() as $s) {
+            $installed[$s['key']] = $s;
+            if ($s['repo'] !== '' && ($s['path'] ?? '') !== '') { $byLoc[self::_loc($s['repo'], $s['path'])] = $s; }
+        }
 
         $items = [];
-        $seen  = [];
+        $shown = [];   // install keys already emitted (matched to a catalog row) → skip in the tail
         // The browse catalog (per-source cached; only the sources scan hits the network, and only on refresh).
         foreach (Tiger_Skill_Index::all($refresh) as $e) {
-            $key  = Agent_Service_Skills::installKey($e);
-            $inst = $installed[$key] ?? null;
+            $catKey = Agent_Service_Skills::installKey($e);
+            $inst   = $installed[$catKey] ?? ($byLoc[self::_loc((string) $e['repo'], (string) $e['path'])] ?? null);
+            $key    = $inst !== null ? $inst['key'] : $catKey;   // actions target the ACTUAL installed dir
             $items[] = $this->_row($key, (string) $e['source'], $e['name'], $e['description'], $e['sourceLabel'],
                 $e['repo'], $e['ref'], $e['path'], $e['url'], $inst !== null, $inst !== null && !empty($inst['active']));
-            $seen[$key] = true;
+            if ($inst !== null) { $shown[$inst['key']] = true; }
         }
-        // Installed but not in any catalog (a pasted-URL install, or a source that's since delisted).
+        // Installed but not matched to any catalog entry (a pasted-URL install of a repo no source lists).
         foreach ($installed as $key => $s) {
-            if (isset($seen[$key])) { continue; }
+            if (isset($shown[$key])) { continue; }
             $items[] = $this->_row($key, '', $s['name'], $s['description'], $s['sourceLabel'],
-                (string) $s['repo'], '', '', (string) $s['url'], true, !empty($s['active']));
+                (string) $s['repo'], '', (string) ($s['path'] ?? ''), (string) $s['url'], true, !empty($s['active']));
         }
 
         if ($search !== '') {
@@ -105,6 +112,12 @@ class Agent_Service_Skills extends Tiger_Service_Service
         $len   = ($dt['length'] > 0) ? $dt['length'] : 25;
         $page  = array_slice($items, (int) $dt['start'], $len);
         $this->_dtResponse($dt['draw'], $total, $total, $page);
+    }
+
+    /** Canonical skill identity for dedup: repo + path, normalized (a skill is the same wherever installed from). */
+    private static function _loc($repo, $path): string
+    {
+        return strtolower(trim((string) $repo, '/') . '|' . trim((string) $path, '/'));
     }
 
     /** One normalized grid row (a catalog entry and/or an installed skill). */

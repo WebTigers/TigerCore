@@ -45,9 +45,22 @@ final class SkillsTest extends IntegrationTestCase
     {
         foreach (['/SKILL.md', '/source.json'] as $f) { @unlink($this->skillDir . $f); }
         @rmdir($this->skillDir);
-        @rmdir(Tiger_Agent_Skills::dir());
+        \Tiger_Skill_Index::clearSources();
+        $this->_rrmdir(\Tiger_Agent_Skills::dir());
         foreach ($this->indexCaches as $f) { @unlink($f); }
+        @unlink(APPLICATION_ROOT . '/var/cache/skills/catalog-x.json');
         parent::tearDown();
+    }
+
+    private function _rrmdir(string $dir): void
+    {
+        if ($dir === '' || !is_dir($dir)) { return; }
+        foreach (scandir($dir) ?: [] as $f) {
+            if ($f === '.' || $f === '..') { continue; }
+            $p = $dir . '/' . $f;
+            is_dir($p) ? $this->_rrmdir($p) : @unlink($p);
+        }
+        @rmdir($dir);
     }
 
     private function call(string $action, array $params = []): object
@@ -161,5 +174,41 @@ final class SkillsTest extends IntegrationTestCase
         $this->login('anon', 'org-test', 'guest');
         $res = $this->call('datatable', ['draw' => 1, 'start' => 0, 'length' => 25]);
         $this->assertSame(0, (int) $res->result);
+    }
+
+    #[Test]
+    public function datatable_dedups_a_skill_installed_under_a_different_source(): void
+    {
+        $this->loginAs('admin');
+
+        // Install a skill via one source id (mimics a pasted-URL install): key = url__widget, but its
+        // source.json records the canonical repo + path.
+        $dir = Tiger_Agent_Skills::dir() . '/url__widget';
+        @mkdir($dir, 0775, true);
+        file_put_contents($dir . '/SKILL.md', "---\nname: widget\ndescription: A widget skill.\n---\nBody.");
+        file_put_contents($dir . '/source.json', json_encode(['sourceLabel' => 'From github.com/acme/skills', 'repo' => 'acme/skills', 'path' => 'skills/widget']));
+
+        // The SAME skill in a catalog, under a DIFFERENT source id (→ installKey catalog-x__widget).
+        \Tiger_Skill_Index::registerSource(new DedupCatalogSource());
+
+        $rows   = $this->call('datatable', ['draw' => 1, 'start' => 0, 'length' => 25])->data['data'];
+        $widget = array_values(array_filter($rows, fn($r) => $r['name'] === 'widget'));
+
+        $this->assertCount(1, $widget, 'the same skill (same repo+path) appears ONCE, not once per source');
+        $this->assertTrue($widget[0]['installed'], 'it shows as installed, not Available');
+        $this->assertSame('url__widget', $widget[0]['key'], 'actions target the actual installed dir/key');
+
+        $this->_rrmdir($dir);
+    }
+}
+
+/** A catalog source that lists the same skill (repo+path) an installed one has, under a different id. */
+final class DedupCatalogSource extends \Tiger_Skill_Source
+{
+    public function id(): string    { return 'catalog-x'; }
+    public function label(): string { return 'Catalog X'; }
+    public function scan(): array
+    {
+        return [$this->entry('acme/skills', 'main', 'skills/widget', ['name' => 'widget', 'description' => 'A widget skill (from catalog).'])];
     }
 }
