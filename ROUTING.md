@@ -24,11 +24,12 @@ what everything else points at. Trailing `key/value` pairs fold into `getParam()
 A vanity URL is an **optional alias** — the canonical `<module>/<controller>/<action>` path always
 works automagically via the default route, so you only add an alias for a nicer URL. **Never
 `$router->addRoute()` in a Bootstrap** (`_init*`) — routes are config, and hardcoding them scatters
-precedence across bootstraps and makes you fight Zend's route stack. Two homes, by layer:
+precedence across bootstraps and makes you fight Zend's route stack. Three homes, by layer:
 
-- **Core / default-namespace aliases → `configs/routes.ini`.** ZF1-native `resources.router.routes.*`,
-  folded into the config cascade by `Tiger_Application::buildConfig`; the standard Router resource
-  applies them — no route code anywhere. Example (`/vibe` → `IndexController::vibeAction`):
+- **Core / default-namespace aliases → `TIGER_CORE_PATH/configs/routes.ini` (or the app's
+  `configs/routes.ini`).** ZF1-native `resources.router.routes.*`, folded into the config cascade by
+  `Tiger_Application::buildConfig`; the standard Router resource applies them — no route code anywhere.
+  Example (`/vibe` → `IndexController::vibeAction`):
   ```ini
   [production]
   resources.router.routes.vibe.type              = "Zend_Controller_Router_Route_Static"
@@ -36,7 +37,19 @@ precedence across bootstraps and makes you fight Zend's route stack. Two homes, 
   resources.router.routes.vibe.defaults.controller = "index"
   resources.router.routes.vibe.defaults.action     = "vibe"
   ```
-- **Module aliases → a `Tiger_Routing_Overrides` declaration** (below), so one authority owns ordering.
+- **Module routes → the module's own `configs/routes.ini`.** Same ZF1-native `resources.router.routes.*`
+  shape, declared *in the module*. `Tiger_Routing_ModuleRoutes` (called from
+  `Tiger_Application_Bootstrap::_initModuleRoutes`) discovers every **active** module's `routes.ini` and
+  registers them, **namespaced `<slug>__<name>`** so a module can't stomp a core or peer route (app-dir
+  modules override a same-slug core-dir one). This is the general mechanism — it handles param routes
+  (`blog/:slug`) and **works under the reserved `/admin` prefix** (a native router route is matched
+  before dispatch, so it wins over the default MVC resolution, which `Tiger_Routing_Overrides` cannot do).
+  `modules/blog/configs/routes.ini` is the reference; `modules/agent` serves `/admin/settings/agent/skills`
+  this way. Declaration order within the file is preserved (ZF1 matches newest-first), so declare a
+  more-specific route *after* the catch-all it must shadow.
+- **Module prefix→target aliases → a `Tiger_Routing_Overrides` declaration** (below), for the
+  "prefix maps to a target, the remainder is a `slug`" shape (e.g. a docs tree). Admin-reconfigurable via
+  config, but it **refuses reserved prefixes** (`/api`, `/auth`, `/admin`) — use `routes.ini` for those.
 
 A module declares its default alias from its Bootstrap:
 

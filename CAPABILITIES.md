@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**175 classes** across **31 capabilities** · **17 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**176 classes** across **31 capabilities** · **17 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -264,6 +264,7 @@
 - **Tiger_Controller_Plugin_RouteOverride** `@api` — apply declared pretty-route overrides.  ·  `library/Tiger/Controller/Plugin/RouteOverride.php`
 - **Tiger_Controller_Plugin_ScheduleTick** `@internal` — the WordPress-style pseudo-cron for Tiger_Schedule.  ·  `library/Tiger/Controller/Plugin/ScheduleTick.php`
 - **Tiger_Controller_Plugin_ThemeContent** `@api` — serve a theme's BUNDLED STATIC pages.  ·  `library/Tiger/Controller/Plugin/ThemeContent.php`
+- **Tiger_Routing_ModuleRoutes** `@api` — ingests every ACTIVE module's `configs/routes.ini` into the router.  ·  `library/Tiger/Routing/ModuleRoutes.php`
 - **Tiger_Routing_Overrides** `@api` — the pretty-route registry (module hook + admin override tier).  ·  `library/Tiger/Routing/Overrides.php`
 
 ### Data layer (base)
