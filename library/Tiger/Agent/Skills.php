@@ -49,6 +49,7 @@ class Tiger_Agent_Skills
                 'description' => $front['description'] ?? '',
                 'sourceLabel' => (string) ($meta['sourceLabel'] ?? ''),
                 'repo'        => (string) ($meta['repo'] ?? ''),
+                'path'        => (string) ($meta['path'] ?? ''),   // canonical skill location (repo + path) — for catalog dedup
                 'url'         => (string) ($meta['url'] ?? ''),
                 'active'      => in_array($key, $active, true),
                 'dir'         => $d,
