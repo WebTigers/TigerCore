@@ -34,10 +34,15 @@
         var extra = (typeof opts.extraData === 'function') ? opts.extraData : function () { return {}; };
 
         // Sensible defaults; caller's opts win. `service`/`extraData` are ours, not DT's.
+        // stateSave persists page / length / search / order per grid (localStorage, keyed by table id +
+        // path) so a grid remembers where you were across reloads + navigation. A caller can opt out with
+        // `stateSave: false`. stateDuration 0 = keep until explicitly changed (no time-based expiry).
         var config = $.extend({
             serverSide: true,
             processing: true,
             pageLength: 25,
+            stateSave: true,
+            stateDuration: 0,
             language: { search: '', searchPlaceholder: 'Search…' }
         }, opts);
         delete config.service;
