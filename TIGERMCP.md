@@ -105,11 +105,14 @@ serialized into MCP tool objects:
 - **`inputSchema`** = the method's `Tiger_Form` → JSON Schema via the `Tiger_OpenApi_Generator` mapper
   (field names, types, `required` from validators). A form-less method gets a permissive object schema.
 
-**Scoped to the token.** A token may carry an **allow-list** (a set of modules or tool names) so it exposes
-only, say, the content + commerce verbs rather than the whole role surface — MCP clients get confused by 100+
-tools, and least-privilege is the right default. **Discovery == authorization**: `tools/list` can never
-advertise an op the token isn't allowed to call, because it's reflected through the same ACL that would deny
-`tools/call`. This is the property most MCP servers lack.
+**Scoped to the token — a curated starter set by default (decided).** A fresh MCP token exposes a **curated
+starter set** of tools, not the whole role surface: the mainstream business verbs — **content** (CMS
+pages/menus), **media**, **blog**, and, where those modules are present, **commerce** (shop / membership) —
+with the admin able to **widen** a token to more of its role's surface explicitly. MCP clients get confused
+by 100+ tools, and least-privilege is the right default. The token carries the allow-list (modules/tool
+names + a read-only flag). **Discovery == authorization**: `tools/list` can never advertise an op the token
+isn't allowed to call, because it's reflected through the same ACL that would deny `tools/call` *and* clipped
+to the token's set. This is the property most MCP servers lack.
 
 ---
 
@@ -126,7 +129,8 @@ advertise an op the token isn't allowed to call, because it's reflected through 
 4. **Read vs write is the ACL's job, not a prompt gate.** Unlike the in-app agent (which pauses writes for
    human approval — TIGERAGENT §3), an MCP client is *itself* the human's agent; there's no Tiger UI to
    approve in. So the wall is the **token's scope + the ACL + metering + audit** (§7–8), and a write token is
-   a deliberate grant. (A future "approval webhook" is an open question — §12.)
+   a deliberate grant — **no per-write approval webhook (decided):** token scope + audit is the boundary, and
+   adding an out-of-band approval step would fight the point of a headless automation surface.
 
 ---
 
@@ -164,12 +168,16 @@ one-click **mint token** — the WordPress-plugin-grade "it just works" setup.
 
 ## 7. Auth + scoped tokens (the one small addition)
 
-- **The token is built** (`Tiger_Service_Token`): mint from a normal session, plaintext shown once, listed
-  by prefix, revocable, owned by the user. It authenticates `/api` (and now `/mcp`) with no session.
-- **The addition MCP wants: an optional *scope* on a token** — an allow-list of modules/tools + a
-  read-only flag — so an MCP token can be least-privilege (e.g. "content, read+write" or "analytics,
-  read-only") independent of the user's full role. This doubles as a general API-key feature and is the only
-  genuinely new persistence.
+- **The token primitive is built** (`Tiger_Service_Token`): mint from a normal session, plaintext shown
+  once, listed by prefix, revocable. It authenticates `/api` (and now `/mcp`) with no session.
+- **MCP tokens are ORG-scoped by default (decided).** An MCP token acts **as the org, not a person** — an
+  admin of the org mints it, and it resolves to an org-acting identity (an `org_id` + a role + the tool
+  scope, no bound `user_id`; actor stamps + audit record the *token*, not an individual). This is the right
+  unit for headless automation (it survives the minting admin leaving, and it's honest about "a machine did
+  this"). The existing user-owned token stays for a person's own CLI use; MCP defaults to the org token.
+- **The addition MCP wants: a *scope* on the token** — the allow-list of modules/tools + a read-only flag
+  (§4), so an MCP token is least-privilege (e.g. "content, read+write" or "analytics, read-only")
+  independent of the role's full surface. Org-scope + tool-scope are the only genuinely new persistence.
 - **OAuth 2.1** (the MCP HTTP-auth direction for direct remote clients) is **deferred**: the stdio bridge
   presents a static Bearer, which covers the v1 clients. When direct-HTTP MCP clients (no bridge) matter, add
   the OAuth authorization-server metadata + flow in front of the same tokens.
@@ -237,20 +245,20 @@ MCP** IA (TIGERSKILLS §6): `MCP ▸ Server/Access` (inbound, this doc) and `MCP
 
 ---
 
-## 12. Open questions
+## 12. Settled + open
 
-- **Tool-count ergonomics.** Reflect the whole role surface, or default a fresh MCP token to a **curated
-  starter set** (content/media/commerce) with opt-in expansion? (Leaning: default curated, token can widen.)
+**Settled (Beau, 2026-08-17):**
+- **Curated starter set** — a fresh MCP token exposes the mainstream verbs, widenable, not the whole role (§4).
+- **Org-scoped tokens** — an MCP token acts as the org, not a person (§7).
+- **Tools-only v1** — MCP `resources` (read-only context — CMS pages/docs) and `prompts` are **deferred**;
+  v1 is tools-only. (`resources` is a natural early follow-on since the content is already there.)
+- **No approval webhook** — token scope + ACL + metering + audit is the write boundary (§5).
+
+**Still open:**
 - **Structured results.** Return `/api` `data` as JSON-in-text (simple, works everywhere) vs MCP structured
   content / an output schema (richer, newer). Start with text?
-- **Approval webhook for writes.** Optionally POST a pending write to an operator (Slack/email) for
-  out-of-band approval before `tools/call` proceeds — worth it, or does token scope + audit suffice?
-- **Resources / prompts.** MCP also defines `resources` (read-only context, e.g. CMS pages, docs) and
-  `prompts`. Expose Tiger content as MCP **resources** in a later increment, or stay tools-only for v1?
-- **Per-org vs per-user tokens.** A token is user-owned today; an org-scoped automation token (acts as the
-  org, not a person) may be the better unit for MCP. Decide the default.
-- **Discovery signal.** Advertise the server via `/.well-known` / the `llms.txt` so an AI *finds* the Tiger
-  MCP endpoint (ties to the AI-discoverability plan) — in scope for v1 or later?
+- **Discovery signal.** Advertise the server via `/.well-known` / `llms.txt` so an AI *finds* the Tiger MCP
+  endpoint (ties to the AI-discoverability plan) — in v1 or later?
 
 ---
 
