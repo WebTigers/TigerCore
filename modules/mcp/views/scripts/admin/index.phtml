@@ -1,0 +1,184 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * MCP Connect screen (admin). Turn the /mcp server on/off, mint an access token, and copy a ready-to-paste
+ * MCP client config (npx mcp-remote OR the zero-Node PHP bridge). Enable toggle → Mcp_Service_Settings;
+ * tokens → the core Tiger_Service_Token; both over /api. See ADMIN.md + TIGERMCP.md.
+ */
+$mcpUrl = (string) $this->mcpUrl;
+$bridge = (string) $this->bridge;
+?>
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+        <h1 class="h3 mb-1">MCP Server</h1>
+        <p class="text-body-secondary mb-0">Let an external AI client (Claude Desktop/Code, Cursor, ChatGPT) drive this site through Tiger's <code>/api</code> — with the same permissions a signed-in user of the token's role has. Off by default; every action is ACL-gated and audited.</p>
+    </div>
+</div>
+
+<div id="mcp-feedback"></div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+
+    <!-- Enable -->
+    <div class="card mb-4">
+      <div class="card-header fw-semibold"><i class="fa-solid fa-power-off me-2"></i>Enable the MCP endpoint</div>
+      <div class="card-body">
+        <div class="form-check form-switch mb-2">
+          <input class="form-check-input" type="checkbox" role="switch" id="mcp-enabled" <?= $this->enabled ? 'checked' : '' ?>>
+          <label class="form-check-label" for="mcp-enabled">Serve <code id="mcp-url-inline"><?= $this->escape($mcpUrl) ?></code></label>
+        </div>
+        <p class="small text-body-secondary mb-3">When on, <code>POST /mcp</code> accepts MCP (JSON-RPC) from any client presenting a valid token. When off, it returns 404. A caller with no token is a guest and can reach only guest-allowed read tools.</p>
+        <button type="button" id="mcp-save" class="btn btn-primary btn-sm"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+      </div>
+    </div>
+
+    <!-- Access tokens -->
+    <div class="card">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="fa-solid fa-key me-2"></i>Access tokens</span>
+        <button type="button" id="mcp-mint" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-plus me-1"></i>Mint token</button>
+      </div>
+      <div class="card-body">
+        <div id="mcp-minted" class="alert alert-success d-none">
+          <div class="small mb-1"><i class="fa-solid fa-triangle-exclamation me-1"></i>Copy this now — it's shown only once.</div>
+          <div class="input-group input-group-sm">
+            <input type="text" id="mcp-minted-value" class="form-control font-monospace" readonly>
+            <button type="button" class="btn btn-outline-secondary" data-copy="#mcp-minted-value">Copy</button>
+          </div>
+        </div>
+        <div id="mcp-tokens" class="d-grid gap-2"></div>
+        <div id="mcp-tokens-empty" class="text-body-secondary small py-2" hidden>No tokens yet — mint one to connect a client.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="col-lg-6">
+    <!-- Connect -->
+    <div class="card">
+      <div class="card-header fw-semibold"><i class="fa-solid fa-plug me-2"></i>Connect a client</div>
+      <div class="card-body">
+        <label for="mcp-token-field" class="form-label small fw-semibold mb-1">Token for the config below</label>
+        <input type="text" id="mcp-token-field" class="form-control form-control-sm font-monospace mb-3" placeholder="tgr_… (paste, or mint above)">
+
+        <ul class="nav nav-tabs" role="tablist">
+          <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#mcp-tab-npx" type="button">npx (needs Node)</button></li>
+          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#mcp-tab-php" type="button">Zero-Node (PHP)</button></li>
+        </ul>
+        <div class="tab-content border border-top-0 rounded-bottom p-3">
+          <div class="tab-pane fade show active" id="mcp-tab-npx">
+            <p class="small text-body-secondary">Add to your client's <code>mcpServers</code> config (Claude Desktop, Cursor, …). Uses the community <code>mcp-remote</code> bridge — nothing to install.</p>
+            <pre id="mcp-cfg-npx" class="small bg-body-tertiary border rounded p-2 mb-2" style="white-space:pre-wrap;"></pre>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-copy="#mcp-cfg-npx"><i class="fa-regular fa-copy me-1"></i>Copy</button>
+          </div>
+          <div class="tab-pane fade" id="mcp-tab-php">
+            <p class="small text-body-secondary">No Node? <a href="/mcp/admin/download">Download <code>mcp-bridge.php</code></a>, save it on your machine, and set the path below. Needs only PHP.</p>
+            <pre id="mcp-cfg-php" class="small bg-body-tertiary border rounded p-2 mb-2" style="white-space:pre-wrap;"></pre>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-copy="#mcp-cfg-php"><i class="fa-regular fa-copy me-1"></i>Copy</button>
+          </div>
+        </div>
+
+        <hr>
+        <p class="small text-body-secondary mb-1">Or test it directly:</p>
+        <pre class="small bg-body-tertiary border rounded p-2 mb-0" style="white-space:pre-wrap;">curl -X POST <?= $this->escape($mcpUrl) ?> \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; }); };
+    var fb  = document.getElementById('mcp-feedback');
+    var MCP_URL = <?= json_encode($mcpUrl) ?>;
+    var BRIDGE  = <?= json_encode($bridge) ?>;
+
+    function api(module, service, method, body) {
+        body = body || {}; body.module = module; body.service = service; body.method = method;
+        return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: new URLSearchParams(body) })
+            .then(function (r) { return r.json().catch(function () { return {}; }); });
+    }
+
+    // ---- config blocks (rebuild when the token changes) ----
+    var tokenField = document.getElementById('mcp-token-field');
+    function renderConfigs() {
+        var tok = tokenField.value.trim() || 'tgr_YOUR_TOKEN';
+        var npx = {
+            mcpServers: { tiger: {
+                command: 'npx',
+                args: ['-y', 'mcp-remote', MCP_URL, '--header', 'Authorization: Bearer ' + tok]
+            } }
+        };
+        var php = {
+            mcpServers: { tiger: {
+                command: 'php',
+                args: ['/path/to/mcp-bridge.php'],
+                env: { TIGER_MCP_URL: MCP_URL, TIGER_MCP_TOKEN: tok }
+            } }
+        };
+        document.getElementById('mcp-cfg-npx').textContent = JSON.stringify(npx, null, 2);
+        document.getElementById('mcp-cfg-php').textContent = JSON.stringify(php, null, 2);
+    }
+    tokenField.addEventListener('input', renderConfigs);
+    renderConfigs();
+
+    // ---- copy buttons ----
+    document.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-copy]');
+        if (!b) { return; }
+        var el = document.querySelector(b.getAttribute('data-copy'));
+        if (!el) { return; }
+        var text = (el.value !== undefined) ? el.value : el.textContent;
+        navigator.clipboard.writeText(text).then(function () { TigerDOM.toast('Copied.', { type: 'success' }); });
+    });
+
+    // ---- enable toggle ----
+    document.getElementById('mcp-save').addEventListener('click', function () {
+        var on = document.getElementById('mcp-enabled').checked;
+        TigerButton.run(this, function () { return api('mcp', 'settings', 'save', { enabled: on ? 1 : 0 }); })
+            .then(function (res) {
+                if (res && res.result === 1) { TigerDOM.notify(fb, on ? 'MCP server enabled.' : 'MCP server disabled.', { type: 'success' }); }
+                else { ((res && res.messages) || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); }); }
+            });
+    });
+
+    // ---- tokens (reuse the core Tiger_Service_Token: module=tiger, service=token) ----
+    function loadTokens() {
+        api('tiger', 'token', 'all').then(function (res) {
+            var rows = (res && res.data && res.data.tokens) || [];
+            var host = document.getElementById('mcp-tokens');
+            host.innerHTML = rows.map(function (t) {
+                var id = t.credential_id || t.id || '';
+                var when = (t.created_at || '').substring(0, 16);
+                return '<div class="border rounded p-2 d-flex justify-content-between align-items-center">'
+                     + '<div><code>' + esc(t.prefix || '') + '…</code> <span class="small text-body-secondary ms-2">' + esc(when) + '</span></div>'
+                     + '<button type="button" class="btn btn-sm btn-outline-danger mcp-revoke" data-id="' + esc(id) + '"><i class="fa-solid fa-trash"></i></button></div>';
+            }).join('');
+            document.getElementById('mcp-tokens-empty').hidden = rows.length > 0;
+        });
+    }
+    document.getElementById('mcp-mint').addEventListener('click', function () {
+        TigerButton.run(this, function () { return api('tiger', 'token', 'create'); }).then(function (res) {
+            if (res && res.result === 1 && res.data && res.data.token) {
+                document.getElementById('mcp-minted').classList.remove('d-none');
+                document.getElementById('mcp-minted-value').value = res.data.token;
+                tokenField.value = res.data.token; renderConfigs();
+                loadTokens();
+            } else { ((res && res.messages) || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); }); }
+        });
+    });
+    document.getElementById('mcp-tokens').addEventListener('click', function (e) {
+        var b = e.target.closest('.mcp-revoke'); if (!b) { return; }
+        TigerModal.confirm({ title: 'Revoke token', body: 'Any client using this token will stop working.', confirmLabel: 'Revoke', variant: 'danger' }).then(function (ok) {
+            if (!ok) { return; }
+            api('tiger', 'token', 'revoke', { credential_id: b.getAttribute('data-id') }).then(function () { TigerDOM.toast('Token revoked.', { type: 'success' }); loadTokens(); });
+        });
+    });
+
+    loadTokens();
+});
+</script>
