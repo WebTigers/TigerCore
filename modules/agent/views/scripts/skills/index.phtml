@@ -100,10 +100,10 @@ document.addEventListener('DOMContentLoaded', function () {
             } },
             { data: 'installed', className: 'text-nowrap', render: function (t, type, row) {
                 if (type !== 'display') { return t ? 1 : 0; }
-                if (!row.installed) { return '<span class="badge text-bg-light border text-body-secondary">Available</span>'; }
+                if (!row.installed) { return '<span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">Available</span>'; }
                 return row.active
-                    ? '<span class="badge text-bg-success">On</span>'
-                    : '<span class="badge text-bg-secondary">Installed</span>';
+                    ? '<span class="badge rounded-pill text-bg-success"><i class="fa-solid fa-circle-check me-1"></i>On</span>'
+                    : '<span class="badge rounded-pill bg-primary-subtle text-primary-emphasis border border-primary-subtle">Installed</span>';
             } },
             { data: null, orderable: false, searchable: false, className: 'text-end text-nowrap', render: function (t, type, row) {
                 var h = '';
@@ -114,9 +114,9 @@ document.addEventListener('DOMContentLoaded', function () {
                    + ' data-entry="' + esc(JSON.stringify({ source: row.source, sourceLabel: row.sourceLabel, name: row.name, repo: row.repo, ref: row.ref, path: row.path, url: row.url })) + '">'
                    + '<i class="fa-solid fa-file-lines"></i></button> ';
                 if (!row.installed) {
-                    h += '<button type="button" class="btn btn-sm btn-primary sk-install" title="Install" aria-label="Install"'
+                    h += '<button type="button" class="btn btn-sm btn-primary sk-install"'
                        + ' data-entry="' + esc(JSON.stringify({ source: row.source, sourceLabel: row.sourceLabel, name: row.name, repo: row.repo, ref: row.ref, path: row.path, url: row.url })) + '">'
-                       + '<i class="fa-solid fa-download"></i></button>';
+                       + '<i class="fa-solid fa-download me-1"></i>Install</button>';
                 } else {
                     h += row.active
                         ? '<button type="button" class="btn btn-sm btn-outline-warning sk-toggle" data-key="' + esc(row.key) + '" data-active="0" title="Turn off" aria-label="Turn off"><i class="fa-solid fa-pause"></i></button> '
