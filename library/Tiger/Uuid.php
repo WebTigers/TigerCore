@@ -48,20 +48,34 @@ class Tiger_Uuid
         return self::v7();
     }
 
+    /** @var int the last millisecond v7() minted at (process-local; -1 = none yet) */
+    private static $v7LastMs = -1;
+
+    /** @var int a 12-bit monotonic counter within $v7LastMs (fills rand_a) */
+    private static $v7Counter = 0;
+
     /**
-     * RFC-9562 version-7 (time-ordered) UUID.
+     * RFC-9562 version-7 (time-ordered) UUID, **monotonic within a millisecond**.
      *
      * Layout (128 bits):
      *   bits  0..47  : Unix time in milliseconds, big-endian (6 bytes)
      *   bits 48..51  : version = 0111 (7)
-     *   bits 52..63  : rand_a (random)
+     *   bits 52..63  : rand_a — a 12-bit MONOTONIC COUNTER (not random; see below)
      *   bits 64..65  : variant = 10
-     *   bits 66..127 : rand_b (random)
+     *   bits 66..127 : rand_b (random, 62 bits — carries uniqueness)
      *
-     * We fill the sub-millisecond bits with randomness (RFC "method 1"), which is
-     * sufficient for index locality and to-the-millisecond ordering. We do NOT
-     * guarantee strict monotonic ordering for two IDs minted within the same
-     * millisecond — that would need a counter and isn't worth the complexity here.
+     * Two IDs minted in the same millisecond by the same process sort in creation
+     * order: rand_a holds a counter (RFC 9562 §6.2 "monotonic random", method 2) that
+     * increments for each same-ms mint, so `ORDER BY id` is a stable insertion order —
+     * not just to-the-millisecond. This is what keeps a transcript (or any v7-keyed
+     * append log) from re-ordering two rows written in the same tick. The counter is
+     * seeded randomly per ms (so it doesn't leak an exact mint count), and if it ever
+     * exhausts its 4096 values in a single ms the clock is advanced one ms to stay
+     * strictly increasing. rand_b stays fully random, so uniqueness is unaffected.
+     *
+     * (Cross-PROCESS same-ms ordering isn't coordinated — two separate workers can tie —
+     * but a single conversation's turns are appended within one request, which is the
+     * case that matters.)
      *
      * NOTE: assumes 64-bit PHP (universal on 8.1+); the ms timestamp fits in 48
      * bits until the year ~10889.
@@ -72,11 +86,26 @@ class Tiger_Uuid
     {
         $ms = (int) floor(microtime(true) * 1000);
 
+        if ($ms > self::$v7LastMs) {
+            self::$v7LastMs  = $ms;
+            self::$v7Counter = random_int(0, 0x0fff);          // fresh random seed for this ms
+        } else {
+            // Same ms (or the clock stepped backward): hold time monotonic and bump the counter.
+            $ms = self::$v7LastMs;
+            self::$v7Counter++;
+            if (self::$v7Counter > 0x0fff) {                   // 4096 mints in one ms → roll into the next
+                $ms = self::$v7LastMs = self::$v7LastMs + 1;
+                self::$v7Counter = random_int(0, 0x0fff);
+            }
+        }
+        $ctr = self::$v7Counter;
+
         // 48-bit big-endian timestamp: pack as 64-bit BE and drop the top 2 (zero) bytes.
         $timestamp = substr(pack('J', $ms), 2);      // 6 bytes
         $bytes     = $timestamp . random_bytes(10);  // + 10 random bytes = 16
 
-        $bytes[6] = chr((ord($bytes[6]) & 0x0f) | 0x70); // version 7
+        $bytes[6] = chr(0x70 | (($ctr >> 8) & 0x0f));    // version 7 (high nibble) + counter bits 8..11
+        $bytes[7] = chr($ctr & 0xff);                    // counter bits 0..7 (rest of rand_a)
         $bytes[8] = chr((ord($bytes[8]) & 0x3f) | 0x80); // variant 10
 
         return self::format($bytes);

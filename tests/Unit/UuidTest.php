@@ -52,15 +52,22 @@ final class UuidTest extends UnitTestCase
     }
 
     #[Test]
-    public function v7_is_time_ordered_at_millisecond_granularity(): void
+    public function v7_is_strictly_monotonic_even_within_a_millisecond(): void
     {
-        // v7's guarantee is ms-granularity ordering: the embedded timestamp never goes backwards.
-        // (Within a single ms the low 10 bytes are random, so full-string order is NOT guaranteed —
-        // that's spec-correct, and exactly what this asserts instead of over-claiming.)
+        // The stronger contract (RFC 9562 §6.2 monotonic random): rapid mints in the SAME process are
+        // strictly increasing by FULL STRING, not just to-the-millisecond. 5000 tight-loop mints force
+        // many same-ms collisions, so this is the direct regression guard for same-tick append ordering
+        // (the transcript-reordering flake). The embedded timestamp also never goes backwards.
+        $prev   = '';
         $prevTs = 0.0;
         for ($i = 0; $i < 5000; $i++) {
-            $ts = Tiger_Uuid::timeOf(Tiger_Uuid::v7());
+            $u  = Tiger_Uuid::v7();
+            if ($prev !== '') {
+                $this->assertGreaterThan($prev, $u, "v7 not strictly increasing at draw $i (same-ms tie)");
+            }
+            $ts = Tiger_Uuid::timeOf($u);
             $this->assertGreaterThanOrEqual($prevTs, $ts, "v7 timestamp went backwards at draw $i");
+            $prev   = $u;
             $prevTs = $ts;
         }
     }
