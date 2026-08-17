@@ -59,6 +59,17 @@ final class McpControllerTest extends ControllerTestCase
     }
 
     #[Test]
+    public function a_browser_get_returns_a_helpful_405_not_a_parse_error(): void
+    {
+        $this->enableMcp();
+        $res = $this->dispatchAction(FakeMcpController::class, 'index', [], 'GET');
+        $this->assertSame(405, $res->getHttpResponseCode(), 'GET is not a JSON-RPC call');
+        $out = json_decode($this->echoed, true);
+        $this->assertSame('Tiger', $out['name']);
+        $this->assertStringContainsString('POST a JSON-RPC', $out['message']);
+    }
+
+    #[Test]
     public function initialize_returns_serverinfo_when_enabled(): void
     {
         $this->enableMcp();

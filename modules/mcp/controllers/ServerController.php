@@ -34,6 +34,25 @@ class Mcp_ServerController extends Zend_Controller_Action
             return;
         }
 
+        // A non-POST (a browser GET, a link click) isn't a JSON-RPC call. Per the Streamable HTTP transport,
+        // GET is for an SSE stream we don't offer in v1 → 405, but with a human-readable "what is this + how
+        // to use it" body so hitting /mcp in a browser explains itself instead of a cryptic parse error.
+        if (strtoupper((string) $this->getRequest()->getMethod()) !== 'POST') {
+            $resp->setHttpResponseCode(405);
+            $resp->setHeader('Allow', 'POST', true);
+            $this->_emit([
+                'name'            => 'Tiger',
+                'version'         => Tiger_Version::VERSION,
+                'protocolVersion' => Tiger_Mcp::PROTOCOL_VERSION,
+                'transport'       => 'streamable-http',
+                'message'         => 'This is Tiger\'s MCP endpoint. POST a JSON-RPC 2.0 request (Content-Type: '
+                                   . 'application/json) — e.g. {"jsonrpc":"2.0","id":1,"method":"initialize"}. '
+                                   . 'Interactive GET/SSE is not supported in v1; connect an MCP client, or test '
+                                   . 'with the MCP Inspector (npx @modelcontextprotocol/inspector) or curl.',
+            ]);
+            return;
+        }
+
         $msg = json_decode($this->_rawBody(), true);
         if (!is_array($msg)) {
             $resp->setHttpResponseCode(400);
