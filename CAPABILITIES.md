@@ -294,7 +294,7 @@
 - **CMS** (`cms`, app)  ·  services: Menu, Page, Settings  ·  `modules/cms`
 - **Code** (`code`, developer)  ·  services: Code  ·  `modules/code`
 - **Identity** (`identity`, plugin)  ·  services: Identity  ·  `modules/identity`
-- **Mcp** (`mcp`, module)  ·  `modules/mcp`
+- **Mcp** (`mcp`, module)  ·  services: Settings  ·  `modules/mcp`
 - **Media** (`media`, plugin)  ·  services: Media, Settings  ·  `modules/media`
 - **Profile** (`profile`, plugin)  ·  services: Address, Avatar, Base, Contact, Org, OrgAddress, OrgContact, OrgLogo, Security, User  ·  `modules/profile`
 - **Register** (`register`, plugin)  ·  services: Registration, Status  ·  `modules/register`

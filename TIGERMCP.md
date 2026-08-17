@@ -8,14 +8,15 @@ the in-app agent read [TIGERAGENT.md](TIGERAGENT.md); for the sibling extension 
 [TIGERSKILLS.md](TIGERSKILLS.md) (§7 frames Skills vs MCP); for the admin-screen template read
 [ADMIN.md](ADMIN.md).
 
-> **Status: increment 1 BUILT (the `/mcp` server); the rest scoped.** The `modules/mcp` core module ships
-> the JSON-RPC endpoint — `initialize` / `tools/list` / `tools/call` / `ping`, Bearer auth via the existing
-> `ServiceFactory` path, `tools/list` reflected from `Tiger_Agent_Tools::catalog(role)`, `tools/call`
-> proxied to `/api` — **OFF by default** (`tiger.mcp.enabled`). Still scoped, not built: tool `inputSchema`
-> from Forms (increment 2), the stdio bridge + admin Connect screen (increment 3), scoped/org tokens +
-> metering (increment 4). This doc is the design-of-record for all of it. First-increment shape: **inbound**
-> (Tiger *is* an MCP server) over a **stdio bridge** to **one** endpoint, **`/mcp`**, a **core module OFF by
-> default**.
+> **Status: increments 1 + 3 BUILT; 2 + 4 scoped.** The `modules/mcp` core module ships the JSON-RPC
+> endpoint (increment 1 — `initialize` / `tools/list` / `tools/call` / `ping`, Bearer auth, `tools/list` from
+> `Tiger_Agent_Tools::catalog(role)`, `tools/call` proxied to `/api`) AND the connect experience (increment 3
+> — the zero-Node PHP **stdio bridge** `bin/mcp-bridge.php` + the admin **Connect screen** `/mcp/admin`:
+> enable toggle, mint/list/revoke tokens, copy-paste `mcpServers` config for npx-`mcp-remote` or the PHP
+> bridge, bridge download). **OFF by default** (`tiger.mcp.enabled`). Still scoped, not built: tool
+> `inputSchema` from Forms (increment 2), scoped/org-scoped tokens + per-token metering (increment 4). This
+> doc is the design-of-record for all of it. Shape: **inbound**, a **stdio bridge** to **one** endpoint,
+> **`/mcp`**, a **core module OFF by default**.
 
 ---
 
@@ -243,8 +244,12 @@ MCP** IA (TIGERSKILLS §6): `MCP ▸ Server/Access` (inbound, this doc) and `MCP
    ACL gate). Verified live: 404 disabled → `initialize` handshake → `tools/list` reflects the role surface.
 2. **Tool `inputSchema`** — wire the `Tiger_OpenApi_Generator` Form→JSON-Schema mapper into `tools/list` so
    arguments are typed (not just a permissive object).
-3. **The stdio bridge** — `bin/mcp-bridge.php` (zero-Node) + the admin **Connect** screen (enable toggle,
-   mint-token, copy-paste config). Document `mcp-remote` too.
+3. **The stdio bridge + Connect screen — ✅ BUILT.** `bin/mcp-bridge.php` (zero-Node PHP stdio↔HTTP relay:
+   env `TIGER_MCP_URL`/`TIGER_MCP_TOKEN`, guards the stdout channel, JSON-RPC errors on transport failure) +
+   `Mcp_AdminController` `/mcp/admin` (the Connect screen: enable toggle via `Mcp_Service_Settings`, mint/
+   list/revoke tokens via the core `Tiger_Service_Token`, ready-to-paste `mcpServers` config for both
+   `npx mcp-remote` and the PHP bridge, a `download` action that serves the bridge). Nav-registered under
+   Settings; `mcp-remote` documented as the Node alternative.
 4. **Scoped tokens + metering** — the token allow-list/read-only flag (§7) and per-token rate-limit + cap +
    audit (§8).
 5. **(later) Streamable HTTP niceties** — `Mcp-Session-Id` + SSE for notifications; **OAuth 2.1** for

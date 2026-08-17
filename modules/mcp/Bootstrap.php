@@ -4,15 +4,29 @@
 /**
  * MCP module bootstrap — Tiger as an MCP server (TIGERMCP.md).
  *
- * Increment 1 ships just the server: the module exists so its controller is dispatchable and its
- * configs/ (routes.ini → /mcp, acl.ini → public controller) are picked up by the core globs. The endpoint
- * itself is OFF by default (`tiger.mcp.enabled`, gated in Mcp_ServerController). The admin Connect screen +
- * the enable toggle + the zero-Node stdio bridge come in increment 3; scoped tokens + metering in
- * increment 4 (TIGERMCP.md §11).
+ * The module exists so its controllers are dispatchable and its configs/ (routes.ini → /mcp, acl.ini) are
+ * picked up by the core globs. The `/mcp` endpoint is OFF by default (`tiger.mcp.enabled`, gated in
+ * Mcp_ServerController); the admin Connect screen (/mcp/admin) turns it on, mints a token, and hands out the
+ * client config + the zero-Node stdio bridge. Scoped/org tokens + metering are increment 4 (TIGERMCP.md §11).
  *
  * Extending Zend_Application_Module_Bootstrap gives the module its resource autoloader; the /mcp route rides
  * the module routes.ini ingester (Tiger_Routing_ModuleRoutes).
  */
 class Mcp_Bootstrap extends Zend_Application_Module_Bootstrap
 {
+    /** List the MCP Connect screen under the admin Settings tree (ACL-gated to Mcp_AdminController = admin+). */
+    protected function _initAdminSettings()
+    {
+        if (!class_exists('Tiger_Admin_Settings')) {
+            return;
+        }
+        Tiger_Admin_Settings::register([
+            'key'      => 'mcp',
+            'label'    => 'MCP Server',
+            'icon'     => 'fa-plug',
+            'href'     => '/mcp/admin',
+            'resource' => 'Mcp_AdminController',
+            'order'    => 47,
+        ]);
+    }
 }
