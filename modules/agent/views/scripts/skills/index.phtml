@@ -79,13 +79,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     function toast(res) { ((res && res.messages) || []).forEach(function (m) { TigerDOM.toast(m.message, { type: m.class }); }); }
 
-    // A skill entry rides on the button as individual data-* attrs (NOT a JSON blob: esc() doesn't
-    // quote-escape, so JSON in a double-quoted attribute breaks). attr() adds the missing "-escape.
-    function attr(s) { return esc(s).replace(/"/g, '&quot;'); }
+    // A skill entry rides on the button as individual data-* attrs (not a JSON blob). esc() is
+    // attribute-safe (escapes quotes), so it can go straight into the double-quoted attributes.
     function entryAttrs(row) {
-        return ' data-source="' + attr(row.source) + '" data-sourcelabel="' + attr(row.sourceLabel) + '"'
-             + ' data-name="' + attr(row.name) + '" data-repo="' + attr(row.repo) + '"'
-             + ' data-ref="' + attr(row.ref) + '" data-path="' + attr(row.path) + '" data-url="' + attr(row.url) + '"';
+        return ' data-source="' + esc(row.source) + '" data-sourcelabel="' + esc(row.sourceLabel) + '"'
+             + ' data-name="' + esc(row.name) + '" data-repo="' + esc(row.repo) + '"'
+             + ' data-ref="' + esc(row.ref) + '" data-path="' + esc(row.path) + '" data-url="' + esc(row.url) + '"';
     }
     function readEntry(el) {
         return {
