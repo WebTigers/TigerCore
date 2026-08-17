@@ -99,6 +99,39 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
     }
 
     /**
+     * MODULE ROUTES: ingest every ACTIVE module's `configs/routes.ini` into the router — the missing
+     * per-type consumer for module route config (the mirror of how Tiger_Admin_Nav consumes
+     * navigation.ini, Tiger_Acl_Acl consumes acl.ini, etc.). A module declares pretty URLs declaratively
+     * as native `resources.router.routes.*`; no Bootstrap `addRoute` code. Routes are namespaced
+     * `<slug>__<name>` so a module can't stomp a core or peer route (Tiger_Routing_ModuleRoutes).
+     *
+     * Runs AFTER the kernel routes (/api, /auth aliases) so those keep priority, and reads the active
+     * set from the DB (graceful: no DB yet → every module active). Registered here means a module's
+     * pretty URL works the instant it's dropped in — including under the reserved /admin prefix, which
+     * the routeShutdown Tiger_Routing_Overrides can't claim (a native router route is matched before
+     * dispatch, so it wins over the default MVC resolution).
+     */
+    protected function _initModuleRoutes()
+    {
+        $this->bootstrap('frontController');
+        try { $this->bootstrap('db'); } catch (Throwable $e) { /* fresh install / CLI — all active */ }
+
+        $inactive = [];
+        try {
+            if (class_exists('Tiger_Model_Module')) {
+                $inactive = (new Tiger_Model_Module())->inactiveSlugs();
+            }
+        } catch (Throwable $e) { /* no DB / no module table yet → everything active */ }
+
+        Tiger_Routing_ModuleRoutes::apply(
+            $this->getResource('frontController')->getRouter(),
+            [TIGER_CORE_PATH . '/modules', APPLICATION_PATH . '/modules'],   // app-dir last → app overrides core
+            $inactive,
+            APPLICATION_ENV
+        );
+    }
+
+    /**
      * AUTHORIZATION: build the ACL (Tiger_Acl_Acl loads roles/resources/rules from
      * ini + DB) and register the unbypassable gate (Tiger_Controller_Plugin_
      * Authorization) on the front controller. Runs after frontController so the
