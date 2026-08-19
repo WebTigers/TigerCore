@@ -63,18 +63,15 @@ class Mcp_ServerController extends Zend_Controller_Action
         $identity = $this->_identity();
         $role     = ($identity && !empty($identity->role)) ? (string) $identity->role : 'guest';
 
-        $out = Tiger_Mcp_Server::handle($msg, $role, function ($module, $service, $method, $args) {
-            // Dispatch the /api op through the SAME gateway the browser + Forge use — as the resolved
-            // identity (a fresh request carries the Bearer from $_SERVER; else ServiceFactory falls back to
-            // the identity written to Zend_Auth above). The target service's own ACL + form-validate +
-            // transaction all run unchanged.
-            $req = new Zend_Controller_Request_Http();
-            $req->setParam('svc_module', $module);
-            $req->setParam('svc_service', $service);
-            $req->setParam('svc_action', $method);
-            foreach ((array) $args as $k => $v) { $req->setParam((string) $k, $v); }
-            return (new Tiger_Ajax_ServiceFactory($req))->getResponse();
-        });
+        // Resolve the token's MCP policy (scope + read-only + org-scoping + metering key). null for a
+        // session / no token → the full role surface, no per-token limits.
+        [$config, $prefix] = $this->_tokenPolicy($identity);
+        $allowed = ($config !== null) ? (array) $config['modules'] : null;
+        $orgIdentity = ($config !== null && !empty($config['org_scoped'])) ? $this->_orgIdentity($identity, $config) : null;
+
+        $out = Tiger_Mcp_Server::handle($msg, $role, function ($module, $service, $method, $args) use ($config, $prefix, $orgIdentity) {
+            return $this->_dispatchTool($module, $service, $method, (array) $args, $config, $prefix, $orgIdentity);
+        }, $allowed);
 
         if ($out === null) {
             $resp->setHttpResponseCode(202);   // a notification → accepted, no body
@@ -106,6 +103,87 @@ class Mcp_ServerController extends Zend_Controller_Action
             return $id;
         }
         return Zend_Auth::getInstance()->getIdentity();
+    }
+
+    /**
+     * The MCP policy for this request's token: [config|null, prefix]. Applies only for a VALID token (the
+     * identity resolved) presented as a `tgr_…` Bearer; a session / no token gets [null, ''] → the full role
+     * surface, no per-token scope or metering. The config is looked up by the (non-secret) prefix — the
+     * secret was already verified by `_identity()`.
+     *
+     * @param  object|null $identity the resolved identity
+     * @return array{0:?array,1:string}
+     */
+    protected function _tokenPolicy($identity)
+    {
+        if ($identity === null) { return [null, '']; }
+        $h = (string) $this->getRequest()->getHeader('Authorization');
+        if (!preg_match('/^\s*Bearer\s+tgr_([a-f0-9]{12})_/i', $h, $m)) { return [null, '']; }
+        $prefix = $m[1];
+        $credId = (new Tiger_Model_UserCredential())->credentialIdByPrefix($prefix);
+        return [Tiger_Mcp_Token::config((string) $credId), $prefix];
+    }
+
+    /**
+     * Run one tool: enforce the token's scope + read-only, meter it, dispatch it (as the org for an
+     * org-scoped token, else the token/session identity), and audit the outcome. Returns the /api envelope
+     * (a denial is a `result=0` envelope the engine renders as an MCP error).
+     */
+    protected function _dispatchTool($module, $service, $method, array $args, $config, $prefix, $orgIdentity)
+    {
+        $tool = $module . '__' . $service . '__' . $method;
+
+        // Token policy (scope + read-only), then the soft rate limit. The service's own ACL still gates the
+        // dispatch below regardless — this is an EXTRA, tighter fence on top.
+        if ($config !== null) {
+            $deny = Tiger_Mcp_Token::denyReason($config, $module, $method);
+            if ($deny === 'out_of_scope') { return $this->_denied($tool, $prefix, $deny, 'This token cannot call that tool (out of scope).'); }
+            if ($deny === 'read_only')    { return $this->_denied($tool, $prefix, $deny, 'This token is read-only.'); }
+        }
+        if ($prefix !== '' && !Tiger_Mcp_Token::meter($prefix)) {
+            return $this->_denied($tool, $prefix, 'rate_limited', 'Rate limit exceeded for this token.');
+        }
+
+        $req = new Zend_Controller_Request_Http();
+        $req->setParam('svc_module', $module);
+        $req->setParam('svc_service', $service);
+        $req->setParam('svc_action', $method);
+        foreach ($args as $k => $v) { $req->setParam((string) $k, $v); }
+        // Org-scoped token → dispatch AS THE ORG (user_id=null) via the identity override; else the
+        // Bearer/session identity. The target service's own ACL + form-validate + transaction run unchanged.
+        $env = ($orgIdentity !== null)
+            ? (new Tiger_Ajax_ServiceFactory($req, $orgIdentity))->getResponse()
+            : (new Tiger_Ajax_ServiceFactory($req))->getResponse();
+
+        Tiger_Log::info('mcp.tools_call', [
+            'token'      => $prefix,
+            'org_scoped' => (bool) ($config['org_scoped'] ?? false),
+            'tool'       => $tool,
+            'result'     => (int) ($env->result ?? 0),
+        ]);
+        return $env;
+    }
+
+    /** An org-acting identity for an org-scoped token — acts AS THE ORG (no bound user_id → system actor). */
+    protected function _orgIdentity($identity, array $config)
+    {
+        return (object) [
+            'user_id'   => null,
+            'org_id'    => $config['org_id'] !== '' ? $config['org_id'] : ($identity->org_id ?? null),
+            'org_name'  => $identity->org_name ?? null,
+            'role'      => $config['role'] !== '' ? $config['role'] : ($identity->role ?? 'guest'),
+            'mcp_token' => true,
+        ];
+    }
+
+    /** A denied tool call: an audited `result=0` envelope the engine renders as an MCP error. */
+    protected function _denied($tool, $prefix, $key, $message)
+    {
+        Tiger_Log::warn('mcp.tools_call.denied', ['token' => $prefix, 'tool' => $tool, 'reason' => $key]);
+        $env = new Tiger_Model_ResponseObject();
+        $env->result     = 0;
+        $env->messages[] = new Tiger_Model_MessageObject($message, 'error');
+        return $env;
     }
 
     /** Raw request body (a seam so tests can inject a JSON-RPC message without php://input). */

@@ -24,11 +24,13 @@ class Tiger_Mcp_Server
      *
      * @param  array    $msg      the decoded request: {jsonrpc, id?, method, params?}
      * @param  string   $role     the caller's role (filters tools/list)
-     * @param  callable $dispatch fn(string $module, string $service, string $method, array $args): object
-     *                            — runs the named /api op and returns its response envelope
-     * @return array|null         the JSON-RPC response, or null for a notification (no id → send no body)
+     * @param  callable   $dispatch fn(string $module, string $service, string $method, array $args): object
+     *                              — runs the named /api op and returns its response envelope. This seam is
+     *                              where the MCP layer enforces the token's scope/read-only, meters, + audits.
+     * @param  array|null $allowedModules the token's module scope for tools/list (null = the full role surface)
+     * @return array|null           the JSON-RPC response, or null for a notification (no id → send no body)
      */
-    public static function handle(array $msg, $role, callable $dispatch)
+    public static function handle(array $msg, $role, callable $dispatch, ?array $allowedModules = null)
     {
         // A JSON array = a batch, which MCP removed in 2025-06-18. Refuse it.
         if (array_is_list($msg)) {
@@ -48,7 +50,7 @@ class Tiger_Mcp_Server
             case 'ping':
                 return self::_result($id, new stdClass());   // {}
             case 'tools/list':
-                return self::_result($id, self::_toolsList((string) $role));
+                return self::_result($id, self::_toolsList((string) $role, $allowedModules));
             case 'tools/call':
                 return self::_result($id, self::_toolsCall($params, $dispatch));
             default:
@@ -71,12 +73,21 @@ class Tiger_Mcp_Server
         ];
     }
 
-    /** tools/list = the role-filtered /api catalog, one MCP tool per operation, args typed from the Form. */
-    protected static function _toolsList($role)
+    /**
+     * tools/list = the role-filtered /api catalog, clipped to the token's module scope, one MCP tool per
+     * operation, args typed from the Form.
+     *
+     * @param string     $role
+     * @param array|null $allowedModules null = the whole role surface; else only these modules' tools
+     */
+    protected static function _toolsList($role, ?array $allowedModules = null)
     {
         $schemas = self::_inputSchemas();   // module/service/method → JSON Schema (from the method's Form)
         $tools   = [];
         foreach (Tiger_Agent_Tools::catalog($role) as $module => $ops) {
+            if ($allowedModules !== null && !in_array((string) $module, $allowedModules, true)) {
+                continue;   // outside the token's scope
+            }
             foreach ($ops as $op) {
                 $key = $module . '/' . $op['service'] . '/' . $op['method'];
                 $tools[] = [

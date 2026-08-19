@@ -206,6 +206,25 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
     }
 
     /**
+     * The credential id of an active personal access token by its (non-secret) prefix, or null. For POLICY
+     * lookups only (e.g. an MCP token's scope) — the token's SECRET is verified separately by verifyToken();
+     * the prefix alone authenticates nothing.
+     *
+     * @param  string $prefix the 12-hex lookup prefix
+     * @return string|null
+     */
+    public function credentialIdByPrefix($prefix)
+    {
+        if (!preg_match('/^[a-f0-9]{12}$/', (string) $prefix)) {
+            return null;
+        }
+        $row = $this->fetchRow(
+            $this->activeSelect()->where('type = ?', self::TYPE_PAT)->where('identifier = ?', $prefix)
+        );
+        return $row ? $row->credential_id : null;
+    }
+
+    /**
      * Revoke (soft-delete) a personal access token the user owns.
      *
      * @param  string $userId       the owning user (ownership guard)

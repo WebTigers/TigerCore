@@ -8,16 +8,17 @@ the in-app agent read [TIGERAGENT.md](TIGERAGENT.md); for the sibling extension 
 [TIGERSKILLS.md](TIGERSKILLS.md) (§7 frames Skills vs MCP); for the admin-screen template read
 [ADMIN.md](ADMIN.md).
 
-> **Status: increments 1 + 2 + 3 BUILT; 4 scoped.** The `modules/mcp` core module ships the JSON-RPC
+> **Status: ALL FOUR increments BUILT.** The `modules/mcp` core module ships the JSON-RPC
 > endpoint (increment 1 — `initialize` / `tools/list` / `tools/call` / `ping`, Bearer auth, `tools/list` from
 > `Tiger_Agent_Tools::catalog(role)`, `tools/call` proxied to `/api`) AND the connect experience (increment 3
 > — the zero-Node PHP **stdio bridge** `bin/mcp-bridge.php` + the admin **Connect screen** `/mcp/admin`:
 > enable toggle, mint/list/revoke tokens, copy-paste `mcpServers` config for npx-`mcp-remote` or the PHP
-> bridge, bridge download). Tool arguments are **typed** (increment 2 — `tools/list` `inputSchema` comes
-> from each method's `@apiRequest` Form via the OpenAPI generator's mapper). **OFF by default**
-> (`tiger.mcp.enabled`). Still scoped, not built: scoped/org-scoped tokens + per-token metering (increment 4). This
-> doc is the design-of-record for all of it. Shape: **inbound**, a **stdio bridge** to **one** endpoint,
-> **`/mcp`**, a **core module OFF by default**.
+> bridge, bridge download). Tool arguments are **typed** (increment 2 — `tools/list` `inputSchema` from each
+> method's `@apiRequest` Form). Tokens are **scoped** (increment 4 — a module allow-list + read-only + org-
+> scoping in the `option` tier, `Tiger_Mcp_Token`), every call is **metered** (soft per-token rate limit) and
+> **audited** (`Tiger_Log`), and an org-scoped token dispatches **as the org** (no bound user) via a
+> `ServiceFactory` identity override. **OFF by default** (`tiger.mcp.enabled`). This doc is the design-of-
+> record. Shape: **inbound**, a **stdio bridge** to **one** endpoint, **`/mcp`**, a **core module OFF by default**.
 
 ---
 
@@ -255,8 +256,14 @@ MCP** IA (TIGERSKILLS §6): `MCP ▸ Server/Access` (inbound, this doc) and `MCP
    list/revoke tokens via the core `Tiger_Service_Token`, ready-to-paste `mcpServers` config for both
    `npx mcp-remote` and the PHP bridge, a `download` action that serves the bridge). Nav-registered under
    Settings; `mcp-remote` documented as the Node alternative.
-4. **Scoped tokens + metering** — the token allow-list/read-only flag (§7) and per-token rate-limit + cap +
-   audit (§8).
+4. **Scoped tokens + metering — ✅ BUILT.** `Tiger_Mcp_Token` (option-tier, no migration): per-token scope
+   (module allow-list + read-only) + org-scoping + a soft rate limit. `Mcp_Service_Settings::mintToken`
+   mints WITH a scope (curated default); the Connect screen picks modules / read-only / org. Enforced in
+   `Mcp_ServerController`: `tools/list` clipped to the allow-list, `tools/call` refuses an out-of-scope tool
+   or a write on a read-only token (`Tiger_Mcp_Token::denyReason`), metered, and audited via `Tiger_Log`. An
+   **org-scoped token dispatches AS THE ORG** (user_id=null → system actor) through a new
+   `Tiger_Ajax_ServiceFactory($request, $identity)` override. The target service's own ACL still gates every
+   call — the token scope is a tighter fence on top.
 5. **(later) Streamable HTTP niceties** — `Mcp-Session-Id` + SSE for notifications; **OAuth 2.1** for
    direct-HTTP clients; then the **outbound Connections** axis (§9).
 

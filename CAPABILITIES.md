@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**178 classes** across **32 capabilities** · **18 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**179 classes** across **32 capabilities** · **18 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -202,6 +202,7 @@
 
 - **Tiger_Mcp** `@api` — the facade for the MCP server (Tiger as an MCP server; see TIGERMCP.md).  ·  `library/Tiger/Mcp.php`
 - **Tiger_Mcp_Server** `@api` — the MCP JSON-RPC 2.0 protocol engine (transport-agnostic; TIGERMCP.md §3-5).  ·  `library/Tiger/Mcp/Server.php`
+- **Tiger_Mcp_Token** `@api` — the per-token policy for MCP: scope (module allow-list + read-only), org-scoping, and a soft rate limit.  ·  `library/Tiger/Mcp/Token.php`
 
 ### Scheduling
 

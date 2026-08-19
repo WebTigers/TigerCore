@@ -36,11 +36,14 @@ $bridge = (string) $this->bridge;
 
     <!-- Access tokens -->
     <div class="card">
-      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-        <span><i class="fa-solid fa-key me-2"></i>Access tokens</span>
-        <button type="button" id="mcp-mint" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-plus me-1"></i>Mint token</button>
-      </div>
+      <div class="card-header fw-semibold"><i class="fa-solid fa-key me-2"></i>Access tokens</div>
       <div class="card-body">
+        <label class="form-label small fw-semibold mb-1">Scope a new token</label>
+        <div id="mcp-scope-modules" class="d-flex flex-wrap gap-2 mb-2"></div>
+        <div class="form-check form-switch mb-1"><input class="form-check-input" type="checkbox" id="mcp-scope-readonly"><label class="form-check-label small" for="mcp-scope-readonly">Read-only — no writes (reads only)</label></div>
+        <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="mcp-scope-org"><label class="form-check-label small" for="mcp-scope-org">Org token — acts as the org, not you (no bound user)</label></div>
+        <button type="button" id="mcp-mint" class="btn btn-sm btn-outline-primary mb-2"><i class="fa-solid fa-plus me-1"></i>Mint token</button>
+
         <div id="mcp-minted" class="alert alert-success d-none">
           <div class="small mb-1"><i class="fa-solid fa-triangle-exclamation me-1"></i>Copy this now — it's shown only once.</div>
           <div class="input-group input-group-sm">
@@ -48,6 +51,7 @@ $bridge = (string) $this->bridge;
             <button type="button" class="btn btn-outline-secondary" data-copy="#mcp-minted-value">Copy</button>
           </div>
         </div>
+        <hr class="my-2">
         <div id="mcp-tokens" class="d-grid gap-2"></div>
         <div id="mcp-tokens-empty" class="text-body-secondary small py-2" hidden>No tokens yet — mint one to connect a client.</div>
       </div>
@@ -146,23 +150,47 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     });
 
-    // ---- tokens (reuse the core Tiger_Service_Token: module=tiger, service=token) ----
+    // ---- token scope pickers (curated starter set checked; extras opt-in) ----
+    var MODULES = [
+        { m: 'cms', on: true }, { m: 'blog', on: true }, { m: 'media', on: true },
+        { m: 'search', on: true }, { m: 'docs', on: true },
+        { m: 'access', on: false }, { m: 'analytics', on: false }
+    ];
+    document.getElementById('mcp-scope-modules').innerHTML = MODULES.map(function (x) {
+        return '<div class="form-check form-check-inline me-2"><input class="form-check-input mcp-mod" type="checkbox" value="' + x.m + '" id="mcp-mod-' + x.m + '"' + (x.on ? ' checked' : '') + '>'
+             + '<label class="form-check-label small" for="mcp-mod-' + x.m + '">' + x.m + '</label></div>';
+    }).join('');
+    function scopeModules() {
+        return Array.prototype.map.call(document.querySelectorAll('.mcp-mod:checked'), function (c) { return c.value; }).join(',');
+    }
+
+    // ---- tokens (scoped: module=mcp, service=settings) ----
     function loadTokens() {
-        api('tiger', 'token', 'all').then(function (res) {
+        api('mcp', 'settings', 'tokens').then(function (res) {
             var rows = (res && res.data && res.data.tokens) || [];
             var host = document.getElementById('mcp-tokens');
             host.innerHTML = rows.map(function (t) {
-                var id = t.credential_id || t.id || '';
+                var id = t.credential_id || '';
                 var when = (t.created_at || '').substring(0, 16);
-                return '<div class="border rounded p-2 d-flex justify-content-between align-items-center">'
-                     + '<div><code>' + esc(t.prefix || '') + '…</code> <span class="small text-body-secondary ms-2">' + esc(when) + '</span></div>'
-                     + '<button type="button" class="btn btn-sm btn-outline-danger mcp-revoke" data-id="' + esc(id) + '"><i class="fa-solid fa-trash"></i></button></div>';
+                var badges = (t.org_scoped ? '<span class="badge text-bg-info-subtle text-info-emphasis border ms-1">org</span>' : '')
+                           + (t.read_only ? '<span class="badge text-bg-secondary ms-1">read-only</span>' : '');
+                var mods = (t.modules || []).join(', ');
+                return '<div class="border rounded p-2 d-flex justify-content-between align-items-start gap-2">'
+                     + '<div style="min-width:0;"><div><code>' + esc(t.prefix || '') + '…</code>' + badges
+                     + ' <span class="small text-body-secondary ms-1">' + esc(when) + '</span></div>'
+                     + '<div class="small text-body-secondary text-truncate">' + esc(mods) + '</div></div>'
+                     + '<button type="button" class="btn btn-sm btn-outline-danger mcp-revoke text-nowrap" data-id="' + esc(id) + '"><i class="fa-solid fa-trash"></i></button></div>';
             }).join('');
             document.getElementById('mcp-tokens-empty').hidden = rows.length > 0;
         });
     }
     document.getElementById('mcp-mint').addEventListener('click', function () {
-        TigerButton.run(this, function () { return api('tiger', 'token', 'create'); }).then(function (res) {
+        var body = {
+            modules:    scopeModules(),
+            read_only:  document.getElementById('mcp-scope-readonly').checked ? 1 : 0,
+            org_scoped: document.getElementById('mcp-scope-org').checked ? 1 : 0
+        };
+        TigerButton.run(this, function () { return api('mcp', 'settings', 'mintToken', body); }).then(function (res) {
             if (res && res.result === 1 && res.data && res.data.token) {
                 document.getElementById('mcp-minted').classList.remove('d-none');
                 document.getElementById('mcp-minted-value').value = res.data.token;
@@ -175,7 +203,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var b = e.target.closest('.mcp-revoke'); if (!b) { return; }
         TigerModal.confirm({ title: 'Revoke token', body: 'Any client using this token will stop working.', confirmLabel: 'Revoke', variant: 'danger' }).then(function (ok) {
             if (!ok) { return; }
-            api('tiger', 'token', 'revoke', { credential_id: b.getAttribute('data-id') }).then(function () { TigerDOM.toast('Token revoked.', { type: 'success' }); loadTokens(); });
+            api('mcp', 'settings', 'revokeToken', { credential_id: b.getAttribute('data-id') }).then(function () { TigerDOM.toast('Token revoked.', { type: 'success' }); loadTokens(); });
         });
     });
 
