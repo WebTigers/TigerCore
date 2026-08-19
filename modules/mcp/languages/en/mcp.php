@@ -7,4 +7,6 @@
 return [
     'mcp.settings.enabled'  => 'MCP server enabled.',
     'mcp.settings.disabled' => 'MCP server disabled.',
+    'mcp.token.created'     => 'Token minted.',
+    'mcp.token.revoked'     => 'Token revoked.',
 ];

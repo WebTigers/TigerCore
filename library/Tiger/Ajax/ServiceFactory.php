@@ -56,15 +56,22 @@ class Tiger_Ajax_ServiceFactory
      * Build the dispatcher and process the request immediately (the response is ready
      * on return).
      *
-     * @param  Zend_Controller_Request_Http $request the incoming /api request
+     * @param  Zend_Controller_Request_Http $request  the incoming /api request
+     * @param  object|null                  $identity an explicit identity to dispatch as, bypassing the
+     *          Bearer/session resolution. Used for an internal dispatch that must run as a SPECIFIC
+     *          identity — e.g. an org-scoped MCP token acting as the org (user_id=null). null = normal.
      * @return void
      */
-    public function __construct(Zend_Controller_Request_Http $request)
+    public function __construct(Zend_Controller_Request_Http $request, $identity = null)
     {
-        $this->_request  = $request;
-        $this->_response = new Tiger_Model_ResponseObject();
+        $this->_request         = $request;
+        $this->_identityOverride = $identity;
+        $this->_response        = new Tiger_Model_ResponseObject();
         $this->_processRequest();
     }
+
+    /** @var object|null an explicit identity that wins over Bearer/session resolution. */
+    protected $_identityOverride = null;
 
     /**
      * Reserve an additional module name from /api dispatch.
@@ -202,6 +209,16 @@ class Tiger_Ajax_ServiceFactory
             return $this->_identityValue;
         }
         $this->_identityResolved = true;
+
+        // An explicit override (e.g. an org-acting MCP identity) wins — write it to REQUEST-ONLY storage so
+        // the service's helpers (_isAdmin, _userId) see it, and never touch the session.
+        if ($this->_identityOverride !== null) {
+            Zend_Registry::set('tiger.auth.stateless', true);
+            $auth = Zend_Auth::getInstance();
+            $auth->setStorage(new Zend_Auth_Storage_NonPersistent());
+            $auth->getStorage()->write($this->_identityOverride);
+            return $this->_identityValue = $this->_identityOverride;
+        }
 
         $token = $this->_bearerToken();
         if ($token !== null) {
