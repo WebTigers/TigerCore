@@ -42,5 +42,14 @@ class Agent_Bootstrap extends Zend_Application_Module_Bootstrap
             'resource' => 'Agent_SkillsController',
             'order'    => 46,
         ]);
+        // Outbound MCP: external servers whose tools the agent may call (TIGERMCP.md §9).
+        Tiger_Admin_Settings::register([
+            'key'      => 'agent-mcp',
+            'label'    => 'MCP Connections',
+            'icon'     => 'fa-diagram-project',
+            'href'     => '/agent/mcp',
+            'resource' => 'Agent_McpController',
+            'order'    => 48,
+        ]);
     }
 }

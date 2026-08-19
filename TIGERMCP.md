@@ -19,6 +19,14 @@ the in-app agent read [TIGERAGENT.md](TIGERAGENT.md); for the sibling extension 
 > **audited** (`Tiger_Log`), and an org-scoped token dispatches **as the org** (no bound user) via a
 > `ServiceFactory` identity override. **OFF by default** (`tiger.mcp.enabled`). This doc is the design-of-
 > record. Shape: **inbound**, a **stdio bridge** to **one** endpoint, **`/mcp`**, a **core module OFF by default**.
+>
+> **The OUTBOUND axis (§9) is now BUILT too** — the in-app agent CONSUMES external MCP servers. Library:
+> `Tiger_Agent_Mcp_Client` (remote JSON-RPC HTTP caller — initialize/tools/list/tools/call) + `Tiger_Agent_Mcp`
+> (the connections registry in the `option` tier: encrypted tokens, aggregated+cached namespaced tools, an
+> ACL role-gate). Agent-core: a new `mcp` action on `Tiger_Agent_Contract` / `Tiger_Agent_Forge` (a WRITE —
+> approval-gated + role-gated to admin+, the same ACL as connecting) advertised by `Tiger_Agent_Tools`. Admin:
+> `modules/agent` **MCP Connections** screen (`/agent/mcp`, `Agent_Service_Mcp`) — add/edit/remove/test a
+> connection; the token never round-trips to the browser.
 
 ---
 
@@ -211,13 +219,24 @@ MCP hands an external, autonomous AI a key to your business. State the posture h
 
 ---
 
-## 9. The sibling axis — outbound MCP (deferred)
+## 9. The sibling axis — outbound MCP (✅ BUILT)
 
-The inbound server (this doc) is v1. The mirror — **outbound Connections**, where the *in-app* agent
-*consumes* an external MCP server's tools — is a later, smaller add: register a remote MCP server, list its
-tools, and expose them to `Tiger_Agent_Loop` as additional tools (namespaced, permission-gated like any
-other). It reuses the agent's tool-registry seam; it's out of scope here beyond fixing the shared **Agent →
-MCP** IA (TIGERSKILLS §6): `MCP ▸ Server/Access` (inbound, this doc) and `MCP ▸ Connections` (outbound, later).
+The inbound server (§1–§8) is one face; the mirror — **outbound Connections**, where the *in-app* agent
+*consumes* an external MCP server's tools — is now built. It reuses the agent's tool-registry seam and the
+config-tier + `Tiger_Crypto` patterns; capability is unchanged (an MCP call is a WRITE, gated exactly like
+any other agent write). The pieces:
+
+| Class / surface | Role |
+|---|---|
+| **`Tiger_Agent_Mcp_Client`** (library, `@api`) | the remote HTTP JSON-RPC caller — `listTools()` (initialize → tools/list) + `callTool()` (tools/call → content flattened to text). Fault-tolerant: a down server yields `[]` tools / an error result, never an exception into the loop. The HTTP seam is `static::_post` so it's testable without a network. |
+| **`Tiger_Agent_Mcp`** (library, `@api`) | the connections **registry** in the lazy `option` tier (`agent.mcp.connections`): `save`/`remove`/`forAdmin` (token → a `has_token` flag, never leaked), `enabled`/`connection` (token DECRYPTED via `Tiger_Crypto`), `tools()` (aggregated, connection-namespaced, cached to `var/cache/agent-mcp/tools.json`, invalidated on save/remove), and `allowedForRole()` (the SAME ACL as `Agent_Service_Mcp` — admin+). A blank token on update KEEPS the existing secret. |
+| **`Tiger_Agent_Contract` / `Tiger_Agent_Forge`** | a new **`mcp` action** (`ACTION_MCP`): `{type:"mcp", connection, tool, args, reason}`. It's a WRITE (approval-gated; `autoRank` 0 = auto-runs only in auto/yolo), role-gated in `_mcp()` to `allowedForRole` (denied for a content role), resolves the connection, and calls `Tiger_Agent_Mcp_Client::callTool` — an unknown connection → error, unapproved → proposed (no network). |
+| **`Tiger_Agent_Tools`** | conditionally advertises the connected tools in the system prompt (only when the role is allowed AND a connection exists), with the `mcp` action shape. |
+| **`modules/agent` — MCP Connections** (`/agent/mcp`) | the admin screen (`Agent_McpController` + `Agent_Service_Mcp`, admin-gated in `acl.ini`, nav-registered under Settings): add/edit/remove/**test** a connection (test = live `tools/list`); the token is write-only from the browser. |
+
+Fixes the shared **Agent → MCP** IA (TIGERSKILLS §6): `MCP ▸ Server/Access` (inbound, §1–§8) and
+`MCP ▸ Connections` (outbound, here). **Deferred within outbound:** streaming/SSE to a remote server, an
+OAuth client for remote servers that require it, and per-tool (not per-connection) approval granularity.
 
 ---
 
@@ -264,8 +283,11 @@ MCP** IA (TIGERSKILLS §6): `MCP ▸ Server/Access` (inbound, this doc) and `MCP
    **org-scoped token dispatches AS THE ORG** (user_id=null → system actor) through a new
    `Tiger_Ajax_ServiceFactory($request, $identity)` override. The target service's own ACL still gates every
    call — the token scope is a tighter fence on top.
-5. **(later) Streamable HTTP niceties** — `Mcp-Session-Id` + SSE for notifications; **OAuth 2.1** for
-   direct-HTTP clients; then the **outbound Connections** axis (§9).
+5. **Outbound Connections — ✅ BUILT (§9).** `Tiger_Agent_Mcp_Client` + `Tiger_Agent_Mcp` (encrypted-token
+   registry + cached namespaced tools), the `mcp` Forge action (approval- + role-gated), the system-prompt
+   advertisement, and the `/agent/mcp` admin screen (`Agent_Service_Mcp`).
+6. **(later) Streamable HTTP niceties** — `Mcp-Session-Id` + SSE for notifications; **OAuth 2.1** for
+   direct-HTTP clients (both faces); per-tool outbound approval granularity.
 
 ---
 
