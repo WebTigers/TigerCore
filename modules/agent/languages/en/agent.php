@@ -62,4 +62,10 @@ return [
     'agent.skills.enabled'        => 'Skill turned on.',
     'agent.skills.disabled'       => 'Skill turned off.',
     'agent.skills.removed'        => 'Skill removed.',
+    // MCP connections (outbound)
+    'agent.mcp.saved'     => 'Connection saved.',
+    'agent.mcp.removed'   => 'Connection removed.',
+    'agent.mcp.bad_url'   => 'Enter a valid http(s) URL for the MCP server.',
+    'agent.mcp.bad_label' => 'Give the connection a name.',
+    'agent.mcp.not_found' => 'That connection is not available.',
 ];

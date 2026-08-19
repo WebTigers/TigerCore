@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**179 classes** across **32 capabilities** · **18 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**181 classes** across **32 capabilities** · **18 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -175,6 +175,8 @@
 - **Tiger_Agent_Contract** `@api` — the request/response contract between the app and the model.  ·  `library/Tiger/Agent/Contract.php`
 - **Tiger_Agent_Forge** `@api` — the permission-gated hands of the agent (TIGERAGENT.md §0, §2a, §3).  ·  `library/Tiger/Agent/Forge.php`
 - **Tiger_Agent_Loop** `@api` — run an agent turn as a multi-step ReAct loop (TIGERAGENT.md §5).  ·  `library/Tiger/Agent/Loop.php`
+- **Tiger_Agent_Mcp** `@api` — the OUTBOUND connections registry: external MCP servers whose tools the in-app agent may call (the mirror of the inbound `/mcp` server; TIGERMCP.md §9).  ·  `library/Tiger/Agent/Mcp.php`
+- **Tiger_Agent_Mcp_Client** `@api` — the OUTBOUND MCP client: the in-app agent CONSUMING a remote MCP server's tools (the mirror of the inbound `/mcp` server).  ·  `library/Tiger/Agent/Mcp/Client.php`
 - **Tiger_Agent_Provider_Adapter** `@api` — the contract every AI provider adapter implements.  ·  `library/Tiger/Agent/Provider/Adapter.php`
 - **Tiger_Agent_Provider_Anthropic** `@api` — the Anthropic Messages API adapter (the reference).  ·  `library/Tiger/Agent/Provider/Anthropic.php`
 - **Tiger_Agent_Provider_DeepSeek** `@api` — DeepSeek (OpenAI-compatible; very low cost).  ·  `library/Tiger/Agent/Provider/DeepSeek.php`
@@ -287,7 +289,7 @@
 ## Modules (`modules/*` — activatable features)
 
 - **Access** (`access`, plugin)  ·  services: Org, User  ·  `modules/access`
-- **Agent** (`agent`, app)  ·  services: Agent, Settings, Skills  ·  `modules/agent`
+- **Agent** (`agent`, app)  ·  services: Agent, Mcp, Settings, Skills  ·  `modules/agent`
 - **Ally** (`ally`, plugin)  ·  services: Scan  ·  `modules/ally`
 - **Analytics** (`analytics`, app)  ·  services: Analytics, Reports  ·  `modules/analytics`
 - **Backup** (`backup`, app)  ·  services: Backup  ·  `modules/backup`

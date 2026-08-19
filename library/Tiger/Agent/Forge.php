@@ -51,6 +51,8 @@ class Tiger_Agent_Forge
         switch ((string) ($action['type'] ?? '')) {
             case Tiger_Agent_Contract::ACTION_API:
                 return in_array(strtolower((string) ($action['method'] ?? '')), self::READ_VERBS, true) ? -1 : 0;
+            case Tiger_Agent_Contract::ACTION_MCP:
+                return 0;   // a guarded write — auto-runs in auto/yolo, proposed in ask (external side effects)
             case Tiger_Agent_Contract::ACTION_CODE:
             case Tiger_Agent_Contract::ACTION_FILE:
             case Tiger_Agent_Contract::ACTION_MODULE:
@@ -87,6 +89,7 @@ class Tiger_Agent_Forge
         $type = (string) ($action['type'] ?? '');
         switch ($type) {
             case Tiger_Agent_Contract::ACTION_API:    return $this->_api($action);
+            case Tiger_Agent_Contract::ACTION_MCP:    return $this->_mcp($action);
             case Tiger_Agent_Contract::ACTION_CODE:   return $this->_code($action);
             case Tiger_Agent_Contract::ACTION_FILE:   return $this->_file($action);
             case Tiger_Agent_Contract::ACTION_MODULE: return $this->_module($action);
@@ -136,6 +139,41 @@ class Tiger_Agent_Forge
             );
         } catch (Throwable $e) {
             return $this->_entry($action, 'error', 'Call threw: ' . $e->getMessage());
+        }
+    }
+
+    // ----- mcp (a tool on a connected external MCP server) -------------------
+
+    /**
+     * Call a tool on a connected external MCP server (outbound; TIGERMCP.md §9). A write — approval-gated
+     * like any other, and gated to the roles that may manage the connections (admin+). The external server
+     * enforces its OWN auth; Tiger's side is trust-by-configuration + the approval + the audit.
+     *
+     * @param  array $action the mcp action {connection, tool, args}
+     * @return array
+     */
+    protected function _mcp(array $action)
+    {
+        if (!Tiger_Agent_Mcp::allowedForRole($this->_role)) {
+            return $this->_entry($action, 'denied', 'Using connected MCP tools requires the admin role.');
+        }
+        $conn = Tiger_Agent_Mcp::connection((string) $action['connection']);
+        if ($conn === null) {
+            return $this->_entry($action, 'error', "MCP connection “{$action['connection']}” is not available.");
+        }
+        if (empty($action['approved'])) {
+            return $this->_entry($action, 'proposed', "Will call {$conn['label']} · {$action['tool']}.");
+        }
+        try {
+            $res = Tiger_Agent_Mcp_Client::callTool($conn, (string) $action['tool'], (array) $action['args']);
+            return $this->_entry(
+                $action,
+                !empty($res['ok']) ? 'done' : 'error',
+                (!empty($res['ok']) ? 'Called ' : 'Call failed: ') . "{$conn['label']} · {$action['tool']}",
+                ['text' => (string) ($res['text'] ?? '')]
+            );
+        } catch (Throwable $e) {
+            return $this->_entry($action, 'error', 'MCP call threw: ' . $e->getMessage());
         }
     }
 

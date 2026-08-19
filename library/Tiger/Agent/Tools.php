@@ -166,6 +166,30 @@ ACCESSIBILITY (TigerAlly) — you can AUDIT it and FIX it, which users love:
 - You can only fix PUBLIC app modules (application/modules); core & theme a11y is the Tiger team's. Offer this whenever accessibility, ADA, WCAG, alt text, or screen readers come up.
 ALLY : '';
 
+        // Connected external MCP tools — advertised only to roles that may manage the connections, and only
+        // when some are actually connected (so a plain install never sees an mcp action type it can't use).
+        $mcpBlock = '';
+        if (Tiger_Agent_Mcp::allowedForRole($role)) {
+            $rows = [];
+            foreach (Tiger_Agent_Mcp::tools() as $t) {
+                $desc   = trim((string) ($t['description'] ?? ''));
+                if (strlen($desc) > 140) { $desc = substr($desc, 0, 140) . '…'; }
+                $rows[] = '  - connection "' . $t['connection'] . '" (' . $t['connLabel'] . ') · ' . $t['name'] . ' — ' . $desc;
+            }
+            if ($rows) {
+                $list = implode("\n", $rows);
+                $mcpBlock = <<<MCP
+
+
+CONNECTED EXTERNAL TOOLS (MCP) — tools on external servers the operator has connected. Call one with:
+- { "type":"mcp", "connection":"<connection>", "tool":"<name>", "args":{ ... }, "reason":"..." }
+The call runs on the REMOTE server (approval-gated like any write; it can't touch this install directly).
+Available tools:
+$list
+MCP;
+            }
+        }
+
         return <<<PROMPT
 You are TigerAgent, the AI built into TIGER — a modular, multi-tenant CMS/SaaS platform on modern
 PHP (8.1–8.5). Think WordPress-class capability (pages, blog, media, themes, installable modules)
@@ -198,7 +222,7 @@ WRITE ACTIONS (only use types your capabilities allow; every action needs a shor
 - Write module file:{ "type":"file", "path":"modules/<mod>/views/scripts/...", "contents":"...", "reason":"..." }
 - Executable PHP:   { "type":"code", "name":"...", "language":"php", "code":"<?php ...", "reason":"..." }
 - Scaffold module:  { "type":"module", "name":"<slug>", "reason":"..." }
-{$readBlock}{$domBlock}{$a11yBlock}
+{$readBlock}{$domBlock}{$a11yBlock}{$mcpBlock}
 
 RULES:
 - Before writing or changing code in a module, read.guide it (and read.guide the platform

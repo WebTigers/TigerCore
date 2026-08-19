@@ -55,6 +55,8 @@ class Tiger_Agent_Contract
     const ACTION_FILE = 'file';
     /** Scaffold a new module (developer). */
     const ACTION_MODULE = 'module';
+    /** Call a tool on a connected external MCP server (outbound; a write, approval-gated). */
+    const ACTION_MCP = 'mcp';
 
     /** Read tools (the Scout) — ALWAYS auto-run, never a write; results are fed back to the model. */
     const READ_INVENTORY = 'read.inventory';   // the "repo map": modules, snippets, theme, roots
@@ -69,13 +71,13 @@ class Tiger_Agent_Contract
     const DOM_WRITE = 'dom.write';   // write content into a registered page target (HTML welcome here)
 
     /** The Forge (write) action types. */
-    const WRITE_TYPES = [self::ACTION_API, self::ACTION_CODE, self::ACTION_FILE, self::ACTION_MODULE];
+    const WRITE_TYPES = [self::ACTION_API, self::ACTION_CODE, self::ACTION_FILE, self::ACTION_MODULE, self::ACTION_MCP];
     /** The Scout (read) action types. */
     const READ_TYPES = [self::READ_INVENTORY, self::READ_TREE, self::READ_FILE, self::READ_GREP, self::READ_GUIDE];
     /** The client (browser-executed) action types. */
     const CLIENT_TYPES = [self::DOM_READ, self::DOM_WRITE];
     /** Every action type the parser accepts. */
-    const TYPES = [self::ACTION_API, self::ACTION_CODE, self::ACTION_FILE, self::ACTION_MODULE,
+    const TYPES = [self::ACTION_API, self::ACTION_CODE, self::ACTION_FILE, self::ACTION_MODULE, self::ACTION_MCP,
                    self::READ_INVENTORY, self::READ_TREE, self::READ_FILE, self::READ_GREP, self::READ_GUIDE,
                    self::DOM_READ, self::DOM_WRITE];
 
@@ -172,6 +174,18 @@ class Tiger_Agent_Contract
                     'method'  => preg_replace('/[^a-zA-Z0-9_]/', '', (string) $a['method']),
                     'params'  => is_array($a['params'] ?? null) ? $a['params'] : [],
                     'reason'  => $reason,
+                ];
+
+            case self::ACTION_MCP:
+                if (empty($a['connection']) || empty($a['tool'])) {
+                    return null;
+                }
+                return [
+                    'type'       => $type,
+                    'connection' => preg_replace('/[^a-zA-Z0-9_-]/', '', (string) $a['connection']),
+                    'tool'       => (string) $a['tool'],
+                    'args'       => is_array($a['args'] ?? null) ? $a['args'] : [],
+                    'reason'     => $reason,
                 ];
 
             case self::ACTION_CODE:
