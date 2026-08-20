@@ -106,6 +106,14 @@ $t = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
     </div>
 </form>
 
+<?php
+$this->i18n([
+    'modelsLive' => 'agent.js.models_live',
+    'modelsStatic' => 'agent.js.models_static',
+    'networkError' => 'agent.js.network_error',
+    'settingsSaved' => 'agent.js.settings_saved',
+]);
+?>
 <script>
 // Live model list — from agent/settings/models: live from the provider when a key is available
 // (a just-typed one, else the stored one), else a curated static fallback. Vendors churn models,
@@ -133,7 +141,7 @@ function agentLoadModels() {
                 sel.appendChild(o);
             });
             if (!sel.value && sel.options.length) { sel.selectedIndex = 0; }
-            hint.textContent = res.data.live ? 'Live from your account.' : 'Common models — connect a key for the live list.';
+            hint.textContent = res.data.live ? Tiger.t('modelsLive') : Tiger.t('modelsStatic');
         })
         .catch(function () { hint.textContent = ''; });
 }
@@ -152,7 +160,7 @@ document.getElementById('agent-settings-save').addEventListener('click', functio
             .then(function (r) { return r.json().catch(function () { return {}; }); });
     }).then(function (res) {
         if (res && res.result === 1) {
-            TigerDOM.notify(fb, 'Settings saved.', { type: 'success' });
+            TigerDOM.notify(fb, Tiger.t('settingsSaved'), { type: 'success' });
             document.getElementById('agent-api_key').value = '';   // clear the write-only field
             return;
         }
@@ -160,6 +168,6 @@ document.getElementById('agent-settings-save').addEventListener('click', functio
             var el = form.querySelector('[name="' + f + '"]'); if (el) { el.classList.add('is-invalid'); }
         }); }
         (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
-    }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+    }).catch(function () { TigerDOM.notify(fb, Tiger.t('networkError'), { type: 'error' }); });
 });
 </script>

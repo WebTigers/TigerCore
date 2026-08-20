@@ -111,4 +111,10 @@ return [
     'blog.list.col_read'    => 'Read',
     'blog.list.col_updated' => 'Updated',
     'blog.list.col_actions' => 'Actions',
+    'blog.js.confirm_delete_article' => 'Delete this article? It is soft-deleted and can be recovered.',
+    'blog.js.media_picker_unavailable' => 'Media picker unavailable.',
+    'blog.js.fix_fields' => 'Please fix the highlighted fields.',
+    'blog.js.network_error' => 'Network error — please try again.',
+    'blog.js.confirm_restore' => 'Restore version #%s? Current content is saved as a new version first.',
+    'blog.js.link_url' => 'Link URL:',
 ];

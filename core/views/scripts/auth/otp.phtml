@@ -57,6 +57,13 @@
     <a href="/" class="small text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i><?= $this->escape($this->t('core.auth.return_to', $this->siteName ?? 'Tiger')) ?></a>
 </div>
 
+<?php
+$this->i18n([
+    'codeInvalid' => 'core.js.code_invalid',
+    'networkError' => 'core.js.network_error',
+    'recaptcha' => 'core.js.recaptcha',
+]);
+?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var reqForm = document.getElementById('otp-request-form');
@@ -86,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }).then(function (res) {
             if (res && res.result === 0 && res.recaptcha) {
                 rcReset();
-                fail('Please complete the reCAPTCHA and try again.');
+                fail(Tiger.t('recaptcha'));
                 return;
             }
             document.getElementById('otp-email-hidden').value = email;
@@ -96,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function () {
             verForm.style.display = '';
             document.getElementById('otp-code').focus();
         }).catch(function () {
-            fail('Network error — please try again.');
+            fail(Tiger.t('networkError'));
         });
     });
 
@@ -109,10 +116,10 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(function (res) {
             if (res && res.result === 1) { window.location = res.redirect || '/'; return; }
-            fail('That code is invalid or has expired.');
+            fail(Tiger.t('codeInvalid'));
             document.getElementById('otp-code').value = '';
         }).catch(function () {
-            fail('Network error — please try again.');
+            fail(Tiger.t('networkError'));
         });
     });
 

@@ -114,4 +114,5 @@ return [
     'profile.address.group.rest'     => 'All countries',
 
     'profile.soon'                  => 'Coming in the next update.',
+    'profile.js.cropper_failed' => 'Could not start the cropper: %s',
 ];

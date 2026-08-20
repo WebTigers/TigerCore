@@ -40,4 +40,9 @@ return [
     'mcp.connect.npx.help'       => 'Add to your client’s <code>mcpServers</code> config (Claude Desktop, Cursor, …). Uses the community <code>mcp-remote</code> bridge — nothing to install.',
     'mcp.connect.php.help'       => 'No Node? <a href="/mcp/admin/download">Download <code>mcp-bridge.php</code></a>, save it on your machine, and set the path below. Needs only PHP.',
     'mcp.connect.test'           => 'Or test it directly:',
+    'mcp.js.copied' => 'Copied.',
+    'mcp.js.token_revoked' => 'Token revoked.',
+    'mcp.js.revoke_title' => 'Revoke token',
+    'mcp.js.revoke_body' => 'Any client using this token will stop working.',
+    'mcp.js.revoke_label' => 'Revoke',
 ];

@@ -60,6 +60,11 @@
     </div>
 </div>
 
+<?php
+$this->i18n([
+    'networkError' => 'system.js.network_error',
+]);
+?>
 <script>
 (function () {
     var fb = document.getElementById('acl-feedback');
@@ -102,7 +107,7 @@
                 ? '<code>role=' + x.rule.role + ' · resource=' + x.rule.resource + ' · privilege=' + x.rule.privilege + ' · ' + x.rule.permission + '</code>'
                 : '<span class="text-body-secondary">none — deny-by-default</span>';
             document.getElementById('acl-chain').textContent = (x.roleChain || []).join('  →  ') || '—';
-        }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+        }).catch(function () { TigerDOM.notify(fb, Tiger.t('networkError'), { type: 'error' }); });
     });
 })();
 </script>

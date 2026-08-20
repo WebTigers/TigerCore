@@ -82,4 +82,8 @@ return [
     // form — inject-at select
     'code.auto.head'   => 'Cabecera',
     'code.auto.footer' => 'Pie de página',
+    'code.js.fix_form' => 'Revisa el formulario e inténtalo de nuevo.',
+    'code.js.network_error' => 'Error de red — inténtalo de nuevo.',
+    'code.js.confirm_restore' => '¿Restaurar la versión n.º %s? El contenido actual se guarda primero como una nueva versión.',
+    'code.js.confirm_delete_snippet' => '¿Eliminar este fragmento? Se elimina de forma reversible y se puede recuperar.',
 ];

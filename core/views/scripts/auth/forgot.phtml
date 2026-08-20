@@ -31,6 +31,11 @@
     <a href="/auth/login" class="small text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i><?= $this->escape($this->t('core.auth.back_to_login')) ?></a>
 </div>
 
+<?php
+$this->i18n([
+    'recaptcha' => 'core.js.recaptcha',
+]);
+?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var form  = document.getElementById('forgot-form');
@@ -56,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // A reCAPTCHA block is a real error (not account enumeration) — surface it.
             if (res && res.result === 0 && res.recaptcha) {
                 rcReset();
-                TigerDOM.notify(fb, 'Please complete the reCAPTCHA and try again.', { type: 'error' });
+                TigerDOM.notify(fb, Tiger.t('recaptcha'), { type: 'error' });
                 return;
             }
             // Hide the form and confirm via notify. Escape the (user-supplied) email —

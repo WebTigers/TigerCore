@@ -72,6 +72,14 @@
     <a href="/" class="small text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i><?= $this->escape($this->t('core.auth.return_to', $this->siteName ?? 'Tiger')) ?></a>
 </div>
 
+<?php
+$this->i18n([
+    'codeIncorrect' => 'core.js.code_incorrect',
+    'invalidLogin' => 'core.js.invalid_login',
+    'networkError' => 'core.js.network_error',
+    'recaptcha' => 'core.js.recaptcha',
+]);
+?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var form    = document.getElementById('login-form');
@@ -111,11 +119,11 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             if (res && res.result === 1) { window.location = res.redirect || '/'; return; }
             rcReset();   // the reCAPTCHA token (if any) is spent — let the user re-solve
-            fail((res && res.recaptcha) ? 'Please complete the reCAPTCHA and try again.' : 'Invalid login or password.');
+            fail((res && res.recaptcha) ? Tiger.t('recaptcha') : Tiger.t('invalidLogin'));
             document.getElementById('login-password').value = '';
         }).catch(function () {
             rcReset();
-            fail('Network error — please try again.');
+            fail(Tiger.t('networkError'));
         });
     });
 
@@ -128,11 +136,11 @@ document.addEventListener('DOMContentLoaded', function () {
             return post({ code: codeIn.value });
         }).then(function (res) {
             if (res && res.result === 1) { window.location = res.redirect || '/'; return; }
-            fail('That code is incorrect or has expired.');
+            fail(Tiger.t('codeIncorrect'));
             codeIn.value = '';
             codeIn.focus();
         }).catch(function () {
-            fail('Network error — please try again.');
+            fail(Tiger.t('networkError'));
         });
     });
 

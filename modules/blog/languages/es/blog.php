@@ -109,4 +109,10 @@ return [
     'blog.list.col_read'    => 'Lectura',
     'blog.list.col_updated' => 'Actualizado',
     'blog.list.col_actions' => 'Acciones',
+    'blog.js.confirm_delete_article' => '¿Eliminar este artículo? Se elimina de forma reversible y se puede recuperar.',
+    'blog.js.media_picker_unavailable' => 'El selector de medios no está disponible.',
+    'blog.js.fix_fields' => 'Corrige los campos resaltados.',
+    'blog.js.network_error' => 'Error de red — inténtalo de nuevo.',
+    'blog.js.confirm_restore' => '¿Restaurar la versión n.º %s? El contenido actual se guarda primero como una nueva versión.',
+    'blog.js.link_url' => 'URL del enlace:',
 ];

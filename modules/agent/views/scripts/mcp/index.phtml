@@ -52,6 +52,14 @@
   </div>
 </div>
 
+<?php
+$this->i18n([
+    'connectionSaved' => 'agent.js.connection_saved',
+    'removeConnectionBody' => 'agent.js.remove_connection_body',
+    'removeConnectionTitle' => 'agent.js.remove_connection_title',
+    'removeLabel' => 'agent.js.remove_label',
+]);
+?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; }); };
@@ -104,7 +112,7 @@ document.addEventListener('DOMContentLoaded', function () {
             enabled: document.getElementById('mcp-enabled').checked ? 1 : 0
         };
         TigerButton.run(this, function () { return api('save', body); }).then(function (res) {
-            if (res && res.result === 1) { TigerDOM.notify(fb, 'Connection saved.', { type: 'success' }); resetForm(); render(res.data.connections || []); }
+            if (res && res.result === 1) { TigerDOM.notify(fb, Tiger.t('connectionSaved'), { type: 'success' }); resetForm(); render(res.data.connections || []); }
             else { toast(res); }
         });
     });
@@ -123,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('mcp-reset').classList.remove('d-none');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (e.target.closest('.mcp-remove')) {
-            TigerModal.confirm({ title: 'Remove connection', body: 'The agent will lose access to its tools.', confirmLabel: 'Remove', variant: 'danger' }).then(function (ok) {
+            TigerModal.confirm({ title: Tiger.t('removeConnectionTitle'), body: Tiger.t('removeConnectionBody'), confirmLabel: Tiger.t('removeLabel'), variant: 'danger' }).then(function (ok) {
                 if (!ok) { return; }
                 api('remove', { id: id }).then(function (res) { toast(res); render((res.data && res.data.connections) || []); });
             });

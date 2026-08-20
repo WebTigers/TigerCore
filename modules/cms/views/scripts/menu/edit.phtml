@@ -67,6 +67,21 @@ $collect = function ($nodes) use (&$collect, &$flat) {
 };
 $collect($this->tree);
 ?>
+<?php
+$this->i18n([
+    'addItemFailed' => 'cms.js.add_item_failed',
+    'item' => 'cms.js.item',
+    'itemAdded' => 'cms.js.item_added',
+    'itemRemoved' => 'cms.js.item_removed',
+    'itemSaved' => 'cms.js.item_saved',
+    'nameMenuFirst' => 'cms.js.name_menu_first',
+    'networkErrorShort' => 'cms.js.network_error_short',
+    'removeItemBody' => 'cms.js.remove_item_body',
+    'removeItemTitle' => 'cms.js.remove_item_title',
+    'removeLabel' => 'cms.js.remove_label',
+    'saveFailed' => 'cms.js.save_failed',
+]);
+?>
 <script src="<?= $this->asset($this->themeAssets . '/js/vendor/Sortable.min.js') ?>"></script>
 
 <div class="d-flex align-items-center justify-content-between mb-3">
@@ -294,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Turn a dropped palette clone into a real, persisted flat item.
     function createFromSource(el) {
-        if (!currentKey()) { TigerDOM.toast('Name the menu (key) first.', { type: 'error' }); el.remove(); return; }
+        if (!currentKey()) { TigerDOM.toast(Tiger.t('nameMenuFirst'), { type: 'error' }); el.remove(); return; }
         var d = el.dataset;
         var above = prevItem(el);
         var depth = above ? depthOf(above) : 0;                  // land at the neighbor's level
@@ -302,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (d.source === 'page') { params.page_key = d.pageKey; }
         else if (d.kind === 'url') { params.url = '#'; }
         api('save', params).then(function (res) {
-            if (!res || res.result !== 1 || !res.data) { TigerDOM.toast('Could not add item.', { type: 'error' }); el.remove(); return; }
+            if (!res || res.result !== 1 || !res.data) { TigerDOM.toast(Tiger.t('addItemFailed'), { type: 'error' }); el.remove(); return; }
             var id = res.data.menu_id;
             el.classList.remove('menu-source');
             ['source', 'kind', 'page-key', 'label'].forEach(function (k) { el.removeAttribute('data-' + k); });
@@ -310,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var d2 = { label: params.label, page_key: params.page_key || '', url: params.url || '', icon: '', css_class: '', dom_id: '', link_target: '', link_rel: '', resource: '', privilege: '', status: 'published' };
             el.innerHTML = chipHTML(d2); MENU_ITEMS[id] = d2;
             schedulePersist();
-            TigerDOM.toast(esc((params.label || 'Item') + ' added'), { type: 'success' });
+            TigerDOM.toast(Tiger.t('itemAdded', esc(params.label || Tiger.t('item'))), { type: 'success' });
             if (d.source === 'custom') { openModal(id); }
         });
     }
@@ -357,7 +372,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return api('save', params);
         }).then(function (res) {
             if (!res || res.result !== 1) {
-                var msg = 'Could not save.';
+                var msg = Tiger.t('saveFailed');
                 if (res && res.form) { var f0 = Object.values(res.form)[0]; if (f0) { msg = Object.values(f0)[0] || msg; } }
                 TigerDOM.notify(errBox, esc(msg), { type: 'error' });
                 return;
@@ -368,8 +383,8 @@ document.addEventListener('DOMContentLoaded', function () {
             var li = root.querySelector('li.menu-item[data-menu-id="' + editId + '"]');
             if (li) { var chip = li.querySelector(':scope > .menu-chip'); if (chip) { chip.outerHTML = chipHTML(d); } }
             modal().hide();
-            TigerDOM.toast(esc((d.label || 'Item') + ' saved'), { type: 'success' });
-        }).catch(function () { TigerDOM.notify(errBox, 'Network error.', { type: 'error' }); });
+            TigerDOM.toast(Tiger.t('itemSaved', esc(d.label || Tiger.t('item'))), { type: 'success' });
+        }).catch(function () { TigerDOM.notify(errBox, Tiger.t('networkErrorShort'), { type: 'error' }); });
     });
 
     // Delegated open / delete (delete removes the row + its deeper-depth descendants).
@@ -380,13 +395,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!li) { return; }
         if (open) { openModal(li.dataset.menuId); }
         else if (del) {
-            TigerModal.confirm({ title: 'Remove item', body: 'Remove this item (and any sub-items)?', confirmLabel: 'Remove', variant: 'danger' }).then(function (ok) {
+            TigerModal.confirm({ title: Tiger.t('removeItemTitle'), body: Tiger.t('removeItemBody'), confirmLabel: Tiger.t('removeLabel'), variant: 'danger' }).then(function (ok) {
                 if (!ok) { return; }
                 api('delete', { menu_id: li.dataset.menuId, menu_key: currentKey(), org_id: ORG }).then(function () {
                     var depth = depthOf(li), n = li.nextElementSibling;
                     li.remove();
                     while (n) { var nn = n.nextElementSibling; if (n.classList.contains('menu-item') && depthOf(n) > depth) { n.remove(); } else { break; } n = nn; }
-                    schedulePersist(); TigerDOM.toast('Item removed', { type: 'success' });
+                    schedulePersist(); TigerDOM.toast(Tiger.t('itemRemoved'), { type: 'success' });
                 });
             });
         }

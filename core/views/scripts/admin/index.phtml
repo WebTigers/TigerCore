@@ -101,7 +101,12 @@ $dashLead  = $this->dashLead ?? 'core.dashboard.lead';
         @media (prefers-reduced-motion: reduce) { .dash-item { transition: none !important; } .dash-grid.dash-ready { transition: none; } }
     </style>
 
-    <script src="<?= $this->asset($this->themeAssets . '/vendor/muuri/muuri.min.js') ?>"></script>
+    <?php
+$this->i18n([
+    'widgetLoadError' => 'core.js.widget_load_error',
+]);
+?>
+<script src="<?= $this->asset($this->themeAssets . '/vendor/muuri/muuri.min.js') ?>"></script>
     <script>
     (function () {
         var el = document.getElementById('dash-grid');
@@ -235,11 +240,11 @@ $dashLead  = $this->dashLead ?? 'core.dashboard.lead';
                 fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
                     .then(function (r) { return r.json(); })
                     .then(function (res) {
-                        body.innerHTML = (res && res.result === 1 && res.data && res.data.html) ? res.data.html : '<p class="text-body-secondary small mb-0">Couldn’t load this widget.</p>';
+                        body.innerHTML = (res && res.result === 1 && res.data && res.data.html) ? res.data.html : '<p class="text-body-secondary small mb-0">' + Tiger.t('widgetLoadError') + '</p>';
                         body.removeAttribute('data-lazy');
                         addToGrid();
                     })
-                    .catch(function () { body.innerHTML = '<p class="text-body-secondary small mb-0">Couldn’t load this widget.</p>'; body.removeAttribute('data-lazy'); addToGrid(); });
+                    .catch(function () { body.innerHTML = '<p class="text-body-secondary small mb-0">' + Tiger.t('widgetLoadError') + '</p>'; body.removeAttribute('data-lazy'); addToGrid(); });
             } else {
                 addToGrid();
             }

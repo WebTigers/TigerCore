@@ -44,6 +44,13 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
     </div>
 </form>
 
+<?php
+$this->i18n([
+    'fixFields' => 'cms.js.fix_fields',
+    'networkError' => 'cms.js.network_error',
+    'settingsSaved' => 'cms.js.settings_saved',
+]);
+?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var form = document.getElementById('cms-settings-form');
@@ -60,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(function (r) { return r.json().catch(function () { return {}; }); });
         })
             .then(function (res) {
-                if (res && res.result === 1) { TigerDOM.notify(fb, 'Settings saved.', { type: 'success' }); return; }
+                if (res && res.result === 1) { TigerDOM.notify(fb, Tiger.t('settingsSaved'), { type: 'success' }); return; }
                 if (res && res.form) {
                     Object.keys(res.form).forEach(function (field) {
                         var input = form.querySelector('[name="' + field + '"]');
@@ -69,9 +76,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 var msgs = (res && res.messages) || [];
                 if (msgs.length) { fb.innerHTML = ''; msgs.forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class, replace: false }); }); }
-                else { TigerDOM.notify(fb, 'Please fix the highlighted fields.', { type: 'error' }); }
+                else { TigerDOM.notify(fb, Tiger.t('fixFields'), { type: 'error' }); }
             })
-            .catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+            .catch(function () { TigerDOM.notify(fb, Tiger.t('networkError'), { type: 'error' }); });
     });
 });
 </script>

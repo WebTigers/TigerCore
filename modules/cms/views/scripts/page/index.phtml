@@ -112,6 +112,12 @@
     <?php endif; ?>
 </div>
 
+<?php
+$this->i18n([
+    'confirmDeletePage' => 'cms.js.confirm_delete_page',
+    'customizeFailed' => 'cms.js.customize_failed',
+]);
+?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     if (typeof tigerDataTable !== 'function') { return; }
@@ -251,12 +257,12 @@ document.addEventListener('DOMContentLoaded', function () {
             var url = (res && res.data && res.data.edit_url) || (res && res.redirect);
             if (res && res.result === 1 && url) { window.location = url; return; }
             (res && res.messages || []).forEach(function (m) { alert(m.message); });
-        }).catch(function () { alert('Could not customize that template.'); });
+        }).catch(function () { alert(Tiger.t('customizeFailed')); });
     });
 
     // Soft-delete via /api, then reload just the table data (no page reload).
     $('#cms-pages-table tbody').on('click', '[data-cms-delete]', function () {
-        if (!confirm('Delete this page? It is soft-deleted and can be recovered.')) { return; }
+        if (!confirm(Tiger.t('confirmDeletePage'))) { return; }
         var btn  = this;
         var body = new URLSearchParams({ module: 'cms', service: 'page', method: 'delete', page_id: this.getAttribute('data-cms-delete') });
         TigerButton.run(btn, function () {

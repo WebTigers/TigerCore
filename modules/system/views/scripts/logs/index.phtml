@@ -61,6 +61,11 @@
     </div>
 </div>
 
+<?php
+$this->i18n([
+    'networkError' => 'system.js.network_error',
+]);
+?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var fb     = document.getElementById('logs-feedback');
@@ -121,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function () {
         p.then(function (res) {
             if (res && res.result === 1) { render(res); return; }
             (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
-        }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+        }).catch(function () { TigerDOM.notify(fb, Tiger.t('networkError'), { type: 'error' }); });
     }
 
     document.getElementById('logs-refresh').addEventListener('click', function () { load(this); });

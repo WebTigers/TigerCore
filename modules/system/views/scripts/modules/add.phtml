@@ -212,6 +212,35 @@ if ($passCheckout === '') { $passCheckout = 'https://webtigers.com/checkout/tige
 </div>
 
 <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/vendor/tiger-lightbox/tiger-lightbox.css') ?>">
+<?php
+$this->i18n([
+    'chooseZip' => 'system.js.choose_zip',
+    'confirmInstallUpload' => 'system.js.confirm_install_upload',
+    'confirmRemoveMarketplace' => 'system.js.confirm_remove_marketplace',
+    'connected' => 'system.js.connected',
+    'dirRefreshed' => 'system.js.dir_refreshed',
+    'dropLabel' => 'system.js.drop_label',
+    'dropSublabel' => 'system.js.drop_sublabel',
+    'installFailedNetwork' => 'system.js.install_failed_network',
+    'licenseConfirm' => 'system.js.license_confirm',
+    'licenseLabel' => 'system.js.license_label',
+    'licensePlaceholder' => 'system.js.license_placeholder',
+    'licenseTitle' => 'system.js.license_title',
+    'nagDisabled' => 'system.js.nag_disabled',
+    'nagEnabled' => 'system.js.nag_enabled',
+    'networkErrorShort' => 'system.js.network_error_short',
+    'noVendor' => 'system.js.no_vendor',
+    'popupBlocked' => 'system.js.popup_blocked',
+    'tigerpassWelcome' => 'system.js.tigerpass_welcome',
+    'trustBody' => 'system.js.trust_body',
+    'trustChangedClause' => 'system.js.trust_changed_clause',
+    'trustConfirm' => 'system.js.trust_confirm',
+    'trustOnceClause' => 'system.js.trust_once_clause',
+    'trustTitle' => 'system.js.trust_title',
+    'trustTitleChanged' => 'system.js.trust_title_changed',
+    'uploadFailed' => 'system.js.upload_failed',
+]);
+?>
 <script src="<?= $this->asset($this->themeAssets . '/vendor/tiger-lightbox/tiger-lightbox.js') ?>"></script>
 <script src="<?= $this->asset($this->themeAssets . '/vendor/muuri/muuri.min.js') ?>"></script>
 <script src="<?= $this->asset($this->themeAssets . '/vendor/tiger-upload/tiger-upload.js') ?>"></script>
@@ -248,7 +277,7 @@ document.addEventListener('DOMContentLoaded', function () {
         (btn ? TigerButton.run(btn, task) : task()).then(function(res){
             if (res.result !== 1){ body.innerHTML = ''; (res.messages||[]).forEach(function(m){ TigerDOM.notify(body, m.message, { type: m.class, replace: false }); }); return; }
             renderDetail(Object.assign({}, res.data, { _extra: extra }));
-        }).catch(function(){ TigerDOM.notify(body, 'Network error.', { type: 'error' }); });
+        }).catch(function(){ TigerDOM.notify(body, Tiger.t('networkErrorShort'), { type: 'error' }); });
     }
 
     function renderDetail(d){
@@ -336,18 +365,16 @@ document.addEventListener('DOMContentLoaded', function () {
     // ---------- per-vendor paid buy flow (connect/pin → checkout popup → postMessage → installLicensed) ----------
     // One-time consent: fetch the vendor's key, show its fingerprint, pin it. Resolves true when trusted.
     function ensureVendor(vendor, name){
-        if (!vendor){ TigerDOM.notify(fb, 'This module declares no vendor to trust.', { type: 'error' }); return Promise.resolve(false); }
+        if (!vendor){ TigerDOM.notify(fb, Tiger.t('noVendor'), { type: 'error' }); return Promise.resolve(false); }
         return api('connectVendor', { vendor: vendor }).then(function(res){
             if (res.result !== 1){ (res.messages||[]).forEach(function(mm){ TigerDOM.notify(fb, mm.message, { type: mm.class }); }); return false; }
             var c = res.data;
             if (c.pinned && !c.changed){ return true; }   // already trusted, key unchanged
             return TigerModal.confirm({
-                title: c.changed ? 'This vendor’s key changed — re-confirm' : 'Trust this vendor?',
-                body: name + ' is sold by ' + vendor + '. Its code runs on your server, verified against key '
-                    + c.fingerprint + '. ' + (c.changed
-                        ? 'Its signing key CHANGED since you last trusted it — only continue if you expected this.'
-                        : 'You only do this once per vendor.'),
-                confirmLabel: 'Trust & continue', variant: c.changed ? 'danger' : 'primary'
+                title: c.changed ? Tiger.t('trustTitleChanged') : Tiger.t('trustTitle'),
+                body: Tiger.t('trustBody', name, vendor, c.fingerprint,
+                    c.changed ? Tiger.t('trustChangedClause') : Tiger.t('trustOnceClause')),
+                confirmLabel: Tiger.t('trustConfirm'), variant: c.changed ? 'danger' : 'primary'
             }).then(function(ok){
                 if (!ok){ return false; }
                 return api('pinVendor', { vendor: vendor }).then(function(r){
@@ -366,7 +393,7 @@ document.addEventListener('DOMContentLoaded', function () {
             (res.messages||[]).forEach(function(mm){ TigerDOM.notify(fb, mm.message, { type: mm.class }); });
             foot.innerHTML = '<button type="button" class="btn btn-outline-secondary" id="mod-retrykey"><i class="fa-solid fa-key me-1"></i>Try your key again</button>';
             var rk = document.getElementById('mod-retrykey'); if (rk){ rk.addEventListener('click', function(){ pasteKey(vendor, product, name); }); }
-        }).catch(function(){ TigerDOM.notify(fb, 'Install failed — network error.', { type: 'error' }); });
+        }).catch(function(){ TigerDOM.notify(fb, Tiger.t('installFailedNetwork'), { type: 'error' }); });
     }
 
     // Buy: pin (once) → open the seller's hosted checkout in a popup → auto-install on the postMessage
@@ -379,7 +406,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var url = checkout + (checkout.indexOf('?') < 0 ? '?' : '&') +
                 'product=' + encodeURIComponent(product) + '&origin=' + encodeURIComponent(location.origin);
             var pop = window.open(url, 'tigerbuy', 'width=540,height=760');
-            if (!pop){ TigerDOM.notify(fb, 'Your browser blocked the checkout window. Buy it in a new tab, then click “I have a key”.', { type: 'alert' }); return; }
+            if (!pop){ TigerDOM.notify(fb, Tiger.t('popupBlocked'), { type: 'alert' }); return; }
 
             var done = false;
             function stop(){ done = true; window.removeEventListener('message', onMsg); clearInterval(poll); }
@@ -411,8 +438,8 @@ document.addEventListener('DOMContentLoaded', function () {
         ensureVendor(vendor, name).then(function(trusted){
             if (!trusted){ return; }
             TigerModal.prompt({
-                title: 'Enter your license key', label: 'License key for ' + name,
-                placeholder: 'from your purchase (e.g. 019f88b1-…)', confirmLabel: 'Install'
+                title: Tiger.t('licenseTitle'), label: Tiger.t('licenseLabel', name),
+                placeholder: Tiger.t('licensePlaceholder'), confirmLabel: Tiger.t('licenseConfirm')
             }).then(function(key){
                 if (key === null){ return; }
                 key = String(key).trim(); if (!key){ return; }
@@ -438,7 +465,7 @@ document.addEventListener('DOMContentLoaded', function () {
             params: { module: 'system', service: 'modules', method: 'upload' }
         });
         up.fromInput(fileEl);
-        up.dropOnWindow({ label: 'Drop your module .zip', sublabel: 'unpacked into your modules folder', onDrop: showUploadTab });
+        up.dropOnWindow({ label: Tiger.t('dropLabel'), sublabel: Tiger.t('dropSublabel'), onDrop: showUploadTab });
         up.subscribe({
             onAdd: function (item) {
                 staged = item;
@@ -451,7 +478,7 @@ document.addEventListener('DOMContentLoaded', function () {
             onProgress: function (item) { prog.classList.remove('d-none'); progBar.style.width = item.percent + '%'; },
             onSuccess: function (item) { progBar.style.width = '100%'; window.location = item.redirect || '/system/modules'; },
             onError: function (item) {
-                fb.innerHTML = ''; TigerDOM.notify(fb, item.error || 'Upload failed — please try again.', { type: 'error' });
+                fb.innerHTML = ''; TigerDOM.notify(fb, item.error || Tiger.t('uploadFailed'), { type: 'error' });
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 prog.classList.add('d-none'); uploadBtn.disabled = false;
             },
@@ -460,8 +487,8 @@ document.addEventListener('DOMContentLoaded', function () {
         dropzone.addEventListener('click', function () { fileEl.click(); });
         dropzone.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileEl.click(); } });
         uploadBtn.addEventListener('click', function () {
-            if (!staged) { TigerDOM.notify(fb, 'Choose a .zip package to upload.', { type: 'alert' }); return; }
-            if (!confirm('Install this uploaded package? Its code will run in your app once active.')) { return; }
+            if (!staged) { TigerDOM.notify(fb, Tiger.t('chooseZip'), { type: 'alert' }); return; }
+            if (!confirm(Tiger.t('confirmInstallUpload'))) { return; }
             uploadBtn.disabled = true;
             up.start();
         });
@@ -560,7 +587,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (refreshEl){
         refreshEl.addEventListener('click', function(){
             TigerButton.run(this, function(){ return runSearch(true); })
-                .then(function(){ if (window.TigerDOM && TigerDOM.toast){ TigerDOM.toast('Directory refreshed.', { type:'success' }); } });
+                .then(function(){ if (window.TigerDOM && TigerDOM.toast){ TigerDOM.toast(Tiger.t('dirRefreshed'), { type:'success' }); } });
         });
     }
     function catList(m){ var c=m.category; return Array.isArray(c)?c:(c?[c]:[]); }
@@ -689,7 +716,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     input.classList.add('is-valid');
                     passHas = true;
                     passModal.hide();
-                    if (window.TigerDOM && TigerDOM.toast){ TigerDOM.toast('Welcome to TigerPASS — every premium module is unlocked.', { type:'success' }); }
+                    if (window.TigerDOM && TigerDOM.toast){ TigerDOM.toast(Tiger.t('tigerpassWelcome'), { type:'success' }); }
                     renderResults();     // flip every PASS card to a plain Install
                     renderBanner();      // banner disappears now that PASS is active
                     return;
@@ -757,7 +784,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     nagDisabled = !!(res.data.nag && res.data.nag.disabled);
                     nagShow = res.data.nag ? (res.data.nag.show !== false) : nagShow;
                     renderBanner();
-                    if (window.TigerDOM && TigerDOM.toast){ TigerDOM.toast(on ? 'TigerPASS nag alert disabled.' : 'TigerPASS nag alert enabled.', { type:'success' }); }
+                    if (window.TigerDOM && TigerDOM.toast){ TigerDOM.toast(on ? Tiger.t('nagDisabled') : Tiger.t('nagEnabled'), { type:'success' }); }
                 } else {
                     passNagToggle.checked = !on;   // revert on failure
                     (res.messages||[]).forEach(function(m){ TigerDOM.notify(fb, m.message, { type: m.class }); });
@@ -804,7 +831,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         srcList.querySelectorAll('[data-src-remove]').forEach(function(el){
             el.addEventListener('click', function(){
-                if (!confirm('Remove this marketplace? Modules already installed from it stay installed.')) return;
+                if (!confirm(Tiger.t('confirmRemoveMarketplace'))) return;
                 api('removeSource', { id: el.getAttribute('data-src-remove') }).then(handleSrcResp);
             });
         });
@@ -833,12 +860,12 @@ document.addEventListener('DOMContentLoaded', function () {
                   if (res.result === 1){
                       document.getElementById('src-label').value=''; document.getElementById('src-url').value='';
                       renderSources(res.data.sources);
-                      TigerDOM.notify(fbSrc, (res.messages && res.messages[0] && res.messages[0].message) || 'Connected.', { type:'success' });
+                      TigerDOM.notify(fbSrc, (res.messages && res.messages[0] && res.messages[0].message) || Tiger.t('connected'), { type:'success' });
                       if (searchEl && typeof runSearch === 'function'){ runSearch(true); }   // pull the new source into Browse
                   } else {
                       (res.messages||[]).forEach(function(m){ TigerDOM.notify(fbSrc, m.message, { type:m.class }); });
                   }
-              }).catch(function(){ TigerDOM.notify(fbSrc, 'Network error.', { type:'error' }); });
+              }).catch(function(){ TigerDOM.notify(fbSrc, Tiger.t('networkErrorShort'), { type:'error' }); });
         });
     }
 });
