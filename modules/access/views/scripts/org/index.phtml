@@ -6,6 +6,15 @@
  * datatable). Server-side search/sort/paginate + a Status filter toolbar. Action
  * controls render off per-row ACL flags; you can't delete the org you're acting in.
  */
+// Localized strings this page's JS references — delivered via the carrier + tiger.i18n.js, not inline.
+$this->i18n([
+    'searchOrgs'    => 'access.js.search_orgs',
+    'edit'          => 'access.js.edit',
+    'del'           => 'access.js.delete',
+    'orgNoDelete'   => 'access.js.org_no_delete',
+    'confirmDelOrg' => 'access.js.confirm_delete_org',
+    'parentRoot'    => 'access.js.parent_root',
+]);
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
@@ -65,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var table = tigerDataTable('#access-org-table', {
         service: { module: 'access', service: 'org', action: 'datatable' },
         order: [[0, 'asc']],
-        language: { search: '', searchPlaceholder: 'Search name / slug…' },
+        language: { search: '', searchPlaceholder: Tiger.t('searchOrgs') },
         extraData: function () { return { status: fStatus.value }; },
         columns: [
             { data: 'name', render: function (t, type, row) {
@@ -77,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function () {
             } },
             { data: 'parent', render: function (t, type) {
                 if (type !== 'display') { return t; }
-                return t ? esc(t) : '<span class="text-body-secondary">— root —</span>';
+                return t ? esc(t) : '<span class="text-body-secondary">' + esc(Tiger.t('parentRoot')) + '</span>';
             } },
             { data: 'member_count', render: function (t, type) {
                 return type !== 'display' ? t : '<span class="badge rounded-pill text-bg-secondary">' + (parseInt(t, 10) || 0) + '</span>';
@@ -89,12 +98,12 @@ document.addEventListener('DOMContentLoaded', function () {
             { data: null, orderable: false, searchable: false, className: 'text-end text-nowrap', render: function (t, type, row) {
                 var html = '';
                 if (row.can_edit) {
-                    html += '<a href="/access/org/edit/id/' + encodeURIComponent(row.org_id) + '" class="btn btn-sm btn-outline-secondary" title="Edit" aria-label="Edit"><i class="fa-solid fa-pen"></i></a> ';
+                    html += '<a href="/access/org/edit/id/' + encodeURIComponent(row.org_id) + '" class="btn btn-sm btn-outline-secondary" title="' + esc(Tiger.t('edit')) + '" aria-label="' + esc(Tiger.t('edit')) + '"><i class="fa-solid fa-pen"></i></a> ';
                 }
                 if (row.can_delete) {
-                    html += '<button type="button" class="btn btn-sm btn-outline-danger" data-org-delete="' + esc(row.org_id) + '" title="Delete" aria-label="Delete"><i class="fa-solid fa-trash"></i></button>';
+                    html += '<button type="button" class="btn btn-sm btn-outline-danger" data-org-delete="' + esc(row.org_id) + '" title="' + esc(Tiger.t('del')) + '" aria-label="' + esc(Tiger.t('del')) + '"><i class="fa-solid fa-trash"></i></button>';
                 } else {
-                    html += '<button type="button" class="btn btn-sm btn-outline-danger" disabled title="Your active organization can\'t be deleted" aria-label="Your active organization can\'t be deleted"><i class="fa-solid fa-trash"></i></button>';
+                    html += '<button type="button" class="btn btn-sm btn-outline-danger" disabled title="' + esc(Tiger.t('orgNoDelete')) + '" aria-label="' + esc(Tiger.t('orgNoDelete')) + '"><i class="fa-solid fa-trash"></i></button>';
                 }
                 return html || '<span class="text-body-secondary">—</span>';
             } }
@@ -105,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function () {
     $('#access-org-clear').on('click', function () { fStatus.value = ''; table.ajax.reload(); });
 
     $('#access-org-table tbody').on('click', '[data-org-delete]', function () {
-        if (!confirm('Delete this organization? It is soft-deleted and can be recovered.')) { return; }
+        if (!confirm(Tiger.t('confirmDelOrg'))) { return; }
         var btn  = this;
         var body = new URLSearchParams({ module: 'access', service: 'org', method: 'delete', org_id: btn.getAttribute('data-org-delete') });
         TigerButton.run(btn, function () {

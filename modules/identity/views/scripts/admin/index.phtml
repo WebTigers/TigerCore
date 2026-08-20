@@ -10,6 +10,12 @@
 $form = $this->form;
 $el   = function ($name) use ($form) { return $form->getElement($name); };
 $va   = $this->themeAssets;
+// Localized strings this page's JS references — delivered via the carrier + tiger.i18n.js, not inline.
+$this->i18n([
+    'saved'        => 'identity.js.saved',
+    'fixFields'    => 'identity.js.fix_fields',
+    'networkError' => 'identity.js.network_error',
+]);
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
@@ -107,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(function (r) { return r.json().catch(function () { return {}; }); });
         })
             .then(function (res) {
-                if (res && res.result === 1) { TigerDOM.notify(fb, 'Site identity saved.', { type: 'success' }); return; }
+                if (res && res.result === 1) { TigerDOM.notify(fb, Tiger.t('saved'), { type: 'success' }); return; }
                 if (res && res.form) {
                     Object.keys(res.form).forEach(function (field) {
                         var input = form.querySelector('[name="' + field + '"]');
@@ -116,9 +122,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 var msgs = (res && res.messages) || [];
                 if (msgs.length) { msgs.forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class, replace: false }); }); }
-                else { TigerDOM.notify(fb, 'Please fix the highlighted fields.', { type: 'error' }); }
+                else { TigerDOM.notify(fb, Tiger.t('fixFields'), { type: 'error' }); }
             })
-            .catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+            .catch(function () { TigerDOM.notify(fb, Tiger.t('networkError'), { type: 'error' }); });
     });
 });
 </script>

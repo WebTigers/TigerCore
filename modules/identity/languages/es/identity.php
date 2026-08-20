@@ -34,4 +34,9 @@ return [
     'identity.social.linkedin'  => 'LinkedIn',
     'identity.social.youtube'   => 'YouTube',
     'identity.social.github'    => 'GitHub',
+
+    // JS-facing strings (registered via $this->i18n, resolved by Tiger.t)
+    'identity.js.saved'         => 'Identidad del sitio guardada.',
+    'identity.js.fix_fields'    => 'Corrige los campos resaltados.',
+    'identity.js.network_error' => 'Error de red: inténtalo de nuevo.',
 ];

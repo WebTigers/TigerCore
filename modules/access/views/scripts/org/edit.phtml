@@ -10,6 +10,11 @@ $form   = $this->form;
 $org    = $this->org;
 $isEdit = (bool) $org;
 $el = function ($name) use ($form) { return $form->getElement($name); };
+// Localized strings this page's JS references — delivered via the carrier + tiger.i18n.js, not inline.
+$this->i18n([
+    'fixFields'    => 'access.js.fix_fields',
+    'networkError' => 'access.js.network_error',
+]);
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
@@ -83,10 +88,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 var msgs = (res.messages) || [];
                 if (msgs.length) { fb.innerHTML = ''; msgs.forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class, replace: false }); }); }
-                else { TigerDOM.notify(fb, 'Please fix the highlighted fields and try again.', { type: 'error' }); }
+                else { TigerDOM.notify(fb, Tiger.t('fixFields'), { type: 'error' }); }
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             })
-            .catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+            .catch(function () { TigerDOM.notify(fb, Tiger.t('networkError'), { type: 'error' }); });
     });
 });
 </script>

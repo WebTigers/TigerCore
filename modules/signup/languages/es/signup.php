@@ -41,4 +41,11 @@ return [
     'signup.verify.action.signin'  => 'Iniciar sesión',
     'signup.verify.invalid.body'   => 'Este enlace de verificación no es válido o ha caducado. Puedes registrarte de nuevo o contactar con soporte si ya te registraste.',
     'signup.verify.action.back'    => 'Volver al registro',
+
+    // JS-facing strings (registered via $this->i18n, resolved by Tiger.t)
+    'signup.js.verify_sent'   => '<strong>Ya casi está.</strong> Te enviamos un enlace de verificación para activar tu cuenta: haz clic en él y luego inicia sesión.',
+    'signup.js.fix_fields'    => 'Corrige los campos resaltados.',
+    'signup.js.check_field'   => 'Revisa este campo.',
+    'signup.js.went_wrong'    => 'Algo salió mal. Inténtalo de nuevo.',
+    'signup.js.network_error' => 'Error de red: inténtalo de nuevo.',
 ];

@@ -83,4 +83,7 @@ return [
     'backup.restore_modal.confirm_label' => 'Escribe <code>RESTORE</code> para confirmar',
     'backup.action.cancel'               => 'Cancelar',
     'backup.action.restore_now'          => 'Restaurar ahora',
+    'backup.js.select_component'     => 'Selecciona al menos un componente.',
+    'backup.js.confirm_delete_named' => '¿Eliminar %s? Esto quita el archivo de forma permanente.',
+    'backup.js.choose_zip'           => 'Elige primero un archivo .zip.',
 ];

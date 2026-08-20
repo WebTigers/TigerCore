@@ -53,6 +53,8 @@ $_lang = defined('LANG') ? LANG : 'en';
     <script src="<?= $this->asset($this->themeAssets . '/js/tiger.password-strength.js') ?>"></script>
     <script src="<?= $this->asset($this->themeAssets . '/js/tiger.address.js') ?>"></script>
     <script src="<?= $this->asset($this->themeAssets . '/js/tiger.prefs.js') ?>"></script>
+<?= $this->i18n() ?><?php /* per-page localized-strings carrier (only what this page's JS references) */ ?>
+<script src="<?= $this->asset($this->themeAssets . '/js/tiger.i18n.js') ?>"></script>
 <?= $this->pageScripts ?? '' ?><?php /* per-page scripts a view registered via $this->pageScript() */ ?>
 </body>
 </html>

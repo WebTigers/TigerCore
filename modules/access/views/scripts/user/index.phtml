@@ -7,6 +7,15 @@
  * toolbar via the tigerDataTable extraData hook. Action controls render off per-row
  * ACL flags (can_edit / can_delete); you can't delete your own account.
  */
+// Localized strings this page's JS references — delivered via the carrier + tiger.i18n.js, not inline.
+$this->i18n([
+    'searchUsers'    => 'access.js.search_users',
+    'edit'           => 'access.js.edit',
+    'del'            => 'access.js.delete',
+    'deleteSelf'     => 'access.js.delete_self',
+    'notPermitted'   => 'access.js.not_permitted',
+    'confirmDelUser' => 'access.js.confirm_delete_user',
+]);
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
@@ -66,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var table = tigerDataTable('#access-user-table', {
         service: { module: 'access', service: 'user', action: 'datatable' },
         order: [[5, 'desc']],
-        language: { search: '', searchPlaceholder: 'Search email / username…' },
+        language: { search: '', searchPlaceholder: Tiger.t('searchUsers') },
         extraData: function () { return { status: fStatus.value }; },
         columns: [
             { data: 'email', render: function (t, type, row) {
@@ -94,12 +103,13 @@ document.addEventListener('DOMContentLoaded', function () {
             { data: null, orderable: false, searchable: false, className: 'text-end text-nowrap', render: function (t, type, row) {
                 var html = '';
                 if (row.can_edit) {
-                    html += '<a href="/access/user/edit/id/' + encodeURIComponent(row.user_id) + '" class="btn btn-sm btn-outline-secondary" title="Edit" aria-label="Edit"><i class="fa-solid fa-pen"></i></a> ';
+                    html += '<a href="/access/user/edit/id/' + encodeURIComponent(row.user_id) + '" class="btn btn-sm btn-outline-secondary" title="' + esc(Tiger.t('edit')) + '" aria-label="' + esc(Tiger.t('edit')) + '"><i class="fa-solid fa-pen"></i></a> ';
                 }
                 if (row.can_delete) {
-                    html += '<button type="button" class="btn btn-sm btn-outline-danger" data-user-delete="' + esc(row.user_id) + '" title="Delete" aria-label="Delete"><i class="fa-solid fa-trash"></i></button>';
+                    html += '<button type="button" class="btn btn-sm btn-outline-danger" data-user-delete="' + esc(row.user_id) + '" title="' + esc(Tiger.t('del')) + '" aria-label="' + esc(Tiger.t('del')) + '"><i class="fa-solid fa-trash"></i></button>';
                 } else {
-                    html += '<button type="button" class="btn btn-sm btn-outline-danger" disabled title="' + (row.is_self ? 'You cannot delete yourself' : 'Not permitted') + '" aria-label="' + (row.is_self ? 'You cannot delete yourself' : 'Not permitted') + '"><i class="fa-solid fa-trash"></i></button>';
+                    var noDel = esc(row.is_self ? Tiger.t('deleteSelf') : Tiger.t('notPermitted'));
+                    html += '<button type="button" class="btn btn-sm btn-outline-danger" disabled title="' + noDel + '" aria-label="' + noDel + '"><i class="fa-solid fa-trash"></i></button>';
                 }
                 return html || '<span class="text-body-secondary">—</span>';
             } }
@@ -110,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function () {
     $('#access-user-clear').on('click', function () { fStatus.value = ''; table.ajax.reload(); });
 
     $('#access-user-table tbody').on('click', '[data-user-delete]', function () {
-        if (!confirm('Delete this user? They are soft-deleted and can be recovered.')) { return; }
+        if (!confirm(Tiger.t('confirmDelUser'))) { return; }
         var btn  = this;
         var body = new URLSearchParams({ module: 'access', service: 'user', method: 'delete', user_id: btn.getAttribute('data-user-delete') });
         TigerButton.run(btn, function () {

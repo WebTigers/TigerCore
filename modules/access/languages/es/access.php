@@ -78,4 +78,18 @@ return [
     'access.org.slug_required'   => 'Se requiere un identificador (o proporciona un nombre para derivarlo).',
     'access.org.parent_self'     => 'Una organización no puede ser su propio padre.',
     'access.org.no_self_delete'  => 'No puedes eliminar la organización en la que estás actuando.',
+
+    // --- JS-facing strings (registered via $this->i18n, resolved by Tiger.t) ---
+    'access.js.search_orgs'         => 'Buscar nombre / identificador…',
+    'access.js.search_users'        => 'Buscar correo electrónico / nombre de usuario…',
+    'access.js.edit'                => 'Editar',
+    'access.js.delete'              => 'Eliminar',
+    'access.js.org_no_delete'       => 'No se puede eliminar tu organización activa',
+    'access.js.delete_self'         => 'No puedes eliminarte a ti mismo',
+    'access.js.not_permitted'       => 'No permitido',
+    'access.js.confirm_delete_org'  => '¿Eliminar esta organización? Se elimina de forma reversible y se puede recuperar.',
+    'access.js.confirm_delete_user' => '¿Eliminar este usuario? Se elimina de forma reversible y se puede recuperar.',
+    'access.js.fix_fields'          => 'Corrige los campos resaltados e inténtalo de nuevo.',
+    'access.js.network_error'       => 'Error de red: inténtalo de nuevo.',
+    'access.js.parent_root'         => '— raíz —',
 ];
