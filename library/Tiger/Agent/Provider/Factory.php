@@ -69,6 +69,24 @@ class Tiger_Agent_Provider_Factory
         ],
     ];
 
+    /** @var Tiger_Agent_Provider_Adapter|null a test-injected adapter that make() returns for every key. */
+    protected static $_override = null;
+
+    /**
+     * Force make() to return a given adapter, bypassing the roster — a TEST SEAM. The agent loop's one
+     * provider call (`Tiger_Agent_Loop::_step` → `make($provider)->complete(...)`) is otherwise
+     * un-stubbable, so a full turn can't be driven deterministically. This is the same pattern as
+     * `Tiger_Mail::setDefaultTransport` (give CI a seam past an external dependency). Pass null to clear;
+     * always clear it in a test's tearDown so it can't leak into another test.
+     *
+     * @param  Tiger_Agent_Provider_Adapter|null $adapter the double to return, or null to restore normal resolution
+     * @return void
+     */
+    public static function setAdapter($adapter = null)
+    {
+        self::$_override = $adapter;
+    }
+
     /**
      * Build the adapter for a provider key.
      *
@@ -77,6 +95,7 @@ class Tiger_Agent_Provider_Factory
      */
     public static function make($provider)
     {
+        if (self::$_override !== null) { return self::$_override; }
         $spec  = self::PROVIDERS[$provider] ?? self::PROVIDERS['anthropic'];
         $class = $spec['adapter'];
         return new $class();
