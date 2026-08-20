@@ -15,10 +15,10 @@
  *
  * Resolution precedence (first match wins), then the choice is persisted to the
  * `locale` cookie so it sticks (matches AskLevi):
- *   1. URL prefix  /xx/            explicit for THIS navigation; also updates the cookie
- *   2. signed-in user's locale     user.locale — an ACCOUNT choice beats a device cookie,
- *                                  so a logged-in user's language follows them across devices
- *   3. `locale` cookie             the last explicit choice (UI switcher or a prior URL)
+ *   1. URL prefix  /xx/            explicit for THIS navigation; the hard source of truth
+ *   2. `locale` cookie             the last EXPLICIT selection (UI switcher or a prior /xx/ URL)
+ *   3. signed-in user's locale     user.locale — a personalized FALLBACK across devices; a SUGGESTION,
+ *                                  never a mandate: it can't override an explicit URL/cookie choice
  *   4. browser Accept-Language     the first-visit default
  *   5. configured default          tiger.i18n.default, else the first supported language
  *
@@ -72,19 +72,21 @@ class Tiger_Controller_Plugin_LocalePrefix extends Zend_Controller_Plugin_Abstra
             $request->setPathInfo($m[2] !== '' ? $m[2] : '/');
         }
 
-        // 2. The signed-in user's stored preference — an account choice beats a device cookie
-        //    (it follows them across devices). An explicit /xx/ URL above still wins for THIS
-        //    navigation. Guests have no row and fall straight through to the cookie.
-        if ($lang === null) {
-            $lang = $this->_fromUser();
-        }
-
-        // 3. cookie (the persisted last explicit choice).
+        // 2. cookie — the last EXPLICIT language selection (the header switcher writes it; a prior /xx/
+        //    visit does too). An explicit choice on THIS device wins over a stored account preference —
+        //    picking a language in the UI must actually take effect, even when signed in.
         if ($lang === null && isset($_COOKIE['locale']) && in_array($_COOKIE['locale'], $this->_supported, true)) {
             $lang = $_COOKIE['locale'];
         }
 
-        // 3. browser Accept-Language, then 4. the configured default.
+        // 3. the signed-in user's stored locale — a personalized FALLBACK: their language follows them
+        //    across devices ONLY when they haven't explicitly chosen one here (no /xx/ URL, no cookie).
+        //    It's a suggestion, never a mandate — it can't override the explicit choices above.
+        if ($lang === null) {
+            $lang = $this->_fromUser();
+        }
+
+        // 4. browser Accept-Language, then 5. the configured default.
         if ($lang === null) {
             $lang = $this->_fromBrowser() ?? $this->_default;
         }
@@ -116,7 +118,8 @@ class Tiger_Controller_Plugin_LocalePrefix extends Zend_Controller_Plugin_Abstra
     /**
      * The signed-in user's stored locale (`user.locale`) if it's a supported language, else null.
      *
-     * Read at routeStartup so a logged-in user's account language outranks a device cookie. Fully
+     * A personalized FALLBACK, resolved only after the URL + cookie: it fills in a signed-in user's
+     * language when they haven't explicitly chosen one here, never overriding an explicit choice. Fully
      * guarded + graceful: no identity (guest), no row, or an unsupported/blank value all yield null,
      * and the DB lookup can never break routing. It's one indexed PK read per authenticated dynamic
      * request — cheap; if it ever matters, cache the locale on the auth identity at login instead.
