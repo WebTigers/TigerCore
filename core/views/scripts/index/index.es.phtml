@@ -1,0 +1,40 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * Public home page — a deliberately minimal Tiger placeholder for now (the full home gets designed
+ * later). Rendered inside the PUMA public layout; Bootstrap + --bs-* tokens, so it restyles live with
+ * the theme (light/dark) and the active skin. The real marketing lives on the Solutions pages
+ * (/cms, /vibe, /agency, /developers, …) reachable from the header menu.
+ */
+$this->title = 'Tiger — Deja de crear apps. Empieza a lanzar negocios. · La plataforma SaaS nativa de IA';
+?>
+<section class="py-5">
+    <div class="container">
+        <div class="text-center py-lg-5" style="max-width: 760px; margin: 0 auto;">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-primary-subtle text-primary mb-4" style="width:84px;height:84px;">
+                <i class="fa-solid fa-paw" style="font-size:2.5rem;"></i>
+            </div>
+            <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+                La plataforma SaaS nativa de IA
+            </span>
+            <h1 class="display-4 fw-bold mb-3">Deja de crear apps. Empieza a lanzar negocios.</h1>
+            <p class="lead text-secondary mb-4">
+                Dile a tu IA lo que quieres vender — libros, membresías, merch, una tienda completa — y Tiger
+                lanza un negocio real que es tuyo al <strong>100%</strong>. En línea en minutos. Sin el
+                infierno de los plugins, sin paso de compilación, sin GPL — agnóstico del front-end, y hecho
+                para que tu IA lo extienda.
+            </p>
+            <div class="d-flex flex-wrap gap-2 justify-content-center">
+                <a href="https://github.com/WebTigers/Tiger" class="btn btn-primary btn-lg px-4" target="_blank" rel="noopener">
+                    <i class="fa-brands fa-github me-2"></i>Comienza ya
+                </a>
+                <a href="/docs" class="btn btn-outline-secondary btn-lg px-4">Lee la documentación</a>
+            </div>
+            <p class="small text-secondary mt-4 mb-0">
+                <i class="fa-solid fa-arrow-up me-1"></i>
+                Descubre para qué sirve Tiger en <strong>Soluciones</strong>, en el menú.
+            </p>
+        </div>
+    </div>
+</section>

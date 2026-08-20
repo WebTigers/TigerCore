@@ -1,0 +1,114 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /agency — the agency story: one client or a hundred, run from a single back office. Rendered
+ * inside the PUMA public layout; Bootstrap + --bs-* tokens (restyles live with theme + skin).
+ * Shipped marketing.
+ */
+$this->title = 'Ideal para agencias — aloja cientos de sitios de clientes | Tiger';
+
+$benefits = [
+    ['fa-diagram-project', 'Una instalación, muchos clientes', 'Cada cliente es una organización sobre la misma plataforma: datos aislados, sus propios usuarios y roles, su propio tema y contenido. Sumas un cliente, no un servidor.'],
+    ['fa-gauge-high',      'Arranca cada proyecto al instante', 'Cliente nuevo el lunes, un sitio multiinquilino funcionando ese mismo día. Sáltate todo el andamiaje de autenticación, roles y CMS que rehaces en cada proyecto y ve directo a lo que el cliente te pidió.'],
+    ['fa-palette',         'Marca blanca por cliente',     'El tema y el skin se resuelven por organización, así que cada cliente ve su marca, no la tuya ni una plantilla genérica. Cambia el look en vivo, sin volver a desplegar.'],
+    ['fa-user-shield',     'Acceso acotado, sin riesgos',  'ACL con denegación por defecto y roles en la membresía. Le das a un cliente acceso a su organización y a nada más; sumas a un compañero como manager aquí, como viewer allá.'],
+    ['fa-server',          'Corre donde tú alojas',        'cPanel, un VPS de $5 o una flota detrás de un balanceador de carga: cero paso de compilación, huella mínima. Aloja cientos de sitios sin que la factura del hosting se coma el margen.'],
+    ['fa-sliders',         'Config en vivo, sin despliegues', 'Cambia la configuración, los textos o la marca de un cliente desde el admin: las capas de config y traducción se sobreescriben en tiempo de solicitud, así que los ajustes llegan sin necesidad de una nueva versión.'],
+];
+?>
+<!-- Hero -->
+<section class="py-5">
+    <div class="container text-center py-lg-5">
+        <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+            <i class="fa-solid fa-people-group me-1"></i> Para agencias y freelancers
+        </span>
+        <h1 class="display-4 fw-bold mb-3">Un cliente, o cien.</h1>
+        <p class="lead text-secondary mx-auto mb-4" style="max-width: 720px;">
+            Tiger es multiinquilino hasta la médula, así que una sola instalación corre todos los sitios
+            de tus clientes: cada uno aislado, con marca blanca y gestionado desde una misma oficina
+            central. Arranca cada proyecto al instante y quédate con el margen que antes se comía el hosting.
+        </p>
+        <div class="d-flex flex-wrap gap-2 justify-content-center">
+            <a href="/signup" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-arrow-right-to-bracket me-2"></i>Comienza ya</a>
+            <a href="/docs" class="btn btn-outline-secondary btn-lg px-4">Lee la documentación</a>
+        </div>
+    </div>
+</section>
+
+<!-- One client / many clients framing -->
+<section class="pb-2">
+    <div class="container">
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-5">
+                <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="fa-solid fa-user text-primary fs-2 mb-3"></i>
+                        <h2 class="h5 fw-bold">En solitario y un solo cliente</h2>
+                        <p class="text-secondary small mb-0">
+                            Levanta un sitio pulido y seguro para un cliente sin cablear autenticación, roles
+                            y un CMS desde cero. Todo viene incluido: te enfocas en su proyecto, no en el andamiaje.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="fa-solid fa-city text-primary fs-2 mb-3"></i>
+                        <h2 class="h5 fw-bold">Muchos clientes, a escala</h2>
+                        <p class="text-secondary small mb-0">
+                            Corre toda tu cartera sobre una sola plataforma: cada cliente es un inquilino aislado
+                            con sus propios usuarios, roles, tema y contenido, todo desde un mismo admin. Sumas al
+                            siguiente cliente en minutos.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Benefits grid -->
+<section id="features" class="py-5 mt-4" style="background: var(--bs-tertiary-bg);">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">Hecho para la forma en que las agencias trabajan de verdad</h2>
+            <p class="text-secondary mb-0">Inquilinos aislados, marca blanca, config en vivo: sin rehacer nada por cada cliente.</p>
+        </div>
+        <div class="row g-4">
+<?php foreach ($benefits as $b): ?>
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary-emphasis mb-3" style="width:48px;height:48px;">
+                            <i class="fa-solid <?= $b[0] ?> fs-5"></i>
+                        </div>
+                        <h3 class="h6 fw-semibold"><?= $this->escape($b[1]) ?></h3>
+                        <p class="small text-secondary mb-0"><?= $this->escape($b[2]) ?></p>
+                    </div>
+                </div>
+            </div>
+<?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="py-5">
+    <div class="container">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="fw-bold mb-3">Convierte a tu próximo cliente en un inquilino</h2>
+                <p class="text-secondary mb-4">Un solo comando levanta una plataforma multiinquilino funcionando, con tema y lista para crecer.</p>
+                <div class="bg-body-tertiary border rounded-3 d-inline-block px-4 py-3 mb-4 text-start font-monospace small">
+                    <span class="text-secondary">$</span> composer create-project webtigers/tiger my-agency<br>
+                    <span class="text-secondary">$</span> cd my-agency &amp;&amp; vendor/bin/tiger install:admin
+                </div>
+                <div>
+                    <a href="/signup" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-arrow-right-to-bracket me-2"></i>Crea tu cuenta</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

@@ -115,6 +115,31 @@ class IndexController extends Zend_Controller_Action
         // view: index/get-tiger.phtml
     }
 
+    /**
+     * Locale-aware marketing views. The shipped marketing pages are long-form content the view owns, so
+     * they're not string-keyed (I18N.md) — instead a whole translated view ships alongside the English one:
+     * `index/<action>.<lang>.phtml`. When the active locale has such a variant, render it instead of the
+     * English default — so `/es/vibe` serves `index/vibe.es.phtml`. English (or a missing variant) falls
+     * through to `index/<action>.phtml` unchanged. Runs before the ViewRenderer's auto-render.
+     *
+     * @return void
+     */
+    public function postDispatch()
+    {
+        $lang = defined('LANG') ? (string) LANG : 'en';
+        if ($lang === '' || $lang === 'en') { return; }
+
+        $action  = $this->getRequest()->getActionName();
+        $variant = 'index/' . $action . '.' . $lang . '.phtml';
+        if ($this->view->getScriptPath($variant)) {
+            // Render the exact script — NOT setScriptAction(): ZF1's inflector rewrites a dotted action
+            // ("vibe.es" → "vibe-es"), so the auto-render would look for the wrong file and 500.
+            $vr = $this->_helper->getHelper('viewRenderer');
+            $vr->setNoRender(true);
+            $vr->renderScript($variant);
+        }
+    }
+
     /** The configured home-page id (tiger.site.home_page), or '' for the built-in landing. */
     protected function _homePageId()
     {
