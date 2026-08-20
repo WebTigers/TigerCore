@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**182 classes** across **32 capabilities** · **18 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**183 classes** across **32 capabilities** · **18 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -257,6 +257,7 @@
 - **Tiger_View_Helper_Asset** `@api` — cache-busting asset URLs.  ·  `library/Tiger/View/Helper/Asset.php`
 - **Tiger_View_Helper_CodeInject** `@api` — emit Tiger Code's client tier into the page.  ·  `library/Tiger/View/Helper/CodeInject.php`
 - **Tiger_View_Helper_FormRecaptcha** `@api` — renders the Google reCAPTCHA widget.  ·  `library/Tiger/View/Helper/FormRecaptcha.php`
+- **Tiger_View_Helper_I18n** `@api` — hand the page's JS ONLY the localized strings it needs, WITHOUT an inline `<script>` blob.  ·  `library/Tiger/View/Helper/I18n.php`
 - **Tiger_View_Helper_MediaField** `@api` — a form field that picks media via TigerMediaPicker.  ·  `library/Tiger/View/Helper/MediaField.php`
 - **Tiger_View_Helper_Menu** `@api` — render a custom menu in a view: `<?= $this->menu('primary') ?>`.  ·  `library/Tiger/View/Helper/Menu.php`
 - **Tiger_View_Helper_PageField** `@api` — read a custom field value (Tiger_Fields) from a page on the front end.  ·  `library/Tiger/View/Helper/PageField.php`
