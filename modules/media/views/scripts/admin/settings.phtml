@@ -12,25 +12,25 @@ $s = $this->storage;   // storage prefill (no secrets — only has_key/has_secre
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1">Media Settings</h1>
-        <p class="text-body-secondary mb-0">How uploaded files are named and where they're stored. <span class="badge text-bg-light">this organization</span></p>
+        <h1 class="h3 mb-1"><?= $this->t('media.settings.title') ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('media.settings.subtitle') ?> <span class="badge text-bg-light"><?= $this->t('media.settings.scope_badge') ?></span></p>
     </div>
 </div>
 
 <ul class="nav nav-tabs mb-4" id="media-settings-tabs" role="tablist">
     <li class="nav-item" role="presentation">
         <button class="nav-link active" id="tab-filenames" data-bs-toggle="tab" data-bs-target="#pane-filenames" type="button" role="tab">
-            <i class="fa-solid fa-signature me-2"></i>Filenames
+            <i class="fa-solid fa-signature me-2"></i><?= $this->t('media.settings.tab.filenames') ?>
         </button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="tab-storage" data-bs-toggle="tab" data-bs-target="#pane-storage" type="button" role="tab">
-            <i class="fa-solid fa-cloud me-2"></i>Storage
+            <i class="fa-solid fa-cloud me-2"></i><?= $this->t('media.settings.tab.storage') ?>
         </button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="tab-migration" data-bs-toggle="tab" data-bs-target="#pane-migration" type="button" role="tab">
-            <i class="fa-solid fa-truck-fast me-2"></i>Migration
+            <i class="fa-solid fa-truck-fast me-2"></i><?= $this->t('media.settings.tab.migration') ?>
         </button>
     </li>
 </ul>
@@ -45,26 +45,22 @@ $s = $this->storage;   // storage prefill (no secrets — only has_key/has_secre
                 <div class="col-lg-8">
                     <div class="card">
                         <div class="card-header d-flex align-items-center justify-content-between">
-                            <span class="fw-semibold"><i class="fa-solid fa-signature me-2"></i>Filename obfuscation</span>
-                            <button type="button" id="media-settings-save" class="btn btn-primary btn-sm"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+                            <span class="fw-semibold"><i class="fa-solid fa-signature me-2"></i><?= $this->t('media.settings.filenames.card') ?></span>
+                            <button type="button" id="media-settings-save" class="btn btn-primary btn-sm"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->t('media.action.save') ?></button>
                         </div>
                         <div class="card-body">
                             <p class="text-body-secondary small mb-4">
-                                Every file is stored under a tenant-isolated, random-suffixed key, so names never collide and can't be guessed by counting.
-                                <strong>Obfuscate&nbsp;=&nbsp;Yes</strong> uses a fully random name — nothing about the original filename appears anywhere.
-                                <strong>Obfuscate&nbsp;=&nbsp;No</strong> keeps a readable, slugified version of the original name in the storage path and URL
-                                (friendlier for SEO and recognizable links), e.g. <code>annual-report-a1b2c3d4.pdf</code>. This applies to <em>new</em> uploads;
-                                existing files keep their names.
+                                <?= $this->t('media.settings.filenames.help') ?>
                             </p>
                             <div class="mb-4">
-                                <label class="form-label fw-semibold" for="media-obf-public"><i class="fa-solid fa-globe me-2 text-success"></i>Public files</label>
+                                <label class="form-label fw-semibold" for="media-obf-public"><i class="fa-solid fa-globe me-2 text-success"></i><?= $this->t('media.settings.filenames.public_label') ?></label>
                                 <?= $this->form->getElement('obfuscate_public') ?>
-                                <div class="form-text">Public files get a shareable, cacheable URL — <strong>readable</strong> is usually best.</div>
+                                <div class="form-text"><?= $this->t('media.settings.filenames.public_help') ?></div>
                             </div>
                             <div class="mb-0">
-                                <label class="form-label fw-semibold" for="media-obf-private"><i class="fa-solid fa-lock me-2 text-secondary"></i>Private files</label>
+                                <label class="form-label fw-semibold" for="media-obf-private"><i class="fa-solid fa-lock me-2 text-secondary"></i><?= $this->t('media.settings.filenames.private_label') ?></label>
                                 <?= $this->form->getElement('obfuscate_private') ?>
-                                <div class="form-text">Private files stream through an opaque link — <strong>obfuscated</strong> is usually best.</div>
+                                <div class="form-text"><?= $this->t('media.settings.filenames.private_help') ?></div>
                             </div>
                         </div>
                     </div>
@@ -80,27 +76,25 @@ $s = $this->storage;   // storage prefill (no secrets — only has_key/has_secre
             <div class="col-lg-8">
                 <div class="card mb-4">
                     <div class="card-header d-flex align-items-center justify-content-between">
-                        <span class="fw-semibold"><i class="fa-solid fa-cloud me-2"></i>Cloud storage</span>
+                        <span class="fw-semibold"><i class="fa-solid fa-cloud me-2"></i><?= $this->t('media.settings.storage.card') ?></span>
                         <div class="text-nowrap">
-                            <button type="button" id="media-storage-test" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-plug-circle-check me-2"></i>Test connection</button>
-                            <button type="button" id="media-storage-save" class="btn btn-primary btn-sm"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+                            <button type="button" id="media-storage-test" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-plug-circle-check me-2"></i><?= $this->t('media.settings.storage.test') ?></button>
+                            <button type="button" id="media-storage-save" class="btn btn-primary btn-sm"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->t('media.action.save') ?></button>
                         </div>
                     </div>
                     <div class="card-body">
                         <p class="text-body-secondary small mb-3">
-                            Choose where files are stored. <strong>Local</strong> keeps them on this server; a cloud provider stores them in your
-                            own bucket. Configure a provider here, <strong>test the connection</strong>, then use <em>Storage migration</em> below to
-                            move existing files onto it.
+                            <?= $this->t('media.settings.storage.help') ?>
                         </p>
 
                         <form id="media-storage-form" onsubmit="return false;" novalidate>
-                            <div class="btn-group flex-wrap mb-4" role="group" aria-label="Storage provider">
+                            <div class="btn-group flex-wrap mb-4" role="group" aria-label="<?= $this->escape($this->t('media.settings.storage.provider_group')) ?>">
                                 <?php
                                 $adapters = [
-                                    'none'  => ['label' => 'Local only', 'icon' => 'fa-hard-drive', 'sdk' => true],
-                                    's3'    => ['label' => 'Amazon S3',  'icon' => 'fa-aws',        'sdk' => !empty($this->sdk['s3'])],
-                                    'gcs'   => ['label' => 'Google Cloud','icon' => 'fa-google',     'sdk' => !empty($this->sdk['gcs'])],
-                                    'azure' => ['label' => 'Azure Blob',  'icon' => 'fa-microsoft',  'sdk' => !empty($this->sdk['azure'])],
+                                    'none'  => ['label' => $this->t('media.storage.adapter.none'),  'icon' => 'fa-hard-drive', 'sdk' => true],
+                                    's3'    => ['label' => $this->t('media.storage.adapter.s3'),    'icon' => 'fa-aws',        'sdk' => !empty($this->sdk['s3'])],
+                                    'gcs'   => ['label' => $this->t('media.storage.adapter.gcs'),   'icon' => 'fa-google',     'sdk' => !empty($this->sdk['gcs'])],
+                                    'azure' => ['label' => $this->t('media.storage.adapter.azure'), 'icon' => 'fa-microsoft',  'sdk' => !empty($this->sdk['azure'])],
                                 ];
                                 foreach ($adapters as $key => $a):
                                     $checked = $s['adapter'] === $key ? ' checked' : '';
@@ -112,78 +106,78 @@ $s = $this->storage;   // storage prefill (no secrets — only has_key/has_secre
 
                             <!-- Local -->
                             <div class="storage-fields" data-adapter="none">
-                                <p class="text-body-secondary small mb-0"><i class="fa-solid fa-circle-info me-2"></i>Files are stored on this server's local disk. No configuration needed.</p>
+                                <p class="text-body-secondary small mb-0"><i class="fa-solid fa-circle-info me-2"></i><?= $this->t('media.settings.storage.local_help') ?></p>
                             </div>
 
                             <!-- Amazon S3 -->
                             <div class="storage-fields" data-adapter="s3" hidden>
-                                <?php if (empty($this->sdk['s3'])): ?><div class="alert alert-warning small py-2"><i class="fa-solid fa-triangle-exclamation me-2"></i>The AWS SDK isn't installed. Install the <strong>Tiger AWS PHP SDK</strong> module from <a href="/system/modules/add" class="alert-link">Module Manager</a> (recommended — no server access needed), or a developer can run <code>composer require aws/aws-sdk-php</code>.</div><?php endif; ?>
+                                <?php if (empty($this->sdk['s3'])): ?><div class="alert alert-warning small py-2"><i class="fa-solid fa-triangle-exclamation me-2"></i><?= $this->t('media.settings.storage.s3_sdk_missing') ?></div><?php endif; ?>
                                 <div class="row g-3">
-                                    <div class="col-md-8"><label class="form-label" for="st-s3-bucket">Bucket <span class="text-danger">*</span></label>
+                                    <div class="col-md-8"><label class="form-label" for="st-s3-bucket"><?= $this->t('media.settings.storage.bucket') ?> <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control" id="st-s3-bucket" name="bucket" value="<?= $this->escape($s['bucket']) ?>" placeholder="my-media-bucket"></div>
-                                    <div class="col-md-4"><label class="form-label" for="st-s3-region">Region</label>
+                                    <div class="col-md-4"><label class="form-label" for="st-s3-region"><?= $this->t('media.settings.storage.region') ?></label>
                                         <input type="text" class="form-control" id="st-s3-region" name="region" value="<?= $this->escape($s['region']) ?>" placeholder="us-east-1"></div>
-                                    <div class="col-md-6"><label class="form-label" for="st-s3-key">Access key ID</label>
-                                        <input type="text" class="form-control" id="st-s3-key" name="key" autocomplete="off" placeholder="<?= $s['has_key'] ? 'saved — leave blank to keep' : 'blank = use the server IAM role' ?>"></div>
-                                    <div class="col-md-6"><label class="form-label" for="st-s3-secret">Secret access key</label>
-                                        <input type="password" class="form-control" id="st-s3-secret" name="secret" autocomplete="new-password" placeholder="<?= $s['has_secret'] ? '•••••••• saved — leave blank to keep' : 'blank = use the server IAM role' ?>"></div>
-                                    <div class="col-12"><div class="form-text mt-0">On AWS, leave the key &amp; secret blank to use this server's IAM instance role (nothing sensitive is stored).</div></div>
-                                    <div class="col-md-8"><label class="form-label" for="st-s3-endpoint">Endpoint <span class="text-body-secondary">(optional — S3-compatible)</span></label>
+                                    <div class="col-md-6"><label class="form-label" for="st-s3-key"><?= $this->t('media.settings.storage.access_key') ?></label>
+                                        <input type="text" class="form-control" id="st-s3-key" name="key" autocomplete="off" placeholder="<?= $this->escape($s['has_key'] ? $this->t('media.settings.storage.key_saved') : $this->t('media.settings.storage.key_iam')) ?>"></div>
+                                    <div class="col-md-6"><label class="form-label" for="st-s3-secret"><?= $this->t('media.settings.storage.secret_key') ?></label>
+                                        <input type="password" class="form-control" id="st-s3-secret" name="secret" autocomplete="new-password" placeholder="<?= $this->escape($s['has_secret'] ? $this->t('media.settings.storage.secret_saved') : $this->t('media.settings.storage.key_iam')) ?>"></div>
+                                    <div class="col-12"><div class="form-text mt-0"><?= $this->t('media.settings.storage.iam_help') ?></div></div>
+                                    <div class="col-md-8"><label class="form-label" for="st-s3-endpoint"><?= $this->t('media.settings.storage.endpoint') ?> <span class="text-body-secondary"><?= $this->t('media.settings.storage.endpoint_note') ?></span></label>
                                         <input type="text" class="form-control" id="st-s3-endpoint" name="endpoint" value="<?= $this->escape($s['endpoint']) ?>" placeholder="https://s3.us-east-1.amazonaws.com"></div>
                                     <div class="col-md-4 d-flex align-items-end"><div class="form-check form-switch mb-2">
                                         <input class="form-check-input" type="checkbox" role="switch" id="st-s3-pathstyle" name="use_path_style" value="1"<?= $s['use_path_style'] ? ' checked' : '' ?>>
-                                        <label class="form-check-label" for="st-s3-pathstyle">Path-style URLs</label></div></div>
-                                    <div class="col-12"><label class="form-label" for="st-s3-cdn">CDN domain <span class="text-body-secondary">(optional)</span></label>
+                                        <label class="form-check-label" for="st-s3-pathstyle"><?= $this->t('media.settings.storage.path_style') ?></label></div></div>
+                                    <div class="col-12"><label class="form-label" for="st-s3-cdn"><?= $this->t('media.settings.storage.cdn') ?> <span class="text-body-secondary"><?= $this->t('media.settings.common.optional') ?></span></label>
                                         <input type="text" class="form-control" id="st-s3-cdn" name="cdn" value="<?= $this->escape($s['cdn']) ?>" placeholder="d111abcdef8.cloudfront.net or cdn.yoursite.com">
-                                        <div class="form-text">Serve <strong>public</strong> media through this host (e.g. a CloudFront distribution) instead of the direct bucket URL — cacheable, on your own domain. Private files still use signed URLs. No <code>https://</code>.</div></div>
+                                        <div class="form-text"><?= $this->t('media.settings.storage.cdn_help_s3') ?></div></div>
                                 </div>
                             </div>
 
                             <!-- Google Cloud Storage -->
                             <div class="storage-fields" data-adapter="gcs" hidden>
-                                <?php if (empty($this->sdk['gcs'])): ?><div class="alert alert-warning small py-2"><i class="fa-solid fa-triangle-exclamation me-2"></i>The Google Cloud SDK isn't installed. Install the <strong>Tiger Google Cloud PHP SDK</strong> module from <a href="/system/modules/add" class="alert-link">Module Manager</a> (recommended — no server access needed), or a developer can run <code>composer require google/cloud-storage</code>.</div><?php endif; ?>
+                                <?php if (empty($this->sdk['gcs'])): ?><div class="alert alert-warning small py-2"><i class="fa-solid fa-triangle-exclamation me-2"></i><?= $this->t('media.settings.storage.gcs_sdk_missing') ?></div><?php endif; ?>
                                 <div class="row g-3">
-                                    <div class="col-md-6"><label class="form-label" for="st-gcs-bucket">Bucket <span class="text-danger">*</span></label>
+                                    <div class="col-md-6"><label class="form-label" for="st-gcs-bucket"><?= $this->t('media.settings.storage.bucket') ?> <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control" id="st-gcs-bucket" name="bucket" value="<?= $this->escape($s['bucket']) ?>" placeholder="my-media-bucket"></div>
-                                    <div class="col-md-6"><label class="form-label" for="st-gcs-project">Project ID</label>
+                                    <div class="col-md-6"><label class="form-label" for="st-gcs-project"><?= $this->t('media.settings.storage.project_id') ?></label>
                                         <input type="text" class="form-control" id="st-gcs-project" name="project_id" value="<?= $this->escape($s['project_id']) ?>" placeholder="my-gcp-project"></div>
-                                    <div class="col-12"><label class="form-label" for="st-gcs-keyfile">Service-account key file <span class="text-body-secondary">(path on this server)</span></label>
+                                    <div class="col-12"><label class="form-label" for="st-gcs-keyfile"><?= $this->t('media.settings.storage.key_file') ?> <span class="text-body-secondary"><?= $this->t('media.settings.storage.key_file_note') ?></span></label>
                                         <input type="text" class="form-control" id="st-gcs-keyfile" name="key_file" value="<?= $this->escape($s['key_file']) ?>" placeholder="/var/secrets/gcs.json">
-                                        <div class="form-text">A path to the JSON credentials on the server — the file stays on disk (nothing sensitive is stored in the database). Blank uses the environment's default credentials.</div></div>
-                                    <div class="col-12"><label class="form-label" for="st-gcs-cdn">CDN domain <span class="text-body-secondary">(optional)</span></label>
+                                        <div class="form-text"><?= $this->t('media.settings.storage.key_file_help') ?></div></div>
+                                    <div class="col-12"><label class="form-label" for="st-gcs-cdn"><?= $this->t('media.settings.storage.cdn') ?> <span class="text-body-secondary"><?= $this->t('media.settings.common.optional') ?></span></label>
                                         <input type="text" class="form-control" id="st-gcs-cdn" name="cdn" value="<?= $this->escape($s['cdn']) ?>" placeholder="cdn.yoursite.com (Cloud CDN / custom domain)">
-                                        <div class="form-text">Serve <strong>public</strong> media through this host instead of <code>storage.googleapis.com</code>. Private files still use signed URLs. No <code>https://</code>.</div></div>
+                                        <div class="form-text"><?= $this->t('media.settings.storage.cdn_help_gcs') ?></div></div>
                                 </div>
                             </div>
 
                             <!-- Azure Blob -->
                             <div class="storage-fields" data-adapter="azure" hidden>
-                                <?php if (empty($this->sdk['azure'])): ?><div class="alert alert-warning small py-2"><i class="fa-solid fa-triangle-exclamation me-2"></i>The Azure Storage SDK isn't installed. Install the <strong>Tiger Azure PHP SDK</strong> module from <a href="/system/modules/add" class="alert-link">Module Manager</a> (recommended — no server access needed), or a developer can run <code>composer require microsoft/azure-storage-blob</code>.</div><?php endif; ?>
+                                <?php if (empty($this->sdk['azure'])): ?><div class="alert alert-warning small py-2"><i class="fa-solid fa-triangle-exclamation me-2"></i><?= $this->t('media.settings.storage.azure_sdk_missing') ?></div><?php endif; ?>
                                 <div class="row g-3">
-                                    <div class="col-md-6"><label class="form-label" for="st-az-account">Storage account <span class="text-danger">*</span></label>
+                                    <div class="col-md-6"><label class="form-label" for="st-az-account"><?= $this->t('media.settings.storage.account') ?> <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control" id="st-az-account" name="account" value="<?= $this->escape($s['account']) ?>" placeholder="mystorageacct"></div>
-                                    <div class="col-md-6"><label class="form-label" for="st-az-container">Container <span class="text-danger">*</span></label>
+                                    <div class="col-md-6"><label class="form-label" for="st-az-container"><?= $this->t('media.settings.storage.container') ?> <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control" id="st-az-container" name="container" value="<?= $this->escape($s['container']) ?>" placeholder="media"></div>
-                                    <div class="col-md-6"><label class="form-label" for="st-az-key">Account key</label>
-                                        <input type="password" class="form-control" id="st-az-key" name="key" autocomplete="new-password" placeholder="<?= $s['has_key'] ? '•••••••• saved — leave blank to keep' : 'account access key' ?>"></div>
-                                    <div class="col-md-6"><label class="form-label" for="st-az-endpoint">Endpoint <span class="text-body-secondary">(optional)</span></label>
+                                    <div class="col-md-6"><label class="form-label" for="st-az-key"><?= $this->t('media.settings.storage.account_key') ?></label>
+                                        <input type="password" class="form-control" id="st-az-key" name="key" autocomplete="new-password" placeholder="<?= $this->escape($s['has_key'] ? $this->t('media.settings.storage.secret_saved') : $this->t('media.settings.storage.account_key_ph')) ?>"></div>
+                                    <div class="col-md-6"><label class="form-label" for="st-az-endpoint"><?= $this->t('media.settings.storage.endpoint') ?> <span class="text-body-secondary"><?= $this->t('media.settings.common.optional') ?></span></label>
                                         <input type="text" class="form-control" id="st-az-endpoint" name="endpoint" value="<?= $this->escape($s['endpoint']) ?>" placeholder="blob.core.windows.net"></div>
-                                    <div class="col-12"><label class="form-label" for="st-az-cdn">CDN domain <span class="text-body-secondary">(optional)</span></label>
+                                    <div class="col-12"><label class="form-label" for="st-az-cdn"><?= $this->t('media.settings.storage.cdn') ?> <span class="text-body-secondary"><?= $this->t('media.settings.common.optional') ?></span></label>
                                         <input type="text" class="form-control" id="st-az-cdn" name="cdn" value="<?= $this->escape($s['cdn']) ?>" placeholder="cdn.yoursite.com (Azure CDN / custom domain)">
-                                        <div class="form-text">Serve <strong>public</strong> media through this host instead of <code>*.blob.core.windows.net</code>. Private files still use SAS URLs. No <code>https://</code>.</div></div>
+                                        <div class="form-text"><?= $this->t('media.settings.storage.cdn_help_azure') ?></div></div>
                                 </div>
                             </div>
 
                             <hr class="my-4" id="storage-default-row"<?= $s['adapter'] === 'none' ? ' hidden' : '' ?>>
                             <div class="row g-2 align-items-center" id="storage-default-wrap"<?= $s['adapter'] === 'none' ? ' hidden' : '' ?>>
-                                <div class="col-auto"><label class="form-label mb-0" for="st-default-disk">Send new uploads to</label></div>
+                                <div class="col-auto"><label class="form-label mb-0" for="st-default-disk"><?= $this->t('media.settings.storage.default_disk_label') ?></label></div>
                                 <div class="col-auto">
                                     <select id="st-default-disk" name="default_disk" class="form-select form-select-sm">
-                                        <option value="local"<?= $this->defaultDisk !== 'cloud' ? ' selected' : '' ?>>Local disk</option>
-                                        <option value="cloud"<?= $this->defaultDisk === 'cloud' ? ' selected' : '' ?>>Cloud (configured above)</option>
+                                        <option value="local"<?= $this->defaultDisk !== 'cloud' ? ' selected' : '' ?>><?= $this->t('media.settings.storage.disk_local') ?></option>
+                                        <option value="cloud"<?= $this->defaultDisk === 'cloud' ? ' selected' : '' ?>><?= $this->t('media.settings.storage.disk_cloud') ?></option>
                                     </select>
                                 </div>
-                                <div class="col-12"><div class="form-text mt-1">Existing files stay where they are until you migrate them below. Point new uploads at the cloud only after a successful connection test.</div></div>
+                                <div class="col-12"><div class="form-text mt-1"><?= $this->t('media.settings.storage.default_disk_help') ?></div></div>
                             </div>
                         </form>
                         <div id="media-storage-test-result" class="mt-3"></div>
@@ -200,21 +194,19 @@ $s = $this->storage;   // storage prefill (no secrets — only has_key/has_secre
         <div class="row g-4">
             <div class="col-lg-8">
                 <div class="card">
-                    <div class="card-header fw-semibold"><i class="fa-solid fa-truck-fast me-2"></i>Storage migration</div>
+                    <div class="card-header fw-semibold"><i class="fa-solid fa-truck-fast me-2"></i><?= $this->t('media.settings.migration.card') ?></div>
                     <div class="card-body">
                         <p class="text-body-secondary small mb-3">
-                            Relocate <em>existing</em> files to another storage disk — e.g. after configuring cloud storage in the <strong>Storage</strong> tab.
-                            New uploads already go to the default disk (<code><?= $this->escape($this->defaultDisk) ?></code>);
-                            this moves the files already stored. Install-wide.
+                            <?= $this->t('media.settings.migration.help', $this->escape($this->defaultDisk)) ?>
                         </p>
                         <?php if (!empty($this->diskCounts)): ?>
-                        <p class="small mb-3">Currently stored:
+                        <p class="small mb-3"><?= $this->t('media.settings.migration.currently_stored') ?>
                             <?php foreach ($this->diskCounts as $d => $n): ?><span class="badge text-bg-light me-1"><?= $this->escape($d) ?>: <?= (int) $n ?></span><?php endforeach; ?>
                         </p>
                         <?php endif; ?>
                         <div class="row g-2 align-items-end">
                             <div class="col-sm">
-                                <label class="form-label" for="media-migrate-to">Migrate all media to</label>
+                                <label class="form-label" for="media-migrate-to"><?= $this->t('media.settings.migration.target_label') ?></label>
                                 <select id="media-migrate-to" class="form-select">
                                     <?php foreach ($this->disks as $d): ?><option value="<?= $this->escape($d) ?>"<?= $d === $this->defaultDisk ? ' selected' : '' ?>><?= $this->escape($this->diskLabels[$d] ?? $d) ?></option><?php endforeach; ?>
                                 </select>
@@ -222,16 +214,15 @@ $s = $this->storage;   // storage prefill (no secrets — only has_key/has_secre
                             <div class="col-sm-auto">
                                 <div class="form-check form-switch mb-2">
                                     <input class="form-check-input" type="checkbox" role="switch" id="media-migrate-move">
-                                    <label class="form-check-label" for="media-migrate-move">Move (delete originals)</label>
+                                    <label class="form-check-label" for="media-migrate-move"><?= $this->t('media.settings.migration.move_label') ?></label>
                                 </div>
                             </div>
                             <div class="col-sm-auto">
-                                <button type="button" id="media-migrate-run" class="btn btn-outline-primary"><i class="fa-solid fa-truck-fast me-2"></i>Migrate</button>
+                                <button type="button" id="media-migrate-run" class="btn btn-outline-primary"><i class="fa-solid fa-truck-fast me-2"></i><?= $this->t('media.settings.migration.run') ?></button>
                             </div>
                         </div>
                         <div class="form-text mt-2">
-                            Default is <strong>Copy</strong> — originals are kept (fully reversible). <strong>Move</strong> deletes each
-                            original only after a verified copy. Safe to re-run; already-migrated files are skipped.
+                            <?= $this->t('media.settings.migration.run_help') ?>
                         </div>
                         <div id="media-migrate-result" class="mt-3"></div>
                     </div>

@@ -13,22 +13,26 @@ $settings  = $this->settings ?? [];
 $sched     = $this->schedule ?? [];
 
 $compLabels = [
-    'database' => ['Database', 'All tables — a portable SQL dump'],
-    'media'    => ['Media', 'Uploaded files'],
-    'modules'  => ['Modules', 'Your app modules'],
-    'platform' => ['Platform', 'App code + config (for moving a site)'],
+    'database' => [$this->t('backup.comp.database'), $this->t('backup.comp.database_desc')],
+    'media'    => [$this->t('backup.comp.media'),    $this->t('backup.comp.media_desc')],
+    'modules'  => [$this->t('backup.comp.modules'),  $this->t('backup.comp.modules_desc')],
+    'platform' => [$this->t('backup.comp.platform'), $this->t('backup.comp.platform_desc')],
 ];
 $selComps = $settings['components'] ?? ['database', 'media'];
 
-$outcomeBadge = ['ok' => ['success', 'OK'], 'error' => ['danger', 'Failed'], 'running' => ['info', 'Running']];
+$outcomeBadge = [
+    'ok'      => ['success', $this->t('backup.outcome.ok')],
+    'error'   => ['danger',  $this->t('backup.outcome.error')],
+    'running' => ['info',    $this->t('backup.outcome.running')],
+];
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1">Backup &amp; Restore</h1>
-        <p class="text-body-secondary mb-0">Archive your site to a downloadable zip — keep it local or push it to cloud storage. Restore here, or move the site to a new home.</p>
+        <h1 class="h3 mb-1"><?= $this->t('backup.title') ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('backup.subtitle') ?></p>
     </div>
     <div class="text-nowrap">
-        <button type="button" id="backup-run" class="btn btn-primary"><i class="fa-solid fa-box-archive me-2"></i>Back up now</button>
+        <button type="button" id="backup-run" class="btn btn-primary"><i class="fa-solid fa-box-archive me-2"></i><?= $this->t('backup.action.run') ?></button>
     </div>
 </div>
 
@@ -39,9 +43,9 @@ $outcomeBadge = ['ok' => ['success', 'OK'], 'error' => ['danger', 'Failed'], 'ru
     <!-- Create ----------------------------------------------------------------->
     <div class="col-12 col-xl-6">
         <div class="card h-100">
-            <div class="card-header fw-semibold"><i class="fa-solid fa-box-archive me-2"></i>Create a backup</div>
+            <div class="card-header fw-semibold"><i class="fa-solid fa-box-archive me-2"></i><?= $this->t('backup.card.create') ?></div>
             <div class="card-body">
-                <label class="form-label small text-body-secondary">What to include</label>
+                <label class="form-label small text-body-secondary"><?= $this->t('backup.create.include_label') ?></label>
                 <div class="row g-2 mb-3" id="backup-components">
                     <?php foreach ($allComps as $c): [$lbl, $desc] = $compLabels[$c] ?? [$c, '']; ?>
                         <div class="col-sm-6">
@@ -54,21 +58,21 @@ $outcomeBadge = ['ok' => ['success', 'OK'], 'error' => ['danger', 'Failed'], 'ru
                 </div>
                 <div class="row g-3 align-items-end">
                     <div class="col-sm-7">
-                        <label class="form-label small text-body-secondary mb-1">Destination</label>
+                        <label class="form-label small text-body-secondary mb-1"><?= $this->t('backup.create.destination_label') ?></label>
                         <select class="form-select" id="backup-disk">
                             <?php foreach ($disks as $d): ?>
                                 <option value="<?= $e($d['name']) ?>"<?= ($settings['disk'] ?? 'local') === $d['name'] ? ' selected' : '' ?>><?= $e($d['label']) ?></option>
                             <?php endforeach; ?>
                         </select>
                         <?php if (count($disks) < 2): ?>
-                            <div class="form-text">Configure a cloud <em>media disk</em> (S3/GCS/Azure) to back up off-server.</div>
+                            <div class="form-text"><?= $this->t('backup.create.destination_help') ?></div>
                         <?php endif; ?>
                     </div>
                     <div class="col-sm-5">
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" role="switch" id="backup-secrets"<?= !empty($settings['include_secrets']) ? ' checked' : '' ?>>
-                            <label class="form-check-label small" for="backup-secrets">Include secrets (local.ini)</label>
-                            <div class="form-text">Needed to move a site intact. Handle the archive securely.</div>
+                            <label class="form-check-label small" for="backup-secrets"><?= $this->t('backup.create.secrets_label') ?></label>
+                            <div class="form-text"><?= $this->t('backup.create.secrets_help') ?></div>
                         </div>
                     </div>
                 </div>
@@ -79,12 +83,12 @@ $outcomeBadge = ['ok' => ['success', 'OK'], 'error' => ['danger', 'Failed'], 'ru
     <!-- Restore from a file ---------------------------------------------------->
     <div class="col-12 col-xl-6">
         <div class="card h-100 border-warning-subtle">
-            <div class="card-header fw-semibold"><i class="fa-solid fa-rotate-left me-2"></i>Restore from a file</div>
+            <div class="card-header fw-semibold"><i class="fa-solid fa-rotate-left me-2"></i><?= $this->t('backup.card.restore_file') ?></div>
             <div class="card-body">
-                <p class="small text-body-secondary">Upload a <code>TigerBackup-*.zip</code> to restore it here — the way you move a site onto a fresh install. This is <strong>destructive</strong>: it runs under maintenance mode and takes a safety backup first.</p>
+                <p class="small text-body-secondary"><?= $this->t('backup.restore_file.help') ?></p>
                 <div class="input-group">
                     <input type="file" class="form-control" id="restore-file" accept=".zip">
-                    <button type="button" class="btn btn-warning" id="restore-upload"><i class="fa-solid fa-rotate-left me-2"></i>Restore</button>
+                    <button type="button" class="btn btn-warning" id="restore-upload"><i class="fa-solid fa-rotate-left me-2"></i><?= $this->t('backup.action.restore') ?></button>
                 </div>
             </div>
         </div>
@@ -93,14 +97,14 @@ $outcomeBadge = ['ok' => ['success', 'OK'], 'error' => ['danger', 'Failed'], 'ru
     <!-- History ---------------------------------------------------------------->
     <div class="col-12">
         <div class="card">
-            <div class="card-header fw-semibold"><i class="fa-solid fa-clock-rotate-left me-2"></i>Backups</div>
+            <div class="card-header fw-semibold"><i class="fa-solid fa-clock-rotate-left me-2"></i><?= $this->t('backup.card.history') ?></div>
             <div class="card-body p-0">
                 <?php if (!$backups): ?>
-                    <p class="text-body-secondary p-4 mb-0">No backups yet. Choose what to include and click <strong>Back up now</strong>.</p>
+                    <p class="text-body-secondary p-4 mb-0"><?= $this->t('backup.history.empty') ?></p>
                 <?php else: ?>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
-                            <thead><tr><th>Archive</th><th>Size</th><th>Includes</th><th>When</th><th>Where</th><th class="text-end">Actions</th></tr></thead>
+                            <thead><tr><th><?= $this->t('backup.col.archive') ?></th><th><?= $this->t('backup.col.size') ?></th><th><?= $this->t('backup.col.includes') ?></th><th><?= $this->t('backup.col.when') ?></th><th><?= $this->t('backup.col.where') ?></th><th class="text-end"><?= $this->t('backup.col.actions') ?></th></tr></thead>
                             <tbody>
                             <?php foreach ($backups as $b):
                                 [$oc, $ocl] = $outcomeBadge[$b['outcome'] ?? ''] ?? ['secondary', ucfirst((string) ($b['outcome'] ?? ''))];
@@ -109,7 +113,7 @@ $outcomeBadge = ['ok' => ['success', 'OK'], 'error' => ['danger', 'Failed'], 'ru
                                 <tr>
                                     <td>
                                         <span class="font-monospace small"><?= $e($b['filename']) ?></span>
-                                        <?php if (!empty($b['pinned'])): ?><span class="badge text-bg-light ms-1" title="Manual backups are never auto-pruned"><i class="fa-solid fa-thumbtack"></i></span><?php endif; ?>
+                                        <?php if (!empty($b['pinned'])): ?><span class="badge text-bg-light ms-1" title="<?= $this->escape($this->t('backup.pinned_title')) ?>"><i class="fa-solid fa-thumbtack"></i></span><?php endif; ?>
                                         <?php if (!$ok): ?><span class="badge text-bg-<?= $e($oc) ?> ms-1"><?= $e($ocl) ?></span><?php endif; ?>
                                         <?php if (!empty($b['error'])): ?><div class="small text-danger"><?= $e($b['error']) ?></div><?php endif; ?>
                                     </td>
@@ -123,10 +127,10 @@ $outcomeBadge = ['ok' => ['success', 'OK'], 'error' => ['danger', 'Failed'], 'ru
                                     <td class="small"><?= $e($b['disk']) ?></td>
                                     <td class="text-end text-nowrap">
                                         <?php if ($ok): ?>
-                                            <a class="btn btn-sm btn-outline-secondary" href="/backup/index/download/id/<?= $e($b['backup_id']) ?>" title="Download"><i class="fa-solid fa-download"></i></a>
-                                            <button type="button" class="btn btn-sm btn-outline-warning" data-restore="<?= $e($b['backup_id']) ?>" data-name="<?= $e($b['filename']) ?>" title="Restore this backup"><i class="fa-solid fa-rotate-left"></i></button>
+                                            <a class="btn btn-sm btn-outline-secondary" href="/backup/index/download/id/<?= $e($b['backup_id']) ?>" title="<?= $this->escape($this->t('backup.action.download_title')) ?>"><i class="fa-solid fa-download"></i></a>
+                                            <button type="button" class="btn btn-sm btn-outline-warning" data-restore="<?= $e($b['backup_id']) ?>" data-name="<?= $e($b['filename']) ?>" title="<?= $this->escape($this->t('backup.action.restore_title')) ?>"><i class="fa-solid fa-rotate-left"></i></button>
                                         <?php endif; ?>
-                                        <button type="button" class="btn btn-sm btn-outline-danger" data-delete="<?= $e($b['backup_id']) ?>" data-name="<?= $e($b['filename']) ?>" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-delete="<?= $e($b['backup_id']) ?>" data-name="<?= $e($b['filename']) ?>" title="<?= $this->escape($this->t('backup.action.delete_title')) ?>"><i class="fa-solid fa-trash"></i></button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -141,11 +145,11 @@ $outcomeBadge = ['ok' => ['success', 'OK'], 'error' => ['danger', 'Failed'], 'ru
     <!-- Scheduled backups ------------------------------------------------------>
     <div class="col-12 col-xl-7">
         <div class="card h-100">
-            <div class="card-header fw-semibold"><i class="fa-solid fa-calendar-check me-2"></i>Scheduled backups</div>
+            <div class="card-header fw-semibold"><i class="fa-solid fa-calendar-check me-2"></i><?= $this->t('backup.card.scheduled') ?></div>
             <div class="card-body">
-                <p class="small text-body-secondary">Set a cadence and Tiger backs up on its own. Rolling retention keeps the newest <strong>N</strong> scheduled backups; manual backups are never auto-removed.</p>
+                <p class="small text-body-secondary"><?= $this->t('backup.scheduled.help') ?></p>
 
-                <label class="form-label small text-body-secondary mb-1">Schedule</label>
+                <label class="form-label small text-body-secondary mb-1"><?= $this->t('backup.scheduled.schedule_label') ?></label>
                 <div class="mb-3">
                     <?= $this->partial('_partials/schedule-control.phtml', [
                         'jobKey'     => 'backup.run',
@@ -161,21 +165,21 @@ $outcomeBadge = ['ok' => ['success', 'OK'], 'error' => ['danger', 'Failed'], 'ru
                 <hr>
                 <div class="row g-3">
                     <div class="col-sm-6">
-                        <label class="form-label small text-body-secondary mb-1">Keep newest (rolling max)</label>
+                        <label class="form-label small text-body-secondary mb-1"><?= $this->t('backup.scheduled.retention_label') ?></label>
                         <input type="number" min="0" class="form-control" id="set-retention" value="<?= (int) ($settings['retention_max'] ?? 7) ?>">
-                        <div class="form-text">0 = keep all.</div>
+                        <div class="form-text"><?= $this->t('backup.scheduled.retention_help') ?></div>
                     </div>
                     <div class="col-sm-6">
-                        <label class="form-label small text-body-secondary mb-1">Email status to</label>
+                        <label class="form-label small text-body-secondary mb-1"><?= $this->t('backup.scheduled.email_label') ?></label>
                         <input type="text" class="form-control" id="set-email" placeholder="you@example.com, ops@example.com" value="<?= $e($settings['notify_email'] ?? '') ?>">
                         <div class="form-check form-switch mt-1">
                             <input class="form-check-input" type="checkbox" role="switch" id="set-notify"<?= !empty($settings['notify_enabled']) ? ' checked' : '' ?>>
-                            <label class="form-check-label small" for="set-notify">Email on success &amp; failure</label>
+                            <label class="form-check-label small" for="set-notify"><?= $this->t('backup.scheduled.notify_label') ?></label>
                         </div>
                     </div>
                 </div>
-                <p class="small text-body-secondary mt-3 mb-2">Scheduled backups use the components &amp; destination selected in <em>Create a backup</em> above, saved here:</p>
-                <button type="button" id="backup-save-settings" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-floppy-disk me-2"></i>Save schedule settings</button>
+                <p class="small text-body-secondary mt-3 mb-2"><?= $this->t('backup.scheduled.note') ?></p>
+                <button type="button" id="backup-save-settings" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->t('backup.action.save_settings') ?></button>
             </div>
         </div>
     </div>
@@ -190,17 +194,17 @@ $outcomeBadge = ['ok' => ['success', 'OK'], 'error' => ['danger', 'Failed'], 'ru
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>Confirm restore</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i><?= $this->t('backup.restore_modal.title') ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= $this->escape($this->t('backup.action.close')) ?>"></button>
             </div>
             <div class="modal-body">
-                <p class="mb-2">You're about to restore <strong id="restore-target"></strong>. This <strong>overwrites</strong> the current database and/or files and can't be undone. A safety backup is taken first, and the site enters maintenance mode during the restore.</p>
-                <label class="form-label small">Type <code>RESTORE</code> to confirm</label>
+                <p class="mb-2"><?= $this->t('backup.restore_modal.body_pre') ?><strong id="restore-target"></strong><?= $this->t('backup.restore_modal.body_post') ?></p>
+                <label class="form-label small"><?= $this->t('backup.restore_modal.confirm_label') ?></label>
                 <input type="text" class="form-control" id="restore-confirm" autocomplete="off" placeholder="RESTORE">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-warning" id="restore-go"><i class="fa-solid fa-rotate-left me-2"></i>Restore now</button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal"><?= $this->t('backup.action.cancel') ?></button>
+                <button type="button" class="btn btn-warning" id="restore-go"><i class="fa-solid fa-rotate-left me-2"></i><?= $this->t('backup.action.restore_now') ?></button>
             </div>
         </div>
     </div>

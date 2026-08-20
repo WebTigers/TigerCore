@@ -9,8 +9,8 @@
 ?>
 <div class="d-flex align-items-center justify-content-between mb-3">
     <div>
-        <h1 class="h3 mb-1">MCP Connections</h1>
-        <p class="text-body-secondary mb-0">Connect external <strong>MCP servers</strong> so the AI agent can use their tools alongside its own. A tool call runs on the remote server and is approval-gated like any agent write. Admin only.</p>
+        <h1 class="h3 mb-1"><?= $this->escape($this->t('agent.mcp.title')) ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('agent.mcp.subtitle') ?></p>
     </div>
 </div>
 
@@ -19,34 +19,34 @@
 <div class="row g-4">
   <div class="col-lg-5">
     <div class="card">
-      <div class="card-header fw-semibold"><i class="fa-solid fa-plus me-2"></i><span id="mcp-form-title">Add a connection</span></div>
+      <div class="card-header fw-semibold"><i class="fa-solid fa-plus me-2"></i><span id="mcp-form-title"><?= $this->escape($this->t('agent.mcp.add')) ?></span></div>
       <div class="card-body">
         <input type="hidden" id="mcp-id" value="">
         <div class="mb-2">
-          <label for="mcp-label" class="form-label small fw-semibold mb-1">Name</label>
-          <input type="text" id="mcp-label" class="form-control form-control-sm" placeholder="e.g. GitHub, Linear, Weather">
+          <label for="mcp-label" class="form-label small fw-semibold mb-1"><?= $this->escape($this->t('agent.mcp.name')) ?></label>
+          <input type="text" id="mcp-label" class="form-control form-control-sm" placeholder="<?= $this->escape($this->t('agent.mcp.name.ph')) ?>">
         </div>
         <div class="mb-2">
-          <label for="mcp-url" class="form-label small fw-semibold mb-1">Server URL (Streamable HTTP)</label>
+          <label for="mcp-url" class="form-label small fw-semibold mb-1"><?= $this->escape($this->t('agent.mcp.url')) ?></label>
           <input type="url" id="mcp-url" class="form-control form-control-sm font-monospace" placeholder="https://example.com/mcp">
         </div>
         <div class="mb-2">
-          <label for="mcp-token" class="form-label small fw-semibold mb-1">Bearer token <span class="text-body-secondary">(optional; stored encrypted)</span></label>
-          <input type="password" id="mcp-token" class="form-control form-control-sm font-monospace" placeholder="leave blank to keep the current one" autocomplete="new-password">
+          <label for="mcp-token" class="form-label small fw-semibold mb-1"><?= $this->escape($this->t('agent.mcp.token')) ?> <span class="text-body-secondary"><?= $this->escape($this->t('agent.mcp.token.optional')) ?></span></label>
+          <input type="password" id="mcp-token" class="form-control form-control-sm font-monospace" placeholder="<?= $this->escape($this->t('agent.mcp.token.ph')) ?>" autocomplete="new-password">
         </div>
-        <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" id="mcp-enabled" checked><label class="form-check-label small" for="mcp-enabled">Enabled</label></div>
-        <button type="button" id="mcp-save" class="btn btn-primary btn-sm"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
-        <button type="button" id="mcp-reset" class="btn btn-outline-secondary btn-sm d-none">Cancel</button>
+        <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" id="mcp-enabled" checked><label class="form-check-label small" for="mcp-enabled"><?= $this->escape($this->t('agent.mcp.enabled')) ?></label></div>
+        <button type="button" id="mcp-save" class="btn btn-primary btn-sm"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->escape($this->t('agent.mcp.save')) ?></button>
+        <button type="button" id="mcp-reset" class="btn btn-outline-secondary btn-sm d-none"><?= $this->escape($this->t('agent.mcp.cancel')) ?></button>
       </div>
     </div>
   </div>
 
   <div class="col-lg-7">
     <div class="card">
-      <div class="card-header fw-semibold"><i class="fa-solid fa-diagram-project me-2"></i>Connected servers</div>
+      <div class="card-header fw-semibold"><i class="fa-solid fa-diagram-project me-2"></i><?= $this->escape($this->t('agent.mcp.connected')) ?></div>
       <div class="card-body">
         <div id="mcp-list" class="d-grid gap-2"></div>
-        <div id="mcp-empty" class="text-body-secondary small py-2" hidden>No connections yet — add one on the left.</div>
+        <div id="mcp-empty" class="text-body-secondary small py-2" hidden><?= $this->escape($this->t('agent.mcp.empty')) ?></div>
       </div>
     </div>
   </div>

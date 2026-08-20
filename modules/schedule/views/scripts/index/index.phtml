@@ -9,37 +9,41 @@ $e    = fn($s) => $this->escape((string) $s);
 $jobs = $this->jobs ?? [];
 
 $freqLabels = [
-    'every_minute' => 'Every minute',
-    'every_5_min'  => 'Every 5 minutes',
-    'every_15_min' => 'Every 15 minutes',
-    'hourly'       => 'Hourly',
-    'daily'        => 'Daily',
-    'weekly'       => 'Weekly',
-    'monthly'      => 'Monthly',
+    'every_minute' => $this->t('schedule.freq.every_minute'),
+    'every_5_min'  => $this->t('schedule.freq.every_5_min'),
+    'every_15_min' => $this->t('schedule.freq.every_15_min'),
+    'hourly'       => $this->t('schedule.freq.hourly'),
+    'daily'        => $this->t('schedule.freq.daily'),
+    'weekly'       => $this->t('schedule.freq.weekly'),
+    'monthly'      => $this->t('schedule.freq.monthly'),
 ];
-$days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+$days = [
+    $this->t('schedule.day.sunday'),   $this->t('schedule.day.monday'), $this->t('schedule.day.tuesday'),
+    $this->t('schedule.day.wednesday'), $this->t('schedule.day.thursday'), $this->t('schedule.day.friday'),
+    $this->t('schedule.day.saturday'),
+];
 
 // Human summary of a job's cadence.
 $summary = function (array $j) use ($freqLabels, $days) {
     $base = $freqLabels[$j['every']] ?? $j['every'];
-    if ($j['every'] === 'daily')   { return $base . ' at ' . $j['at']; }
-    if ($j['every'] === 'weekly')  { return $base . ' on ' . ($days[$j['dow']] ?? '?') . ' at ' . $j['at']; }
-    if ($j['every'] === 'monthly') { return $base . ' on day ' . $j['dom'] . ' at ' . $j['at']; }
+    if ($j['every'] === 'daily')   { return $this->t('schedule.summary.daily', $base, $j['at']); }
+    if ($j['every'] === 'weekly')  { return $this->t('schedule.summary.weekly', $base, ($days[$j['dow']] ?? '?'), $j['at']); }
+    if ($j['every'] === 'monthly') { return $this->t('schedule.summary.monthly', $base, $j['dom'], $j['at']); }
     return $base;
 };
 
 // Bootstrap alert context for a run outcome.
 $outcomeBadge = [
-    'ok'      => ['success', 'Success'],
-    'error'   => ['danger',  'Failed'],
-    'running' => ['info',    'Running'],
-    'skipped' => ['secondary', 'Skipped'],
+    'ok'      => ['success',   $this->t('schedule.outcome.ok')],
+    'error'   => ['danger',    $this->t('schedule.outcome.error')],
+    'running' => ['info',      $this->t('schedule.outcome.running')],
+    'skipped' => ['secondary', $this->t('schedule.outcome.skipped')],
 ];
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1">Scheduler</h1>
-        <p class="text-body-secondary mb-0">Background jobs and when they run. Any module can register one — Backup, cleanups, reports.</p>
+        <h1 class="h3 mb-1"><?= $this->t('schedule.title') ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('schedule.subtitle') ?></p>
     </div>
 </div>
 
@@ -48,20 +52,20 @@ $outcomeBadge = [
 <div class="row g-4">
     <div class="col-12">
         <div class="card">
-            <div class="card-header fw-semibold"><i class="fa-solid fa-list-check me-2"></i>Scheduled jobs</div>
+            <div class="card-header fw-semibold"><i class="fa-solid fa-list-check me-2"></i><?= $this->t('schedule.card.jobs') ?></div>
             <div class="card-body p-0">
                 <?php if (!$jobs): ?>
-                    <p class="text-body-secondary p-4 mb-0">No jobs are registered yet.</p>
+                    <p class="text-body-secondary p-4 mb-0"><?= $this->t('schedule.empty') ?></p>
                 <?php else: ?>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead>
                                 <tr>
-                                    <th>Job</th>
-                                    <th>Schedule</th>
-                                    <th>Next run</th>
-                                    <th>Last run</th>
-                                    <th class="text-end">Actions</th>
+                                    <th><?= $this->t('schedule.col.job') ?></th>
+                                    <th><?= $this->t('schedule.col.schedule') ?></th>
+                                    <th><?= $this->t('schedule.col.next_run') ?></th>
+                                    <th><?= $this->t('schedule.col.last_run') ?></th>
+                                    <th class="text-end"><?= $this->t('schedule.col.actions') ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -78,7 +82,7 @@ $outcomeBadge = [
                                     <td>
                                         <?= $e($summary($j)) ?>
                                         <?php if (!$j['enabled']): ?>
-                                            <span class="badge text-bg-secondary ms-1">Disabled</span>
+                                            <span class="badge text-bg-secondary ms-1"><?= $this->t('schedule.badge.disabled') ?></span>
                                         <?php endif; ?>
                                     </td>
                                     <td>
@@ -96,15 +100,15 @@ $outcomeBadge = [
                                                 <?php if (!empty($last['ms'])): ?>· <?= (int) $last['ms'] ?>ms<?php endif; ?>
                                             </span>
                                         <?php else: ?>
-                                            <span class="text-body-secondary">Never</span>
+                                            <span class="text-body-secondary"><?= $this->t('schedule.last.never') ?></span>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-end text-nowrap">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#<?= $e($editId) ?>" title="Edit schedule">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#<?= $e($editId) ?>" title="<?= $this->escape($this->t('schedule.action.edit_title')) ?>">
                                             <i class="fa-solid fa-pen"></i>
                                         </button>
-                                        <button type="button" class="btn btn-sm btn-outline-primary" data-schedule-run="<?= $e($j['key']) ?>" data-feedback="schedule-feedback" data-reload title="Run now">
-                                            <i class="fa-solid fa-play me-1"></i>Run now
+                                        <button type="button" class="btn btn-sm btn-outline-primary" data-schedule-run="<?= $e($j['key']) ?>" data-feedback="schedule-feedback" data-reload title="<?= $this->escape($this->t('schedule.action.run_now')) ?>">
+                                            <i class="fa-solid fa-play me-1"></i><?= $this->t('schedule.action.run_now') ?>
                                         </button>
                                     </td>
                                 </tr>

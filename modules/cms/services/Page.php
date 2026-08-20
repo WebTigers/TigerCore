@@ -183,13 +183,13 @@ class Cms_Service_Page extends Tiger_Service_Service
         $active     = Tiger_Theme::active();
         $themeParam = (string) ($params['theme'] ?? '');
         if ($themeParam !== '' && $themeParam !== $active['key']) {
-            $this->_error('That theme is not active.'); return;
+            $this->_error('cms.page.theme_inactive'); return;
         }
         $dir      = $active['dir'];
         $themeKey = $active['key'];
 
         $tpl = Tiger_Theme::template($kind, $key, $dir ?: null);
-        if (!$tpl) { $this->_error('That template is no longer available.'); return; }
+        if (!$tpl) { $this->_error('cms.page.template_unavailable'); return; }
 
         $type = [
             'page'    => Tiger_Model_Page::TYPE_PAGE,

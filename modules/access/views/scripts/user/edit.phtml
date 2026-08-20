@@ -13,12 +13,12 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1"><?= $isEdit ? 'Edit User' : 'New User' ?></h1>
-        <p class="text-body-secondary mb-0"><a href="/access/user" class="text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i>Back to users</a></p>
+        <h1 class="h3 mb-1"><?= $this->escape($isEdit ? $this->t('access.user.edit.title_edit') : $this->t('access.user.edit.title_new')) ?></h1>
+        <p class="text-body-secondary mb-0"><a href="/access/user" class="text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i><?= $this->t('access.user.edit.back') ?></a></p>
     </div>
     <div class="text-nowrap">
-        <a href="/access/user" class="btn btn-outline-secondary">Cancel</a>
-        <button type="button" id="access-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+        <a href="/access/user" class="btn btn-outline-secondary"><?= $this->t('access.action.cancel') ?></a>
+        <button type="button" id="access-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->t('access.action.save') ?></button>
     </div>
 </div>
 
@@ -32,32 +32,32 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
             <div class="card">
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label" for="<?= $this->escape($el('email')->getId()) ?>">Email</label>
+                        <label class="form-label" for="<?= $this->escape($el('email')->getId()) ?>"><?= $this->t('access.label.email') ?></label>
                         <?= $el('email') ?>
-                        <div class="form-text">The canonical login identifier. Must be unique.</div>
+                        <div class="form-text"><?= $this->t('access.user.field.email_help') ?></div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="<?= $this->escape($el('username')->getId()) ?>">Username</label>
+                        <label class="form-label" for="<?= $this->escape($el('username')->getId()) ?>"><?= $this->t('access.label.username') ?></label>
                         <?= $el('username') ?>
-                        <div class="form-text">Optional. Unique if set.</div>
+                        <div class="form-text"><?= $this->t('access.user.field.username_help') ?></div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="<?= $this->escape($el('status')->getId()) ?>">Status</label>
+                        <label class="form-label" for="<?= $this->escape($el('status')->getId()) ?>"><?= $this->t('access.label.status') ?></label>
                         <?= $el('status') ?>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="<?= $this->escape($el('locale')->getId()) ?>">Language</label>
+                        <label class="form-label" for="<?= $this->escape($el('locale')->getId()) ?>"><?= $this->t('access.user.field.language') ?></label>
                         <?= $el('locale') ?>
-                        <div class="form-text">The user's preferred language.</div>
+                        <div class="form-text"><?= $this->t('access.user.field.language_help') ?></div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="<?= $this->escape($el('timezone')->getId()) ?>">Timezone</label>
+                        <label class="form-label" for="<?= $this->escape($el('timezone')->getId()) ?>"><?= $this->t('access.user.field.timezone') ?></label>
                         <?= $el('timezone') ?>
                     </div>
                     <div class="mb-0">
-                        <label class="form-label" for="<?= $this->escape($el('new_password')->getId()) ?>">Set Password</label>
+                        <label class="form-label" for="<?= $this->escape($el('new_password')->getId()) ?>"><?= $this->t('access.user.field.password') ?></label>
                         <?= $el('new_password') ?>
-                        <div class="form-text">Leave blank to keep the current password. Setting it here resets it immediately.</div>
+                        <div class="form-text"><?= $this->t('access.user.field.password_help') ?></div>
                     </div>
                 </div>
             </div>

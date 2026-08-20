@@ -16,7 +16,7 @@ $t = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
     </div>
     <div class="text-nowrap">
         <button type="button" id="agent-settings-save" class="btn btn-primary">
-            <i class="fa-solid fa-floppy-disk me-2"></i>Save
+            <i class="fa-solid fa-floppy-disk me-2"></i><?= $this->escape($t('agent.settings.save')) ?>
         </button>
     </div>
 </div>
@@ -26,7 +26,7 @@ $t = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
 <?php if (!$this->cryptoReady): ?>
 <div class="alert alert-warning">
     <i class="fa-solid fa-triangle-exclamation me-2"></i>
-    Encryption isn’t configured (<code>tiger.crypto.key</code>), so an API key can’t be stored securely yet.
+    <?= $t('agent.settings.crypto_missing') ?>
 </div>
 <?php endif; ?>
 
@@ -35,7 +35,7 @@ $t = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
     <div class="row g-4">
         <div class="col-lg-7">
             <div class="card">
-                <div class="card-header fw-semibold"><i class="fa-solid fa-plug me-2"></i>Connection</div>
+                <div class="card-header fw-semibold"><i class="fa-solid fa-plug me-2"></i><?= $this->escape($t('agent.settings.connection')) ?></div>
                 <div class="card-body">
 
                     <div class="form-check form-switch mb-4">
@@ -61,7 +61,7 @@ $t = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
                             <select class="form-select" id="agent-model" name="model">
                                 <option value="<?= $this->escape($this->model) ?>"><?= $this->escape($this->model) ?></option>
                             </select>
-                            <button type="button" class="btn btn-outline-secondary" id="agent-model-refresh" title="Refresh the model list" aria-label="Refresh the model list">
+                            <button type="button" class="btn btn-outline-secondary" id="agent-model-refresh" title="<?= $this->escape($t('agent.settings.model.refresh')) ?>" aria-label="<?= $this->escape($t('agent.settings.model.refresh')) ?>">
                                 <i class="fa-solid fa-rotate"></i>
                             </button>
                         </div>
@@ -96,12 +96,10 @@ $t = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
 
         <div class="col-lg-5">
             <div class="card">
-                <div class="card-header fw-semibold"><i class="fa-solid fa-shield-halved me-2"></i>How it works</div>
+                <div class="card-header fw-semibold"><i class="fa-solid fa-shield-halved me-2"></i><?= $this->escape($t('agent.settings.how.title')) ?></div>
                 <div class="card-body small text-body-secondary">
-                    <p>The agent acts <strong>as you</strong> — it can never do more than your role permits.
-                       Reads run on their own; changes are shown for your approval first.</p>
-                    <p class="mb-0"><strong>Bring your own account:</strong> the key you paste is yours, stored
-                       encrypted on this server and never shared. Your AI provider bills you directly.</p>
+                    <p><?= $t('agent.settings.how.body1') ?></p>
+                    <p class="mb-0"><?= $t('agent.settings.how.body2') ?></p>
                 </div>
             </div>
         </div>

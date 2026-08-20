@@ -9,10 +9,10 @@
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1">Menus</h1>
-        <p class="text-body-secondary mb-0">Custom navigation menus — reusable by any theme via <code>&lt;?= $this-&gt;menu('key') ?&gt;</code>, the <code>[menu]</code> shortcode, or <code>Tiger_Menu::getHTML()</code>.</p>
+        <h1 class="h3 mb-1"><?= $this->t('cms.menu.list_heading') ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('cms.menu.list_subtitle', '<code>&lt;?= $this-&gt;menu(\'key\') ?&gt;</code>', '<code>[menu]</code>', '<code>Tiger_Menu::getHTML()</code>') ?></p>
     </div>
-    <a href="/cms/menu/edit" class="btn btn-primary"><i class="fa-solid fa-plus me-2"></i>New Menu</a>
+    <a href="/cms/menu/edit" class="btn btn-primary"><i class="fa-solid fa-plus me-2"></i><?= $this->t('cms.menu.new_menu') ?></a>
 </div>
 
 <div class="card">
@@ -21,12 +21,12 @@
             <table id="cms-menus-table" class="table table-hover align-middle" style="width:100%;">
                 <thead>
                     <tr>
-                        <th>Menu</th>
-                        <th>Type</th>
-                        <th>Source</th>
-                        <th>Items</th>
-                        <th>Updated</th>
-                        <th class="text-end" data-orderable="false">Actions</th>
+                        <th><?= $this->t('cms.menu.col_menu') ?></th>
+                        <th><?= $this->t('cms.label.type') ?></th>
+                        <th><?= $this->t('cms.menu.col_source') ?></th>
+                        <th><?= $this->t('cms.menu.col_items') ?></th>
+                        <th><?= $this->t('cms.label.updated') ?></th>
+                        <th class="text-end" data-orderable="false"><?= $this->t('cms.label.actions') ?></th>
                     </tr>
                 </thead>
             </table>

@@ -14,11 +14,11 @@ $mode = ($this->ga['mode'] === 'byo') ? 'byo' : 'broker';
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1">Analytics</h1>
-        <p class="text-body-secondary mb-0">Connect Google Analytics 4 to measure your public site's traffic.</p>
+        <h1 class="h3 mb-1"><?= $this->t('analytics.title') ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('analytics.subtitle') ?></p>
     </div>
     <div class="text-nowrap">
-        <button type="button" id="analytics-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+        <button type="button" id="analytics-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->t('analytics.save') ?></button>
     </div>
 </div>
 
@@ -36,12 +36,12 @@ $mode = ($this->ga['mode'] === 'byo') ? 'byo' : 'broker';
 
     <ul class="nav nav-tabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="analytics-tab-tag-btn" data-bs-toggle="tab" data-bs-target="#analytics-tab-tag" type="button" role="tab" aria-controls="analytics-tab-tag" aria-selected="true"><i class="fa-solid fa-tag me-2"></i>Tracking tag</button>
+            <button class="nav-link active" id="analytics-tab-tag-btn" data-bs-toggle="tab" data-bs-target="#analytics-tab-tag" type="button" role="tab" aria-controls="analytics-tab-tag" aria-selected="true"><i class="fa-solid fa-tag me-2"></i><?= $this->t('analytics.tab.tag') ?></button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="analytics-tab-reports-btn" data-bs-toggle="tab" data-bs-target="#analytics-tab-reports" type="button" role="tab" aria-controls="analytics-tab-reports" aria-selected="false">
-                <i class="fa-solid fa-chart-line me-2"></i>Reports &amp; dashboard
-                <?php if ($this->ga['connected']): ?><i class="fa-solid fa-circle-check text-success ms-1" title="Connected"></i><?php endif; ?>
+                <i class="fa-solid fa-chart-line me-2"></i><?= $this->t('analytics.tab.reports') ?>
+                <?php if ($this->ga['connected']): ?><i class="fa-solid fa-circle-check text-success ms-1" title="<?= $this->escape($this->t('analytics.connected')) ?>"></i><?php endif; ?>
             </button>
         </li>
     </ul>
@@ -53,22 +53,22 @@ $mode = ($this->ga['mode'] === 'byo') ? 'byo' : 'broker';
                 <div class="col-lg-8">
                     <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" role="switch" id="analytics-enabled" name="enabled" value="1"<?= $this->enabled ? ' checked' : '' ?>>
-                        <label class="form-check-label" for="analytics-enabled">Enable Google Analytics</label>
+                        <label class="form-check-label" for="analytics-enabled"><?= $this->t('analytics.enable') ?></label>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="<?= $this->escape($el('ga4_measurement_id')->getId()) ?>">Measurement ID</label>
+                        <label class="form-label" for="<?= $this->escape($el('ga4_measurement_id')->getId()) ?>"><?= $this->t('analytics.measurement_id') ?></label>
                         <?= $el('ga4_measurement_id') ?>
                         <div class="form-text">Find it in GA under <em>Admin → Data Streams → your web stream</em>. It looks like <code>G-XXXXXXXXXX</code>.</div>
                     </div>
                     <div class="form-check form-switch mb-0">
                         <input class="form-check-input" type="checkbox" role="switch" id="analytics-exclude" name="exclude_signed_in" value="1"<?= $this->excludeSignedIn ? ' checked' : '' ?>>
-                        <label class="form-check-label" for="analytics-exclude">Don't track signed-in staff</label>
-                        <div class="form-text">Skip visits from managers, admins, and developers so your own team doesn't skew the numbers.</div>
+                        <label class="form-check-label" for="analytics-exclude"><?= $this->t('analytics.exclude_staff') ?></label>
+                        <div class="form-text"><?= $this->t('analytics.exclude_staff_help') ?></div>
                     </div>
                 </div>
                 <div class="col-lg-4">
                     <div class="bg-body-tertiary rounded p-3 h-100">
-                        <h3 class="h6 fw-semibold"><i class="fa-solid fa-shield-halved me-2 text-primary"></i>Privacy &amp; consent</h3>
+                        <h3 class="h6 fw-semibold"><i class="fa-solid fa-shield-halved me-2 text-primary"></i><?= $this->t('analytics.privacy_title') ?></h3>
                         <p class="small text-body-secondary mb-2">The tag loads only on your <strong>public</strong> pages — never in the admin.</p>
                         <p class="small text-body-secondary mb-0">If you enable the <strong>cookie consent</strong> banner (Settings → Security → Cookies), Google Analytics will wait for the visitor's consent before it loads.</p>
                     </div>
@@ -78,37 +78,37 @@ $mode = ($this->ga['mode'] === 'byo') ? 'byo' : 'broker';
 
         <div class="tab-pane fade" id="analytics-tab-reports" role="tabpanel" aria-labelledby="analytics-tab-reports-btn">
             <div class="d-flex align-items-center justify-content-between mb-3">
-                <h2 class="h6 fw-semibold mb-0"><i class="fa-solid fa-chart-line me-2 text-primary"></i>Reports &mdash; in-app dashboard</h2>
+                <h2 class="h6 fw-semibold mb-0"><i class="fa-solid fa-chart-line me-2 text-primary"></i><?= $this->t('analytics.reports_heading') ?></h2>
                 <?php if ($this->ga['connected']): ?>
-                    <span class="badge text-bg-success"><i class="fa-solid fa-plug-circle-check me-1"></i>Connected</span>
+                    <span class="badge text-bg-success"><i class="fa-solid fa-plug-circle-check me-1"></i><?= $this->t('analytics.connected') ?></span>
                 <?php else: ?>
-                    <span class="badge text-bg-secondary">Not connected</span>
+                    <span class="badge text-bg-secondary"><?= $this->t('analytics.not_connected') ?></span>
                 <?php endif; ?>
             </div>
-            <p class="small text-body-secondary mb-3">Pull your traffic into an in-app dashboard, right here in the admin.</p>
+            <p class="small text-body-secondary mb-3"><?= $this->t('analytics.reports_intro') ?></p>
 
             <div class="row g-3">
                 <div class="col-md-4">
-                    <label class="form-label" for="property-id">GA4 property ID</label>
+                    <label class="form-label" for="property-id"><?= $this->t('analytics.property_id') ?></label>
                     <input type="text" class="form-control" id="property-id" name="property_id" value="<?= $this->escape($this->ga['property_id']) ?>" inputmode="numeric" placeholder="123456789">
                     <div class="form-text">Admin → Property Settings (numeric, not <code>G-…</code>).</div>
                 </div>
             </div>
 
             <div class="mt-3">
-                <label class="form-label d-block mb-2">Connection method</label>
+                <label class="form-label d-block mb-2"><?= $this->t('analytics.connection_method') ?></label>
                 <div class="form-check">
                     <input class="form-check-input" type="radio" name="oauth_mode" id="oauth-mode-broker" value="broker"<?= $mode === 'broker' ? ' checked' : '' ?>>
                     <label class="form-check-label" for="oauth-mode-broker">
-                        <strong>One-click</strong> <span class="badge rounded-pill text-bg-primary">Recommended</span>
-                        <span class="d-block small text-body-secondary">Connect with your Google account — WebTigers handles the OAuth setup. Nothing to register.</span>
+                        <strong><?= $this->t('analytics.method_oneclick') ?></strong> <span class="badge rounded-pill text-bg-primary"><?= $this->t('analytics.recommended') ?></span>
+                        <span class="d-block small text-body-secondary"><?= $this->t('analytics.method_oneclick_help') ?></span>
                     </label>
                 </div>
                 <div class="form-check mt-2">
                     <input class="form-check-input" type="radio" name="oauth_mode" id="oauth-mode-byo" value="byo"<?= $mode === 'byo' ? ' checked' : '' ?>>
                     <label class="form-check-label" for="oauth-mode-byo">
-                        <strong>Use my own Google OAuth client</strong> <span class="text-body-secondary small">(advanced / self-hosted)</span>
-                        <span class="d-block small text-body-secondary">Register your own Google Cloud project — the connection never routes through WebTigers.</span>
+                        <strong><?= $this->t('analytics.method_byo') ?></strong> <span class="text-body-secondary small"><?= $this->t('analytics.method_byo_adv') ?></span>
+                        <span class="d-block small text-body-secondary"><?= $this->t('analytics.method_byo_help') ?></span>
                     </label>
                 </div>
             </div>
@@ -116,12 +116,12 @@ $mode = ($this->ga['mode'] === 'byo') ? 'byo' : 'broker';
             <div id="analytics-byo" class="mt-3<?= $mode === 'byo' ? '' : ' d-none' ?>">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label" for="oauth-client-id">OAuth client ID</label>
+                        <label class="form-label" for="oauth-client-id"><?= $this->t('analytics.oauth_client_id') ?></label>
                         <input type="text" class="form-control" id="oauth-client-id" name="oauth_client_id" value="<?= $this->escape($this->ga['client_id']) ?>" autocomplete="off" placeholder="…apps.googleusercontent.com">
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label" for="oauth-client-secret">OAuth client secret</label>
-                        <input type="password" class="form-control" id="oauth-client-secret" name="oauth_client_secret" autocomplete="off" placeholder="<?= $this->ga['client_id'] !== '' ? '•••••• (leave blank to keep)' : 'GOCSPX-…' ?>">
+                        <label class="form-label" for="oauth-client-secret"><?= $this->t('analytics.oauth_client_secret') ?></label>
+                        <input type="password" class="form-control" id="oauth-client-secret" name="oauth_client_secret" autocomplete="off" placeholder="<?= $this->escape($this->ga['client_id'] !== '' ? $this->t('analytics.oauth_secret_keep') : 'GOCSPX-…') ?>">
                     </div>
                 </div>
                 <div class="mt-3">
@@ -142,11 +142,11 @@ $mode = ($this->ga['mode'] === 'byo') ? 'byo' : 'broker';
 
             <div class="d-flex flex-wrap gap-2 align-items-center mt-4">
                 <?php if ($this->ga['connected']): ?>
-                    <a href="/analytics/admin/dashboard" class="btn btn-primary"><i class="fa-solid fa-chart-line me-2"></i>View dashboard</a>
-                    <a href="/analytics/admin/disconnect" class="btn btn-outline-danger"><i class="fa-solid fa-plug-circle-xmark me-2"></i>Disconnect</a>
+                    <a href="/analytics/admin/dashboard" class="btn btn-primary"><i class="fa-solid fa-chart-line me-2"></i><?= $this->t('analytics.view_dashboard') ?></a>
+                    <a href="/analytics/admin/disconnect" class="btn btn-outline-danger"><i class="fa-solid fa-plug-circle-xmark me-2"></i><?= $this->t('analytics.disconnect') ?></a>
                 <?php else: ?>
-                    <button type="button" id="analytics-connect" class="btn btn-primary"><i class="fa-brands fa-google me-2"></i>Connect Google Analytics</button>
-                    <span class="small text-body-secondary">Saves your settings, then opens Google to authorize.</span>
+                    <button type="button" id="analytics-connect" class="btn btn-primary"><i class="fa-brands fa-google me-2"></i><?= $this->t('analytics.connect') ?></button>
+                    <span class="small text-body-secondary"><?= $this->t('analytics.connect_hint') ?></span>
                 <?php endif; ?>
             </div>
 
@@ -231,13 +231,13 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             var msgs = (res && res.messages) || [];
             if (msgs.length) { msgs.forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class, replace: false }); }); }
-            else { TigerDOM.notify(fb, 'Please fix the highlighted fields.', { type: 'error' }); }
+            else { TigerDOM.notify(fb, <?= json_encode($this->t('analytics.fix_fields')) ?>, { type: 'error' }); }
             return false;
-        }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); return false; });
+        }).catch(function () { TigerDOM.notify(fb, <?= json_encode($this->t('analytics.net_error')) ?>, { type: 'error' }); return false; });
     }
 
     document.getElementById('analytics-save').addEventListener('click', function () {
-        save(this).then(function (ok) { if (ok) { TigerDOM.notify(fb, 'Analytics settings saved.', { type: 'success' }); } });
+        save(this).then(function (ok) { if (ok) { TigerDOM.notify(fb, <?= json_encode($this->t('analytics.saved')) ?>, { type: 'success' }); } });
     });
 
     // Connect: save the form first (so the property ID + method the user just typed are persisted),
@@ -247,7 +247,7 @@ document.addEventListener('DOMContentLoaded', function () {
         connectBtn.addEventListener('click', function () {
             var prop = form.querySelector('[name="property_id"]');
             if (prop && prop.value.trim() === '') {
-                TigerDOM.notify(fb, 'Enter your GA4 property ID first — it tells us which property to report on.', { type: 'error' });
+                TigerDOM.notify(fb, <?= json_encode($this->t('analytics.connect_need_property')) ?>, { type: 'error' });
                 prop.classList.add('is-invalid');
                 prop.focus();
                 return;

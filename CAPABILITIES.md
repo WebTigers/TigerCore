@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**181 classes** across **32 capabilities** · **18 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**182 classes** across **32 capabilities** · **18 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -262,6 +262,7 @@
 - **Tiger_View_Helper_PageField** `@api` — read a custom field value (Tiger_Fields) from a page on the front end.  ·  `library/Tiger/View/Helper/PageField.php`
 - **Tiger_View_Helper_PageScript** `@api` — register a page-specific JS file from a view WITHOUT a `<script>` tag.  ·  `library/Tiger/View/Helper/PageScript.php`
 - **Tiger_View_Helper_PageStyle** `@api` — register a page-specific stylesheet from a view WITHOUT a `<style>` tag.  ·  `library/Tiger/View/Helper/PageStyle.php`
+- **Tiger_View_Helper_T** `@api` — translate a semantic key inside a view: `$this->t('cms.page.title')`.  ·  `library/Tiger/View/Helper/T.php`
 
 ### Routing & controllers
 

@@ -26,7 +26,7 @@ $date = $this->published_at ? date('M j, Y', strtotime((string) $this->published
       <div class="small text-body-secondary mt-auto">
         <?php if (!empty($this->author['name'])): ?><span class="fw-semibold"><?= $this->escape($this->author['name']) ?></span><?php endif; ?>
         <?php if ($date): ?><span class="mx-1">·</span><?= $this->escape($date) ?><?php endif; ?>
-        <?php if ($this->reading_time): ?><span class="mx-1">·</span><?= (int) $this->reading_time ?> min read<?php endif; ?>
+        <?php if ($this->reading_time): ?><span class="mx-1">·</span><?= (int) $this->reading_time ?> <?= $this->escape($this->t('blog.card.min_read')) ?><?php endif; ?>
       </div>
     </div>
   </div>

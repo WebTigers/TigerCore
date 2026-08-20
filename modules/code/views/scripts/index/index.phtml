@@ -14,11 +14,11 @@
 
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1">Code</h1>
-        <p class="text-body-secondary mb-0">PHP snippets that run across the platform — compiled + cached, executed on every request. Local snippets are stored in the DB; <span class="badge text-bg-info-subtle text-info-emphasis border border-info-subtle">module</span> snippets come from installed code modules (read the source before you activate). <span class="badge text-bg-warning-subtle text-warning-emphasis border border-warning-subtle">superadmin</span></p>
+        <h1 class="h3 mb-1"><?= $this->escape($this->t('code.list.title')) ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->escape($this->t('code.list.subtitle_a')) ?> <span class="badge text-bg-info-subtle text-info-emphasis border border-info-subtle"><?= $this->escape($this->t('code.list.badge_module')) ?></span> <?= $this->escape($this->t('code.list.subtitle_b')) ?> <span class="badge text-bg-warning-subtle text-warning-emphasis border border-warning-subtle"><?= $this->escape($this->t('code.list.badge_superadmin')) ?></span></p>
     </div>
     <div class="text-nowrap ms-3">
-        <a href="/code/index/edit" class="btn btn-primary"><i class="fa-solid fa-code me-2"></i>New Snippet</a>
+        <a href="/code/index/edit" class="btn btn-primary"><i class="fa-solid fa-code me-2"></i><?= $this->escape($this->t('code.list.new')) ?></a>
     </div>
 </div>
 
@@ -28,13 +28,13 @@
             <table id="code-table" class="table table-hover align-middle" style="width:100%;">
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>Lang</th>
-                        <th>Runs</th>
-                        <th>Priority</th>
-                        <th>State</th>
-                        <th>Updated</th>
-                        <th class="text-end" data-orderable="false">Actions</th>
+                        <th><?= $this->escape($this->t('code.list.col_name')) ?></th>
+                        <th><?= $this->escape($this->t('code.list.col_lang')) ?></th>
+                        <th><?= $this->escape($this->t('code.list.col_runs')) ?></th>
+                        <th><?= $this->escape($this->t('code.list.col_priority')) ?></th>
+                        <th><?= $this->escape($this->t('code.list.col_state')) ?></th>
+                        <th><?= $this->escape($this->t('code.list.col_updated')) ?></th>
+                        <th class="text-end" data-orderable="false"><?= $this->escape($this->t('code.list.col_actions')) ?></th>
                     </tr>
                 </thead>
             </table>
@@ -48,19 +48,19 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title mb-0" id="code-source-title">Snippet source</h5>
+                    <h5 class="modal-title mb-0" id="code-source-title"><?= $this->escape($this->t('code.source.title')) ?></h5>
                     <div class="small text-body-secondary" id="code-source-sub"></div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= $this->escape($this->t('code.source.close')) ?>"></button>
             </div>
             <div class="modal-body">
                 <p class="text-body-secondary small" id="code-source-desc"></p>
                 <textarea id="code-source-body" class="form-control font-monospace" rows="18" spellcheck="false" readonly></textarea>
             </div>
             <div class="modal-footer">
-                <span class="text-body-secondary small me-auto"><i class="fa-solid fa-triangle-exclamation text-warning me-1"></i>Activating runs this PHP in your app.</span>
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-success" id="code-source-activate"><i class="fa-solid fa-play me-2"></i>Activate</button>
+                <span class="text-body-secondary small me-auto"><i class="fa-solid fa-triangle-exclamation text-warning me-1"></i><?= $this->escape($this->t('code.source.warn')) ?></span>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= $this->escape($this->t('code.source.close')) ?></button>
+                <button type="button" class="btn btn-success" id="code-source-activate"><i class="fa-solid fa-play me-2"></i><?= $this->escape($this->t('code.source.activate')) ?></button>
             </div>
         </div>
     </div>

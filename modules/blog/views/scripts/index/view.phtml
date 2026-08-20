@@ -23,7 +23,7 @@ $date = $a['published_at'] ? date('F j, Y', strtotime((string) $a['published_at'
   <div class="post-meta">
     <?php if (!empty($a['author']['name'])): ?><span class="who"><?= $this->escape($a['author']['name']) ?></span><?php endif; ?>
     <?php if ($date): ?><span>·</span><span><?= $this->escape($date) ?></span><?php endif; ?>
-    <?php if ($a['reading_time']): ?><span>·</span><span><?= (int) $a['reading_time'] ?> min read</span><?php endif; ?>
+    <?php if ($a['reading_time']): ?><span>·</span><span><?= (int) $a['reading_time'] ?> <?= $this->escape($this->t('blog.card.min_read')) ?></span><?php endif; ?>
   </div>
 
   <?php if ($a['preamble']): ?><div class="post-preamble"><?= $this->escape($a['preamble']) ?></div><?php endif; ?>

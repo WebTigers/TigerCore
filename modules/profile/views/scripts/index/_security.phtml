@@ -8,7 +8,6 @@
  * the two fields are matched client-side before the round trip, and server field errors render inline.
  * Saves via /api (Profile_Service_Security).
  */
-$t  = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
 $ta = isset($this->themeAssets) && $this->themeAssets ? $this->themeAssets : '/_theme';
 ?>
 <script src="<?= $this->asset($ta . '/js/tiger.password-strength.js') ?>"></script>
@@ -18,21 +17,21 @@ $ta = isset($this->themeAssets) && $this->themeAssets ? $this->themeAssets : '/_
         <?= $this->passwordForm->getElement('_csrf') ?>
         <div class="row g-3">
             <div class="col-md-6">
-                <label class="form-label" for="profile-new-password"><?= $t('profile.security.new') ?></label>
+                <label class="form-label" for="profile-new-password"><?= $this->t('profile.security.new') ?></label>
                 <input type="password" class="form-control" id="profile-new-password" name="new_password" autocomplete="new-password" data-tiger-strength="1">
                 <div class="invalid-feedback"></div>
             </div>
             <div class="col-md-6">
-                <label class="form-label" for="profile-confirm-password"><?= $t('profile.security.confirm') ?></label>
+                <label class="form-label" for="profile-confirm-password"><?= $this->t('profile.security.confirm') ?></label>
                 <input type="password" class="form-control" id="profile-confirm-password" name="confirm_password" autocomplete="new-password">
                 <div class="invalid-feedback"></div>
             </div>
         </div>
     </div>
     <div class="card-footer d-flex align-items-center justify-content-between">
-        <a class="small text-decoration-none" href="/auth/security"><i class="fa-solid fa-shield-halved me-1"></i><?= $t('profile.security.twofa') ?></a>
+        <a class="small text-decoration-none" href="/auth/security"><i class="fa-solid fa-shield-halved me-1"></i><?= $this->t('profile.security.twofa') ?></a>
         <button type="button" id="profile-security-save" class="btn btn-primary">
-            <i class="fa-solid fa-key me-2"></i><?= $t('profile.security.change') ?>
+            <i class="fa-solid fa-key me-2"></i><?= $this->t('profile.security.change') ?>
         </button>
     </div>
 </form>
@@ -43,7 +42,7 @@ $ta = isset($this->themeAssets) && $this->themeAssets ? $this->themeAssets : '/_
     var fb   = document.getElementById('profile-feedback');
     var np   = form.querySelector('[name="new_password"]');
     var cp   = form.querySelector('[name="confirm_password"]');
-    var MISMATCH = <?= json_encode($t('core.form.password_mismatch')) ?>;
+    var MISMATCH = <?= json_encode($this->t('core.form.password_mismatch')) ?>;
 
     // Find the field's .invalid-feedback within its column (the strength meter injects nodes right
     // after the input, so nextElementSibling isn't reliable). Force-show with d-block since the meter's
@@ -67,7 +66,7 @@ $ta = isset($this->themeAssets) && $this->themeAssets ? $this->themeAssets : '/_
             return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
                 .then(function (r) { return r.json().catch(function () { return {}; }); });
         }).then(function (res) {
-            if (res && res.result === 1) { TigerDOM.notify(fb, 'Password changed.', { type: 'success' }); form.reset(); return; }
+            if (res && res.result === 1) { TigerDOM.notify(fb, <?= json_encode($this->t('profile.security.password_changed')) ?>, { type: 'success' }); form.reset(); return; }
             // Render each field's (now localized) validator message inline.
             if (res && res.form) {
                 Object.keys(res.form).forEach(function (name) {
@@ -78,7 +77,7 @@ $ta = isset($this->themeAssets) && $this->themeAssets ? $this->themeAssets : '/_
                 });
             }
             (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
-        }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+        }).catch(function () { TigerDOM.notify(fb, <?= json_encode($this->t('profile.net_error')) ?>, { type: 'error' }); });
     });
 })();
 </script>

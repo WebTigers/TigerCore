@@ -10,26 +10,26 @@
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1">Users</h1>
-        <p class="text-body-secondary mb-0">Identities — email, username, status, and membership.</p>
+        <h1 class="h3 mb-1"><?= $this->t('access.user.list.title') ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('access.user.list.subtitle') ?></p>
     </div>
-    <a href="/access/user/edit" class="btn btn-primary"><i class="fa-solid fa-user-plus me-2"></i>New User</a>
+    <a href="/access/user/edit" class="btn btn-primary"><i class="fa-solid fa-user-plus me-2"></i><?= $this->t('access.user.list.new') ?></a>
 </div>
 
 <div class="card">
     <div class="card-header bg-transparent">
         <div class="row g-2 align-items-end">
             <div class="col-6 col-sm-auto">
-                <label class="form-label small text-body-secondary mb-1" for="access-user-status">Status</label>
+                <label class="form-label small text-body-secondary mb-1" for="access-user-status"><?= $this->t('access.label.status') ?></label>
                 <select id="access-user-status" class="form-select form-select-sm">
-                    <option value="">All statuses</option>
-                    <option value="active">Active</option>
-                    <option value="suspended">Suspended</option>
+                    <option value=""><?= $this->escape($this->t('access.filter.all_statuses')) ?></option>
+                    <option value="active"><?= $this->escape($this->t('access.status.active')) ?></option>
+                    <option value="suspended"><?= $this->escape($this->t('access.status.suspended')) ?></option>
                 </select>
             </div>
             <div class="col-auto">
-                <button type="button" id="access-user-clear" class="btn btn-sm btn-outline-secondary" title="Clear filters">
-                    <i class="fa-solid fa-filter-circle-xmark me-1"></i>Clear
+                <button type="button" id="access-user-clear" class="btn btn-sm btn-outline-secondary" title="<?= $this->escape($this->t('access.filter.clear_title')) ?>">
+                    <i class="fa-solid fa-filter-circle-xmark me-1"></i><?= $this->t('access.filter.clear') ?>
                 </button>
             </div>
         </div>
@@ -39,13 +39,13 @@
             <table id="access-user-table" class="table table-hover align-middle" style="width:100%;">
                 <thead>
                     <tr>
-                        <th>Email</th>
-                        <th>Username</th>
-                        <th data-orderable="false">Roles</th>
-                        <th>Orgs</th>
-                        <th>Status</th>
-                        <th>Created</th>
-                        <th class="text-end" data-orderable="false">Actions</th>
+                        <th><?= $this->t('access.label.email') ?></th>
+                        <th><?= $this->t('access.label.username') ?></th>
+                        <th data-orderable="false"><?= $this->t('access.label.roles') ?></th>
+                        <th><?= $this->t('access.label.orgs') ?></th>
+                        <th><?= $this->t('access.label.status') ?></th>
+                        <th><?= $this->t('access.label.created') ?></th>
+                        <th class="text-end" data-orderable="false"><?= $this->t('access.label.actions') ?></th>
                     </tr>
                 </thead>
             </table>

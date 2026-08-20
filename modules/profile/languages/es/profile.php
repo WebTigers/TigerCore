@@ -8,6 +8,11 @@ return [
     'profile.title'               => 'Mi Perfil',
     'profile.subtitle'            => 'Los datos de tu cuenta.',
 
+    'profile.save'                => 'Guardar',
+    'profile.cancel'              => 'Cancelar',
+    'profile.close'               => 'Cerrar',
+    'profile.net_error'           => 'Error de red — inténtalo de nuevo.',
+
     'profile.tab.basic'           => 'Información Básica',
     'profile.tab.security'        => 'Seguridad',
     'profile.tab.contacts'        => 'Contactos',
@@ -31,8 +36,13 @@ return [
 
     'profile.avatar.change'       => 'Cambiar foto',
     'profile.avatar.remove'       => 'Quitar',
+    'profile.avatar.alt'          => 'Avatar',
     'profile.avatar.hint'         => 'JPG, PNG o WebP. Una imagen cuadrada funciona mejor.',
+    'profile.avatar.hint_drop'    => 'O suelta una foto en cualquier parte de la página.',
     'profile.avatar.adjust'       => 'Ajusta tu foto',
+    'profile.avatar.crop_hint'    => 'Arrastra para mover · arrastra una esquina para redimensionar · desplázate para ampliar.',
+    'profile.avatar.drop_label'   => 'Suelta tu foto',
+    'profile.avatar.drop_sub'     => 'para usarla como tu avatar',
     'profile.avatar.save'         => 'Guardar foto',
     'profile.avatar.saved'        => 'Foto actualizada.',
     'profile.avatar.removed'      => 'Foto eliminada.',
@@ -67,8 +77,11 @@ return [
 
     'profile.org.logo.change'       => 'Cambiar logo',
     'profile.org.logo.remove'       => 'Quitar',
+    'profile.org.logo.alt'          => 'Logo',
     'profile.org.logo.hint'         => 'PNG, JPG o WebP. Suelta una imagen en cualquier parte de la página.',
     'profile.org.logo.adjust'       => 'Ajusta tu logo',
+    'profile.org.logo.drop_label'   => 'Suelta tu logo',
+    'profile.org.logo.drop_sub'     => 'para usarlo como el logo de tu organización',
     'profile.org.logo.save'         => 'Guardar logo',
     'profile.org.logo.saved'        => 'Logo actualizado.',
     'profile.org.logo.removed'      => 'Logo eliminado.',
@@ -97,6 +110,8 @@ return [
     'profile.address.confirm_delete' => '¿Eliminar esta dirección?',
     'profile.address.bad_type'       => 'Elige un tipo de dirección válido.',
     'profile.address.bad_country'    => 'Elige un país válido.',
+    'profile.address.group.priority' => 'Frecuentes',
+    'profile.address.group.rest'     => 'Todos los países',
 
     'profile.soon'                  => 'Próximamente en la siguiente actualización.',
 ];

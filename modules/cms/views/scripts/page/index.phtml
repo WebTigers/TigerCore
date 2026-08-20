@@ -15,19 +15,19 @@
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1">Content</h1>
-        <p class="text-body-secondary mb-0">Pages, layouts, and partials — the CMS content store.</p>
+        <h1 class="h3 mb-1"><?= $this->t('cms.page.list_heading') ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('cms.page.list_subtitle') ?></p>
     </div>
-    <a href="/cms/page/edit" class="btn btn-primary"><i class="fa-solid fa-plus me-2"></i>New Page</a>
+    <a href="/cms/page/edit" class="btn btn-primary"><i class="fa-solid fa-plus me-2"></i><?= $this->t('cms.page.new_page') ?></a>
 </div>
 
 <ul class="nav nav-tabs mb-3" id="cms-content-tabs" role="tablist">
     <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="tab-pages-btn" data-bs-toggle="tab" data-bs-target="#tab-pages" type="button" role="tab" aria-controls="tab-pages" aria-selected="true"><i class="fa-solid fa-file-lines me-2"></i>Pages</button>
+        <button class="nav-link active" id="tab-pages-btn" data-bs-toggle="tab" data-bs-target="#tab-pages" type="button" role="tab" aria-controls="tab-pages" aria-selected="true"><i class="fa-solid fa-file-lines me-2"></i><?= $this->t('cms.page.tab_pages') ?></button>
     </li>
     <?php if (!empty($this->themeCount)): ?>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-templates-btn" data-bs-toggle="tab" data-bs-target="#tab-templates" type="button" role="tab" aria-controls="tab-templates" aria-selected="false"><i class="fa-solid fa-swatchbook me-2"></i>Theme Templates <span class="badge text-bg-secondary-subtle text-secondary-emphasis ms-1"><?= (int) $this->themeCount ?></span></button>
+        <button class="nav-link" id="tab-templates-btn" data-bs-toggle="tab" data-bs-target="#tab-templates" type="button" role="tab" aria-controls="tab-templates" aria-selected="false"><i class="fa-solid fa-swatchbook me-2"></i><?= $this->t('cms.page.tab_templates') ?> <span class="badge text-bg-secondary-subtle text-secondary-emphasis ms-1"><?= (int) $this->themeCount ?></span></button>
     </li>
     <?php endif; ?>
 </ul>
@@ -38,27 +38,27 @@
             <div class="card-header bg-transparent">
                 <div class="row g-2 align-items-end">
                     <div class="col-6 col-sm-auto">
-                        <label class="form-label small text-body-secondary mb-1" for="cms-filter-status">Status</label>
+                        <label class="form-label small text-body-secondary mb-1" for="cms-filter-status"><?= $this->t('cms.label.status') ?></label>
                         <select id="cms-filter-status" class="form-select form-select-sm">
-                            <option value="">All statuses</option>
-                            <option value="published">Published</option>
-                            <option value="draft">Draft</option>
-                            <option value="archived">Archived</option>
+                            <option value=""><?= $this->t('cms.page.filter_all_statuses') ?></option>
+                            <option value="published"><?= $this->t('cms.status.published') ?></option>
+                            <option value="draft"><?= $this->t('cms.status.draft') ?></option>
+                            <option value="archived"><?= $this->t('cms.status.archived') ?></option>
                         </select>
                     </div>
                     <div class="col-6 col-sm-auto">
-                        <label class="form-label small text-body-secondary mb-1" for="cms-filter-type">Type</label>
+                        <label class="form-label small text-body-secondary mb-1" for="cms-filter-type"><?= $this->t('cms.label.type') ?></label>
                         <select id="cms-filter-type" class="form-select form-select-sm">
-                            <option value="">All types</option>
-                            <option value="page">Page</option>
-                            <option value="layout">Layout</option>
-                            <option value="partial">Partial</option>
-                            <option value="block">Block</option>
+                            <option value=""><?= $this->t('cms.page.filter_all_types') ?></option>
+                            <option value="page"><?= $this->t('cms.type.page') ?></option>
+                            <option value="layout"><?= $this->t('cms.type.layout') ?></option>
+                            <option value="partial"><?= $this->t('cms.type.partial') ?></option>
+                            <option value="block"><?= $this->t('cms.type.block') ?></option>
                         </select>
                     </div>
                     <div class="col-auto">
-                        <button type="button" id="cms-filter-clear" class="btn btn-sm btn-outline-secondary" title="Clear filters">
-                            <i class="fa-solid fa-filter-circle-xmark me-1"></i>Clear
+                        <button type="button" id="cms-filter-clear" class="btn btn-sm btn-outline-secondary" title="<?= $this->escape($this->t('cms.page.filter_clear_title')) ?>">
+                            <i class="fa-solid fa-filter-circle-xmark me-1"></i><?= $this->t('cms.page.filter_clear') ?>
                         </button>
                     </div>
                 </div>
@@ -68,13 +68,13 @@
                     <table id="cms-pages-table" class="table table-hover align-middle" style="width:100%;">
                         <thead>
                             <tr>
-                                <th>Title</th>
-                                <th>Type</th>
-                                <th>Slug / Key</th>
-                                <th>Lang</th>
-                                <th>Status</th>
-                                <th>Updated</th>
-                                <th class="text-end" data-orderable="false">Actions</th>
+                                <th><?= $this->t('cms.label.title') ?></th>
+                                <th><?= $this->t('cms.label.type') ?></th>
+                                <th><?= $this->t('cms.page.col_slug_key') ?></th>
+                                <th><?= $this->t('cms.page.col_lang') ?></th>
+                                <th><?= $this->t('cms.label.status') ?></th>
+                                <th><?= $this->t('cms.label.updated') ?></th>
+                                <th class="text-end" data-orderable="false"><?= $this->t('cms.label.actions') ?></th>
                             </tr>
                         </thead>
                     </table>
@@ -88,7 +88,7 @@
         <div class="card">
             <div class="card-header bg-transparent">
                 <p class="text-body-secondary small mb-0">
-                    Pages, layouts, and partials your installed themes serve from files — <strong>Customize</strong> makes an editable copy that overrides the file. The theme file is never changed.
+                    <?= $this->t('cms.page.templates_subtitle', '<strong>' . $this->escape($this->t('cms.page.customize')) . '</strong>') ?>
                 </p>
             </div>
             <div class="card-body">
@@ -96,12 +96,12 @@
                     <table id="cms-templates-table" class="table table-hover align-middle" style="width:100%;">
                         <thead>
                             <tr>
-                                <th>Kind</th>
-                                <th>Theme</th>
-                                <th>Title</th>
-                                <th>Handle</th>
-                                <th>Status</th>
-                                <th class="text-end" data-orderable="false">Actions</th>
+                                <th><?= $this->t('cms.page.col_kind') ?></th>
+                                <th><?= $this->t('cms.label.theme') ?></th>
+                                <th><?= $this->t('cms.label.title') ?></th>
+                                <th><?= $this->t('cms.page.col_handle') ?></th>
+                                <th><?= $this->t('cms.label.status') ?></th>
+                                <th class="text-end" data-orderable="false"><?= $this->t('cms.label.actions') ?></th>
                             </tr>
                         </thead>
                     </table>

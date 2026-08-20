@@ -13,12 +13,12 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1"><?= $isEdit ? 'Edit Organization' : 'New Organization' ?></h1>
-        <p class="text-body-secondary mb-0"><a href="/access/org" class="text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i>Back to organizations</a></p>
+        <h1 class="h3 mb-1"><?= $this->escape($isEdit ? $this->t('access.org.edit.title_edit') : $this->t('access.org.edit.title_new')) ?></h1>
+        <p class="text-body-secondary mb-0"><a href="/access/org" class="text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i><?= $this->t('access.org.edit.back') ?></a></p>
     </div>
     <div class="text-nowrap">
-        <a href="/access/org" class="btn btn-outline-secondary">Cancel</a>
-        <button type="button" id="access-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+        <a href="/access/org" class="btn btn-outline-secondary"><?= $this->t('access.action.cancel') ?></a>
+        <button type="button" id="access-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->t('access.action.save') ?></button>
     </div>
 </div>
 
@@ -32,21 +32,21 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
             <div class="card">
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label" for="<?= $this->escape($el('name')->getId()) ?>">Name</label>
+                        <label class="form-label" for="<?= $this->escape($el('name')->getId()) ?>"><?= $this->t('access.label.name') ?></label>
                         <?= $el('name') ?>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="<?= $this->escape($el('slug')->getId()) ?>">Slug</label>
+                        <label class="form-label" for="<?= $this->escape($el('slug')->getId()) ?>"><?= $this->t('access.label.slug') ?></label>
                         <?= $el('slug') ?>
-                        <div class="form-text">URL-safe identifier. Auto-derived from the name if left blank; must be unique.</div>
+                        <div class="form-text"><?= $this->t('access.org.field.slug_help') ?></div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="<?= $this->escape($el('parent_org_id')->getId()) ?>">Parent organization</label>
+                        <label class="form-label" for="<?= $this->escape($el('parent_org_id')->getId()) ?>"><?= $this->t('access.org.field.parent') ?></label>
                         <?= $el('parent_org_id') ?>
-                        <div class="form-text">For sub-tenants; leave as “none” for a root organization.</div>
+                        <div class="form-text"><?= $this->t('access.org.field.parent_help') ?></div>
                     </div>
                     <div class="mb-0">
-                        <label class="form-label" for="<?= $this->escape($el('status')->getId()) ?>">Status</label>
+                        <label class="form-label" for="<?= $this->escape($el('status')->getId()) ?>"><?= $this->t('access.label.status') ?></label>
                         <?= $el('status') ?>
                     </div>
                 </div>

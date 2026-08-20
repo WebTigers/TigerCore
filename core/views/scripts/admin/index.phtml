@@ -17,17 +17,17 @@ $tr = Zend_Registry::isRegistered('Zend_Translate') ? Zend_Registry::get('Zend_T
 $t  = function ($s) use ($tr) { return $tr ? $tr->translate($s) : $s; };
 // Header + empty-state copy are overridable — AccountController reuses this same grid (ACL-filtered per
 // role) under an account-appropriate header, so a non-admin gets "My Account" not "Tiger admin".
-$dashTitle = $this->dashTitle ?? 'Dashboard';
-$dashLead  = $this->dashLead ?? 'Welcome to the Tiger admin.';
+$dashTitle = $this->dashTitle ?? 'core.dashboard.title';
+$dashLead  = $this->dashLead ?? 'core.dashboard.lead';
 ?>
 <header class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
     <div>
-        <h1 class="h3 mb-1"><?= $this->escape($dashTitle) ?></h1>
-        <p class="text-secondary mb-0 small"><?= $this->escape($dashLead) ?></p>
+        <h1 class="h3 mb-1"><?= $this->escape($this->t($dashTitle)) ?></h1>
+        <p class="text-secondary mb-0 small"><?= $this->escape($this->t($dashLead)) ?></p>
     </div>
     <?php if (!empty($widgets)): ?>
     <button type="button" class="btn btn-sm btn-outline-secondary" id="dash-customize">
-        <i class="fa-solid fa-sliders me-1"></i>Customize
+        <i class="fa-solid fa-sliders me-1"></i><?= $this->escape($this->t('core.dashboard.customize')) ?>
     </button>
     <?php endif; ?>
 </header>
@@ -35,8 +35,8 @@ $dashLead  = $this->dashLead ?? 'Welcome to the Tiger admin.';
 <?php if (empty($widgets)): ?>
     <div class="text-center text-body-secondary py-5">
         <i class="fa-regular fa-window-restore fa-2x mb-3 d-block"></i>
-        <p class="mb-1 fw-semibold text-body">No dashboard widgets yet</p>
-        <p class="mb-0"><?= $this->escape($this->dashEmptyLead ?? 'Modules that provide a dashboard widget will appear here automatically once they\'re active.') ?></p>
+        <p class="mb-1 fw-semibold text-body"><?= $this->escape($this->t('core.dashboard.empty_title')) ?></p>
+        <p class="mb-0"><?= $this->escape($this->t($this->dashEmptyLead ?? 'core.dashboard.empty_lead')) ?></p>
     </div>
 <?php else: ?>
     <div class="dash-grid" id="dash-grid">
@@ -50,10 +50,10 @@ $dashLead  = $this->dashLead ?? 'Welcome to the Tiger admin.';
         ?>
         <div class="dash-item<?= $hidden ? ' d-none' : '' ?>" data-id="<?= $id ?>" data-w="<?= $wide ?>"<?= (int) ($w['refresh'] ?? 0) > 0 ? ' data-refresh="' . (int) $w['refresh'] . '"' : '' ?>>
             <div class="card shadow-sm h-100">
-                <div class="card-header dash-handle d-flex align-items-center gap-2" title="Drag to rearrange">
+                <div class="card-header dash-handle d-flex align-items-center gap-2" title="<?= $this->escape($this->t('core.dashboard.drag_hint')) ?>">
                     <i class="fa-solid <?= $icon ?> text-primary"></i>
                     <span class="fw-semibold flex-grow-1 text-truncate"><?= $title ?></span>
-                    <button type="button" class="btn btn-sm btn-link p-0 text-body-secondary dash-collapse" aria-label="Collapse widget">
+                    <button type="button" class="btn btn-sm btn-link p-0 text-body-secondary dash-collapse" aria-label="<?= $this->escape($this->t('core.dashboard.collapse_aria')) ?>">
                         <i class="fa-solid fa-chevron-<?= $coll ? 'down' : 'up' ?>"></i>
                     </button>
                 </div>
@@ -70,15 +70,15 @@ $dashLead  = $this->dashLead ?? 'Welcome to the Tiger admin.';
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="dash-customize-title"><i class="fa-solid fa-sliders me-2"></i>Customize dashboard</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title" id="dash-customize-title"><i class="fa-solid fa-sliders me-2"></i><?= $this->escape($this->t('core.dashboard.customize_title')) ?></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= $this->escape($this->t('core.common.close')) ?>"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="text-body-secondary small mb-3">Turn widgets on or off. A hidden widget isn't rendered — switch it back on anytime.</p>
+                    <p class="text-body-secondary small mb-3"><?= $this->escape($this->t('core.dashboard.customize_help')) ?></p>
                     <div class="list-group" id="dash-widget-prefs"></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Done</button>
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal"><?= $this->escape($this->t('core.common.done')) ?></button>
                 </div>
             </div>
         </div>

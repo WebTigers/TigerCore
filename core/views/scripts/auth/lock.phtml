@@ -13,8 +13,8 @@ $who      = $this->escape(($identity && $identity->username) ? $identity->userna
 ?>
 <div class="tiger-auth-brand">
     <span class="tiger-auth-mark"><i class="fa-solid fa-lock"></i></span>
-    <h1 class="h4 mb-1">Screen locked</h1>
-    <p class="text-body-secondary small mb-0">Re-verify to continue.</p>
+    <h1 class="h4 mb-1"><?= $this->escape($this->t('core.auth.lock.title')) ?></h1>
+    <p class="text-body-secondary small mb-0"><?= $this->escape($this->t('core.auth.lock.subtitle')) ?></p>
 </div>
 
 <div class="text-center mb-3">
@@ -31,46 +31,46 @@ $who      = $this->escape(($identity && $identity->username) ? $identity->userna
 <div id="lock-pw-mode">
     <form id="lock-pw-form" novalidate>
         <div class="mb-3">
-            <label class="form-label" for="lock-password">Password</label>
+            <label class="form-label" for="lock-password"><?= $this->escape($this->t('core.auth.password')) ?></label>
             <input type="password" class="form-control form-control-lg" id="lock-password" name="password"
                    autocomplete="current-password" autofocus required>
         </div>
         <div class="d-grid mb-2">
-            <button type="submit" id="lock-pw-submit" class="btn btn-primary btn-lg">Unlock</button>
+            <button type="submit" id="lock-pw-submit" class="btn btn-primary btn-lg"><?= $this->escape($this->t('core.auth.lock.unlock')) ?></button>
         </div>
     </form>
     <div class="text-center">
-        <a href="#" id="lock-use-code" class="small text-decoration-none">Unlock with a code instead</a>
+        <a href="#" id="lock-use-code" class="small text-decoration-none"><?= $this->escape($this->t('core.auth.lock.use_code')) ?></a>
     </div>
 </div>
 
 <!-- Code unlock (revealed on request) -->
 <div id="lock-code-mode" style="display:none;">
     <form id="lock-send-form" novalidate>
-        <p class="small text-body-secondary text-center mb-3">We'll email a one-time code to <strong><?= $email ?></strong>.</p>
+        <p class="small text-body-secondary text-center mb-3"><?= $this->escape($this->t('core.auth.lock.email_send_to')) ?> <strong><?= $email ?></strong>.</p>
         <div class="d-grid mb-2">
-            <button type="submit" id="lock-send-submit" class="btn btn-primary btn-lg">Email me a code</button>
+            <button type="submit" id="lock-send-submit" class="btn btn-primary btn-lg"><?= $this->escape($this->t('core.auth.email_code')) ?></button>
         </div>
     </form>
     <form id="lock-code-form" novalidate style="display:none;">
         <p class="small text-body-secondary" id="lock-code-note"></p>
         <div class="mb-3">
-            <label class="form-label" for="lock-code">Verification code</label>
+            <label class="form-label" for="lock-code"><?= $this->escape($this->t('core.auth.twofa.code_label')) ?></label>
             <input type="text" class="form-control form-control-lg text-center" id="lock-code" name="code"
                    inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*"
                    placeholder="000000" style="letter-spacing:.4em;" required>
         </div>
         <div class="d-grid mb-2">
-            <button type="submit" id="lock-code-submit" class="btn btn-primary btn-lg">Unlock</button>
+            <button type="submit" id="lock-code-submit" class="btn btn-primary btn-lg"><?= $this->escape($this->t('core.auth.lock.unlock')) ?></button>
         </div>
     </form>
     <div class="text-center">
-        <a href="#" id="lock-use-pw" class="small text-decoration-none">Use password instead</a>
+        <a href="#" id="lock-use-pw" class="small text-decoration-none"><?= $this->escape($this->t('core.auth.lock.use_password')) ?></a>
     </div>
 </div>
 
 <div class="tiger-auth-foot">
-    <a href="/auth/logout" class="small text-decoration-none">Not <?= $who ?>? Sign out</a>
+    <a href="/auth/logout" class="small text-decoration-none"><?= $this->t('core.auth.lock.not_you', $who) ?></a>
 </div>
 
 <script>

@@ -55,7 +55,7 @@ if ($this->chromeBefore !== null || $this->chromeAfter !== null) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= $this->escape($this->title ?: 'Untitled') ?> — Builder</title>
+    <title><?= $this->escape($this->title ?: $this->t('cms.label.untitled')) ?> — <?= $this->escape($this->t('cms.page.builder')) ?></title>
 
     <script src="<?= $this->asset($va . '/js/theme-init.js') ?>"></script>
     <link rel="stylesheet" href="<?= $this->asset($va . '/vendor/fonts/inter/inter.css') ?>">
@@ -71,30 +71,30 @@ if ($this->chromeBefore !== null || $this->chromeAfter !== null) {
 <body>
     <header class="tb-bar">
         <div class="tb-left">
-            <span class="tb-brand"><i class="fa-solid fa-panorama me-1"></i>Tiger Builder</span>
+            <span class="tb-brand"><i class="fa-solid fa-panorama me-1"></i><?= $this->escape($this->t('cms.page.builder_brand')) ?></span>
 <?php if (!empty($this->partialMode)): ?>
-            <span class="badge text-bg-secondary-subtle text-secondary-emphasis"><i class="fa-solid <?= ($this->fragmentLabel === 'Block' ? 'fa-cube' : 'fa-puzzle-piece') ?> me-1"></i><?= $this->escape($this->fragmentLabel ?: 'Partial') ?></span>
+            <span class="badge text-bg-secondary-subtle text-secondary-emphasis"><i class="fa-solid <?= ($this->fragmentLabel === 'Block' ? 'fa-cube' : 'fa-puzzle-piece') ?> me-1"></i><?= $this->escape($this->fragmentLabel ?: $this->t('cms.type.partial')) ?></span>
 <?php endif; ?>
-            <span class="tb-title"><?= $this->escape($this->title ?: 'Untitled') ?></span>
+            <span class="tb-title"><?= $this->escape($this->title ?: $this->t('cms.label.untitled')) ?></span>
         </div>
         <div class="tb-right">
             <span id="tb-status" class="tb-status"></span>
 <?php if (!empty($this->partialMode) && !empty($this->layoutOptions)): ?>
-            <label class="tb-layout-wrap d-inline-flex align-items-center gap-1" title="Preview this partial inside a layout's chrome">
+            <label class="tb-layout-wrap d-inline-flex align-items-center gap-1" title="<?= $this->escape($this->t('cms.page.layout_preview_title')) ?>">
                 <i class="fa-solid fa-table-columns text-body-secondary"></i>
                 <select id="tb-layout" class="form-select form-select-sm" style="width:auto;">
-                    <option value="">Theme default</option>
+                    <option value=""><?= $this->escape($this->t('cms.page.layout_theme_default')) ?></option>
 <?php foreach ($this->layoutOptions as $lk => $ll): ?>
                     <option value="<?= $this->escape($lk) ?>"<?= ($lk === $this->partialLayoutKey ? ' selected' : '') ?>><?= $this->escape($ll) ?></option>
 <?php endforeach; ?>
                 </select>
             </label>
 <?php endif; ?>
-            <button id="tb-save-block" class="btn btn-sm btn-outline-secondary" type="button" title="Save the selected element as a reusable Block"><i class="fa-solid fa-cube me-1"></i>Save as Block</button>
-            <button id="tb-theme" class="btn btn-sm btn-outline-secondary" type="button" title="Toggle canvas light / dark"><i class="fa-solid fa-sun"></i></button>
-            <a class="btn btn-sm btn-outline-secondary" href="/cms/page/edit/id/<?= $this->escape($this->page->page_id) ?>"><i class="fa-solid fa-gear me-1"></i>Settings</a>
-            <a class="btn btn-sm btn-outline-secondary" href="/cms/page"><i class="fa-solid fa-xmark me-1"></i>Exit</a>
-            <button id="tb-save" class="btn btn-sm btn-primary" type="button"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
+            <button id="tb-save-block" class="btn btn-sm btn-outline-secondary" type="button" title="<?= $this->escape($this->t('cms.page.save_block_title')) ?>"><i class="fa-solid fa-cube me-1"></i><?= $this->escape($this->t('cms.page.save_block')) ?></button>
+            <button id="tb-theme" class="btn btn-sm btn-outline-secondary" type="button" title="<?= $this->escape($this->t('cms.page.toggle_theme_title')) ?>"><i class="fa-solid fa-sun"></i></button>
+            <a class="btn btn-sm btn-outline-secondary" href="/cms/page/edit/id/<?= $this->escape($this->page->page_id) ?>"><i class="fa-solid fa-gear me-1"></i><?= $this->escape($this->t('cms.label.settings')) ?></a>
+            <a class="btn btn-sm btn-outline-secondary" href="/cms/page"><i class="fa-solid fa-xmark me-1"></i><?= $this->escape($this->t('cms.action.exit')) ?></a>
+            <button id="tb-save" class="btn btn-sm btn-primary" type="button"><i class="fa-solid fa-floppy-disk me-1"></i><?= $this->escape($this->t('cms.action.save')) ?></button>
         </div>
     </header>
 

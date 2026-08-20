@@ -30,7 +30,7 @@ class Cms_Form_MenuItem extends Tiger_Form
         $select  = ['class' => 'form-select'];
 
         // Pages you can link by key (published pages with a stable key).
-        $pages = ['' => '— none —'];
+        $pages = ['' => $this->_t('cms.menu.opt_none')];
         $pm    = new Tiger_Model_Page();
         foreach ($pm->fetchAll(
             $pm->activeSelect()
@@ -73,7 +73,7 @@ class Cms_Form_MenuItem extends Tiger_Form
                 'attribs'  => array_merge($control, ['id' => 'mi-dom-id', 'maxlength' => 191]),
             ]],
             ['select', 'link_target', [
-                'multiOptions' => ['' => 'Same tab', '_blank' => 'New tab (_blank)'],
+                'multiOptions' => ['' => $this->_t('cms.menu.target_same'), '_blank' => $this->_t('cms.menu.target_blank')],
                 'attribs'      => array_merge($select, ['id' => 'mi-target']),
             ]],
             ['text', 'link_rel', [
@@ -91,7 +91,7 @@ class Cms_Form_MenuItem extends Tiger_Form
                 'attribs'  => array_merge($control, ['id' => 'mi-privilege', 'maxlength' => 64]),
             ]],
             ['select', 'status', [
-                'multiOptions' => ['published' => 'Published', 'draft' => 'Draft'],
+                'multiOptions' => ['published' => $this->_t('cms.status.published'), 'draft' => $this->_t('cms.status.draft')],
                 'attribs'      => array_merge($select, ['id' => 'mi-status']),
             ]],
         ];

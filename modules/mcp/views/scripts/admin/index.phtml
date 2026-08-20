@@ -11,8 +11,8 @@ $bridge = (string) $this->bridge;
 ?>
 <div class="d-flex align-items-center justify-content-between mb-3">
     <div>
-        <h1 class="h3 mb-1">MCP Server</h1>
-        <p class="text-body-secondary mb-0">Let an external AI client (Claude Desktop/Code, Cursor, ChatGPT) drive this site through Tiger's <code>/api</code> — with the same permissions a signed-in user of the token's role has. Off by default; every action is ACL-gated and audited.</p>
+        <h1 class="h3 mb-1"><?= $this->escape($this->t('mcp.connect.title')) ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('mcp.connect.subtitle') ?></p>
     </div>
 </div>
 
@@ -23,37 +23,37 @@ $bridge = (string) $this->bridge;
 
     <!-- Enable -->
     <div class="card mb-4">
-      <div class="card-header fw-semibold"><i class="fa-solid fa-power-off me-2"></i>Enable the MCP endpoint</div>
+      <div class="card-header fw-semibold"><i class="fa-solid fa-power-off me-2"></i><?= $this->escape($this->t('mcp.connect.enable.title')) ?></div>
       <div class="card-body">
         <div class="form-check form-switch mb-2">
           <input class="form-check-input" type="checkbox" role="switch" id="mcp-enabled" <?= $this->enabled ? 'checked' : '' ?>>
-          <label class="form-check-label" for="mcp-enabled">Serve <code id="mcp-url-inline"><?= $this->escape($mcpUrl) ?></code></label>
+          <label class="form-check-label" for="mcp-enabled"><?= $this->escape($this->t('mcp.connect.serve')) ?> <code id="mcp-url-inline"><?= $this->escape($mcpUrl) ?></code></label>
         </div>
-        <p class="small text-body-secondary mb-3">When on, <code>POST /mcp</code> accepts MCP (JSON-RPC) from any client presenting a valid token. When off, it returns 404. A caller with no token is a guest and can reach only guest-allowed read tools.</p>
-        <button type="button" id="mcp-save" class="btn btn-primary btn-sm"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+        <p class="small text-body-secondary mb-3"><?= $this->t('mcp.connect.enable.help') ?></p>
+        <button type="button" id="mcp-save" class="btn btn-primary btn-sm"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->escape($this->t('mcp.connect.save')) ?></button>
       </div>
     </div>
 
     <!-- Access tokens -->
     <div class="card">
-      <div class="card-header fw-semibold"><i class="fa-solid fa-key me-2"></i>Access tokens</div>
+      <div class="card-header fw-semibold"><i class="fa-solid fa-key me-2"></i><?= $this->escape($this->t('mcp.tokens.title')) ?></div>
       <div class="card-body">
-        <label class="form-label small fw-semibold mb-1">Scope a new token</label>
+        <label class="form-label small fw-semibold mb-1"><?= $this->escape($this->t('mcp.tokens.scope')) ?></label>
         <div id="mcp-scope-modules" class="d-flex flex-wrap gap-2 mb-2"></div>
-        <div class="form-check form-switch mb-1"><input class="form-check-input" type="checkbox" id="mcp-scope-readonly"><label class="form-check-label small" for="mcp-scope-readonly">Read-only — no writes (reads only)</label></div>
-        <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="mcp-scope-org"><label class="form-check-label small" for="mcp-scope-org">Org token — acts as the org, not you (no bound user)</label></div>
-        <button type="button" id="mcp-mint" class="btn btn-sm btn-outline-primary mb-2"><i class="fa-solid fa-plus me-1"></i>Mint token</button>
+        <div class="form-check form-switch mb-1"><input class="form-check-input" type="checkbox" id="mcp-scope-readonly"><label class="form-check-label small" for="mcp-scope-readonly"><?= $this->escape($this->t('mcp.tokens.readonly')) ?></label></div>
+        <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="mcp-scope-org"><label class="form-check-label small" for="mcp-scope-org"><?= $this->escape($this->t('mcp.tokens.org')) ?></label></div>
+        <button type="button" id="mcp-mint" class="btn btn-sm btn-outline-primary mb-2"><i class="fa-solid fa-plus me-1"></i><?= $this->escape($this->t('mcp.tokens.mint')) ?></button>
 
         <div id="mcp-minted" class="alert alert-success d-none">
-          <div class="small mb-1"><i class="fa-solid fa-triangle-exclamation me-1"></i>Copy this now — it's shown only once.</div>
+          <div class="small mb-1"><i class="fa-solid fa-triangle-exclamation me-1"></i><?= $this->escape($this->t('mcp.tokens.once')) ?></div>
           <div class="input-group input-group-sm">
             <input type="text" id="mcp-minted-value" class="form-control font-monospace" readonly>
-            <button type="button" class="btn btn-outline-secondary" data-copy="#mcp-minted-value">Copy</button>
+            <button type="button" class="btn btn-outline-secondary" data-copy="#mcp-minted-value"><?= $this->escape($this->t('mcp.copy')) ?></button>
           </div>
         </div>
         <hr class="my-2">
         <div id="mcp-tokens" class="d-grid gap-2"></div>
-        <div id="mcp-tokens-empty" class="text-body-secondary small py-2" hidden>No tokens yet — mint one to connect a client.</div>
+        <div id="mcp-tokens-empty" class="text-body-secondary small py-2" hidden><?= $this->escape($this->t('mcp.tokens.empty')) ?></div>
       </div>
     </div>
 
@@ -62,30 +62,30 @@ $bridge = (string) $this->bridge;
   <div class="col-lg-6">
     <!-- Connect -->
     <div class="card">
-      <div class="card-header fw-semibold"><i class="fa-solid fa-plug me-2"></i>Connect a client</div>
+      <div class="card-header fw-semibold"><i class="fa-solid fa-plug me-2"></i><?= $this->escape($this->t('mcp.connect.client.title')) ?></div>
       <div class="card-body">
-        <label for="mcp-token-field" class="form-label small fw-semibold mb-1">Token for the config below</label>
-        <input type="text" id="mcp-token-field" class="form-control form-control-sm font-monospace mb-3" placeholder="tgr_… (paste, or mint above)">
+        <label for="mcp-token-field" class="form-label small fw-semibold mb-1"><?= $this->escape($this->t('mcp.connect.token_field')) ?></label>
+        <input type="text" id="mcp-token-field" class="form-control form-control-sm font-monospace mb-3" placeholder="<?= $this->escape($this->t('mcp.connect.token_field.ph')) ?>">
 
         <ul class="nav nav-tabs" role="tablist">
-          <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#mcp-tab-npx" type="button">npx (needs Node)</button></li>
-          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#mcp-tab-php" type="button">Zero-Node (PHP)</button></li>
+          <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#mcp-tab-npx" type="button"><?= $this->escape($this->t('mcp.connect.tab.npx')) ?></button></li>
+          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#mcp-tab-php" type="button"><?= $this->escape($this->t('mcp.connect.tab.php')) ?></button></li>
         </ul>
         <div class="tab-content border border-top-0 rounded-bottom p-3">
           <div class="tab-pane fade show active" id="mcp-tab-npx">
-            <p class="small text-body-secondary">Add to your client's <code>mcpServers</code> config (Claude Desktop, Cursor, …). Uses the community <code>mcp-remote</code> bridge — nothing to install.</p>
+            <p class="small text-body-secondary"><?= $this->t('mcp.connect.npx.help') ?></p>
             <pre id="mcp-cfg-npx" class="small bg-body-tertiary border rounded p-2 mb-2" style="white-space:pre-wrap;"></pre>
-            <button type="button" class="btn btn-sm btn-outline-secondary" data-copy="#mcp-cfg-npx"><i class="fa-regular fa-copy me-1"></i>Copy</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-copy="#mcp-cfg-npx"><i class="fa-regular fa-copy me-1"></i><?= $this->escape($this->t('mcp.copy')) ?></button>
           </div>
           <div class="tab-pane fade" id="mcp-tab-php">
-            <p class="small text-body-secondary">No Node? <a href="/mcp/admin/download">Download <code>mcp-bridge.php</code></a>, save it on your machine, and set the path below. Needs only PHP.</p>
+            <p class="small text-body-secondary"><?= $this->t('mcp.connect.php.help') ?></p>
             <pre id="mcp-cfg-php" class="small bg-body-tertiary border rounded p-2 mb-2" style="white-space:pre-wrap;"></pre>
-            <button type="button" class="btn btn-sm btn-outline-secondary" data-copy="#mcp-cfg-php"><i class="fa-regular fa-copy me-1"></i>Copy</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-copy="#mcp-cfg-php"><i class="fa-regular fa-copy me-1"></i><?= $this->escape($this->t('mcp.copy')) ?></button>
           </div>
         </div>
 
         <hr>
-        <p class="small text-body-secondary mb-1">Or test it directly:</p>
+        <p class="small text-body-secondary mb-1"><?= $this->escape($this->t('mcp.connect.test')) ?></p>
         <pre class="small bg-body-tertiary border rounded p-2 mb-0" style="white-space:pre-wrap;">curl -X POST <?= $this->escape($mcpUrl) ?> \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'</pre>

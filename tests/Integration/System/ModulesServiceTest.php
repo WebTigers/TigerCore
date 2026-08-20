@@ -110,7 +110,7 @@ final class ModulesServiceTest extends IntegrationTestCase
         $res = $this->dispatch(['action' => 'install', 'url' => 'not a url at all']);
 
         $this->assertSame(0, (int) $res->result, 'a malformed repo URL is refused');
-        $this->assertStringContainsString('GitHub', $this->messages($res), 'the URL-shape guard, not a network failure');
+        $this->assertStringContainsString('system.error.repo_url', $this->messages($res), 'the URL-shape guard, not a network failure');
     }
 
     #[Test]
@@ -120,7 +120,7 @@ final class ModulesServiceTest extends IntegrationTestCase
         $res = $this->dispatch(['action' => 'inspect', 'url' => 'ftp://example.com/whatever']);
 
         $this->assertSame(0, (int) $res->result, 'inspect refuses a non-GitHub URL up front');
-        $this->assertStringContainsString('GitHub', $this->messages($res));
+        $this->assertStringContainsString('system.error.repo_url', $this->messages($res));
     }
 
     #[Test]

@@ -15,8 +15,8 @@ $rcSite = (class_exists('Tiger_Recaptcha') && Tiger_Recaptcha::isEnabled() && Ti
 ?>
 <div class="tiger-auth-brand">
     <span class="tiger-auth-mark"><i class="fa-solid fa-paw"></i></span>
-    <h1 class="h4 mb-1">Create your account</h1>
-    <p class="text-body-secondary small mb-0">Start your Tiger workspace — it takes a minute.</p>
+    <h1 class="h4 mb-1"><?= $this->escape($this->t('signup.form.heading')) ?></h1>
+    <p class="text-body-secondary small mb-0"><?= $this->escape($this->t('signup.form.subheading')) ?></p>
 </div>
 
 <div id="signup-feedback"></div>
@@ -29,62 +29,62 @@ $rcSite = (class_exists('Tiger_Recaptcha') && Tiger_Recaptcha::isEnabled() && Ti
 
     <div class="row g-3">
         <div class="col-sm-6" data-field>
-            <label class="form-label" for="su-first">First name</label>
+            <label class="form-label" for="su-first"><?= $this->escape($this->t('signup.form.label.first_name')) ?></label>
             <?= $el('first_name') ?>
         </div>
         <div class="col-sm-6" data-field>
-            <label class="form-label" for="su-last">Last name</label>
+            <label class="form-label" for="su-last"><?= $this->escape($this->t('signup.form.label.last_name')) ?></label>
             <?= $el('last_name') ?>
         </div>
     </div>
     <div class="mt-3" data-field>
-        <label class="form-label" for="su-company">Company</label>
+        <label class="form-label" for="su-company"><?= $this->escape($this->t('signup.form.label.company')) ?></label>
         <?= $el('company') ?>
     </div>
 
     <hr class="my-4">
 
     <div data-field>
-        <label class="form-label" for="su-username">Username</label>
+        <label class="form-label" for="su-username"><?= $this->escape($this->t('signup.form.label.username')) ?></label>
         <?= $el('username') ?>
     </div>
     <div class="mt-3" data-field>
-        <label class="form-label" for="su-password">Password</label>
+        <label class="form-label" for="su-password"><?= $this->escape($this->t('signup.form.label.password')) ?></label>
         <div class="input-group">
             <?= $el('password') ?>
-            <span class="input-group-text" data-tiger-pw-toggle role="button" tabindex="-1" aria-label="Show password" style="cursor:pointer;"><i class="fa-solid fa-eye" style="font-size:.8rem;"></i></span>
+            <span class="input-group-text" data-tiger-pw-toggle role="button" tabindex="-1" aria-label="<?= $this->escape($this->t('signup.form.aria.show_password')) ?>" style="cursor:pointer;"><i class="fa-solid fa-eye" style="font-size:.8rem;"></i></span>
         </div>
     </div>
     <div class="mt-3" data-field>
-        <label class="form-label" for="su-email">Email</label>
+        <label class="form-label" for="su-email"><?= $this->escape($this->t('signup.form.label.email')) ?></label>
         <?= $el('email') ?>
     </div>
 
     <hr class="my-4">
 
     <div data-field>
-        <label class="form-label" for="su-street">Street address</label>
+        <label class="form-label" for="su-street"><?= $this->escape($this->t('signup.form.label.street')) ?></label>
         <?= $el('street') ?>
     </div>
     <div class="row g-3 mt-0">
         <div class="col-sm-5" data-field>
-            <label class="form-label" for="su-city">City</label>
+            <label class="form-label" for="su-city"><?= $this->escape($this->t('signup.form.label.city')) ?></label>
             <?= $el('city') ?>
         </div>
         <div class="col-sm-4" data-field>
-            <label class="form-label" for="su-region">State / Province</label>
+            <label class="form-label" for="su-region"><?= $this->escape($this->t('signup.form.label.region')) ?></label>
             <?= $el('region') ?>
         </div>
         <div class="col-sm-3" data-field>
-            <label class="form-label" for="su-postal">Postal</label>
+            <label class="form-label" for="su-postal"><?= $this->escape($this->t('signup.form.label.postal')) ?></label>
             <?= $el('postal') ?>
         </div>
     </div>
     <div class="mt-3" data-field>
-        <label class="form-label" for="su-country">Country</label>
-        <?php $cur = (string) $el('country')->getValue(); $groupLabels = ['priority' => 'Frequent', 'rest' => 'All countries']; ?>
+        <label class="form-label" for="su-country"><?= $this->escape($this->t('signup.form.label.country')) ?></label>
+        <?php $cur = (string) $el('country')->getValue(); $groupLabels = ['priority' => $this->t('signup.form.group.frequent'), 'rest' => $this->t('signup.form.group.all')]; ?>
         <select class="form-select" id="su-country" name="country" autocomplete="country" data-tiger-ip-country required>
-            <option value="">— Select —</option>
+            <option value=""><?= $this->escape($this->t('signup.form.option.select')) ?></option>
             <?php foreach (Tiger_I18n_Country::grouped() as $gk => $countries): if (!$countries) { continue; } ?>
             <optgroup label="<?= $this->escape($groupLabels[$gk]) ?>">
                 <?php foreach ($countries as $iso2 => $name): ?>
@@ -99,22 +99,22 @@ $rcSite = (class_exists('Tiger_Recaptcha') && Tiger_Recaptcha::isEnabled() && Ti
 
     <div class="row g-3">
         <div class="col-sm-4" data-field>
-            <label class="form-label" for="su-phone-type">Phone type</label>
+            <label class="form-label" for="su-phone-type"><?= $this->escape($this->t('signup.form.label.phone_type')) ?></label>
             <?= $el('phone_type') ?>
         </div>
         <div class="col-sm-8" data-field>
-            <label class="form-label" for="su-phone">Phone</label>
+            <label class="form-label" for="su-phone"><?= $this->escape($this->t('signup.form.label.phone')) ?></label>
             <?= $el('phone') ?>
         </div>
     </div>
 
     <div class="d-grid mt-4">
-        <button type="button" id="signup-submit" class="btn btn-primary btn-lg"><i class="fa-solid fa-user-plus me-2"></i>Create account</button>
+        <button type="button" id="signup-submit" class="btn btn-primary btn-lg"><i class="fa-solid fa-user-plus me-2"></i><?= $this->escape($this->t('signup.form.submit')) ?></button>
     </div>
 </form>
 
 <div class="tiger-auth-foot">
-    <a href="/auth/login" class="small text-decoration-none">Already have an account? Sign in</a>
+    <a href="/auth/login" class="small text-decoration-none"><?= $this->escape($this->t('signup.form.have_account')) ?></a>
 </div>
 
 <script>

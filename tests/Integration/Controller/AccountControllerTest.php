@@ -28,7 +28,7 @@ final class AccountControllerTest extends ControllerTestCase
 
         $view = $this->controller()->view;
         $this->assertSame('My Account', (string) $view->title);
-        $this->assertSame('My Account', (string) $view->dashTitle, 'the shared dashboard grid renders under an account header');
+        $this->assertSame('core.account.title', (string) $view->dashTitle, 'the shared dashboard grid renders under an account header (i18n key, translated by the view)');
         $this->assertIsArray($view->widgets, 'reuses the ACL-filtered dashboard widget model');
     }
 

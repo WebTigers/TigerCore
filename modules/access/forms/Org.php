@@ -35,7 +35,7 @@ class Access_Form_Org extends Tiger_Form
         $control = ['class' => 'form-control'];
         $select  = ['class' => 'form-select'];
 
-        $parentOpts = ['' => '— none (root organization) —'];
+        $parentOpts = ['' => $this->_t('access.org.parent.none')];
         $orgModel   = new Tiger_Model_Org();
         foreach ($orgModel->fetchAll($orgModel->activeSelect()->order('name ASC')) as $o) {
             if ($o->org_id === $this->_excludeId) { continue; }   // can't be its own parent
@@ -62,7 +62,7 @@ class Access_Form_Org extends Tiger_Form
             ]],
 
             ['select', 'status', [
-                'multiOptions' => ['active' => 'Active', 'suspended' => 'Suspended'],
+                'multiOptions' => ['active' => $this->_t('access.status.active'), 'suspended' => $this->_t('access.status.suspended')],
                 'value'        => 'active',
                 'attribs'      => array_merge($select, ['id' => 'access-org-status']),
             ]],

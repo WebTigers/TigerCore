@@ -17,11 +17,11 @@ $hasSecret = !empty($this->hasSecret);
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1">System</h1>
-        <p class="text-body-secondary mb-0">Platform configuration — sessions, email, and reCAPTCHA.</p>
+        <h1 class="h3 mb-1"><?= $this->t('system.settings.title') ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('system.settings.subtitle') ?></p>
     </div>
     <div class="text-nowrap">
-        <button type="button" id="sys-settings-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+        <button type="button" id="sys-settings-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->t('system.settings.save') ?></button>
     </div>
 </div>
 
@@ -29,26 +29,26 @@ $hasSecret = !empty($this->hasSecret);
 
 <ul class="nav nav-tabs mb-4" role="tablist">
     <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="tab-session-btn" data-bs-toggle="tab" data-bs-target="#tab-session" type="button" role="tab"><i class="fa-solid fa-shield-halved me-2"></i>Session &amp; Security</button>
+        <button class="nav-link active" id="tab-session-btn" data-bs-toggle="tab" data-bs-target="#tab-session" type="button" role="tab"><i class="fa-solid fa-shield-halved me-2"></i><?= $this->t('system.settings.tab_session') ?></button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-smtp-btn" data-bs-toggle="tab" data-bs-target="#tab-smtp" type="button" role="tab"><i class="fa-solid fa-envelope me-2"></i>Email SMTP</button>
+        <button class="nav-link" id="tab-smtp-btn" data-bs-toggle="tab" data-bs-target="#tab-smtp" type="button" role="tab"><i class="fa-solid fa-envelope me-2"></i><?= $this->t('system.settings.tab_smtp') ?></button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-recaptcha-btn" data-bs-toggle="tab" data-bs-target="#tab-recaptcha" type="button" role="tab"><i class="fa-solid fa-user-check me-2"></i>reCAPTCHA</button>
+        <button class="nav-link" id="tab-recaptcha-btn" data-bs-toggle="tab" data-bs-target="#tab-recaptcha" type="button" role="tab"><i class="fa-solid fa-user-check me-2"></i><?= $this->t('system.settings.tab_recaptcha') ?></button>
     </li>
     <?php if (!empty($this->location)): ?>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-location-btn" data-bs-toggle="tab" data-bs-target="#tab-location" type="button" role="tab"><i class="fa-solid fa-location-dot me-2"></i>Location</button>
+        <button class="nav-link" id="tab-location-btn" data-bs-toggle="tab" data-bs-target="#tab-location" type="button" role="tab"><i class="fa-solid fa-location-dot me-2"></i><?= $this->t('system.settings.tab_location') ?></button>
     </li>
     <?php endif; ?>
     <?php if (!empty($this->consent)): ?>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-cookies-btn" data-bs-toggle="tab" data-bs-target="#tab-cookies" type="button" role="tab"><i class="fa-solid fa-cookie-bite me-2"></i>Cookies</button>
+        <button class="nav-link" id="tab-cookies-btn" data-bs-toggle="tab" data-bs-target="#tab-cookies" type="button" role="tab"><i class="fa-solid fa-cookie-bite me-2"></i><?= $this->t('system.settings.tab_cookies') ?></button>
     </li>
     <?php endif; ?>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-signup-btn" data-bs-toggle="tab" data-bs-target="#tab-signup" type="button" role="tab"><i class="fa-solid fa-user-plus me-2"></i>Signup</button>
+        <button class="nav-link" id="tab-signup-btn" data-bs-toggle="tab" data-bs-target="#tab-signup" type="button" role="tab"><i class="fa-solid fa-user-plus me-2"></i><?= $this->t('system.settings.tab_signup') ?></button>
     </li>
 </ul>
 
@@ -61,42 +61,42 @@ $hasSecret = !empty($this->hasSecret);
             <div class="row g-4">
                 <div class="col-lg-7">
                     <div class="card">
-                        <div class="card-header fw-semibold"><i class="fa-solid fa-shield-halved me-2"></i>Session &amp; Security</div>
+                        <div class="card-header fw-semibold"><i class="fa-solid fa-shield-halved me-2"></i><?= $this->t('system.settings.tab_session') ?></div>
                         <div class="card-body">
                             <div class="mb-4">
-                                <label class="form-label mb-1">Maximum session timeout <span class="text-body-secondary fw-normal">(idle, seconds)</span></label>
-                                <div class="form-text mb-3">The server-side <strong>hard max</strong> a session stays valid while idle — enforced even with the tab closed. Tiered by role: the more privileged the role, the shorter the window.</div>
+                                <label class="form-label mb-1"><?= $this->t('system.settings.session.max_timeout') ?> <span class="text-body-secondary fw-normal"><?= $this->t('system.settings.session.max_timeout_hint') ?></span></label>
+                                <div class="form-text mb-3"><?= $this->t('system.settings.session.max_timeout_help') ?></div>
 
                                 <div class="row g-2 align-items-center mb-2">
-                                    <div class="col-sm-4"><label class="form-label small fw-semibold mb-0" for="set-session-ttl-priv">Admin / privileged</label><div class="form-text mt-0 mb-0">admin · superadmin · developer</div></div>
-                                    <div class="col-sm-4"><div class="input-group"><?= $el('session_ttl_privileged') ?><span class="input-group-text">sec</span></div></div>
+                                    <div class="col-sm-4"><label class="form-label small fw-semibold mb-0" for="set-session-ttl-priv"><?= $this->t('system.settings.session.tier_priv') ?></label><div class="form-text mt-0 mb-0"><?= $this->t('system.settings.session.tier_priv_roles') ?></div></div>
+                                    <div class="col-sm-4"><div class="input-group"><?= $el('session_ttl_privileged') ?><span class="input-group-text"><?= $this->t('system.settings.session.sec') ?></span></div></div>
                                     <div class="col-sm-4"><span class="form-text"><i class="fa-regular fa-clock me-1"></i><span id="set-session-ttl-priv-h" class="fw-semibold text-body">—</span></span></div>
                                 </div>
                                 <div class="row g-2 align-items-center mb-2">
-                                    <div class="col-sm-4"><label class="form-label small fw-semibold mb-0" for="set-session-ttl">Standard user</label><div class="form-text mt-0 mb-0">signed-in members</div></div>
-                                    <div class="col-sm-4"><div class="input-group"><?= $el('session_ttl') ?><span class="input-group-text">sec</span></div></div>
+                                    <div class="col-sm-4"><label class="form-label small fw-semibold mb-0" for="set-session-ttl"><?= $this->t('system.settings.session.tier_user') ?></label><div class="form-text mt-0 mb-0"><?= $this->t('system.settings.session.tier_user_roles') ?></div></div>
+                                    <div class="col-sm-4"><div class="input-group"><?= $el('session_ttl') ?><span class="input-group-text"><?= $this->t('system.settings.session.sec') ?></span></div></div>
                                     <div class="col-sm-4"><span class="form-text"><i class="fa-regular fa-clock me-1"></i><span id="set-session-ttl-h" class="fw-semibold text-body">—</span></span></div>
                                 </div>
                                 <div class="row g-2 align-items-center mb-3">
-                                    <div class="col-sm-4"><label class="form-label small fw-semibold mb-0" for="set-session-ttl-guest">Guest</label><div class="form-text mt-0 mb-0">anonymous visitors</div></div>
-                                    <div class="col-sm-4"><div class="input-group"><?= $el('session_ttl_guest') ?><span class="input-group-text">sec</span></div></div>
+                                    <div class="col-sm-4"><label class="form-label small fw-semibold mb-0" for="set-session-ttl-guest"><?= $this->t('system.settings.session.tier_guest') ?></label><div class="form-text mt-0 mb-0"><?= $this->t('system.settings.session.tier_guest_roles') ?></div></div>
+                                    <div class="col-sm-4"><div class="input-group"><?= $el('session_ttl_guest') ?><span class="input-group-text"><?= $this->t('system.settings.session.sec') ?></span></div></div>
                                     <div class="col-sm-4"><span class="form-text"><i class="fa-regular fa-clock me-1"></i><span id="set-session-ttl-guest-h" class="fw-semibold text-body">—</span></span></div>
                                 </div>
 
                                 <div class="border rounded-3 p-3 bg-body-tertiary" id="php-session-panel"
                                      data-php-max="<?= (int) $this->phpGcMax ?>" data-db-handler="<?= !empty($this->sessionDbHandler) ? '1' : '0' ?>">
-                                    <div class="small fw-semibold mb-1"><i class="fa-solid fa-server me-1"></i>Session store:
+                                    <div class="small fw-semibold mb-1"><i class="fa-solid fa-server me-1"></i><?= $this->t('system.settings.session.store') ?>
                                         <?php if (!empty($this->sessionDbHandler)): ?>
-                                            <span class="text-success-emphasis">Database</span> <span class="text-body-secondary fw-normal">— each row carries its own TTL</span>
+                                            <span class="text-success-emphasis"><?= $this->t('system.settings.session.store_db') ?></span> <span class="text-body-secondary fw-normal"><?= $this->t('system.settings.session.store_db_note') ?></span>
                                         <?php else: ?>
-                                            <span class="text-warning-emphasis">PHP files</span> <span class="text-body-secondary fw-normal">— capped by PHP's garbage collector</span>
+                                            <span class="text-warning-emphasis"><?= $this->t('system.settings.session.store_files') ?></span> <span class="text-body-secondary fw-normal"><?= $this->t('system.settings.session.store_files_note') ?></span>
                                         <?php endif; ?>
                                     </div>
-                                    <div class="form-text mt-0 mb-0">PHP <code>session.gc_maxlifetime</code> = <span class="fw-semibold text-body"><?= (int) $this->phpGcMax ?></span> sec <span id="php-max-h" class="text-body-secondary"></span></div>
+                                    <div class="form-text mt-0 mb-0"><?= $this->t('system.settings.session.gc_label') ?> = <span class="fw-semibold text-body"><?= (int) $this->phpGcMax ?></span> <?= $this->t('system.settings.session.sec') ?> <span id="php-max-h" class="text-body-secondary"></span></div>
                                     <div id="php-max-warn" class="alert alert-warning d-flex align-items-start gap-2 mt-2 mb-0 py-2 px-3 small d-none">
                                         <i class="fa-solid fa-triangle-exclamation mt-1"></i><div id="php-max-warn-body"></div>
                                     </div>
-                                    <div id="php-max-ok" class="form-text mt-2 mb-0 d-none"><i class="fa-solid fa-circle-check text-success me-1"></i>The database session store uses its own per-row TTL, so PHP's <code>gc_maxlifetime</code> above does <strong>not</strong> cap these tiers.</div>
+                                    <div id="php-max-ok" class="form-text mt-2 mb-0 d-none"><i class="fa-solid fa-circle-check text-success me-1"></i><?= $this->t('system.settings.session.gc_ok') ?></div>
                                 </div>
                             </div>
 
@@ -104,28 +104,28 @@ $hasSecret = !empty($this->hasSecret);
 
                             <div class="form-check form-switch mb-3">
                                 <input class="form-check-input" type="checkbox" role="switch" id="set-autologout-enabled" name="autologout_enabled" value="1" <?= $alEnabled ? 'checked' : '' ?>>
-                                <label class="form-check-label fw-semibold" for="set-autologout-enabled">Auto-logout on inactivity</label>
-                                <div class="form-text">Proactively sign the user out (or lock the screen) after a period of no interaction. Server-authoritative: the browser polls for time-left every minute, and the clock only resets on genuine activity.</div>
+                                <label class="form-check-label fw-semibold" for="set-autologout-enabled"><?= $this->t('system.settings.autologout.label') ?></label>
+                                <div class="form-text"><?= $this->t('system.settings.autologout.help') ?></div>
                             </div>
 
                             <fieldset id="set-autologout-opts" class="ps-1 <?= $alEnabled ? '' : 'opacity-50' ?>">
                                 <div class="mb-3">
-                                    <label class="form-label" for="set-autologout-seconds">Log out after <span class="text-body-secondary fw-normal">(seconds of inactivity)</span></label>
+                                    <label class="form-label" for="set-autologout-seconds"><?= $this->t('system.settings.autologout.after') ?> <span class="text-body-secondary fw-normal"><?= $this->t('system.settings.autologout.after_hint') ?></span></label>
                                     <div class="input-group" style="max-width:24rem;">
                                         <?= $el('autologout_seconds') ?>
-                                        <span class="input-group-text">sec</span>
+                                        <span class="input-group-text"><?= $this->t('system.settings.session.sec') ?></span>
                                     </div>
                                     <div class="form-text mt-1"><i class="fa-regular fa-hourglass-half me-1"></i><span id="set-autologout-seconds-h" class="fw-semibold text-body">—</span></div>
                                 </div>
                                 <div class="mb-0">
-                                    <label class="form-label d-block">When it fires</label>
+                                    <label class="form-label d-block"><?= $this->t('system.settings.autologout.when') ?></label>
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="autologout_action" id="al-act-logout" value="logout" <?= $alAction !== 'lock' ? 'checked' : '' ?>>
-                                        <label class="form-check-label" for="al-act-logout">Full logout <span class="text-body-secondary">— end the session, return to sign-in</span></label>
+                                        <label class="form-check-label" for="al-act-logout"><?= $this->t('system.settings.autologout.opt_logout') ?> <span class="text-body-secondary"><?= $this->t('system.settings.autologout.opt_logout_note') ?></span></label>
                                     </div>
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="autologout_action" id="al-act-lock" value="lock" <?= $alAction === 'lock' ? 'checked' : '' ?>>
-                                        <label class="form-check-label" for="al-act-lock">Lock screen <span class="text-body-secondary">— keep the session, re-enter password to resume</span></label>
+                                        <label class="form-check-label" for="al-act-lock"><?= $this->t('system.settings.autologout.opt_lock') ?> <span class="text-body-secondary"><?= $this->t('system.settings.autologout.opt_lock_note') ?></span></label>
                                     </div>
                                 </div>
                             </fieldset>
@@ -140,14 +140,12 @@ $hasSecret = !empty($this->hasSecret);
             <div class="row g-4">
                 <div class="col-lg-7">
                     <div class="card">
-                        <div class="card-header fw-semibold"><i class="fa-solid fa-envelope me-2"></i>Email &amp; SMTP</div>
+                        <div class="card-header fw-semibold"><i class="fa-solid fa-envelope me-2"></i><?= $this->t('system.settings.smtp.header') ?></div>
                         <div class="card-body">
                             <div class="text-center text-body-secondary py-4">
                                 <i class="fa-solid fa-screwdriver-wrench fa-2x mb-3 d-block"></i>
-                                <p class="mb-1 fw-semibold text-body">Under construction</p>
-                                <p class="mb-0">Mail transport, SMTP host/port/TLS, auth, and the From identity are
-                                driven by config today (<code>mail.*</code>) and read live by <code>Tiger_Mail</code> —
-                                config, not code, so an admin screen slots in cleanly here. Coming soon.</p>
+                                <p class="mb-1 fw-semibold text-body"><?= $this->t('system.settings.smtp.under_construction') ?></p>
+                                <p class="mb-0"><?= $this->t('system.settings.smtp.body') ?></p>
                             </div>
                         </div>
                     </div>
@@ -160,52 +158,52 @@ $hasSecret = !empty($this->hasSecret);
             <div class="row g-4">
                 <div class="col-lg-7">
                     <div class="card">
-                        <div class="card-header fw-semibold"><i class="fa-solid fa-user-check me-2"></i>Google reCAPTCHA</div>
+                        <div class="card-header fw-semibold"><i class="fa-solid fa-user-check me-2"></i><?= $this->t('system.settings.recaptcha.header') ?></div>
                         <div class="card-body">
-                            <p class="text-body-secondary small mb-3">Get a key pair at <a href="https://www.google.com/recaptcha/admin" target="_blank" rel="noopener">google.com/recaptcha/admin</a>. Used by forms (signup, login) and TigerShield's captcha gating.</p>
+                            <p class="text-body-secondary small mb-3"><?= $this->t('system.settings.recaptcha.get_key_pre') ?> <a href="https://www.google.com/recaptcha/admin" target="_blank" rel="noopener">google.com/recaptcha/admin</a>. <?= $this->t('system.settings.recaptcha.get_key_post') ?></p>
 
                             <div class="form-check form-switch mb-3">
                                 <input class="form-check-input" type="checkbox" role="switch" id="set-rc-enabled" name="recaptcha_enabled" value="1" <?= $rcEnabled ? 'checked' : '' ?>>
-                                <label class="form-check-label fw-semibold" for="set-rc-enabled">Enable reCAPTCHA</label>
+                                <label class="form-check-label fw-semibold" for="set-rc-enabled"><?= $this->t('system.settings.recaptcha.enable') ?></label>
                             </div>
 
                             <div class="mb-3" style="max-width:28rem;">
-                                <label class="form-label" for="set-rc-version">Version</label>
+                                <label class="form-label" for="set-rc-version"><?= $this->t('system.settings.recaptcha.version') ?></label>
                                 <?= $el('recaptcha_version') ?>
-                                <div class="form-text">v2 shows a checkbox; v3 is invisible and scores each request.</div>
+                                <div class="form-text"><?= $this->t('system.settings.recaptcha.version_help') ?></div>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label" for="set-rc-site">Site key <span class="text-body-secondary fw-normal">(public)</span></label>
+                                <label class="form-label" for="set-rc-site"><?= $this->t('system.settings.recaptcha.site_key') ?> <span class="text-body-secondary fw-normal"><?= $this->t('system.settings.recaptcha.site_key_hint') ?></span></label>
                                 <?= $el('recaptcha_site_key') ?>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label" for="set-rc-secret">Secret key <span class="text-body-secondary fw-normal">(stored encrypted)</span></label>
-                                <?php $sec = $el('recaptcha_secret_key'); $sec->setAttrib('placeholder', $hasSecret ? '•••••••• — leave blank to keep the current key' : 'Paste your secret key'); ?>
+                                <label class="form-label" for="set-rc-secret"><?= $this->t('system.settings.recaptcha.secret_key') ?> <span class="text-body-secondary fw-normal"><?= $this->t('system.settings.recaptcha.secret_key_hint') ?></span></label>
+                                <?php $sec = $el('recaptcha_secret_key'); $sec->setAttrib('placeholder', $hasSecret ? $this->t('system.settings.recaptcha.secret_placeholder_set') : $this->t('system.settings.recaptcha.secret_placeholder_new')); ?>
                                 <?= $sec ?>
-                                <div class="form-text"><?= $hasSecret ? 'A secret is configured. Enter a new one only to replace it.' : 'The secret is encrypted at rest — never stored in plain text.' ?></div>
+                                <div class="form-text"><?= $hasSecret ? $this->t('system.settings.recaptcha.secret_help_set') : $this->t('system.settings.recaptcha.secret_help_new') ?></div>
                             </div>
 
                             <fieldset id="set-rc-v3" class="border rounded p-3 mb-1 <?= $rcVersion === 'v3' ? '' : 'd-none' ?>">
-                                <legend class="float-none fs-6 fw-semibold px-1 w-auto">v3 options</legend>
+                                <legend class="float-none fs-6 fw-semibold px-1 w-auto"><?= $this->t('system.settings.recaptcha.v3_options') ?></legend>
                                 <div class="mb-3" style="max-width:14rem;">
-                                    <label class="form-label" for="set-rc-score">Minimum score <span class="text-body-secondary fw-normal">(0–1)</span></label>
+                                    <label class="form-label" for="set-rc-score"><?= $this->t('system.settings.recaptcha.min_score') ?> <span class="text-body-secondary fw-normal"><?= $this->t('system.settings.recaptcha.min_score_hint') ?></span></label>
                                     <?= $el('recaptcha_min_score') ?>
-                                    <div class="form-text">Requests scoring below this are treated as failed. 0.5 is a sensible default.</div>
+                                    <div class="form-text"><?= $this->t('system.settings.recaptcha.min_score_help') ?></div>
                                 </div>
                                 <div class="form-check form-switch mb-0">
                                     <input class="form-check-input" type="checkbox" role="switch" id="set-rc-hidebadge" name="recaptcha_hide_badge" value="1" <?= !empty($el('recaptcha_hide_badge')->getValue()) ? 'checked' : '' ?>>
-                                    <label class="form-check-label" for="set-rc-hidebadge">Hide the reCAPTCHA badge</label>
-                                    <div class="form-text">Hides the floating badge via CSS. Google permits this <em>only if</em> the reCAPTCHA legal notice is shown instead — which Tiger adds automatically next to the protected form.</div>
+                                    <label class="form-check-label" for="set-rc-hidebadge"><?= $this->t('system.settings.recaptcha.hide_badge') ?></label>
+                                    <div class="form-text"><?= $this->t('system.settings.recaptcha.hide_badge_help') ?></div>
                                 </div>
                             </fieldset>
 
                             <hr>
                             <div class="form-check form-switch mb-0">
                                 <input class="form-check-input" type="checkbox" role="switch" id="set-rc-failopen" name="recaptcha_fail_open" value="1" <?= !empty($el('recaptcha_fail_open')->getValue()) ? 'checked' : '' ?>>
-                                <label class="form-check-label" for="set-rc-failopen">Fail open on a reCAPTCHA outage</label>
-                                <div class="form-text">If Google can't be reached, <strong>on</strong> = let requests through (availability), <strong>off</strong> = block them.</div>
+                                <label class="form-check-label" for="set-rc-failopen"><?= $this->t('system.settings.recaptcha.fail_open') ?></label>
+                                <div class="form-text"><?= $this->t('system.settings.recaptcha.fail_open_help') ?></div>
                             </div>
                         </div>
                     </div>
@@ -218,14 +216,14 @@ $hasSecret = !empty($this->hasSecret);
             $ipAdapters   = array_filter($loc['adapters'], function ($a) { return in_array('ip', $a['caps'], true); });
             $addrAdapters = array_filter($loc['adapters'], function ($a) { return in_array('geocode', $a['caps'], true) || in_array('suggest', $a['caps'], true); });
             $renderFields = function ($a, $vals) {
-                if (empty($a['fields'])) { echo '<p class="small text-body-secondary mb-0">No settings for this provider.</p>'; return; }
+                if (empty($a['fields'])) { echo '<p class="small text-body-secondary mb-0">' . $this->escape($this->t('system.settings.location.no_settings')) . '</p>'; return; }
                 foreach ($a['fields'] as $f):
                     $k = $f['key']; $type = $f['type'] ?? 'text'; $fv = $vals[$k] ?? [];
                     $name = 'location_adapter[' . htmlspecialchars($a['name'], ENT_QUOTES) . '][' . htmlspecialchars($k, ENT_QUOTES) . ']'; ?>
                     <div class="mb-3">
-                        <label class="form-label small"><?= htmlspecialchars($f['label']) ?><?php if ($type === 'secret'): ?> <span class="text-body-secondary">(encrypted)</span><?php endif; ?></label>
+                        <label class="form-label small"><?= htmlspecialchars($f['label']) ?><?php if ($type === 'secret'): ?> <span class="text-body-secondary"><?= $this->t('system.settings.location.encrypted') ?></span><?php endif; ?></label>
                         <?php if ($type === 'secret'): ?>
-                        <input type="password" name="<?= $name ?>" class="form-control form-control-sm" autocomplete="new-password" placeholder="<?= !empty($fv['has']) ? '•••••••• — leave blank to keep' : htmlspecialchars($f['placeholder'] ?? '') ?>">
+                        <input type="password" name="<?= $name ?>" class="form-control form-control-sm" autocomplete="new-password" placeholder="<?= !empty($fv['has']) ? $this->escape($this->t('system.settings.location.secret_placeholder_set')) : htmlspecialchars($f['placeholder'] ?? '') ?>">
                         <?php else: ?>
                         <input type="text" name="<?= $name ?>" class="form-control form-control-sm" value="<?= htmlspecialchars($fv['value'] ?? '') ?>" placeholder="<?= htmlspecialchars($f['placeholder'] ?? '') ?>">
                         <?php endif; ?>
@@ -237,10 +235,10 @@ $hasSecret = !empty($this->hasSecret);
             <div class="row g-4">
                 <div class="col-lg-7">
                     <div class="card mb-4">
-                        <div class="card-header fw-semibold"><i class="fa-solid fa-map-location-dot me-2"></i>IP geolocation</div>
+                        <div class="card-header fw-semibold"><i class="fa-solid fa-map-location-dot me-2"></i><?= $this->t('system.settings.location.ip_geo') ?></div>
                         <div class="card-body">
                             <div class="mb-3" style="max-width:24rem">
-                                <label class="form-label" for="loc-ip-provider">Provider</label>
+                                <label class="form-label" for="loc-ip-provider"><?= $this->t('system.settings.location.provider') ?></label>
                                 <select id="loc-ip-provider" name="location_ip_provider" class="form-select">
                                     <?php foreach ($ipAdapters as $a): ?><option value="<?= htmlspecialchars($a['name'], ENT_QUOTES) ?>" <?= $loc['ip_provider'] === $a['name'] ? 'selected' : '' ?>><?= htmlspecialchars($a['label']) ?></option><?php endforeach; ?>
                                 </select>
@@ -249,20 +247,20 @@ $hasSecret = !empty($this->hasSecret);
                             <div class="loc-ip-fields" data-provider="<?= htmlspecialchars($a['name'], ENT_QUOTES) ?>" <?= $loc['ip_provider'] === $a['name'] ? '' : 'style="display:none"' ?>><?php $renderFields($a, $loc['values'][$a['name']] ?? []); ?></div>
                             <?php endforeach; ?>
                             <hr>
-                            <label class="form-label small">Test a lookup</label>
+                            <label class="form-label small"><?= $this->t('system.settings.location.test_lookup') ?></label>
                             <div class="input-group input-group-sm" style="max-width:28rem">
-                                <input type="text" id="loc-test-ip" class="form-control" placeholder="IP address (blank = your IP)">
-                                <button type="button" id="loc-test-btn" class="btn btn-outline-secondary"><i class="fa-solid fa-bolt me-1"></i>Test</button>
+                                <input type="text" id="loc-test-ip" class="form-control" placeholder="<?= $this->escape($this->t('system.settings.location.test_placeholder')) ?>">
+                                <button type="button" id="loc-test-btn" class="btn btn-outline-secondary"><i class="fa-solid fa-bolt me-1"></i><?= $this->t('system.settings.location.test') ?></button>
                             </div>
                             <div id="loc-test-result" class="small mt-2"></div>
                         </div>
                     </div>
                     <?php if ($addrAdapters): ?>
                     <div class="card mb-4">
-                        <div class="card-header fw-semibold"><i class="fa-solid fa-map-pin me-2"></i>Address autocomplete &amp; geocoding</div>
+                        <div class="card-header fw-semibold"><i class="fa-solid fa-map-pin me-2"></i><?= $this->t('system.settings.location.addr_geo') ?></div>
                         <div class="card-body">
                             <div class="mb-3" style="max-width:24rem">
-                                <label class="form-label" for="loc-addr-provider">Provider</label>
+                                <label class="form-label" for="loc-addr-provider"><?= $this->t('system.settings.location.provider') ?></label>
                                 <select id="loc-addr-provider" name="location_address_provider" class="form-select">
                                     <?php foreach ($addrAdapters as $a): ?><option value="<?= htmlspecialchars($a['name'], ENT_QUOTES) ?>" <?= $loc['address_provider'] === $a['name'] ? 'selected' : '' ?>><?= htmlspecialchars($a['label']) ?></option><?php endforeach; ?>
                                 </select>
@@ -274,11 +272,11 @@ $hasSecret = !empty($this->hasSecret);
                     </div>
                     <?php endif; ?>
                     <div class="card">
-                        <div class="card-header fw-semibold"><i class="fa-solid fa-database me-2"></i>Cache</div>
+                        <div class="card-header fw-semibold"><i class="fa-solid fa-database me-2"></i><?= $this->t('system.settings.location.cache') ?></div>
                         <div class="card-body">
-                            <label class="form-label small" for="loc-cache-ttl">Lookup cache lifetime <span class="text-body-secondary">(seconds)</span></label>
-                            <div class="input-group input-group-sm" style="max-width:16rem"><input type="text" id="loc-cache-ttl" name="location_cache_ttl" class="form-control" inputmode="numeric" value="<?= (int) $loc['cache_ttl'] ?>"><span class="input-group-text">sec</span></div>
-                            <div class="form-text">An IP's location doesn't change — caching means the provider is hit at most once per IP per this window, never on a normal request. <code>0</code> disables it.</div>
+                            <label class="form-label small" for="loc-cache-ttl"><?= $this->t('system.settings.location.cache_ttl') ?> <span class="text-body-secondary"><?= $this->t('system.settings.location.cache_ttl_hint') ?></span></label>
+                            <div class="input-group input-group-sm" style="max-width:16rem"><input type="text" id="loc-cache-ttl" name="location_cache_ttl" class="form-control" inputmode="numeric" value="<?= (int) $loc['cache_ttl'] ?>"><span class="input-group-text"><?= $this->t('system.settings.session.sec') ?></span></div>
+                            <div class="form-text"><?= $this->t('system.settings.location.cache_help') ?></div>
                         </div>
                     </div>
                 </div>
@@ -292,14 +290,14 @@ $hasSecret = !empty($this->hasSecret);
             <div class="row g-4">
                 <div class="col-lg-7">
                     <div class="card">
-                        <div class="card-header fw-semibold"><i class="fa-solid fa-cookie-bite me-2"></i>Cookie consent</div>
+                        <div class="card-header fw-semibold"><i class="fa-solid fa-cookie-bite me-2"></i><?= $this->t('system.settings.consent.header') ?></div>
                         <div class="card-body">
-                            <p class="text-body-secondary small">When required, a consent banner asks visitors before any analytics/tracking cookies load. Trackers (like Google Analytics) stay off until the visitor accepts.</p>
+                            <p class="text-body-secondary small"><?= $this->t('system.settings.consent.intro') ?></p>
                             <?php
                             $modes = [
-                                'off'    => ['Off', 'No banner. For sites with no consent requirement (e.g. non-EU).'],
-                                'auto'   => ['Auto — recommended', 'Show the banner only when tracking is actually active (e.g. Google Analytics is enabled). Silent when nothing is tracking.'],
-                                'always' => ['Always on', 'Always show the banner, even if no tracking is present.'],
+                                'off'    => [$this->t('system.settings.consent.mode_off'), $this->t('system.settings.consent.mode_off_desc')],
+                                'auto'   => [$this->t('system.settings.consent.mode_auto'), $this->t('system.settings.consent.mode_auto_desc')],
+                                'always' => [$this->t('system.settings.consent.mode_always'), $this->t('system.settings.consent.mode_always_desc')],
                             ];
                             foreach ($modes as $val => $m): ?>
                             <div class="form-check mb-2">
@@ -315,34 +313,34 @@ $hasSecret = !empty($this->hasSecret);
                 </div>
                 <div class="col-lg-5">
                     <div class="card">
-                        <div class="card-header fw-semibold"><i class="fa-solid fa-comment-dots me-2"></i>Banner text</div>
+                        <div class="card-header fw-semibold"><i class="fa-solid fa-comment-dots me-2"></i><?= $this->t('system.settings.consent.banner_text') ?></div>
                         <div class="card-body">
                             <div class="mb-3">
-                                <label class="form-label" for="consent-message">Message</label>
+                                <label class="form-label" for="consent-message"><?= $this->t('system.settings.consent.message') ?></label>
                                 <textarea class="form-control" id="consent-message" name="consent_message" rows="3"><?= $this->escape($c['message']) ?></textarea>
                             </div>
                             <div class="row g-2 mb-3">
                                 <div class="col">
-                                    <label class="form-label" for="consent-accept">Accept button</label>
+                                    <label class="form-label" for="consent-accept"><?= $this->t('system.settings.consent.accept_button') ?></label>
                                     <input type="text" class="form-control" id="consent-accept" name="consent_accept_label" value="<?= $this->escape($c['accept_label']) ?>">
                                 </div>
                                 <div class="col">
-                                    <label class="form-label" for="consent-reject">Decline button</label>
+                                    <label class="form-label" for="consent-reject"><?= $this->t('system.settings.consent.decline_button') ?></label>
                                     <input type="text" class="form-control" id="consent-reject" name="consent_reject_label" value="<?= $this->escape($c['reject_label']) ?>">
                                 </div>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label" for="consent-policy">Privacy policy URL <span class="text-body-secondary fw-normal">(optional)</span></label>
+                                <label class="form-label" for="consent-policy"><?= $this->t('system.settings.consent.policy_url') ?> <span class="text-body-secondary fw-normal"><?= $this->t('system.settings.consent.optional') ?></span></label>
                                 <input type="text" class="form-control" id="consent-policy" name="consent_policy_url" value="<?= $this->escape($c['policy_url']) ?>" placeholder="/privacy">
                             </div>
                             <hr>
-                            <p class="text-body-secondary small mb-2"><strong>California (CCPA/CPRA)</strong> — one banner covers both. No second "Accept": choosing <em>Necessary only</em> is the California opt-out of sale/sharing.</p>
+                            <p class="text-body-secondary small mb-2"><?= $this->t('system.settings.consent.california') ?></p>
                             <div class="form-check form-switch mb-3">
                                 <input class="form-check-input" type="checkbox" role="switch" id="consent-gpc" name="consent_honor_gpc" value="1"<?= !empty($c['honor_gpc']) ? ' checked' : '' ?>>
-                                <label class="form-check-label" for="consent-gpc">Honor Global Privacy Control (<code>Sec-GPC</code>) — auto opt-out for visitors who send the signal</label>
+                                <label class="form-check-label" for="consent-gpc"><?= $this->t('system.settings.consent.honor_gpc') ?></label>
                             </div>
                             <div class="mb-0">
-                                <label class="form-label" for="consent-ccpa">California notice <span class="text-body-secondary fw-normal">(optional; shown under the message)</span></label>
+                                <label class="form-label" for="consent-ccpa"><?= $this->t('system.settings.consent.ccpa_notice') ?> <span class="text-body-secondary fw-normal"><?= $this->t('system.settings.consent.ccpa_notice_hint') ?></span></label>
                                 <textarea class="form-control" id="consent-ccpa" name="consent_ccpa_notice" rows="2"><?= $this->escape($c['ccpa_notice'] ?? '') ?></textarea>
                             </div>
                         </div>
@@ -358,13 +356,13 @@ $hasSecret = !empty($this->hasSecret);
             <div class="row g-4">
                 <div class="col-lg-7">
                     <div class="card">
-                        <div class="card-header fw-semibold"><i class="fa-solid fa-user-plus me-2"></i>Public signup</div>
+                        <div class="card-header fw-semibold"><i class="fa-solid fa-user-plus me-2"></i><?= $this->t('system.settings.signup.header') ?></div>
                         <div class="card-body">
-                            <p class="text-body-secondary small">The public <code>/signup</code> form lets anyone create an account (a new org + owner). Turn it off for an invite-only or single-tenant install — the page then returns a 404 and the API refuses new signups. Existing accounts and email verification are unaffected.</p>
+                            <p class="text-body-secondary small"><?= $this->t('system.settings.signup.intro') ?></p>
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" role="switch" id="set-signup-disabled" name="signup_disabled" value="1" <?= !empty($this->signupDisabled) ? 'checked' : '' ?>>
-                                <label class="form-check-label" for="set-signup-disabled">Disable public signup form</label>
-                                <div class="form-text">Default: off (public signup is open). When on, <code>/signup</code> 404s.</div>
+                                <label class="form-check-label" for="set-signup-disabled"><?= $this->t('system.settings.signup.disable') ?></label>
+                                <div class="form-text"><?= $this->t('system.settings.signup.disable_help') ?></div>
                             </div>
                         </div>
                     </div>

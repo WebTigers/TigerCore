@@ -16,8 +16,8 @@ class Media_Form_Settings extends Tiger_Form
     {
         $select = ['class' => 'form-select'];
         $yesNo  = [
-            '0' => 'No — keep a readable filename in the URL',
-            '1' => 'Yes — obfuscate (random)',
+            '0' => $this->_t('media.settings.obfuscate.no'),
+            '1' => $this->_t('media.settings.obfuscate.yes'),
         ];
 
         return [

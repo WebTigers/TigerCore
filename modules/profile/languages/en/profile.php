@@ -8,6 +8,11 @@ return [
     'profile.title'               => 'My Profile',
     'profile.subtitle'            => 'Your account details.',
 
+    'profile.save'                => 'Save',
+    'profile.cancel'              => 'Cancel',
+    'profile.close'               => 'Close',
+    'profile.net_error'           => 'Network error — please try again.',
+
     'profile.tab.basic'           => 'Basic Info',
     'profile.tab.security'        => 'Security',
     'profile.tab.contacts'        => 'Contacts',
@@ -31,8 +36,13 @@ return [
 
     'profile.avatar.change'       => 'Change Photo',
     'profile.avatar.remove'       => 'Remove',
+    'profile.avatar.alt'          => 'Avatar',
     'profile.avatar.hint'         => 'JPG, PNG or WebP. A square image works best.',
+    'profile.avatar.hint_drop'    => 'Or drop a photo anywhere on the page.',
     'profile.avatar.adjust'       => 'Adjust your photo',
+    'profile.avatar.crop_hint'    => 'Drag to move · drag a corner to resize · scroll to zoom.',
+    'profile.avatar.drop_label'   => 'Drop your photo',
+    'profile.avatar.drop_sub'     => 'to set it as your avatar',
     'profile.avatar.save'         => 'Save Photo',
     'profile.avatar.saved'        => 'Photo updated.',
     'profile.avatar.removed'      => 'Photo removed.',
@@ -67,8 +77,11 @@ return [
 
     'profile.org.logo.change'       => 'Change Logo',
     'profile.org.logo.remove'       => 'Remove',
+    'profile.org.logo.alt'          => 'Logo',
     'profile.org.logo.hint'         => 'PNG, JPG or WebP. Drop an image anywhere on the page.',
     'profile.org.logo.adjust'       => 'Adjust your logo',
+    'profile.org.logo.drop_label'   => 'Drop your logo',
+    'profile.org.logo.drop_sub'     => 'to set your organization logo',
     'profile.org.logo.save'         => 'Save Logo',
     'profile.org.logo.saved'        => 'Logo updated.',
     'profile.org.logo.removed'      => 'Logo removed.',
@@ -97,6 +110,8 @@ return [
     'profile.address.confirm_delete' => 'Remove this address?',
     'profile.address.bad_type'       => 'Please choose a valid address type.',
     'profile.address.bad_country'    => 'Please choose a valid country.',
+    'profile.address.group.priority' => 'Frequent',
+    'profile.address.group.rest'     => 'All countries',
 
     'profile.soon'                  => 'Coming in the next update.',
 ];

@@ -6,12 +6,12 @@
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1"><i class="fa-solid fa-rectangle-list me-2"></i>Logs</h1>
-        <p class="text-body-secondary mb-0">The application log — newest first. Read-only.</p>
+        <h1 class="h3 mb-1"><i class="fa-solid fa-rectangle-list me-2"></i><?= $this->t('system.logs.title') ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('system.logs.subtitle') ?></p>
     </div>
     <div class="text-nowrap">
         <button type="button" id="logs-refresh" class="btn btn-outline-secondary">
-            <i class="fa-solid fa-rotate me-2"></i>Refresh
+            <i class="fa-solid fa-rotate me-2"></i><?= $this->t('system.logs.refresh') ?>
         </button>
     </div>
 </div>
@@ -22,22 +22,22 @@
     <div class="card-body">
         <div class="row g-2 align-items-end mb-3">
             <div class="col-sm-3">
-                <label class="form-label" for="logs-level">Minimum level</label>
+                <label class="form-label" for="logs-level"><?= $this->t('system.logs.min_level') ?></label>
                 <select id="logs-level" class="form-select">
-                    <option value="">All</option>
+                    <option value=""><?= $this->t('system.logs.level_all') ?></option>
                 </select>
             </div>
             <div class="col-sm-6">
-                <label class="form-label" for="logs-q">Search</label>
-                <input id="logs-q" class="form-control" placeholder="message or context…">
+                <label class="form-label" for="logs-q"><?= $this->t('system.logs.search') ?></label>
+                <input id="logs-q" class="form-control" placeholder="<?= $this->escape($this->t('system.logs.search_placeholder')) ?>">
             </div>
             <div class="col-sm-3">
-                <label class="form-label" for="logs-limit">Show</label>
+                <label class="form-label" for="logs-limit"><?= $this->t('system.logs.show') ?></label>
                 <select id="logs-limit" class="form-select">
-                    <option value="100">Last 100</option>
-                    <option value="200" selected>Last 200</option>
-                    <option value="500">Last 500</option>
-                    <option value="1000">Last 1000</option>
+                    <option value="100"><?= $this->t('system.logs.last_100') ?></option>
+                    <option value="200" selected><?= $this->t('system.logs.last_200') ?></option>
+                    <option value="500"><?= $this->t('system.logs.last_500') ?></option>
+                    <option value="1000"><?= $this->t('system.logs.last_1000') ?></option>
                 </select>
             </div>
         </div>
@@ -48,13 +48,13 @@
             <table class="table table-sm align-middle mb-0" id="logs-table">
                 <thead>
                     <tr>
-                        <th style="width:11rem;">Time</th>
-                        <th style="width:5.5rem;">Level</th>
-                        <th>Message</th>
+                        <th style="width:11rem;"><?= $this->t('system.logs.col_time') ?></th>
+                        <th style="width:5.5rem;"><?= $this->t('system.logs.col_level') ?></th>
+                        <th><?= $this->t('system.logs.col_message') ?></th>
                     </tr>
                 </thead>
                 <tbody id="logs-body">
-                    <tr><td colspan="3" class="text-body-secondary small py-3">Loading…</td></tr>
+                    <tr><td colspan="3" class="text-body-secondary small py-3"><?= $this->t('system.logs.loading') ?></td></tr>
                 </tbody>
             </table>
         </div>

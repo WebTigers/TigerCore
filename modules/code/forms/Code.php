@@ -31,18 +31,21 @@ class Code_Form_Code extends Tiger_Form
 
             ['select', 'language', [
                 'multiOptions' => [
-                    'php'   => 'PHP — runs on every request (functions/hooks)',
-                    'phtml' => 'PHTML — rendered + injected',
-                    'html'  => 'HTML — injected verbatim',
-                    'css'   => 'CSS — injected as a stylesheet',
-                    'js'    => 'JavaScript — injected as a script',
+                    'php'   => $this->_t('code.lang.php'),
+                    'phtml' => $this->_t('code.lang.phtml'),
+                    'html'  => $this->_t('code.lang.html'),
+                    'css'   => $this->_t('code.lang.css'),
+                    'js'    => $this->_t('code.lang.js'),
                 ],
                 'value'   => 'php',
                 'attribs' => array_merge(['class' => 'form-select'], ['id' => 'code-language']),
             ]],
 
             ['select', 'auto_insert', [
-                'multiOptions' => ['head' => 'Head', 'footer' => 'Footer'],
+                'multiOptions' => [
+                    'head'   => $this->_t('code.auto.head'),
+                    'footer' => $this->_t('code.auto.footer'),
+                ],
                 'value'        => 'head',
                 'attribs'      => array_merge(['class' => 'form-select'], ['id' => 'code-auto-insert']),
             ]],

@@ -8,8 +8,7 @@
  * field ids, and it biases Tiger_Service_Location::suggest by the chosen country. Cards render from
  * one JS list; the server returns the fresh list + a rotated CSRF token on every save.
  */
-$t = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
-$groupLabels = ['priority' => 'Frequent', 'rest' => 'All countries'];
+$groupLabels = ['priority' => $this->t('profile.address.group.priority'), 'rest' => $this->t('profile.address.group.rest')];
 ?>
 <div class="card">
     <div class="card-body">
@@ -23,7 +22,7 @@ $groupLabels = ['priority' => 'Frequent', 'rest' => 'All countries'];
                 <div class="col-xl-6 col-lg-8">
 
                     <div class="mb-3">
-                        <label class="form-label" for="addr-type"><?= $t('profile.address.type') ?></label>
+                        <label class="form-label" for="addr-type"><?= $this->t('profile.address.type') ?></label>
                         <select class="form-select" id="addr-type" name="type">
                             <?php foreach ($this->addressTypes as $val => $label): ?>
                                 <option value="<?= $this->escape($val) ?>"><?= $this->escape($label) ?></option>
@@ -32,9 +31,9 @@ $groupLabels = ['priority' => 'Frequent', 'rest' => 'All countries'];
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label" for="addr-country"><?= $t('profile.address.country') ?></label>
+                        <label class="form-label" for="addr-country"><?= $this->t('profile.address.country') ?></label>
                         <select class="form-select" id="addr-country" name="country" data-tiger-ip-country>
-                            <option value="">— <?= $this->escape($t('profile.address.country')) ?> —</option>
+                            <option value="">— <?= $this->escape($this->t('profile.address.country')) ?> —</option>
                             <?php foreach ($this->countries as $gk => $countries): if (!$countries) continue; ?>
                                 <optgroup label="<?= $this->escape($groupLabels[$gk] ?? $gk) ?>">
                                     <?php foreach ($countries as $iso2 => $name): ?>
@@ -46,43 +45,43 @@ $groupLabels = ['priority' => 'Frequent', 'rest' => 'All countries'];
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label" for="addr-line1"><?= $t('profile.address.line1') ?></label>
+                        <label class="form-label" for="addr-line1"><?= $this->t('profile.address.line1') ?></label>
                         <input type="text" class="form-control" id="addr-line1" name="line1" autocomplete="off"
                                data-tiger-address data-fill-city="addr-city" data-fill-region="addr-region"
                                data-fill-postal="addr-postal" data-fill-country="addr-country"
                                data-fill-lat="addr-lat" data-fill-lng="addr-lng"
-                               placeholder="<?= $this->escape($t('profile.address.line1_ph')) ?>">
+                               placeholder="<?= $this->escape($this->t('profile.address.line1_ph')) ?>">
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label" for="addr-line2"><?= $t('profile.address.line2') ?></label>
+                        <label class="form-label" for="addr-line2"><?= $this->t('profile.address.line2') ?></label>
                         <input type="text" class="form-control" id="addr-line2" name="line2">
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label" for="addr-city"><?= $t('profile.address.city') ?></label>
+                        <label class="form-label" for="addr-city"><?= $this->t('profile.address.city') ?></label>
                         <input type="text" class="form-control" id="addr-city" name="city">
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label" for="addr-region"><?= $t('profile.address.region') ?></label>
+                        <label class="form-label" for="addr-region"><?= $this->t('profile.address.region') ?></label>
                         <input type="text" class="form-control" id="addr-region" name="region">
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label" for="addr-postal"><?= $t('profile.address.postal') ?></label>
+                        <label class="form-label" for="addr-postal"><?= $this->t('profile.address.postal') ?></label>
                         <input type="text" class="form-control" id="addr-postal" name="postal">
                     </div>
 
                     <div class="d-flex align-items-center justify-content-between">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" value="1" id="addr-primary" name="is_primary">
-                            <label class="form-check-label" for="addr-primary"><?= $t('profile.address.primary') ?></label>
+                            <label class="form-check-label" for="addr-primary"><?= $this->t('profile.address.primary') ?></label>
                         </div>
                         <div class="text-nowrap">
-                            <button type="button" id="address-cancel" class="btn btn-link btn-sm d-none"><?= $t('profile.address.cancel') ?></button>
+                            <button type="button" id="address-cancel" class="btn btn-link btn-sm d-none"><?= $this->t('profile.address.cancel') ?></button>
                             <button type="button" id="address-save" class="btn btn-primary">
-                                <i class="fa-solid fa-plus me-1"></i><span id="address-save-label"><?= $t('profile.address.add') ?></span>
+                                <i class="fa-solid fa-plus me-1"></i><span id="address-save-label"><?= $this->t('profile.address.add') ?></span>
                             </button>
                         </div>
                     </div>
@@ -118,12 +117,12 @@ document.addEventListener('DOMContentLoaded', function () {
     var TYPES = <?= json_encode($this->addressTypes, JSON_UNESCAPED_UNICODE) ?>;
     var SVC   = <?= json_encode($this->addressSvc ?: 'address', JSON_UNESCAPED_UNICODE) ?>;   // 'address' (user) | 'OrgAddress' (org) — exact case, ucfirst-only
     var STR = {
-        add:    <?= json_encode($t('profile.address.add'), JSON_UNESCAPED_UNICODE) ?>,
-        update: <?= json_encode($t('profile.address.update'), JSON_UNESCAPED_UNICODE) ?>,
-        none:   <?= json_encode($t('profile.address.none'), JSON_UNESCAPED_UNICODE) ?>,
-        saved:  <?= json_encode($t('profile.address.saved'), JSON_UNESCAPED_UNICODE) ?>,
-        del:    <?= json_encode($t('profile.address.deleted'), JSON_UNESCAPED_UNICODE) ?>,
-        confirm:<?= json_encode($t('profile.address.confirm_delete'), JSON_UNESCAPED_UNICODE) ?>
+        add:    <?= json_encode($this->t('profile.address.add'), JSON_UNESCAPED_UNICODE) ?>,
+        update: <?= json_encode($this->t('profile.address.update'), JSON_UNESCAPED_UNICODE) ?>,
+        none:   <?= json_encode($this->t('profile.address.none'), JSON_UNESCAPED_UNICODE) ?>,
+        saved:  <?= json_encode($this->t('profile.address.saved'), JSON_UNESCAPED_UNICODE) ?>,
+        del:    <?= json_encode($this->t('profile.address.deleted'), JSON_UNESCAPED_UNICODE) ?>,
+        confirm:<?= json_encode($this->t('profile.address.confirm_delete'), JSON_UNESCAPED_UNICODE) ?>
     };
 
     function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
@@ -203,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function () {
             form.querySelectorAll('.is-invalid').forEach(function (x) { x.classList.remove('is-invalid'); });
             if (res && res.form) { Object.keys(res.form).forEach(function (k) { if (f[k]) { f[k].classList.add('is-invalid'); } }); }
             (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
-        }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+        }).catch(function () { TigerDOM.notify(fb, <?= json_encode($this->t('profile.net_error')) ?>, { type: 'error' }); });
     });
 
     function del(id, btn) {
@@ -214,7 +213,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (res.data._csrf) { csrfInput.value = res.data._csrf; }
                 TigerDOM.notify(fb, STR.del, { type: 'success' });
             }
-        }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+        }).catch(function () { TigerDOM.notify(fb, <?= json_encode($this->t('profile.net_error')) ?>, { type: 'error' }); });
     }
 
     render(<?= json_encode($this->addresses, JSON_UNESCAPED_UNICODE) ?>);

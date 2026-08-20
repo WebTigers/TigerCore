@@ -18,8 +18,8 @@ if ($passCheckout === '') { $passCheckout = 'https://webtigers.com/checkout/tige
 
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1">Add Module</h1>
-        <p class="text-body-secondary mb-0"><a href="/system/modules" class="text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i>Back to modules</a></p>
+        <h1 class="h3 mb-1"><?= $this->t('system.add.title') ?></h1>
+        <p class="text-body-secondary mb-0"><a href="/system/modules" class="text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i><?= $this->t('system.add.back') ?></a></p>
     </div>
 </div>
 
@@ -30,19 +30,19 @@ if ($passCheckout === '') { $passCheckout = 'https://webtigers.com/checkout/tige
 
 <ul class="nav nav-tabs mb-4" id="mod-add-tabs" role="tablist">
     <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="tab-browse-btn" data-bs-toggle="tab" data-bs-target="#tab-browse" type="button" role="tab"><i class="fa-solid fa-store me-2"></i>Browse</button>
+        <button class="nav-link active" id="tab-browse-btn" data-bs-toggle="tab" data-bs-target="#tab-browse" type="button" role="tab"><i class="fa-solid fa-store me-2"></i><?= $this->t('system.add.tab_browse') ?></button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-url-btn" data-bs-toggle="tab" data-bs-target="#tab-url" type="button" role="tab"><i class="fa-brands fa-github me-2"></i>URL</button>
+        <button class="nav-link" id="tab-url-btn" data-bs-toggle="tab" data-bs-target="#tab-url" type="button" role="tab"><i class="fa-brands fa-github me-2"></i><?= $this->t('system.add.tab_url') ?></button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-upload-btn" data-bs-toggle="tab" data-bs-target="#tab-upload" type="button" role="tab"><i class="fa-solid fa-upload me-2"></i>Upload</button>
+        <button class="nav-link" id="tab-upload-btn" data-bs-toggle="tab" data-bs-target="#tab-upload" type="button" role="tab"><i class="fa-solid fa-upload me-2"></i><?= $this->t('system.add.tab_upload') ?></button>
     </li>
     <li class="nav-item ms-auto" role="presentation">
-        <button class="nav-link" id="tab-sources-btn" data-bs-toggle="tab" data-bs-target="#tab-sources" type="button" role="tab"><i class="fa-solid fa-store me-2"></i>Marketplaces</button>
+        <button class="nav-link" id="tab-sources-btn" data-bs-toggle="tab" data-bs-target="#tab-sources" type="button" role="tab"><i class="fa-solid fa-store me-2"></i><?= $this->t('system.add.tab_marketplaces') ?></button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-pass-btn" data-bs-toggle="tab" data-bs-target="#tab-pass" type="button" role="tab"><i class="fa-solid fa-paw me-2"></i>TigerPASS</button>
+        <button class="nav-link" id="tab-pass-btn" data-bs-toggle="tab" data-bs-target="#tab-pass" type="button" role="tab"><i class="fa-solid fa-paw me-2"></i><?= $this->t('system.add.tab_pass') ?></button>
     </li>
 </ul>
 
@@ -51,24 +51,24 @@ if ($passCheckout === '') { $passCheckout = 'https://webtigers.com/checkout/tige
     <div class="tab-pane fade show active" id="tab-browse" role="tabpanel" aria-labelledby="tab-browse-btn">
         <div class="card">
             <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
-                <span><i class="fa-solid fa-store me-2"></i>Browse the directory</span>
-                <span class="small fw-normal <?= $registryHasData ? 'text-success' : 'text-body-secondary' ?>"><?= $registryHasData ? 'community registry' : 'registry unavailable' ?></span>
+                <span><i class="fa-solid fa-store me-2"></i><?= $this->t('system.add.browse_directory') ?></span>
+                <span class="small fw-normal <?= $registryHasData ? 'text-success' : 'text-body-secondary' ?>"><?= $registryHasData ? $this->t('system.add.community_registry') : $this->t('system.add.registry_unavailable') ?></span>
             </div>
             <div class="card-body">
                 <?php if (!$registryHasData): ?>
-                    <p class="text-body-secondary mb-0"><i class="fa-regular fa-circle-question me-1"></i>The Vendor Registry isn't reachable yet. Install from a repo URL or upload a <code>.zip</code> instead — those always work.</p>
+                    <p class="text-body-secondary mb-0"><i class="fa-regular fa-circle-question me-1"></i><?= $this->t('system.add.registry_unreachable') ?></p>
                 <?php else: ?>
                     <div class="d-flex gap-2 mb-3">
                         <div class="input-group flex-grow-1">
                             <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
-                            <input type="text" class="form-control" id="mod-search" placeholder="Search modules…">
+                            <input type="text" class="form-control" id="mod-search" placeholder="<?= $this->escape($this->t('system.add.search_placeholder')) ?>">
                         </div>
-                        <select class="form-select w-auto" id="mod-sort" aria-label="Sort results" title="Sort results">
-                            <option value="featured" selected>Featured</option>
-                            <option value="title">Title (A–Z)</option>
-                            <option value="latest">Latest</option>
+                        <select class="form-select w-auto" id="mod-sort" aria-label="<?= $this->escape($this->t('system.add.sort_results')) ?>" title="<?= $this->escape($this->t('system.add.sort_results')) ?>">
+                            <option value="featured" selected><?= $this->t('system.add.sort_featured') ?></option>
+                            <option value="title"><?= $this->t('system.add.sort_title') ?></option>
+                            <option value="latest"><?= $this->t('system.add.sort_latest') ?></option>
                         </select>
-                        <button type="button" class="btn btn-outline-secondary" id="mod-refresh" aria-label="Refresh directory" title="Refresh directory — re-fetch the catalog now (it's otherwise cached for a few hours)"><i class="fa-solid fa-arrows-rotate"></i></button>
+                        <button type="button" class="btn btn-outline-secondary" id="mod-refresh" aria-label="<?= $this->escape($this->t('system.add.refresh_directory')) ?>" title="<?= $this->escape($this->t('system.add.refresh_directory_title')) ?>"><i class="fa-solid fa-arrows-rotate"></i></button>
                     </div>
                     <!-- Type + category filters are DATA-DRIVEN from the registry taxonomy (never
                          hardcoded here) — the doors are owned by the registry's taxonomy.json and
@@ -79,11 +79,11 @@ if ($passCheckout === '') { $passCheckout = 'https://webtigers.com/checkout/tige
                     <!-- Availability filter — how you GET a module (a second axis alongside type). Static:
                          it mirrors the pricing models the platform understands, not registry taxonomy. -->
                     <ul class="nav nav-pills mod-avail-filter mb-3" id="mod-avail-filter">
-                        <li class="nav-item"><button type="button" class="nav-link active" data-avail="">All</button></li>
-                        <li class="nav-item"><button type="button" class="nav-link" data-avail="free">Free</button></li>
-                        <li class="nav-item"><button type="button" class="nav-link" data-avail="pass"><i class="fa-solid fa-paw me-1 text-warning"></i>TigerPASS</button></li>
-                        <li class="nav-item"><button type="button" class="nav-link" data-avail="freemium">Freemium</button></li>
-                        <li class="nav-item"><button type="button" class="nav-link" data-avail="paid">Paid</button></li>
+                        <li class="nav-item"><button type="button" class="nav-link active" data-avail=""><?= $this->t('system.add.avail_all') ?></button></li>
+                        <li class="nav-item"><button type="button" class="nav-link" data-avail="free"><?= $this->t('system.add.avail_free') ?></button></li>
+                        <li class="nav-item"><button type="button" class="nav-link" data-avail="pass"><i class="fa-solid fa-paw me-1 text-warning"></i><?= $this->t('system.add.avail_pass') ?></button></li>
+                        <li class="nav-item"><button type="button" class="nav-link" data-avail="freemium"><?= $this->t('system.add.avail_freemium') ?></button></li>
+                        <li class="nav-item"><button type="button" class="nav-link" data-avail="paid"><?= $this->t('system.add.avail_paid') ?></button></li>
                     </ul>
                     <div id="mod-results"></div>
                 <?php endif; ?>
@@ -94,20 +94,20 @@ if ($passCheckout === '') { $passCheckout = 'https://webtigers.com/checkout/tige
     <!-- Install from a GitHub URL -->
     <div class="tab-pane fade" id="tab-url" role="tabpanel" aria-labelledby="tab-url-btn">
         <div class="card">
-            <div class="card-header fw-semibold"><i class="fa-brands fa-github me-2"></i>Install from a GitHub repository</div>
+            <div class="card-header fw-semibold"><i class="fa-brands fa-github me-2"></i><?= $this->t('system.add.url_header') ?></div>
             <div class="card-body">
-                <p class="text-body-secondary small">Paste a <strong>public</strong> GitHub repo URL — we pull its <code>module.json</code>/<code>theme.json</code> + <code>TIGER.md</code> so you can review it before installing. Private repos aren't supported; module code must be open for review.</p>
+                <p class="text-body-secondary small"><?= $this->t('system.add.url_help') ?></p>
                 <div class="row g-2 align-items-end">
                     <div class="col-12 col-md-7">
-                        <label class="form-label small" for="mod-url">Repository URL</label>
+                        <label class="form-label small" for="mod-url"><?= $this->t('system.add.repo_url') ?></label>
                         <input type="url" class="form-control" id="mod-url" placeholder="https://github.com/org/repo">
                     </div>
                     <div class="col-8 col-md-3">
-                        <label class="form-label small" for="mod-ref">Version <span class="text-body-secondary">(optional)</span></label>
-                        <input type="text" class="form-control" id="mod-ref" placeholder="latest release">
+                        <label class="form-label small" for="mod-ref"><?= $this->t('system.add.version') ?> <span class="text-body-secondary"><?= $this->t('system.add.optional') ?></span></label>
+                        <input type="text" class="form-control" id="mod-ref" placeholder="<?= $this->escape($this->t('system.add.latest_release')) ?>">
                     </div>
                     <div class="col-4 col-md-2">
-                        <button type="button" id="mod-check" class="btn btn-outline-primary w-100"><i class="fa-solid fa-magnifying-glass me-1"></i>Check</button>
+                        <button type="button" id="mod-check" class="btn btn-outline-primary w-100"><i class="fa-solid fa-magnifying-glass me-1"></i><?= $this->t('system.add.check') ?></button>
                     </div>
                 </div>
             </div>
@@ -117,20 +117,20 @@ if ($passCheckout === '') { $passCheckout = 'https://webtigers.com/checkout/tige
     <!-- Upload a .zip -->
     <div class="tab-pane fade" id="tab-upload" role="tabpanel" aria-labelledby="tab-upload-btn">
         <div class="card">
-            <div class="card-header fw-semibold"><i class="fa-solid fa-upload me-2"></i>Upload a module package</div>
+            <div class="card-header fw-semibold"><i class="fa-solid fa-upload me-2"></i><?= $this->t('system.add.upload_header') ?></div>
             <div class="card-body">
-                <p class="text-body-secondary small">Upload a module or theme <code>.zip</code> — it's unpacked into your modules folder and installed. Only upload packages you <strong>trust</strong>; the code runs in your app once active.</p>
-                <div id="mod-dropzone" class="mod-dropzone text-center p-4 mb-3" role="button" tabindex="0" aria-label="Upload a .zip package — drag a file here or press Enter to browse">
+                <p class="text-body-secondary small"><?= $this->t('system.add.upload_help') ?></p>
+                <div id="mod-dropzone" class="mod-dropzone text-center p-4 mb-3" role="button" tabindex="0" aria-label="<?= $this->escape($this->t('system.add.dropzone_aria')) ?>">
                     <i class="fa-solid fa-cloud-arrow-up fs-2 text-body-secondary d-block mb-2"></i>
-                    <div class="fw-semibold" id="mod-drop-label">Drag a <code>.zip</code> here, or <span class="text-primary text-decoration-underline">browse</span></div>
-                    <div class="small text-body-secondary">Module or theme package, up to 50&nbsp;MB</div>
+                    <div class="fw-semibold" id="mod-drop-label"><?= $this->t('system.add.drop_label') ?></div>
+                    <div class="small text-body-secondary"><?= $this->t('system.add.drop_sublabel') ?></div>
                     <input type="file" class="d-none" id="mod-file" accept=".zip,application/zip">
                 </div>
-                <div id="mod-progress" class="progress mb-3 d-none" style="height:6px;" role="progressbar" aria-label="Upload progress" aria-valuemin="0" aria-valuemax="100">
+                <div id="mod-progress" class="progress mb-3 d-none" style="height:6px;" role="progressbar" aria-label="<?= $this->escape($this->t('system.add.upload_progress')) ?>" aria-valuemin="0" aria-valuemax="100">
                     <div class="progress-bar progress-bar-striped progress-bar-animated" id="mod-progress-bar" style="width:0%"></div>
                 </div>
                 <div class="text-end">
-                    <button type="button" id="mod-upload" class="btn btn-primary" disabled><i class="fa-solid fa-upload me-1"></i>Upload &amp; install</button>
+                    <button type="button" id="mod-upload" class="btn btn-primary" disabled><i class="fa-solid fa-upload me-1"></i><?= $this->t('system.add.upload_install') ?></button>
                 </div>
             </div>
         </div>
@@ -139,37 +139,37 @@ if ($passCheckout === '') { $passCheckout = 'https://webtigers.com/checkout/tige
     <!-- Marketplaces — connect + manage catalog sources -->
     <div class="tab-pane fade" id="tab-sources" role="tabpanel" aria-labelledby="tab-sources-btn">
         <div class="card mb-3">
-            <div class="card-header fw-semibold"><i class="fa-solid fa-store me-2"></i>Marketplaces &amp; directories</div>
+            <div class="card-header fw-semibold"><i class="fa-solid fa-store me-2"></i><?= $this->t('system.add.markets_header') ?></div>
             <div class="card-body">
-                <p class="text-body-secondary small mb-3">The Add screen aggregates every source below. A source is any URL that returns a Tiger catalog index (<code>{modules, taxonomy}</code>) — a static <code>index.json</code> directory or a live marketplace endpoint. <strong>Lower priority is checked first</strong> and wins a slug collision, so a marketplace can enrich a directory listing.</p>
+                <p class="text-body-secondary small mb-3"><?= $this->t('system.add.markets_help') ?></p>
                 <div id="src-list" class="table-responsive"></div>
             </div>
         </div>
         <div class="card">
-            <div class="card-header fw-semibold"><i class="fa-solid fa-plug me-2"></i>Connect a marketplace</div>
+            <div class="card-header fw-semibold"><i class="fa-solid fa-plug me-2"></i><?= $this->t('system.add.connect_market') ?></div>
             <div class="card-body">
                 <div id="src-connect-feedback"></div>
                 <div class="row g-2 align-items-end">
                     <div class="col-12 col-md-4">
-                        <label class="form-label small" for="src-label">Name</label>
-                        <input type="text" class="form-control" id="src-label" placeholder="Acme Market">
+                        <label class="form-label small" for="src-label"><?= $this->t('system.add.src_name') ?></label>
+                        <input type="text" class="form-control" id="src-label" placeholder="<?= $this->escape($this->t('system.add.src_name_placeholder')) ?>">
                     </div>
                     <div class="col-12 col-md-4">
-                        <label class="form-label small" for="src-url">Index URL</label>
+                        <label class="form-label small" for="src-url"><?= $this->t('system.add.src_index_url') ?></label>
                         <input type="url" class="form-control" id="src-url" placeholder="https://acme.example/tiger/index.json">
                     </div>
                     <div class="col-6 col-md-2">
-                        <label class="form-label small" for="src-kind">Type</label>
+                        <label class="form-label small" for="src-kind"><?= $this->t('system.add.src_type') ?></label>
                         <select class="form-select" id="src-kind">
-                            <option value="live-api">Marketplace</option>
-                            <option value="git-index">Directory</option>
+                            <option value="live-api"><?= $this->t('system.add.src_marketplace') ?></option>
+                            <option value="git-index"><?= $this->t('system.add.src_directory') ?></option>
                         </select>
                     </div>
                     <div class="col-6 col-md-2">
-                        <button type="button" class="btn btn-primary w-100" id="src-connect"><i class="fa-solid fa-plug me-1"></i>Connect</button>
+                        <button type="button" class="btn btn-primary w-100" id="src-connect"><i class="fa-solid fa-plug me-1"></i><?= $this->t('system.add.connect') ?></button>
                     </div>
                 </div>
-                <p class="text-body-secondary mt-2 mb-0" style="font-size:11px">Only add marketplaces you trust — a source lists modules whose code runs on your server once you install them. You always review a module (and, for paid ones, its signature) before it installs.</p>
+                <p class="text-body-secondary mt-2 mb-0" style="font-size:11px"><?= $this->t('system.add.markets_trust') ?></p>
             </div>
         </div>
     </div>
@@ -177,26 +177,26 @@ if ($passCheckout === '') { $passCheckout = 'https://webtigers.com/checkout/tige
     <!-- TigerPASS — status + preferences -->
     <div class="tab-pane fade" id="tab-pass" role="tabpanel" aria-labelledby="tab-pass-btn">
         <div class="card">
-            <div class="card-header fw-semibold"><i class="fa-solid fa-paw me-2"></i>TigerPASS</div>
+            <div class="card-header fw-semibold"><i class="fa-solid fa-paw me-2"></i><?= $this->t('system.add.pass_header') ?></div>
             <div class="card-body">
                 <div id="pass-tab-status" class="mb-3"></div>
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" role="switch" id="pass-nag-toggle">
-                    <label class="form-check-label" for="pass-nag-toggle">Disable TigerPASS nag alert</label>
+                    <label class="form-check-label" for="pass-nag-toggle"><?= $this->t('system.add.pass_disable_nag') ?></label>
                 </div>
-                <div class="form-text">Hides the TigerPASS promo banner on this screen for you. You can still get TigerPASS anytime from a premium module's card.</div>
+                <div class="form-text"><?= $this->t('system.add.pass_disable_nag_help') ?></div>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Detail modal (the "View more" -> TIGER.md view) -->
-<div class="modal fade" id="mod-detail" tabindex="-1" aria-hidden="true" aria-label="Module details" role="dialog">
+<div class="modal fade" id="mod-detail" tabindex="-1" aria-hidden="true" aria-label="<?= $this->escape($this->t('system.add.detail_aria')) ?>" role="dialog">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
         <div class="d-flex align-items-center gap-3" id="mod-detail-head"></div>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= $this->escape($this->t('system.add.close')) ?>"></button>
       </div>
       <div class="modal-body" id="mod-detail-body"></div>
       <div class="modal-footer" id="mod-detail-foot"></div>

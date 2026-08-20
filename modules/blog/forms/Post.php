@@ -74,12 +74,19 @@ class Blog_Form_Post extends Tiger_Form
             ]],
 
             ['select', 'status', [
-                'multiOptions' => ['draft' => 'Draft', 'published' => 'Published', 'archived' => 'Archived'],
+                'multiOptions' => [
+                    'draft'     => $this->_t('blog.status.draft'),
+                    'published' => $this->_t('blog.status.published'),
+                    'archived'  => $this->_t('blog.status.archived'),
+                ],
                 'value'        => 'draft',
                 'attribs'      => array_merge($select, ['id' => 'post-status']),
             ]],
             ['select', 'locale', [
-                'multiOptions' => ['en' => 'English', 'es' => 'Español'],
+                'multiOptions' => [
+                    'en' => $this->_t('blog.locale.en'),
+                    'es' => $this->_t('blog.locale.es'),
+                ],
                 'value'        => 'en',
                 'attribs'      => array_merge($select, ['id' => 'post-locale']),
             ]],

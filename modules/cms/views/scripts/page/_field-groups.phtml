@@ -40,7 +40,7 @@ $e = fn($s) => $this->escape((string) $s);
                             <textarea class="form-control" id="<?= $e($id) ?>" name="<?= $e($name) ?>" rows="3"<?= $ph . $req ?>><?= $e($val) ?></textarea>
                         <?php elseif ($f['type'] === 'select'): ?>
                             <select class="form-select" id="<?= $e($id) ?>" name="<?= $e($name) ?>"<?= $req ?>>
-                                <option value="">— choose —</option>
+                                <option value=""><?= $this->t('cms.field.choose') ?></option>
                                 <?php foreach ($f['options'] as $opt): ?>
                                     <option value="<?= $e($opt) ?>"<?= (string) $val === (string) $opt ? ' selected' : '' ?>><?= $e($opt) ?></option>
                                 <?php endforeach; ?>
@@ -49,7 +49,7 @@ $e = fn($s) => $this->escape((string) $s);
                             $inputType = ['number' => 'number', 'url' => 'url', 'date' => 'date'][$f['type']] ?? 'text';
                         ?>
                             <input type="<?= $e($inputType) ?>" class="form-control" id="<?= $e($id) ?>" name="<?= $e($name) ?>" value="<?= $e($val) ?>"<?= $ph . $req ?>>
-                            <?php if ($f['type'] === 'media'): ?><div class="form-text">Media ID.</div><?php endif; ?>
+                            <?php if ($f['type'] === 'media'): ?><div class="form-text"><?= $this->t('cms.field.media_id') ?></div><?php endif; ?>
                         <?php endif; ?>
                         <?php if ($f['help'] && $f['type'] !== 'media'): ?><div class="form-text"><?= $e($f['help']) ?></div><?php endif; ?>
                     </div>

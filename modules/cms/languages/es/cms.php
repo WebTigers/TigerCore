@@ -2,12 +2,21 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
- * CMS module — Spanish strings (language-only locale `es`). Mirrors en/cms.php.
+ * CMS module — Spanish strings (language-only locale `es`). Mirrors en/cms.php (same key set).
  */
 return [
+    // ---- API / service response messages ----
     'cms.page.saved'    => 'Página guardada.',
     'cms.page.deleted'  => 'Página eliminada.',
     'cms.page.restored' => 'Página restaurada a la versión seleccionada.',
+    'cms.page.forked'   => 'Plantilla personalizada — ahora estás editando tu copia.',
+    'cms.page.exists'   => 'Esa plantilla ya está personalizada — abriéndola.',
+    'cms.page.theme_inactive'       => 'Ese tema no está activo.',
+    'cms.page.template_unavailable' => 'Esa plantilla ya no está disponible.',
+
+    'cms.block.saved'          => 'Bloque guardado.',
+    'cms.block.name_required'  => 'Primero asigna un nombre al bloque.',
+    'cms.block.empty'          => 'No hay nada que guardar como bloque.',
 
     'cms.settings.saved' => 'Configuración guardada.',
 
@@ -17,4 +26,179 @@ return [
     'cms.menu.reordered'    => 'Orden del menú actualizado.',
     'cms.menu.key_required' => 'Primero asigna una clave al menú.',
     'cms.menu.label_hint'   => 'p. ej. Inicio, o nav.label.home',
+    'cms.menu.imported'       => 'Menús del tema importados — edítalos aquí para sobrescribir el tema.',
+    'cms.menu.import_present' => 'Los menús del tema ya están en su lugar — no hay nada nuevo que importar.',
+    'cms.menu.import_none'    => 'El tema activo no incluye menús para importar.',
+    'cms.menu.reverted'       => 'Se restauró el menú del tema.',
+
+    // ---- Common labels ----
+    'cms.label.title'    => 'Título',
+    'cms.label.type'     => 'Tipo',
+    'cms.label.status'   => 'Estado',
+    'cms.label.updated'  => 'Actualizado',
+    'cms.label.actions'  => 'Acciones',
+    'cms.label.language' => 'Idioma',
+    'cms.label.theme'    => 'Tema',
+    'cms.label.settings' => 'Configuración',
+    'cms.label.untitled' => 'Sin título',
+
+    // ---- Common actions ----
+    'cms.action.save'   => 'Guardar',
+    'cms.action.cancel' => 'Cancelar',
+    'cms.action.close'  => 'Cerrar',
+    'cms.action.remove' => 'Quitar',
+    'cms.action.exit'   => 'Salir',
+
+    // ---- Page types ----
+    'cms.type.page'    => 'Página',
+    'cms.type.layout'  => 'Plantilla',
+    'cms.type.partial' => 'Parcial',
+    'cms.type.block'   => 'Bloque',
+
+    // ---- Body formats ----
+    'cms.format.html'     => 'HTML',
+    'cms.format.markdown' => 'Markdown',
+    'cms.format.phtml'    => 'PHTML (código de confianza)',
+    'cms.format.builder'  => 'Editor visual',
+
+    // ---- Statuses ----
+    'cms.status.draft'     => 'Borrador',
+    'cms.status.published' => 'Publicado',
+    'cms.status.archived'  => 'Archivado',
+
+    // ---- Content locales ----
+    'cms.locale.en' => 'Inglés',
+    'cms.locale.es' => 'Español',
+
+    // ---- Settings screen ----
+    'cms.settings.heading'             => 'CMS',
+    'cms.settings.subtitle'            => 'El nombre y la página de inicio de tu sitio.',
+    'cms.settings.card_site'           => 'Configuración del sitio',
+    'cms.settings.label_site_name'     => 'Nombre del sitio',
+    'cms.settings.help_site_name'      => 'Se muestra en el encabezado del sitio y la pestaña del navegador, y se usa como título de página predeterminado.',
+    'cms.settings.label_home_page'     => 'Página de inicio',
+    'cms.settings.help_home_page'      => 'Qué página servir en %s. «Página de inicio integrada» mantiene la página de marketing predeterminada.',
+    'cms.settings.opt_builtin_landing' => '— Página de inicio integrada —',
+
+    // ---- Content list ----
+    'cms.page.list_heading'        => 'Contenido',
+    'cms.page.list_subtitle'       => 'Páginas, plantillas y parciales — el almacén de contenido del CMS.',
+    'cms.page.new_page'            => 'Nueva página',
+    'cms.page.tab_pages'           => 'Páginas',
+    'cms.page.tab_templates'       => 'Plantillas del tema',
+    'cms.page.filter_all_statuses' => 'Todos los estados',
+    'cms.page.filter_all_types'    => 'Todos los tipos',
+    'cms.page.filter_clear'        => 'Limpiar',
+    'cms.page.filter_clear_title'  => 'Limpiar filtros',
+    'cms.page.col_slug_key'        => 'Slug / Clave',
+    'cms.page.col_lang'            => 'Idioma',
+    'cms.page.col_kind'            => 'Clase',
+    'cms.page.col_handle'          => 'Identificador',
+    'cms.page.customize'           => 'Personalizar',
+    'cms.page.templates_subtitle'  => 'Páginas, plantillas y parciales que tus temas instalados sirven desde archivos — %s crea una copia editable que sobrescribe el archivo. El archivo del tema nunca se modifica.',
+
+    // ---- Page editor ----
+    'cms.page.edit_heading'           => 'Editar página',
+    'cms.page.new_heading'            => 'Nueva página',
+    'cms.page.back_to_content'        => 'Volver al contenido',
+    'cms.page.design'                 => 'Diseñar',
+    'cms.page.design_title'           => 'Diseña esta página visualmente con GrapesJS',
+    'cms.page.label_body'             => 'Cuerpo',
+    'cms.page.find_placeholder'       => 'Buscar…',
+    'cms.page.find_prev'              => 'Anterior (Shift+Enter)',
+    'cms.page.find_next'              => 'Siguiente (Enter)',
+    'cms.page.reformat'               => 'Reformatear',
+    'cms.page.reformat_title'         => 'Reformatear — con sangría anidada',
+    'cms.page.fold'                   => 'Plegar',
+    'cms.page.fold_title'             => 'Contraer todos los bloques',
+    'cms.page.unfold'                 => 'Desplegar',
+    'cms.page.unfold_title'           => 'Expandir todos los bloques',
+    'cms.page.help_body'              => 'Se representa según el formato seleccionado. %s funcionan en HTML/Markdown; PHTML ejecuta código de vista (solo autores de confianza).',
+    'cms.page.card_publish'           => 'Publicación',
+    'cms.page.label_publish_at'       => 'Publicar en',
+    'cms.page.help_publish_at'        => 'En blanco = en vivo de inmediato. Una fecha futura la programa.',
+    'cms.page.card_settings'          => 'Configuración',
+    'cms.page.label_format'           => 'Formato',
+    'cms.page.label_slug'             => 'Slug',
+    'cms.page.help_slug'              => 'Ruta URL para las páginas. En blanco para plantillas/parciales.',
+    'cms.page.label_key'              => 'Clave',
+    'cms.page.help_key'               => 'Identificador estable (las plantillas/parciales se obtienen por esto). Se deriva automáticamente si se deja en blanco.',
+    'cms.page.label_layout'           => 'Plantilla',
+    'cms.page.help_layout'            => 'Clave de una plantilla que envuelve esta página. En blanco = plantilla del tema.',
+    'cms.page.card_seo'               => 'SEO y encabezado',
+    'cms.page.label_meta_description' => 'Meta descripción',
+    'cms.page.help_meta_description'  => 'Fragmento de resultado de búsqueda y %s (≈160 caracteres).',
+    'cms.page.label_head_html'        => 'HTML de encabezado',
+    'cms.page.head_html_hint'         => '— se ejecuta en %s',
+    'cms.page.help_head_html'         => '%s / %s / %s / %s sin procesar, se muestran tal cual. Escritos por el administrador (de confianza).',
+    'cms.page.label_body_scripts'     => 'Scripts del cuerpo',
+    'cms.page.body_scripts_hint'      => '— se ejecuta antes de %s',
+    'cms.page.help_body_scripts'      => '%s sin procesar, cargado al final de la página.',
+    'cms.page.version_history'        => 'Historial de versiones',
+    'cms.page.col_version'            => 'Versión',
+    'cms.page.col_saved'              => 'Guardado',
+    'cms.page.restore'                => 'Restaurar',
+
+    // ---- Visual builder ----
+    'cms.page.builder'              => 'Editor',
+    'cms.page.builder_brand'        => 'Tiger Builder',
+    'cms.page.layout_preview_title' => 'Previsualiza este parcial dentro del marco de una plantilla',
+    'cms.page.layout_theme_default' => 'Predeterminado del tema',
+    'cms.page.save_block'           => 'Guardar como bloque',
+    'cms.page.save_block_title'     => 'Guarda el elemento seleccionado como un bloque reutilizable',
+    'cms.page.toggle_theme_title'   => 'Alternar lienzo claro / oscuro',
+
+    // ---- Custom field groups ----
+    'cms.field.choose'   => '— elegir —',
+    'cms.field.media_id' => 'ID de medio.',
+
+    // ---- Menus list ----
+    'cms.menu.list_heading'  => 'Menús',
+    'cms.menu.list_subtitle' => 'Menús de navegación personalizados — reutilizables por cualquier tema mediante %s, el shortcode %s, o %s.',
+    'cms.menu.new_menu'      => 'Nuevo menú',
+    'cms.menu.col_menu'      => 'Menú',
+    'cms.menu.col_source'    => 'Origen',
+    'cms.menu.col_items'     => 'Elementos',
+
+    // ---- Menu builder ----
+    'cms.menu.new_heading'          => 'Nuevo menú',
+    'cms.menu.edit_heading'         => 'Menú: %s',
+    'cms.menu.builder_subtitle'     => 'Represéntalo en cualquier lugar con %s o %s.',
+    'cms.menu.all_menus'            => 'Todos los menús',
+    'cms.menu.theme_alert'          => 'Este menú proviene del %s activo. Edítalo y tu primer cambio se guardará como una sustitución que reemplaza la versión del tema — hasta entonces el menú del tema queda intacto.',
+    'cms.menu.theme_word'           => 'tema',
+    'cms.menu.tab_pages'            => 'Páginas',
+    'cms.menu.tab_custom'           => 'Personalizado',
+    'cms.menu.filter_pages'         => 'Filtrar páginas…',
+    'cms.menu.no_pages'             => 'Aún no hay páginas con clave.',
+    'cms.menu.custom_hint'          => 'Arrastra aquí, luego establece el enlace/etiqueta mediante %s.',
+    'cms.menu.custom_link'          => 'Enlace personalizado',
+    'cms.menu.heading_item'         => 'Encabezado',
+    'cms.menu.menu_key_label'       => 'Clave del menú',
+    'cms.menu.menu_key_placeholder' => 'primary',
+    'cms.menu.structure'            => 'Estructura',
+    'cms.menu.nest_hint'            => 'arrastra a la derecha/izquierda para anidar',
+    'cms.menu.empty_state'          => 'Arrastra una página o un elemento personalizado aquí para empezar.',
+    'cms.menu.no_label'             => '(sin etiqueta)',
+    'cms.menu.grip_title'           => 'Arrastra para mover · arrastra derecha/izquierda para anidar',
+    'cms.menu.properties'           => 'Propiedades',
+    'cms.menu.hint_set_link'        => '(establecer enlace)',
+    'cms.menu.hint_heading'         => 'encabezado',
+    'cms.menu.item_properties'      => 'Propiedades del elemento',
+    'cms.menu.label_label'          => 'Etiqueta',
+    'cms.menu.label_help'           => 'Una clave de traducción o texto literal — siempre pasa por Zend_Translate.',
+    'cms.menu.link_page'            => 'Enlazar una página',
+    'cms.menu.or_url'               => '…o una URL',
+    'cms.menu.link_help'            => 'La página prevalece sobre la URL. Ambos vacíos = un encabezado.',
+    'cms.menu.icon_class'           => 'Clase de icono',
+    'cms.menu.css_class'            => 'Clase(s) CSS',
+    'cms.menu.dom_id'               => 'ID del DOM',
+    'cms.menu.open_in'              => 'Abrir en',
+    'cms.menu.rel'                  => 'rel',
+    'cms.menu.acl_resource'         => 'Recurso ACL',
+    'cms.menu.acl_resource_help'    => 'Ocultar a menos que el visitante pueda acceder (solo getHTML).',
+    'cms.menu.acl_privilege'        => 'Privilegio ACL',
+    'cms.menu.opt_none'             => '— ninguno —',
+    'cms.menu.target_same'          => 'Misma pestaña',
+    'cms.menu.target_blank'         => 'Nueva pestaña (_blank)',
 ];

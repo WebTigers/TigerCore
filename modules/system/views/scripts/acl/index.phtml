@@ -7,8 +7,8 @@
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1">ACL Simulator</h1>
-        <p class="text-body-secondary mb-0">Ask the live ACL: would this role reach this resource — and <em>why?</em></p>
+        <h1 class="h3 mb-1"><?= $this->t('system.acl.title') ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('system.acl.subtitle') ?></p>
     </div>
 </div>
 
@@ -17,22 +17,22 @@
 <div class="row g-4">
     <div class="col-lg-5">
         <div class="card border-0 shadow-sm">
-            <div class="card-header fw-semibold"><i class="fa-solid fa-vial me-2"></i>Simulate</div>
+            <div class="card-header fw-semibold"><i class="fa-solid fa-vial me-2"></i><?= $this->t('system.acl.simulate') ?></div>
             <div class="card-body">
                 <div class="mb-3">
-                    <label class="form-label" for="acl-role">Role</label>
+                    <label class="form-label" for="acl-role"><?= $this->t('system.acl.role') ?></label>
                     <select id="acl-role" class="form-select"></select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label" for="acl-resource">Resource <span class="text-body-secondary">(controller or service class)</span></label>
+                    <label class="form-label" for="acl-resource"><?= $this->t('system.acl.resource') ?> <span class="text-body-secondary"><?= $this->t('system.acl.resource_hint') ?></span></label>
                     <select id="acl-resource" class="form-select"></select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label" for="acl-privilege">Privilege <span class="text-body-secondary">(action/method — blank = any)</span></label>
-                    <input id="acl-privilege" class="form-control" placeholder="e.g. save, index">
+                    <label class="form-label" for="acl-privilege"><?= $this->t('system.acl.privilege') ?> <span class="text-body-secondary"><?= $this->t('system.acl.privilege_hint') ?></span></label>
+                    <input id="acl-privilege" class="form-control" placeholder="<?= $this->escape($this->t('system.acl.privilege_placeholder')) ?>">
                 </div>
                 <button type="button" id="acl-run" class="btn btn-primary">
-                    <i class="fa-solid fa-play me-2"></i>Explain
+                    <i class="fa-solid fa-play me-2"></i><?= $this->t('system.acl.explain') ?>
                 </button>
             </div>
         </div>
@@ -44,9 +44,9 @@
                 <div id="acl-verdict" class="d-flex align-items-center gap-2 mb-3"></div>
                 <p id="acl-reason" class="mb-3"></p>
                 <dl class="row mb-0 small">
-                    <dt class="col-sm-3 text-body-secondary">Deciding rule</dt>
+                    <dt class="col-sm-3 text-body-secondary"><?= $this->t('system.acl.deciding_rule') ?></dt>
                     <dd class="col-sm-9" id="acl-rule">—</dd>
-                    <dt class="col-sm-3 text-body-secondary">Role chain</dt>
+                    <dt class="col-sm-3 text-body-secondary"><?= $this->t('system.acl.role_chain') ?></dt>
                     <dd class="col-sm-9" id="acl-chain">—</dd>
                 </dl>
             </div>
@@ -54,7 +54,7 @@
         <div id="acl-empty" class="card border-0 shadow-sm">
             <div class="card-body text-center text-body-secondary p-5">
                 <i class="fa-solid fa-scale-balanced fs-1 mb-3 d-block"></i>
-                Pick a role and resource, then <strong>Explain</strong> to trace the decision.
+                <?= $this->t('system.acl.empty') ?>
             </div>
         </div>
     </div>

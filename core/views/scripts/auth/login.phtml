@@ -12,8 +12,8 @@
     <span class="tiger-auth-mark"><i class="fa-solid fa-paw"></i></span>
     <?php /* Heading stays "Tiger" on purpose — platform branding for CMS-admin installs;
              app developers override this view anyway. The Return link below uses siteName. */ ?>
-    <h1 class="h4 mb-1">Sign in to Tiger</h1>
-    <p class="text-body-secondary small mb-0">Welcome back.</p>
+    <h1 class="h4 mb-1"><?= $this->escape($this->t('core.auth.login.title')) ?></h1>
+    <p class="text-body-secondary small mb-0"><?= $this->escape($this->t('core.auth.login.subtitle')) ?></p>
 </div>
 
 <?php if (!empty($this->notice)): ?>
@@ -25,51 +25,51 @@
 <!-- Step 1: credentials -->
 <form id="login-form" novalidate>
     <div class="mb-3">
-        <label class="form-label" for="login-identifier">Email or username</label>
+        <label class="form-label" for="login-identifier"><?= $this->escape($this->t('core.auth.login.identifier')) ?></label>
         <input type="text" class="form-control form-control-lg" id="login-identifier" name="identifier"
                autocomplete="username" autofocus required>
     </div>
     <div class="mb-2">
-        <label class="form-label" for="login-password">Password</label>
+        <label class="form-label" for="login-password"><?= $this->escape($this->t('core.auth.password')) ?></label>
         <input type="password" class="form-control form-control-lg" id="login-password" name="password"
                autocomplete="current-password" required>
     </div>
     <div class="d-flex justify-content-end mb-3">
-        <a href="/auth/forgot" class="small text-decoration-none">Forgot your password?</a>
+        <a href="/auth/forgot" class="small text-decoration-none"><?= $this->escape($this->t('core.auth.login.forgot')) ?></a>
     </div>
     <?php $rc = $this->formRecaptcha(); if ($rc): ?>
     <div class="mb-3 d-flex justify-content-center"><?= $rc ?></div>
     <?php endif; ?>
     <div class="d-grid">
-        <button type="submit" id="login-submit" class="btn btn-primary btn-lg">Sign in</button>
+        <button type="submit" id="login-submit" class="btn btn-primary btn-lg"><?= $this->escape($this->t('core.auth.login.submit')) ?></button>
     </div>
 </form>
 
 <!-- Step 2: two-factor code (revealed when the account has an authenticator app) -->
 <form id="twofa-form" novalidate style="display:none;">
     <p class="small text-body-secondary mb-2">
-        <i class="fa-solid fa-shield-halved me-1"></i>Enter the 6-digit code from your authenticator app.
+        <i class="fa-solid fa-shield-halved me-1"></i><?= $this->escape($this->t('core.auth.twofa.prompt')) ?>
     </p>
     <div class="mb-3">
-        <label class="form-label" for="twofa-code">Verification code</label>
+        <label class="form-label" for="twofa-code"><?= $this->escape($this->t('core.auth.twofa.code_label')) ?></label>
         <input type="text" class="form-control form-control-lg text-center" id="twofa-code" name="code"
                inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*"
                placeholder="000000" style="letter-spacing:.4em;">
     </div>
     <div class="d-grid mb-2">
-        <button type="submit" id="twofa-submit" class="btn btn-primary btn-lg">Verify</button>
+        <button type="submit" id="twofa-submit" class="btn btn-primary btn-lg"><?= $this->escape($this->t('core.auth.twofa.verify')) ?></button>
     </div>
     <div class="text-center">
-        <a href="#" id="twofa-recovery-toggle" class="small text-decoration-none">Use a recovery code</a>
+        <a href="#" id="twofa-recovery-toggle" class="small text-decoration-none"><?= $this->escape($this->t('core.auth.twofa.use_recovery')) ?></a>
     </div>
 </form>
 
 <div class="text-center mt-3" id="login-alt">
-    <a href="/auth/otp" class="small text-decoration-none">Sign in with a code instead</a>
+    <a href="/auth/otp" class="small text-decoration-none"><?= $this->escape($this->t('core.auth.login.use_code')) ?></a>
 </div>
 
 <div class="tiger-auth-foot">
-    <a href="/" class="small text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i>Return to <?= $this->escape($this->siteName ?? 'Tiger') ?></a>
+    <a href="/" class="small text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i><?= $this->escape($this->t('core.auth.return_to', $this->siteName ?? 'Tiger')) ?></a>
 </div>
 
 <script>

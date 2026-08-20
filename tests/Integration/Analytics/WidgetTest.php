@@ -30,7 +30,7 @@ final class WidgetTest extends IntegrationTestCase
         // No GA config → Tiger_Google_Analytics::isConnected() is false → the prompt branch.
         $html = (new Analytics_Widget_Ga())->render();
 
-        $this->assertStringContainsString('Connect Google Analytics', $html, 'the set-up prompt is shown');
+        $this->assertStringContainsString('analytics.widget.connect', $html, 'the set-up prompt is shown (i18n key)');
         $this->assertStringContainsString('/analytics/admin', $html, 'links to the settings screen');
         $this->assertStringContainsString('btn', $html, 'renders a CTA button');
         $this->assertStringNotContainsString('<canvas', $html, 'no live chart shell when disconnected');
@@ -45,9 +45,9 @@ final class WidgetTest extends IntegrationTestCase
 
         // Connected → the sparkline shell (its data arrives client-side over /api), not the prompt.
         $this->assertStringContainsString('<canvas', $html, 'the chart canvas shell is rendered');
-        $this->assertStringContainsString('active users', $html);
+        $this->assertStringContainsString('analytics.widget.active_users_28d', $html);
         $this->assertStringContainsString('/analytics/admin/dashboard', $html, 'links to the full dashboard');
-        $this->assertStringNotContainsString('Connect Google Analytics', $html, 'no set-up prompt when connected');
+        $this->assertStringNotContainsString('analytics.widget.connect', $html, 'no set-up prompt when connected');
     }
 
     /**

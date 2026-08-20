@@ -24,18 +24,20 @@ $f       = $this->form;
 
 /** One item's chip markup (kept in sync with chipHTML() in JS below). */
 $chip = function ($n) {
-    $label = ($n['label'] !== null && $n['label'] !== '') ? $n['label'] : '(no label)';
+    $label = ($n['label'] !== null && $n['label'] !== '') ? $n['label'] : $this->t('cms.menu.no_label');
     $hint  = !empty($n['page_key']) ? ('#' . $n['page_key'])
-           : (!empty($n['url']) && $n['url'] !== '#' ? $n['url'] : (($n['url'] ?? '') === '#' ? '(set link)' : 'heading'));
+           : (!empty($n['url']) && $n['url'] !== '#' ? $n['url'] : (($n['url'] ?? '') === '#' ? $this->t('cms.menu.hint_set_link') : $this->t('cms.menu.hint_heading')));
+    $props  = $this->escape($this->t('cms.menu.properties'));
+    $remove = $this->escape($this->t('cms.action.remove'));
     $h  = '<div class="menu-chip">';
-    $h .= '<span class="menu-grip" title="Drag to move · drag right/left to nest"><i class="fa-solid fa-grip-vertical"></i></span>';
+    $h .= '<span class="menu-grip" title="' . $this->escape($this->t('cms.menu.grip_title')) . '"><i class="fa-solid fa-grip-vertical"></i></span>';
     if (!empty($n['icon'])) { $h .= '<i class="' . $this->escape($n['icon']) . '"></i>'; }
     $h .= '<span class="menu-chip-label">' . $this->escape($label) . '</span>';
     $h .= ' <code class="menu-chip-hint">' . $this->escape($hint) . '</code>';
-    if (($n['status'] ?? '') === 'draft') { $h .= ' <span class="badge text-bg-secondary">Draft</span>'; }
+    if (($n['status'] ?? '') === 'draft') { $h .= ' <span class="badge text-bg-secondary">' . $this->escape($this->t('cms.status.draft')) . '</span>'; }
     $h .= '<span class="menu-chip-actions ms-auto">'
-       .  '<button type="button" class="btn btn-sm btn-outline-secondary" data-open title="Properties" aria-label="Properties"><i class="fa-solid fa-sliders"></i></button> '
-       .  '<button type="button" class="btn btn-sm btn-outline-danger" data-del title="Remove" aria-label="Remove"><i class="fa-solid fa-trash"></i></button>'
+       .  '<button type="button" class="btn btn-sm btn-outline-secondary" data-open title="' . $props . '" aria-label="' . $props . '"><i class="fa-solid fa-sliders"></i></button> '
+       .  '<button type="button" class="btn btn-sm btn-outline-danger" data-del title="' . $remove . '" aria-label="' . $remove . '"><i class="fa-solid fa-trash"></i></button>'
        .  '</span></div>';
     return $h;
 };
@@ -68,17 +70,22 @@ $collect($this->tree);
 <script src="<?= $this->asset($this->themeAssets . '/js/vendor/Sortable.min.js') ?>"></script>
 
 <div class="d-flex align-items-center justify-content-between mb-3">
+<?php
+    $mkDisplay = $this->escape($menuKey ?: 'key');
+    $snippetMenu      = '<code>&lt;?= $this-&gt;menu(\'' . $mkDisplay . '\') ?&gt;</code>';
+    $snippetShortcode = '<code>[menu name="' . $mkDisplay . '"]</code>';
+?>
     <div>
-        <h1 class="h3 mb-1"><?= $isNew ? 'New Menu' : 'Menu: ' . $this->escape($menuKey) ?></h1>
-        <p class="text-body-secondary mb-0">Render anywhere with <code>&lt;?= $this-&gt;menu('<?= $this->escape($menuKey ?: 'key') ?>') ?&gt;</code> or <code>[menu name="<?= $this->escape($menuKey ?: 'key') ?>"]</code>.</p>
+        <h1 class="h3 mb-1"><?= $isNew ? $this->escape($this->t('cms.menu.new_heading')) : $this->escape($this->t('cms.menu.edit_heading', $menuKey)) ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('cms.menu.builder_subtitle', $snippetMenu, $snippetShortcode) ?></p>
     </div>
-    <a href="/cms/menu" class="btn btn-outline-secondary"><i class="fa-solid fa-angle-left me-1"></i>All menus</a>
+    <a href="/cms/menu" class="btn btn-outline-secondary"><i class="fa-solid fa-angle-left me-1"></i><?= $this->t('cms.menu.all_menus') ?></a>
 </div>
 
 <?php if (!empty($this->isTheme)): ?>
 <div class="alert alert-info d-flex align-items-center" role="alert">
     <i class="fa-solid fa-palette me-2"></i>
-    <div>This menu comes from the active <strong>theme</strong>. Edit it and your first change is saved as an override that replaces the theme's version — until then the theme menu is untouched.</div>
+    <div><?= $this->t('cms.menu.theme_alert', '<strong>' . $this->escape($this->t('cms.menu.theme_word')) . '</strong>') ?></div>
 </div>
 <?php endif; ?>
 
@@ -88,14 +95,14 @@ $collect($this->tree);
         <div class="card h-100">
             <div class="card-header bg-transparent pb-0">
                 <ul class="nav nav-tabs card-header-tabs" role="tablist">
-                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#src-pages" type="button">Pages</button></li>
-                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#src-custom" type="button">Custom</button></li>
+                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#src-pages" type="button"><?= $this->t('cms.menu.tab_pages') ?></button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#src-custom" type="button"><?= $this->t('cms.menu.tab_custom') ?></button></li>
                 </ul>
             </div>
             <div class="card-body">
                 <div class="tab-content">
                     <div class="tab-pane fade show active" id="src-pages">
-                        <input type="search" class="form-control form-control-sm mb-2 menu-filter" data-filter="#palette-pages" placeholder="Filter pages…">
+                        <input type="search" class="form-control form-control-sm mb-2 menu-filter" data-filter="#palette-pages" placeholder="<?= $this->escape($this->t('cms.menu.filter_pages')) ?>">
                         <ul id="palette-pages" class="menu-palette">
                             <?php foreach ($this->pages as $p): ?>
                                 <li class="menu-item menu-source" data-source="page" data-page-key="<?= $this->escape($p['page_key']) ?>" data-label="<?= $this->escape($p['title']) ?>">
@@ -107,17 +114,17 @@ $collect($this->tree);
                                     </div>
                                 </li>
                             <?php endforeach; ?>
-                            <?php if (!$this->pages): ?><li class="text-body-secondary small px-1">No keyed pages yet.</li><?php endif; ?>
+                            <?php if (!$this->pages): ?><li class="text-body-secondary small px-1"><?= $this->t('cms.menu.no_pages') ?></li><?php endif; ?>
                         </ul>
                     </div>
                     <div class="tab-pane fade" id="src-custom">
-                        <p class="small text-body-secondary">Drag in, then set the link/label via <i class="fa-solid fa-sliders"></i>.</p>
+                        <p class="small text-body-secondary"><?= $this->t('cms.menu.custom_hint', '<i class="fa-solid fa-sliders"></i>') ?></p>
                         <ul id="palette-custom" class="menu-palette">
-                            <li class="menu-item menu-source" data-source="custom" data-kind="url" data-label="Custom Link">
-                                <div class="menu-chip"><span class="menu-grip"><i class="fa-solid fa-grip-vertical"></i></span><i class="fa-solid fa-link"></i><span class="menu-chip-label">Custom Link</span><i class="fa-solid fa-plus text-body-secondary ms-auto"></i></div>
+                            <li class="menu-item menu-source" data-source="custom" data-kind="url" data-label="<?= $this->escape($this->t('cms.menu.custom_link')) ?>">
+                                <div class="menu-chip"><span class="menu-grip"><i class="fa-solid fa-grip-vertical"></i></span><i class="fa-solid fa-link"></i><span class="menu-chip-label"><?= $this->escape($this->t('cms.menu.custom_link')) ?></span><i class="fa-solid fa-plus text-body-secondary ms-auto"></i></div>
                             </li>
-                            <li class="menu-item menu-source" data-source="custom" data-kind="heading" data-label="Heading">
-                                <div class="menu-chip"><span class="menu-grip"><i class="fa-solid fa-grip-vertical"></i></span><i class="fa-solid fa-heading"></i><span class="menu-chip-label">Heading</span><i class="fa-solid fa-plus text-body-secondary ms-auto"></i></div>
+                            <li class="menu-item menu-source" data-source="custom" data-kind="heading" data-label="<?= $this->escape($this->t('cms.menu.heading_item')) ?>">
+                                <div class="menu-chip"><span class="menu-grip"><i class="fa-solid fa-grip-vertical"></i></span><i class="fa-solid fa-heading"></i><span class="menu-chip-label"><?= $this->escape($this->t('cms.menu.heading_item')) ?></span><i class="fa-solid fa-plus text-body-secondary ms-auto"></i></div>
                             </li>
                         </ul>
                     </div>
@@ -131,18 +138,18 @@ $collect($this->tree);
         <div class="card h-100">
             <div class="card-header bg-transparent d-flex align-items-center gap-2 flex-wrap">
                 <?php if ($isNew): ?>
-                    <label class="form-label small text-body-secondary mb-0" for="menu-key-field">Menu key</label>
-                    <input type="text" id="menu-key-field" class="form-control form-control-sm" style="width:180px;" placeholder="primary" pattern="[a-zA-Z0-9_-]+">
+                    <label class="form-label small text-body-secondary mb-0" for="menu-key-field"><?= $this->t('cms.menu.menu_key_label') ?></label>
+                    <input type="text" id="menu-key-field" class="form-control form-control-sm" style="width:180px;" placeholder="<?= $this->escape($this->t('cms.menu.menu_key_placeholder')) ?>" pattern="[a-zA-Z0-9_-]+">
                 <?php else: ?>
                     <input type="hidden" id="menu-key-field" value="<?= $this->escape($menuKey) ?>">
-                    <span class="fw-semibold">Structure</span>
+                    <span class="fw-semibold"><?= $this->t('cms.menu.structure') ?></span>
                 <?php endif; ?>
-                <span class="text-body-secondary small ms-auto"><i class="fa-solid fa-arrows-left-right"></i> drag right/left to nest</span>
+                <span class="text-body-secondary small ms-auto"><i class="fa-solid fa-arrows-left-right"></i> <?= $this->t('cms.menu.nest_hint') ?></span>
             </div>
             <div class="card-body">
                 <ul id="menu-root" class="menu-tree"><?= $flatten($this->tree, 0) ?></ul>
                 <p id="menu-empty" class="text-body-secondary text-center py-4 mb-0"<?= $this->tree ? ' hidden' : '' ?>>
-                    <i class="fa-solid fa-arrow-left me-1"></i>Drag a page or a custom item here to start.
+                    <i class="fa-solid fa-arrow-left me-1"></i><?= $this->t('cms.menu.empty_state') ?>
                 </p>
             </div>
         </div>
@@ -156,36 +163,36 @@ $collect($this->tree);
       <form id="menu-item-form" novalidate>
         <input type="hidden" name="menu_id" id="mi-menu-id">
         <input type="hidden" name="menu_key" id="mi-menu-key-hidden">
-        <div class="modal-header"><h5 class="modal-title" id="menuItemModalTitle">Item properties</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+        <div class="modal-header"><h5 class="modal-title" id="menuItemModalTitle"><?= $this->t('cms.menu.item_properties') ?></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= $this->escape($this->t('cms.action.close')) ?>"></button></div>
         <div class="modal-body">
           <div id="mi-errors"></div>
-          <div class="mb-3"><label class="form-label" for="mi-label">Label <span class="text-danger">*</span></label><?= $f->getElement('label') ?>
-            <div class="form-text">A translation key or literal text — always run through Zend_Translate.</div></div>
+          <div class="mb-3"><label class="form-label" for="mi-label"><?= $this->t('cms.menu.label_label') ?> <span class="text-danger">*</span></label><?= $f->getElement('label') ?>
+            <div class="form-text"><?= $this->t('cms.menu.label_help') ?></div></div>
           <div class="row g-3">
-            <div class="col-md-6"><label class="form-label" for="mi-page-key">Link a page</label><?= $f->getElement('page_key') ?></div>
-            <div class="col-md-6"><label class="form-label" for="mi-url">…or a URL</label><?= $f->getElement('url') ?>
-              <div class="form-text">Page wins over URL. Both empty = a heading.</div></div>
+            <div class="col-md-6"><label class="form-label" for="mi-page-key"><?= $this->t('cms.menu.link_page') ?></label><?= $f->getElement('page_key') ?></div>
+            <div class="col-md-6"><label class="form-label" for="mi-url"><?= $this->t('cms.menu.or_url') ?></label><?= $f->getElement('url') ?>
+              <div class="form-text"><?= $this->t('cms.menu.link_help') ?></div></div>
           </div>
           <hr>
           <div class="row g-3">
-            <div class="col-md-6"><label class="form-label" for="mi-icon">Icon class</label><?= $f->getElement('icon') ?></div>
-            <div class="col-md-6"><label class="form-label" for="mi-css">CSS class(es)</label><?= $f->getElement('css_class') ?></div>
-            <div class="col-md-6"><label class="form-label" for="mi-dom-id">DOM id</label><?= $f->getElement('dom_id') ?></div>
-            <div class="col-md-3"><label class="form-label" for="mi-target">Open in</label><?= $f->getElement('link_target') ?></div>
-            <div class="col-md-3"><label class="form-label" for="mi-rel">rel</label><?= $f->getElement('link_rel') ?></div>
+            <div class="col-md-6"><label class="form-label" for="mi-icon"><?= $this->t('cms.menu.icon_class') ?></label><?= $f->getElement('icon') ?></div>
+            <div class="col-md-6"><label class="form-label" for="mi-css"><?= $this->t('cms.menu.css_class') ?></label><?= $f->getElement('css_class') ?></div>
+            <div class="col-md-6"><label class="form-label" for="mi-dom-id"><?= $this->t('cms.menu.dom_id') ?></label><?= $f->getElement('dom_id') ?></div>
+            <div class="col-md-3"><label class="form-label" for="mi-target"><?= $this->t('cms.menu.open_in') ?></label><?= $f->getElement('link_target') ?></div>
+            <div class="col-md-3"><label class="form-label" for="mi-rel"><?= $this->t('cms.menu.rel') ?></label><?= $f->getElement('link_rel') ?></div>
           </div>
           <hr>
           <div class="row g-3">
-            <div class="col-md-6"><label class="form-label" for="mi-resource">ACL resource</label><?= $f->getElement('resource') ?>
-              <div class="form-text">Hide unless the viewer may reach it (getHTML only).</div></div>
-            <div class="col-md-3"><label class="form-label" for="mi-privilege">ACL privilege</label><?= $f->getElement('privilege') ?></div>
-            <div class="col-md-3"><label class="form-label" for="mi-status">Status</label><?= $f->getElement('status') ?></div>
+            <div class="col-md-6"><label class="form-label" for="mi-resource"><?= $this->t('cms.menu.acl_resource') ?></label><?= $f->getElement('resource') ?>
+              <div class="form-text"><?= $this->t('cms.menu.acl_resource_help') ?></div></div>
+            <div class="col-md-3"><label class="form-label" for="mi-privilege"><?= $this->t('cms.menu.acl_privilege') ?></label><?= $f->getElement('privilege') ?></div>
+            <div class="col-md-3"><label class="form-label" for="mi-status"><?= $this->t('cms.label.status') ?></label><?= $f->getElement('status') ?></div>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" id="mi-save" class="btn btn-primary">Save</button>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= $this->t('cms.action.cancel') ?></button>
+          <button type="submit" id="mi-save" class="btn btn-primary"><?= $this->t('cms.action.save') ?></button>
         </div>
       </form>
     </div>

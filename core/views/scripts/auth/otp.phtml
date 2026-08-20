@@ -10,8 +10,8 @@
 ?>
 <div class="tiger-auth-brand">
     <span class="tiger-auth-mark"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
-    <h1 class="h4 mb-1">Sign in with a code</h1>
-    <p class="text-body-secondary small mb-0">We'll email you a one-time code — no password needed.</p>
+    <h1 class="h4 mb-1"><?= $this->escape($this->t('core.auth.otp.title')) ?></h1>
+    <p class="text-body-secondary small mb-0"><?= $this->escape($this->t('core.auth.otp.subtitle')) ?></p>
 </div>
 
 <div id="otp-feedback"></div>
@@ -19,7 +19,7 @@
 <!-- Step 1: email -->
 <form id="otp-request-form" novalidate>
     <div class="mb-3">
-        <label class="form-label" for="otp-email">Email</label>
+        <label class="form-label" for="otp-email"><?= $this->escape($this->t('core.auth.email')) ?></label>
         <input type="email" class="form-control form-control-lg" id="otp-email" name="email"
                autocomplete="username" inputmode="email" autofocus required>
     </div>
@@ -27,7 +27,7 @@
     <div class="mb-3 d-flex justify-content-center"><?= $rc ?></div>
     <?php endif; ?>
     <div class="d-grid">
-        <button type="submit" id="otp-request-submit" class="btn btn-primary btn-lg">Email me a code</button>
+        <button type="submit" id="otp-request-submit" class="btn btn-primary btn-lg"><?= $this->escape($this->t('core.auth.email_code')) ?></button>
     </div>
 </form>
 
@@ -36,25 +36,25 @@
     <input type="hidden" name="email" id="otp-email-hidden">
     <p class="small text-body-secondary" id="otp-sent-note"></p>
     <div class="mb-3">
-        <label class="form-label" for="otp-code">Verification code</label>
+        <label class="form-label" for="otp-code"><?= $this->escape($this->t('core.auth.twofa.code_label')) ?></label>
         <input type="text" class="form-control form-control-lg text-center" id="otp-code" name="code"
                inputmode="numeric" autocomplete="one-time-code" maxlength="6"
                pattern="[0-9]*" placeholder="000000" style="letter-spacing:.4em;" required>
     </div>
     <div class="d-grid mb-2">
-        <button type="submit" id="otp-verify-submit" class="btn btn-primary btn-lg">Sign in</button>
+        <button type="submit" id="otp-verify-submit" class="btn btn-primary btn-lg"><?= $this->escape($this->t('core.auth.login.submit')) ?></button>
     </div>
     <div class="text-center">
-        <a href="#" id="otp-restart" class="small text-decoration-none">Use a different email</a>
+        <a href="#" id="otp-restart" class="small text-decoration-none"><?= $this->escape($this->t('core.auth.otp.restart')) ?></a>
     </div>
 </form>
 
 <div class="text-center mt-3">
-    <a href="/auth/login" class="small text-decoration-none">Sign in with a password instead</a>
+    <a href="/auth/login" class="small text-decoration-none"><?= $this->escape($this->t('core.auth.otp.use_password')) ?></a>
 </div>
 
 <div class="tiger-auth-foot">
-    <a href="/" class="small text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i>Return to <?= $this->escape($this->siteName ?? 'Tiger') ?></a>
+    <a href="/" class="small text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i><?= $this->escape($this->t('core.auth.return_to', $this->siteName ?? 'Tiger')) ?></a>
 </div>
 
 <script>

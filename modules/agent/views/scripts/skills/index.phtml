@@ -11,22 +11,22 @@
 ?>
 <div class="d-flex align-items-center justify-content-between mb-3">
     <div>
-        <h1 class="h3 mb-1">Agent Skills</h1>
-        <p class="text-body-secondary mb-0">Installable know-how for the AI agent. Tiger browses these repos — it does not vouch for them; review a skill's source before you install and turn it on. Installed skills are pinned to the top.</p>
+        <h1 class="h3 mb-1"><?= $this->escape($this->t('agent.skills.title')) ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->escape($this->t('agent.skills.subtitle')) ?></p>
     </div>
     <div class="text-nowrap ms-3">
-        <button type="button" id="sk-rescan" class="btn btn-outline-secondary" title="Re-scan the sources"><i class="fa-solid fa-rotate me-2"></i>Rescan</button>
+        <button type="button" id="sk-rescan" class="btn btn-outline-secondary" title="<?= $this->escape($this->t('agent.skills.rescan.title')) ?>"><i class="fa-solid fa-rotate me-2"></i><?= $this->escape($this->t('agent.skills.rescan')) ?></button>
     </div>
 </div>
 
 <div class="card mb-3">
   <div class="card-body">
-    <label for="sk-url" class="form-label fw-semibold mb-1"><i class="fa-brands fa-github me-2"></i>Add from a GitHub URL</label>
+    <label for="sk-url" class="form-label fw-semibold mb-1"><i class="fa-brands fa-github me-2"></i><?= $this->escape($this->t('agent.skills.add_url')) ?></label>
     <div class="input-group input-group-sm">
-      <input type="url" id="sk-url" class="form-control" placeholder="https://github.com/owner/repo (or a subfolder / a SKILL.md)">
-      <button type="button" id="sk-url-install" class="btn btn-primary"><i class="fa-solid fa-download me-1"></i>Install</button>
+      <input type="url" id="sk-url" class="form-control" placeholder="<?= $this->escape($this->t('agent.skills.url.ph')) ?>">
+      <button type="button" id="sk-url-install" class="btn btn-primary"><i class="fa-solid fa-download me-1"></i><?= $this->escape($this->t('agent.skills.install')) ?></button>
     </div>
-    <div class="form-text">Any repo, branch, subfolder, or a link straight to a SKILL.md — not just the listed sources.</div>
+    <div class="form-text"><?= $this->escape($this->t('agent.skills.add_url.help')) ?></div>
   </div>
 </div>
 
@@ -36,11 +36,11 @@
             <table id="sk-table" class="table table-hover align-middle" style="width:100%;">
                 <thead>
                     <tr>
-                        <th>Skill</th>
-                        <th>Description</th>
-                        <th>Source</th>
-                        <th>Status</th>
-                        <th class="text-end" data-orderable="false">Actions</th>
+                        <th><?= $this->escape($this->t('agent.skills.col.skill')) ?></th>
+                        <th><?= $this->escape($this->t('agent.skills.col.description')) ?></th>
+                        <th><?= $this->escape($this->t('agent.skills.col.source')) ?></th>
+                        <th><?= $this->escape($this->t('agent.skills.col.status')) ?></th>
+                        <th class="text-end" data-orderable="false"><?= $this->escape($this->t('agent.skills.col.actions')) ?></th>
                     </tr>
                 </thead>
             </table>
@@ -53,16 +53,16 @@
   <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
     <div class="modal-header">
       <div>
-        <h5 class="modal-title mb-0" id="sk-src-title">SKILL.md</h5>
+        <h5 class="modal-title mb-0" id="sk-src-title"><?= $this->escape($this->t('agent.skills.src.title')) ?></h5>
         <div class="small text-body-secondary" id="sk-src-sub"></div>
       </div>
-      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= $this->escape($this->t('agent.skills.close')) ?>"></button>
     </div>
     <div class="modal-body"><pre id="sk-src-body" class="small mb-0" style="white-space:pre-wrap;"></pre></div>
     <div class="modal-footer">
-      <span class="text-body-secondary small me-auto"><i class="fa-solid fa-circle-info me-1"></i>Provenance only — review before you install.</span>
-      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-      <button type="button" class="btn btn-primary" id="sk-src-install" hidden><i class="fa-solid fa-download me-2"></i>Install</button>
+      <span class="text-body-secondary small me-auto"><i class="fa-solid fa-circle-info me-1"></i><?= $this->escape($this->t('agent.skills.src.note')) ?></span>
+      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= $this->escape($this->t('agent.skills.close')) ?></button>
+      <button type="button" class="btn btn-primary" id="sk-src-install" hidden><i class="fa-solid fa-download me-2"></i><?= $this->escape($this->t('agent.skills.install')) ?></button>
     </div>
   </div></div>
 </div>
