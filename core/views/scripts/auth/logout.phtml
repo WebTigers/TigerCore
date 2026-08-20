@@ -9,11 +9,11 @@
 ?>
 <div class="tiger-auth-brand">
     <span class="tiger-auth-mark"><i class="fa-solid fa-paw"></i></span>
-    <h1 class="h4 mb-1">You have been logged out.</h1>
-    <p class="text-body-secondary small mb-0">Thanks for stopping by.</p>
+    <h1 class="h4 mb-1"><?= $this->escape($this->t('core.auth.logout.title')) ?></h1>
+    <p class="text-body-secondary small mb-0"><?= $this->escape($this->t('core.auth.logout.subtitle')) ?></p>
 </div>
 
 <div class="d-grid gap-2 mt-4">
-    <a href="/login" class="btn btn-primary btn-lg">Login again</a>
-    <a href="/" class="btn btn-outline-secondary btn-lg">Back to home</a>
+    <a href="/login" class="btn btn-primary btn-lg"><?= $this->escape($this->t('core.auth.logout.login_again')) ?></a>
+    <a href="/" class="btn btn-outline-secondary btn-lg"><?= $this->escape($this->t('core.common.back_home')) ?></a>
 </div>

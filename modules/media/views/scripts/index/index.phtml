@@ -15,15 +15,15 @@
 
 <div class="d-flex align-items-center justify-content-between mb-3">
     <div>
-        <h1 class="h3 mb-1">Media Library</h1>
-        <p class="text-body-secondary mb-0">Images, documents, PDFs, video, and archives — drag &amp; drop to upload.</p>
+        <h1 class="h3 mb-1"><?= $this->t('media.library.title') ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('media.library.subtitle') ?></p>
     </div>
     <div class="d-flex align-items-center gap-2">
-        <select id="media-vis" class="form-select form-select-sm" style="width:auto;" title="Visibility for new uploads">
-            <option value="public">Public</option>
-            <option value="private">Private</option>
+        <select id="media-vis" class="form-select form-select-sm" style="width:auto;" title="<?= $this->escape($this->t('media.upload.visibility_title')) ?>">
+            <option value="public"><?= $this->t('media.visibility.public') ?></option>
+            <option value="private"><?= $this->t('media.visibility.private') ?></option>
         </select>
-        <button type="button" id="media-browse" class="btn btn-primary"><i class="fa-solid fa-arrow-up-from-bracket me-2"></i>Upload</button>
+        <button type="button" id="media-browse" class="btn btn-primary"><i class="fa-solid fa-arrow-up-from-bracket me-2"></i><?= $this->t('media.action.upload') ?></button>
         <input type="file" id="media-input" multiple hidden>
     </div>
 </div>
@@ -32,28 +32,28 @@
     <div class="card-header bg-transparent">
         <div class="row g-2 align-items-center">
             <div class="col-12 col-md">
-                <input type="search" id="media-search" class="form-control form-control-sm" placeholder="Search filename, title, caption…">
+                <input type="search" id="media-search" class="form-control form-control-sm" placeholder="<?= $this->escape($this->t('media.search.placeholder')) ?>">
             </div>
             <div class="col-auto">
                 <select id="media-kind" class="form-select form-select-sm">
-                    <option value="">All types</option>
-                    <option value="image">Images</option>
-                    <option value="pdf">PDFs</option>
-                    <option value="document">Documents</option>
-                    <option value="video">Video</option>
-                    <option value="audio">Audio</option>
-                    <option value="archive">Archives</option>
+                    <option value=""><?= $this->t('media.kind.all') ?></option>
+                    <option value="image"><?= $this->t('media.kind.image') ?></option>
+                    <option value="pdf"><?= $this->t('media.kind.pdf') ?></option>
+                    <option value="document"><?= $this->t('media.kind.document') ?></option>
+                    <option value="video"><?= $this->t('media.kind.video') ?></option>
+                    <option value="audio"><?= $this->t('media.kind.audio') ?></option>
+                    <option value="archive"><?= $this->t('media.kind.archive') ?></option>
                 </select>
             </div>
 <?php if (!empty($this->mediaSources)): ?>
             <div class="col-auto dropdown" id="media-source-wrap">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" title="Filter by source">
-                    <i class="fa-solid fa-layer-group me-1"></i>Sources
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" title="<?= $this->escape($this->t('media.source.filter_title')) ?>">
+                    <i class="fa-solid fa-layer-group me-1"></i><?= $this->t('media.source.label') ?>
                 </button>
                 <div class="dropdown-menu dropdown-menu-end p-2" style="min-width:220px;">
-                    <label class="dropdown-item d-flex align-items-center gap-2 px-2 py-1 mb-1"><input type="checkbox" class="form-check-input mt-0" id="media-src-all" checked> <strong>All</strong></label>
+                    <label class="dropdown-item d-flex align-items-center gap-2 px-2 py-1 mb-1"><input type="checkbox" class="form-check-input mt-0" id="media-src-all" checked> <strong><?= $this->t('media.source.all') ?></strong></label>
                     <div class="dropdown-divider my-1"></div>
-                    <label class="dropdown-item d-flex align-items-center gap-2 px-2 py-1"><input type="checkbox" class="form-check-input mt-0 media-src" value="uploads" checked> <i class="fa-solid fa-arrow-up-from-bracket text-body-secondary"></i> Uploads</label>
+                    <label class="dropdown-item d-flex align-items-center gap-2 px-2 py-1"><input type="checkbox" class="form-check-input mt-0 media-src" value="uploads" checked> <i class="fa-solid fa-arrow-up-from-bracket text-body-secondary"></i> <?= $this->t('media.source.uploads') ?></label>
                     <?php foreach ((array) $this->mediaSources as $s): ?>
                     <label class="dropdown-item d-flex align-items-center gap-2 px-2 py-1"><input type="checkbox" class="form-check-input mt-0 media-src" value="<?= $this->escape($s['slug']) ?>" checked> <i class="fa-solid fa-palette text-body-secondary"></i> <?= $this->escape($s['name']) ?></label>
                     <?php endforeach; ?>
@@ -61,17 +61,17 @@
             </div>
 <?php endif; ?>
             <div class="col-auto" id="media-size-wrap" hidden>
-                <select id="media-size" class="form-select form-select-sm" title="Tile size">
-                    <option value="thumbnail">Thumbnail</option>
-                    <option value="small" selected>Small</option>
-                    <option value="medium">Medium</option>
-                    <option value="large">Large</option>
+                <select id="media-size" class="form-select form-select-sm" title="<?= $this->escape($this->t('media.size.title')) ?>">
+                    <option value="thumbnail"><?= $this->t('media.size.thumbnail') ?></option>
+                    <option value="small" selected><?= $this->t('media.size.small') ?></option>
+                    <option value="medium"><?= $this->t('media.size.medium') ?></option>
+                    <option value="large"><?= $this->t('media.size.large') ?></option>
                 </select>
             </div>
             <div class="col-auto">
-                <div class="btn-group btn-group-sm" role="group" aria-label="View">
-                    <button type="button" class="btn btn-outline-secondary active" id="media-view-list" title="List" aria-label="List"><i class="fa-solid fa-list"></i></button>
-                    <button type="button" class="btn btn-outline-secondary" id="media-view-grid" title="Portfolio" aria-label="Portfolio"><i class="fa-solid fa-table-cells"></i></button>
+                <div class="btn-group btn-group-sm" role="group" aria-label="<?= $this->escape($this->t('media.view.group')) ?>">
+                    <button type="button" class="btn btn-outline-secondary active" id="media-view-list" title="<?= $this->escape($this->t('media.view.list')) ?>" aria-label="<?= $this->escape($this->t('media.view.list')) ?>"><i class="fa-solid fa-list"></i></button>
+                    <button type="button" class="btn btn-outline-secondary" id="media-view-grid" title="<?= $this->escape($this->t('media.view.portfolio')) ?>" aria-label="<?= $this->escape($this->t('media.view.portfolio')) ?>"><i class="fa-solid fa-table-cells"></i></button>
                 </div>
             </div>
         </div>
@@ -80,17 +80,17 @@
         <div id="media-list" class="table-responsive">
             <table id="media-table" class="table table-hover align-middle" style="width:100%;">
                 <thead><tr>
-                    <th style="width:200px;" data-orderable="false">Thumbnail</th>
-                    <th>File</th><th>Type</th><th>Size</th><th data-orderable="false">Dimensions</th><th>Visibility</th>
-                    <th class="text-end" data-orderable="false">Actions</th>
+                    <th style="width:200px;" data-orderable="false"><?= $this->t('media.col.thumbnail') ?></th>
+                    <th><?= $this->t('media.col.file') ?></th><th><?= $this->t('media.col.type') ?></th><th><?= $this->t('media.col.size') ?></th><th data-orderable="false"><?= $this->t('media.col.dimensions') ?></th><th><?= $this->t('media.col.visibility') ?></th>
+                    <th class="text-end" data-orderable="false"><?= $this->t('media.col.actions') ?></th>
                 </tr></thead>
             </table>
         </div>
         <div id="media-grid-wrap" hidden>
             <div id="media-grid"></div>
             <div class="text-center mt-3">
-                <button type="button" id="media-more" class="btn btn-outline-secondary btn-sm" hidden>Load more</button>
-                <div id="media-grid-empty" class="text-body-secondary py-4" hidden>Nothing here yet.</div>
+                <button type="button" id="media-more" class="btn btn-outline-secondary btn-sm" hidden><?= $this->t('media.action.load_more') ?></button>
+                <div id="media-grid-empty" class="text-body-secondary py-4" hidden><?= $this->t('media.empty') ?></div>
             </div>
         </div>
     </div>
@@ -102,45 +102,45 @@
     <div class="modal-content">
       <div class="modal-header">
         <div class="me-3" style="min-width:0;">
-          <h5 class="modal-title mb-0" id="media-edit-title">Edit media</h5>
+          <h5 class="modal-title mb-0" id="media-edit-title"><?= $this->t('media.edit.title') ?></h5>
           <div class="small text-body-secondary text-truncate" id="media-edit-name"></div>
         </div>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= $this->escape($this->t('media.action.close')) ?>"></button>
       </div>
       <div class="modal-body">
         <div id="media-edit-feedback"></div>
         <div class="mb-3">
-          <label class="form-label" for="media-edit-title">Title</label>
+          <label class="form-label" for="media-edit-title"><?= $this->t('media.edit.field.title') ?></label>
           <input type="text" class="form-control" id="media-edit-title" maxlength="255">
         </div>
         <div class="mb-3">
-          <label class="form-label" for="media-edit-caption">Caption</label>
+          <label class="form-label" for="media-edit-caption"><?= $this->t('media.edit.field.caption') ?></label>
           <textarea class="form-control" id="media-edit-caption" rows="3"></textarea>
-          <div class="form-text">A short description of this file.</div>
+          <div class="form-text"><?= $this->t('media.edit.caption_help') ?></div>
         </div>
         <div class="mb-3">
-          <label class="form-label" for="media-edit-alt">Alt text</label>
+          <label class="form-label" for="media-edit-alt"><?= $this->t('media.edit.field.alt') ?></label>
           <input type="text" class="form-control" id="media-edit-alt" maxlength="255">
         </div>
         <div class="mb-3">
-          <label class="form-label" for="media-edit-description">Description</label>
+          <label class="form-label" for="media-edit-description"><?= $this->t('media.edit.field.description') ?></label>
           <textarea class="form-control" id="media-edit-description" rows="3"></textarea>
-          <div class="form-text">A longer, searchable description — surfaces this file in site search. Can be auto-filled from image recognition (AWS Rekognition) when enabled.</div>
-          <div class="form-text">Describes the image for screen readers &amp; SEO.</div>
+          <div class="form-text"><?= $this->t('media.edit.description_help') ?></div>
+          <div class="form-text"><?= $this->t('media.edit.alt_help') ?></div>
         </div>
         <div class="mb-0">
-          <label class="form-label" for="media-edit-vis">Visibility</label>
+          <label class="form-label" for="media-edit-vis"><?= $this->t('media.edit.field.visibility') ?></label>
           <select class="form-select" id="media-edit-vis">
-            <option value="public">Public</option>
-            <option value="private">Private</option>
+            <option value="public"><?= $this->t('media.visibility.public') ?></option>
+            <option value="private"><?= $this->t('media.visibility.private') ?></option>
           </select>
         </div>
       </div>
       <div class="modal-footer justify-content-between">
-        <button type="button" class="btn btn-outline-danger" id="media-edit-delete"><i class="fa-solid fa-trash me-2"></i>Delete</button>
+        <button type="button" class="btn btn-outline-danger" id="media-edit-delete"><i class="fa-solid fa-trash me-2"></i><?= $this->t('media.action.delete') ?></button>
         <div class="d-flex gap-2">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary" id="media-edit-save"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= $this->t('media.action.cancel') ?></button>
+          <button type="button" class="btn btn-primary" id="media-edit-save"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->t('media.action.save') ?></button>
         </div>
       </div>
     </div>

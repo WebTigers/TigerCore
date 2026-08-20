@@ -642,22 +642,22 @@ class System_Service_Modules extends Tiger_Service_Service
         }
 
         $r = Tiger_Module_Github::parseRepo((string) ($params['url'] ?? ''));
-        if (!$r) { $this->_error('That doesn\'t look like a GitHub repository URL.'); return; }
+        if (!$r) { $this->_error('system.error.repo_url'); return; }
 
         $ref = trim((string) ($params['ref'] ?? ''));
         if ($ref === '') { $ref = Tiger_Module_Github::latestRef($r['org'], $r['repo']); }
-        if (!$ref) { $this->_error('Couldn\'t resolve a release — is the repo public?'); return; }
+        if (!$ref) { $this->_error('system.error.repo_no_release'); return; }
 
         // A code module ships module.json; a theme ships theme.json (slug = 'theme-' + key).
         $mj = Tiger_Module_Github::fetchRaw($r['org'], $r['repo'], $ref, 'module.json');
         if ($mj !== null) {
             $m = json_decode($mj, true);
-            if (!is_array($m) || empty($m['slug'])) { $this->_error('That repo\'s module.json is invalid.'); return; }
+            if (!is_array($m) || empty($m['slug'])) { $this->_error('system.error.module_json_invalid'); return; }
         } else {
             $tj = Tiger_Module_Github::fetchRaw($r['org'], $r['repo'], $ref, 'theme.json');
-            if ($tj === null) { $this->_error('No module.json or theme.json found (or the repo isn\'t public).'); return; }
+            if ($tj === null) { $this->_error('system.error.no_manifest'); return; }
             $t = json_decode($tj, true);
-            if (!is_array($t) || empty($t['key'])) { $this->_error('That repo\'s theme.json is invalid.'); return; }
+            if (!is_array($t) || empty($t['key'])) { $this->_error('system.error.theme_json_invalid'); return; }
             $m = [
                 'slug'        => 'theme-' . $t['key'],
                 'name'        => $t['name'] ?? $t['key'],
@@ -719,7 +719,7 @@ class System_Service_Modules extends Tiger_Service_Service
     protected function _inspectMarketplace(string $slug, string $source): void
     {
         $listing = Tiger_Module_Registry::listing($slug, $source);
-        if (!$listing) { $this->_error('That listing is no longer offered by this marketplace.'); return; }
+        if (!$listing) { $this->_error('system.error.listing_gone'); return; }
 
         $descHtml = '';
         $readme   = (string) ($listing['readme'] ?? '');
@@ -775,14 +775,14 @@ class System_Service_Modules extends Tiger_Service_Service
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
 
         $url = (string) ($params['url'] ?? '');
-        if (!Tiger_Module_Github::parseRepo($url)) { $this->_error('That doesn\'t look like a GitHub repository URL.'); return; }
+        if (!Tiger_Module_Github::parseRepo($url)) { $this->_error('system.error.repo_url'); return; }
         $ref = trim((string) ($params['ref'] ?? ''));
 
         try {
             $r = Tiger_Module_Installer::installFromUrl($url, $ref !== '' ? $ref : null, ['force' => !empty($params['force'])]);
             $this->_success($r, 'system.module.installed', '/system/modules');
         } catch (Throwable $e) {
-            $this->_error('Install failed — ' . $e->getMessage());
+            $this->_error('system.error.install_failed');
         }
     }
 
@@ -800,21 +800,21 @@ class System_Service_Modules extends Tiger_Service_Service
 
         $f = $_FILES['archive'] ?? null;
         if (!is_array($f) || ($f['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-            $this->_error('Choose a module .zip to upload.'); return;
+            $this->_error('system.error.upload_choose'); return;
         }
         if (($f['error'] ?? 1) !== UPLOAD_ERR_OK) {
             $this->_error(($f['error'] === UPLOAD_ERR_INI_SIZE || $f['error'] === UPLOAD_ERR_FORM_SIZE)
-                ? 'That file is larger than the server allows.' : 'Upload failed — please try again.');
+                ? 'system.error.upload_too_large' : 'system.error.upload_failed');
             return;
         }
-        if (empty($f['tmp_name']) || !is_uploaded_file($f['tmp_name'])) { $this->_error('Invalid upload.'); return; }
-        if (!preg_match('/\.zip$/i', (string) ($f['name'] ?? ''))) { $this->_error('Upload a .zip archive.'); return; }
+        if (empty($f['tmp_name']) || !is_uploaded_file($f['tmp_name'])) { $this->_error('system.error.upload_invalid'); return; }
+        if (!preg_match('/\.zip$/i', (string) ($f['name'] ?? ''))) { $this->_error('system.error.upload_not_zip'); return; }
 
         try {
             $r = Tiger_Module_Installer::installFromUpload($f['tmp_name'], ['force' => !empty($params['force'])]);
             $this->_success($r, 'system.module.installed', '/system/modules');
         } catch (Throwable $e) {
-            $this->_error('Install failed — ' . $e->getMessage());
+            $this->_error('system.error.install_failed');
         }
     }
 
@@ -898,7 +898,7 @@ class System_Service_Modules extends Tiger_Service_Service
             );
             $this->_success($r, 'system.module.installed', '/system/modules');
         } catch (Throwable $e) {
-            $this->_error('Install failed — ' . $e->getMessage());
+            $this->_error('system.error.install_failed');
         }
     }
 

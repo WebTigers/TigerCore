@@ -42,25 +42,42 @@ class Cms_Form_Page extends Tiger_Form
             ]],
 
             ['select', 'type', [
-                'multiOptions' => ['page' => 'Page', 'layout' => 'Layout', 'partial' => 'Partial', 'block' => 'Block'],
+                'multiOptions' => [
+                    'page'    => $this->_t('cms.type.page'),
+                    'layout'  => $this->_t('cms.type.layout'),
+                    'partial' => $this->_t('cms.type.partial'),
+                    'block'   => $this->_t('cms.type.block'),
+                ],
                 'value'        => 'page',
                 'attribs'      => array_merge($select, ['id' => 'cms-type']),
             ]],
 
             ['select', 'format', [
-                'multiOptions' => ['html' => 'HTML', 'markdown' => 'Markdown', 'phtml' => 'PHTML (trusted code)', 'builder' => 'Visual Builder'],
+                'multiOptions' => [
+                    'html'     => $this->_t('cms.format.html'),
+                    'markdown' => $this->_t('cms.format.markdown'),
+                    'phtml'    => $this->_t('cms.format.phtml'),
+                    'builder'  => $this->_t('cms.format.builder'),
+                ],
                 'value'        => 'html',
                 'attribs'      => array_merge($select, ['id' => 'cms-format']),
             ]],
 
             ['select', 'status', [
-                'multiOptions' => ['draft' => 'Draft', 'published' => 'Published', 'archived' => 'Archived'],
+                'multiOptions' => [
+                    'draft'     => $this->_t('cms.status.draft'),
+                    'published' => $this->_t('cms.status.published'),
+                    'archived'  => $this->_t('cms.status.archived'),
+                ],
                 'value'        => 'draft',
                 'attribs'      => array_merge($select, ['id' => 'cms-status']),
             ]],
 
             ['select', 'locale', [
-                'multiOptions' => ['en' => 'English', 'es' => 'Español'],
+                'multiOptions' => [
+                    'en' => $this->_t('cms.locale.en'),
+                    'es' => $this->_t('cms.locale.es'),
+                ],
                 'value'        => 'en',
                 'attribs'      => array_merge($select, ['id' => 'cms-locale']),
             ]],

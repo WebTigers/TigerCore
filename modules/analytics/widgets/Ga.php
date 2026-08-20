@@ -18,11 +18,17 @@ class Analytics_Widget_Ga
      */
     public function render(): string
     {
+        // View scripts use $this->t(); a widget has no view, so resolve the shared translator directly.
+        $t = static function (string $k): string {
+            try { return (string) Zend_Registry::get('Zend_Translate')->translate($k); }
+            catch (Throwable $e) { return $k; }
+        };
+
         if (!class_exists('Tiger_Google_Analytics') || !Tiger_Google_Analytics::isConnected()) {
             return '<div class="text-center text-body-secondary py-3">'
                  . '<i class="fa-solid fa-chart-line fs-3 mb-2 d-block opacity-50"></i>'
-                 . '<p class="small mb-2">Connect Google Analytics to see traffic.</p>'
-                 . '<a href="/analytics/admin" class="btn btn-sm btn-outline-primary">Set up</a></div>';
+                 . '<p class="small mb-2">' . htmlspecialchars($t('analytics.widget.connect')) . '</p>'
+                 . '<a href="/analytics/admin" class="btn btn-sm btn-outline-primary">' . htmlspecialchars($t('analytics.widget.setup')) . '</a></div>';
         }
 
         $id = 'gaw-' . substr(md5(uniqid('', true)), 0, 8);
@@ -30,13 +36,13 @@ class Analytics_Widget_Ga
 <div id="<?= $id ?>-body" style="position:relative;">
     <div class="d-flex justify-content-between align-items-start" style="position:relative; z-index:2; pointer-events:none;">
         <div style="pointer-events:auto;"><div class="fs-2 fw-bold lh-1" id="<?= $id ?>-users"><span class="placeholder col-6"></span></div>
-             <div class="small text-body-secondary">active users &middot; 28d</div></div>
+             <div class="small text-body-secondary"><?= htmlspecialchars($t('analytics.widget.active_users_28d')) ?></div></div>
         <div id="<?= $id ?>-legend" class="d-flex gap-3 align-items-center small mt-1" style="pointer-events:auto;"></div>
         <div class="text-end" style="pointer-events:auto;"><div class="fs-2 fw-bold lh-1" id="<?= $id ?>-views"><span class="placeholder col-6"></span></div>
-             <div class="small text-body-secondary">page views</div></div>
+             <div class="small text-body-secondary"><?= htmlspecialchars($t('analytics.widget.page_views')) ?></div></div>
     </div>
     <div style="height:190px; margin-top:-2.5rem;"><canvas id="<?= $id ?>-chart"></canvas></div>
-    <div class="mt-2"><a href="/analytics/admin/dashboard" class="small text-decoration-none">View dashboard <i class="fa-solid fa-arrow-right ms-1"></i></a></div>
+    <div class="mt-2"><a href="/analytics/admin/dashboard" class="small text-decoration-none"><?= htmlspecialchars($t('analytics.widget.view_dashboard')) ?> <i class="fa-solid fa-arrow-right ms-1"></i></a></div>
 </div>
 <script>
 (function () {

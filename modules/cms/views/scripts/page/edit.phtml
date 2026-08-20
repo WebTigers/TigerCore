@@ -22,15 +22,15 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
 
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1"><?= $isEdit ? 'Edit Page' : 'New Page' ?></h1>
-        <p class="text-body-secondary mb-0"><a href="/cms/page" class="text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i>Back to content</a></p>
+        <h1 class="h3 mb-1"><?= $isEdit ? $this->t('cms.page.edit_heading') : $this->t('cms.page.new_heading') ?></h1>
+        <p class="text-body-secondary mb-0"><a href="/cms/page" class="text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i><?= $this->t('cms.page.back_to_content') ?></a></p>
     </div>
     <div class="text-nowrap">
 <?php if ($isEdit && $this->page && $this->page->type === 'page'): ?>
-        <a href="/cms/page/design/id/<?= $this->escape($this->page->page_id) ?>" class="btn btn-outline-primary" title="Design this page visually with GrapesJS"><i class="fa-solid fa-panorama me-2"></i>Design</a>
+        <a href="/cms/page/design/id/<?= $this->escape($this->page->page_id) ?>" class="btn btn-outline-primary" title="<?= $this->escape($this->t('cms.page.design_title')) ?>"><i class="fa-solid fa-panorama me-2"></i><?= $this->t('cms.page.design') ?></a>
 <?php endif; ?>
-        <a href="/cms/page" class="btn btn-outline-secondary">Cancel</a>
-        <button type="button" id="cms-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+        <a href="/cms/page" class="btn btn-outline-secondary"><?= $this->t('cms.action.cancel') ?></a>
+        <button type="button" id="cms-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->t('cms.action.save') ?></button>
     </div>
 </div>
 
@@ -44,26 +44,26 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
             <div class="card">
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label" for="<?= $this->escape($el('title')->getId()) ?>">Title</label>
+                        <label class="form-label" for="<?= $this->escape($el('title')->getId()) ?>"><?= $this->t('cms.label.title') ?></label>
                         <?= $el('title')->setAttrib('data-agent-target', 'title')->setAttrib('data-agent-label', 'Page title')->setAttrib('data-agent-kind', 'text') ?>
                     </div>
                     <div class="mb-0">
                         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
-                            <label class="form-label mb-0" for="<?= $this->escape($el('body')->getId()) ?>">Body</label>
+                            <label class="form-label mb-0" for="<?= $this->escape($el('body')->getId()) ?>"><?= $this->t('cms.page.label_body') ?></label>
                             <div class="cm-toolbar flex-wrap">
                                 <div class="input-group input-group-sm" style="width:auto;">
-                                    <input type="search" id="cms-find" class="form-control" placeholder="Find…" autocomplete="off" spellcheck="false" style="max-width:150px;">
+                                    <input type="search" id="cms-find" class="form-control" placeholder="<?= $this->escape($this->t('cms.page.find_placeholder')) ?>" autocomplete="off" spellcheck="false" style="max-width:150px;">
                                     <span class="input-group-text px-2" id="cms-find-count" style="min-width:52px;justify-content:center;font-variant-numeric:tabular-nums;"></span>
-                                    <button type="button" class="btn btn-outline-secondary" id="cms-find-prev" title="Previous (Shift+Enter)" aria-label="Previous (Shift+Enter)"><i class="fa-solid fa-chevron-left"></i></button>
-                                    <button type="button" class="btn btn-outline-secondary" id="cms-find-next" title="Next (Enter)" aria-label="Next (Enter)"><i class="fa-solid fa-chevron-right"></i></button>
+                                    <button type="button" class="btn btn-outline-secondary" id="cms-find-prev" title="<?= $this->escape($this->t('cms.page.find_prev')) ?>" aria-label="<?= $this->escape($this->t('cms.page.find_prev')) ?>"><i class="fa-solid fa-chevron-left"></i></button>
+                                    <button type="button" class="btn btn-outline-secondary" id="cms-find-next" title="<?= $this->escape($this->t('cms.page.find_next')) ?>" aria-label="<?= $this->escape($this->t('cms.page.find_next')) ?>"><i class="fa-solid fa-chevron-right"></i></button>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-outline-secondary py-0" id="cms-reformat" title="Reformat — pretty-print with nested indentation"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Reformat</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary py-0" id="cms-fold" title="Collapse all blocks"><i class="fa-solid fa-angles-up me-1"></i>Fold</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary py-0" id="cms-unfold" title="Expand all blocks"><i class="fa-solid fa-angles-down me-1"></i>Unfold</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0" id="cms-reformat" title="<?= $this->escape($this->t('cms.page.reformat_title')) ?>"><i class="fa-solid fa-wand-magic-sparkles me-1"></i><?= $this->t('cms.page.reformat') ?></button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0" id="cms-fold" title="<?= $this->escape($this->t('cms.page.fold_title')) ?>"><i class="fa-solid fa-angles-up me-1"></i><?= $this->t('cms.page.fold') ?></button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0" id="cms-unfold" title="<?= $this->escape($this->t('cms.page.unfold_title')) ?>"><i class="fa-solid fa-angles-down me-1"></i><?= $this->t('cms.page.unfold') ?></button>
                             </div>
                         </div>
                         <?= $el('body')->setAttrib('data-agent-target', 'body')->setAttrib('data-agent-label', 'Page body')->setAttrib('data-agent-kind', 'code') ?>
-                        <div class="form-text">Rendered per the selected format. <code>[shortcodes]</code> work in HTML/Markdown; PHTML runs view code (trusted authors only).</div>
+                        <div class="form-text"><?= $this->t('cms.page.help_body', '<code>[shortcodes]</code>') ?></div>
                     </div>
                 </div>
             </div>
@@ -71,71 +71,71 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
 
         <div class="col-lg-4">
             <div class="card mb-4">
-                <div class="card-header fw-semibold">Publish</div>
+                <div class="card-header fw-semibold"><?= $this->t('cms.page.card_publish') ?></div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label" for="<?= $this->escape($el('status')->getId()) ?>">Status</label>
+                        <label class="form-label" for="<?= $this->escape($el('status')->getId()) ?>"><?= $this->t('cms.label.status') ?></label>
                         <?= $el('status') ?>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="<?= $this->escape($el('published_at')->getId()) ?>">Publish at</label>
+                        <label class="form-label" for="<?= $this->escape($el('published_at')->getId()) ?>"><?= $this->t('cms.page.label_publish_at') ?></label>
                         <?= $el('published_at') ?>
-                        <div class="form-text">Blank = live immediately. A future time schedules it.</div>
+                        <div class="form-text"><?= $this->t('cms.page.help_publish_at') ?></div>
                     </div>
                     <div class="mb-0">
-                        <label class="form-label" for="<?= $this->escape($el('locale')->getId()) ?>">Language</label>
+                        <label class="form-label" for="<?= $this->escape($el('locale')->getId()) ?>"><?= $this->t('cms.label.language') ?></label>
                         <?= $el('locale') ?>
                     </div>
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-header fw-semibold">Settings</div>
+                <div class="card-header fw-semibold"><?= $this->t('cms.page.card_settings') ?></div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label" for="<?= $this->escape($el('type')->getId()) ?>">Type</label>
+                        <label class="form-label" for="<?= $this->escape($el('type')->getId()) ?>"><?= $this->t('cms.label.type') ?></label>
                         <?= $el('type') ?>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="<?= $this->escape($el('format')->getId()) ?>">Format</label>
+                        <label class="form-label" for="<?= $this->escape($el('format')->getId()) ?>"><?= $this->t('cms.page.label_format') ?></label>
                         <?= $el('format') ?>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="<?= $this->escape($el('slug')->getId()) ?>">Slug</label>
+                        <label class="form-label" for="<?= $this->escape($el('slug')->getId()) ?>"><?= $this->t('cms.page.label_slug') ?></label>
                         <?= $el('slug') ?>
-                        <div class="form-text">URL path for pages. Blank for layouts/partials.</div>
+                        <div class="form-text"><?= $this->t('cms.page.help_slug') ?></div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="<?= $this->escape($el('page_key')->getId()) ?>">Key</label>
+                        <label class="form-label" for="<?= $this->escape($el('page_key')->getId()) ?>"><?= $this->t('cms.page.label_key') ?></label>
                         <?= $el('page_key') ?>
-                        <div class="form-text">Stable handle (layouts/partials fetch by this). Auto-derived if blank.</div>
+                        <div class="form-text"><?= $this->t('cms.page.help_key') ?></div>
                     </div>
                     <div class="mb-0">
-                        <label class="form-label" for="<?= $this->escape($el('layout_key')->getId()) ?>">Layout</label>
+                        <label class="form-label" for="<?= $this->escape($el('layout_key')->getId()) ?>"><?= $this->t('cms.page.label_layout') ?></label>
                         <?= $el('layout_key') ?>
-                        <div class="form-text">Key of a layout to wrap this page. Blank = theme layout.</div>
+                        <div class="form-text"><?= $this->t('cms.page.help_layout') ?></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="card mt-4">
-        <div class="card-header fw-semibold"><i class="fa-solid fa-code me-2"></i>SEO &amp; head</div>
+        <div class="card-header fw-semibold"><i class="fa-solid fa-code me-2"></i><?= $this->t('cms.page.card_seo') ?></div>
         <div class="card-body">
             <div class="mb-3">
-                <label class="form-label" for="<?= $this->escape($el('meta_description')->getId()) ?>">Meta description</label>
+                <label class="form-label" for="<?= $this->escape($el('meta_description')->getId()) ?>"><?= $this->t('cms.page.label_meta_description') ?></label>
                 <?= $el('meta_description')->setAttrib('data-agent-target', 'meta_description')->setAttrib('data-agent-label', 'Meta description')->setAttrib('data-agent-kind', 'text') ?>
-                <div class="form-text">Search-result snippet &amp; <code>&lt;meta name="description"&gt;</code> (≈160 chars).</div>
+                <div class="form-text"><?= $this->t('cms.page.help_meta_description', '<code>&lt;meta name="description"&gt;</code>') ?></div>
             </div>
             <div class="mb-3">
-                <label class="form-label" for="<?= $this->escape($el('head_html')->getId()) ?>">Head HTML <span class="text-body-secondary">— runs in <code>&lt;head&gt;</code></span></label>
+                <label class="form-label" for="<?= $this->escape($el('head_html')->getId()) ?>"><?= $this->t('cms.page.label_head_html') ?> <span class="text-body-secondary"><?= $this->t('cms.page.head_html_hint', '<code>&lt;head&gt;</code>') ?></span></label>
                 <?= $el('head_html')->setAttrib('data-agent-target', 'head_html')->setAttrib('data-agent-label', 'Head HTML')->setAttrib('data-agent-kind', 'html') ?>
-                <div class="form-text">Raw <code>&lt;link&gt;</code> / <code>&lt;meta&gt;</code> / <code>&lt;style&gt;</code> / <code>&lt;script src&gt;</code>, output verbatim. Admin-authored (trusted).</div>
+                <div class="form-text"><?= $this->t('cms.page.help_head_html', '<code>&lt;link&gt;</code>', '<code>&lt;meta&gt;</code>', '<code>&lt;style&gt;</code>', '<code>&lt;script src&gt;</code>') ?></div>
             </div>
             <div class="mb-0">
-                <label class="form-label" for="<?= $this->escape($el('body_scripts')->getId()) ?>">Body scripts <span class="text-body-secondary">— runs before <code>&lt;/body&gt;</code></span></label>
+                <label class="form-label" for="<?= $this->escape($el('body_scripts')->getId()) ?>"><?= $this->t('cms.page.label_body_scripts') ?> <span class="text-body-secondary"><?= $this->t('cms.page.body_scripts_hint', '<code>&lt;/body&gt;</code>') ?></span></label>
                 <?= $el('body_scripts')->setAttrib('data-agent-target', 'body_scripts')->setAttrib('data-agent-label', 'Body scripts')->setAttrib('data-agent-kind', 'html') ?>
-                <div class="form-text">Raw <code>&lt;script&gt;</code>, loaded at the end of the page.</div>
+                <div class="form-text"><?= $this->t('cms.page.help_body_scripts', '<code>&lt;script&gt;</code>') ?></div>
             </div>
         </div>
     </div>
@@ -145,10 +145,10 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
 
 <?php if ($isEdit && count($versions)): ?>
 <div class="card mt-4">
-    <div class="card-header fw-semibold"><i class="fa-solid fa-clock-rotate-left me-2"></i>Version history</div>
+    <div class="card-header fw-semibold"><i class="fa-solid fa-clock-rotate-left me-2"></i><?= $this->t('cms.page.version_history') ?></div>
     <div class="table-responsive">
         <table class="table table-sm mb-0 align-middle">
-            <thead><tr><th>Version</th><th>Title</th><th>Status</th><th>Saved</th><th class="text-end">&nbsp;</th></tr></thead>
+            <thead><tr><th><?= $this->t('cms.page.col_version') ?></th><th><?= $this->t('cms.label.title') ?></th><th><?= $this->t('cms.label.status') ?></th><th><?= $this->t('cms.page.col_saved') ?></th><th class="text-end">&nbsp;</th></tr></thead>
             <tbody>
             <?php foreach ($versions as $v): ?>
                 <tr>
@@ -157,7 +157,7 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
                     <td><span class="badge text-bg-light"><?= $this->escape(ucfirst($v->status)) ?></span></td>
                     <td class="text-body-secondary"><?= $this->escape(substr((string) $v->created_at, 0, 16)) ?></td>
                     <td class="text-end">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-cms-restore="<?= $this->escape($v->version) ?>">Restore</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-cms-restore="<?= $this->escape($v->version) ?>"><?= $this->t('cms.page.restore') ?></button>
                     </td>
                 </tr>
             <?php endforeach; ?>

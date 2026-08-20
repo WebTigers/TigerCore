@@ -9,26 +9,26 @@
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1">Organizations</h1>
-        <p class="text-body-secondary mb-0">Tenants — name, slug, hierarchy, and membership.</p>
+        <h1 class="h3 mb-1"><?= $this->t('access.org.list.title') ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('access.org.list.subtitle') ?></p>
     </div>
-    <a href="/access/org/edit" class="btn btn-primary"><i class="fa-solid fa-building-circle-arrow-right me-2"></i>New Organization</a>
+    <a href="/access/org/edit" class="btn btn-primary"><i class="fa-solid fa-building-circle-arrow-right me-2"></i><?= $this->t('access.org.list.new') ?></a>
 </div>
 
 <div class="card">
     <div class="card-header bg-transparent">
         <div class="row g-2 align-items-end">
             <div class="col-6 col-sm-auto">
-                <label class="form-label small text-body-secondary mb-1" for="access-org-status">Status</label>
+                <label class="form-label small text-body-secondary mb-1" for="access-org-status"><?= $this->t('access.label.status') ?></label>
                 <select id="access-org-status" class="form-select form-select-sm">
-                    <option value="">All statuses</option>
-                    <option value="active">Active</option>
-                    <option value="suspended">Suspended</option>
+                    <option value=""><?= $this->escape($this->t('access.filter.all_statuses')) ?></option>
+                    <option value="active"><?= $this->escape($this->t('access.status.active')) ?></option>
+                    <option value="suspended"><?= $this->escape($this->t('access.status.suspended')) ?></option>
                 </select>
             </div>
             <div class="col-auto">
-                <button type="button" id="access-org-clear" class="btn btn-sm btn-outline-secondary" title="Clear filters">
-                    <i class="fa-solid fa-filter-circle-xmark me-1"></i>Clear
+                <button type="button" id="access-org-clear" class="btn btn-sm btn-outline-secondary" title="<?= $this->escape($this->t('access.filter.clear_title')) ?>">
+                    <i class="fa-solid fa-filter-circle-xmark me-1"></i><?= $this->t('access.filter.clear') ?>
                 </button>
             </div>
         </div>
@@ -38,13 +38,13 @@
             <table id="access-org-table" class="table table-hover align-middle" style="width:100%;">
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>Slug</th>
-                        <th>Parent</th>
-                        <th>Members</th>
-                        <th>Status</th>
-                        <th>Created</th>
-                        <th class="text-end" data-orderable="false">Actions</th>
+                        <th><?= $this->t('access.label.name') ?></th>
+                        <th><?= $this->t('access.label.slug') ?></th>
+                        <th><?= $this->t('access.label.parent') ?></th>
+                        <th><?= $this->t('access.label.members') ?></th>
+                        <th><?= $this->t('access.label.status') ?></th>
+                        <th><?= $this->t('access.label.created') ?></th>
+                        <th class="text-end" data-orderable="false"><?= $this->t('access.label.actions') ?></th>
                     </tr>
                 </thead>
             </table>

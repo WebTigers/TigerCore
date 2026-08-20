@@ -10,27 +10,27 @@
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1">Articles</h1>
-        <p class="text-body-secondary mb-0">Posts and articles — stored in the CMS content store as <code>type=article</code>.</p>
+        <h1 class="h3 mb-1"><?= $this->escape($this->t('blog.list.title')) ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->escape($this->t('blog.list.subtitle')) ?> <code>type=article</code>.</p>
     </div>
-    <a href="/blog/post/edit" class="btn btn-primary"><i class="fa-solid fa-feather-pointed me-2"></i>New Article</a>
+    <a href="/blog/post/edit" class="btn btn-primary"><i class="fa-solid fa-feather-pointed me-2"></i><?= $this->escape($this->t('blog.list.new')) ?></a>
 </div>
 
 <div class="card">
     <div class="card-header bg-transparent">
         <div class="row g-2 align-items-end">
             <div class="col-6 col-sm-auto">
-                <label class="form-label small text-body-secondary mb-1" for="blog-filter-status">Status</label>
+                <label class="form-label small text-body-secondary mb-1" for="blog-filter-status"><?= $this->escape($this->t('blog.list.col_status')) ?></label>
                 <select id="blog-filter-status" class="form-select form-select-sm">
-                    <option value="">All statuses</option>
-                    <option value="published">Published</option>
-                    <option value="draft">Draft</option>
-                    <option value="archived">Archived</option>
+                    <option value=""><?= $this->escape($this->t('blog.list.status_all')) ?></option>
+                    <option value="published"><?= $this->escape($this->t('blog.status.published')) ?></option>
+                    <option value="draft"><?= $this->escape($this->t('blog.status.draft')) ?></option>
+                    <option value="archived"><?= $this->escape($this->t('blog.status.archived')) ?></option>
                 </select>
             </div>
             <div class="col-auto">
-                <button type="button" id="blog-filter-clear" class="btn btn-sm btn-outline-secondary" title="Clear filters">
-                    <i class="fa-solid fa-filter-circle-xmark me-1"></i>Clear
+                <button type="button" id="blog-filter-clear" class="btn btn-sm btn-outline-secondary" title="<?= $this->escape($this->t('blog.list.clear_title')) ?>">
+                    <i class="fa-solid fa-filter-circle-xmark me-1"></i><?= $this->escape($this->t('blog.list.clear')) ?>
                 </button>
             </div>
         </div>
@@ -40,13 +40,13 @@
             <table id="blog-posts-table" class="table table-hover align-middle" style="width:100%;">
                 <thead>
                     <tr>
-                        <th>Title</th>
-                        <th>Slug</th>
-                        <th>Lang</th>
-                        <th>Status</th>
-                        <th>Read</th>
-                        <th>Updated</th>
-                        <th class="text-end" data-orderable="false">Actions</th>
+                        <th><?= $this->escape($this->t('blog.list.col_title')) ?></th>
+                        <th><?= $this->escape($this->t('blog.list.col_slug')) ?></th>
+                        <th><?= $this->escape($this->t('blog.list.col_lang')) ?></th>
+                        <th><?= $this->escape($this->t('blog.list.col_status')) ?></th>
+                        <th><?= $this->escape($this->t('blog.list.col_read')) ?></th>
+                        <th><?= $this->escape($this->t('blog.list.col_updated')) ?></th>
+                        <th class="text-end" data-orderable="false"><?= $this->escape($this->t('blog.list.col_actions')) ?></th>
                     </tr>
                 </thead>
             </table>

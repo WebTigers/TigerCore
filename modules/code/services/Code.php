@@ -18,6 +18,21 @@
 class Code_Service_Code extends Tiger_Service_Service
 {
     /**
+     * Resolve a semantic key so it can be concatenated with a dynamic (untranslatable)
+     * detail — e.g. a `php -l` parse error — before it goes into an `_error` message. Falls
+     * back to the supplied English when no translator is registered (CLI / early boot).
+     *
+     * @param  string $key      the semantic, owner-prefixed translation key
+     * @param  string $fallback the English text to use when the key is untranslated
+     * @return string           the localized prefix
+     */
+    private function _tr(string $key, string $fallback): string
+    {
+        return ($this->_translate && $this->_translate->isTranslated($key))
+            ? $this->_translate->translate($key) : $fallback;
+    }
+
+    /**
      * DataTables source for the code list.
      *
      * @param  array $params the DataTables request (draw/start/length/search/order) plus filters
@@ -158,7 +173,7 @@ class Code_Service_Code extends Tiger_Service_Service
         // Server-executed languages (php, phtml) must parse — a syntax error is refused.
         if (in_array($language, Tiger_Model_Code::SERVER_LANGS, true)) {
             $lint = $model->lint($v['code']);
-            if (!$lint['ok']) { $this->_error('Not saved — ' . $lint['error']); return; }
+            if (!$lint['ok']) { $this->_error($this->_tr('code.error.not_saved', 'Not saved —') . ' ' . $lint['error']); return; }
         }
 
         // auto_insert applies to INJECTED languages; css is always head; php has no location.
@@ -185,7 +200,7 @@ class Code_Service_Code extends Tiger_Service_Service
             $id  = $model->save($data, !empty($params['code_id']) ? (string) $params['code_id'] : null);
             $err = $this->_safeRebuild($model, $id);
             if ($err !== null) {
-                $this->_error('Saved, but not activated — it conflicts with the running set: ' . $err);
+                $this->_error($this->_tr('code.error.saved_not_activated', 'Saved, but not activated — it conflicts with the running set:') . ' ' . $err);
                 return;
             }
             $this->_success(['code_id' => $id], 'code.saved', '/code');
@@ -246,13 +261,13 @@ class Code_Service_Code extends Tiger_Service_Service
 
         if ($on && in_array($row->language, Tiger_Model_Code::SERVER_LANGS, true)) {
             $lint = $model->lint($row->code);
-            if (!$lint['ok']) { $this->_error('Cannot activate — ' . $lint['error']); return; }
+            if (!$lint['ok']) { $this->_error($this->_tr('code.error.cannot_activate', 'Cannot activate —') . ' ' . $lint['error']); return; }
         }
         try {
             $model->setActive($id, $on);
             $err = $this->_safeRebuild($model, $id);
             if ($on && $err !== null) {
-                $this->_error('Cannot activate — it conflicts with the running set: ' . $err);
+                $this->_error($this->_tr('code.error.cannot_activate_conflict', 'Cannot activate — it conflicts with the running set:') . ' ' . $err);
                 return;
             }
             $this->_success(['code_id' => $id], $on ? 'code.activated' : 'code.deactivated', '/code');
@@ -273,11 +288,11 @@ class Code_Service_Code extends Tiger_Service_Service
     protected function _toggleModule($key, $on): void
     {
         $s = Tiger_Code_Modules::get($key);
-        if (!$s) { $this->_error('That snippet is no longer available — the module may have been removed.'); return; }
+        if (!$s) { $this->_error('code.error.snippet_unavailable'); return; }
 
         if ($on) {
             $lint = (new Tiger_Model_Code())->lint(Tiger_Code_Modules::body($key));
-            if (!$lint['ok']) { $this->_error('Cannot activate — ' . $lint['error']); return; }
+            if (!$lint['ok']) { $this->_error($this->_tr('code.error.cannot_activate', 'Cannot activate —') . ' ' . $lint['error']); return; }
         }
 
         Tiger_Code_Modules::setActive($key, $on);
@@ -287,7 +302,7 @@ class Code_Service_Code extends Tiger_Service_Service
             Tiger_Code_Modules::setActive($key, !$on);                    // roll back the flag
             try { Tiger_Code_Runtime::rebuild(); } catch (Throwable $e2) { /* last-good stays live */ }
             if ($on) {
-                $this->_error('Cannot activate — it conflicts with the running set: ' . $e->getMessage());
+                $this->_error($this->_tr('code.error.cannot_activate_conflict', 'Cannot activate — it conflicts with the running set:') . ' ' . $e->getMessage());
                 return;
             }
         }

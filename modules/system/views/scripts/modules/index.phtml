@@ -55,14 +55,14 @@ $typeIcon = static function ($t) {
 
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1">Modules</h1>
-        <p class="text-body-secondary mb-0">Platform features + installed plugins. Deactivating a module removes its routes and stops it loading — nothing is deleted.</p>
+        <h1 class="h3 mb-1"><?= $this->t('system.modules.title') ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('system.modules.subtitle') ?></p>
     </div>
-    <a href="/system/modules/add" class="btn btn-primary"><i class="fa-solid fa-plus me-2"></i>Add New</a>
+    <a href="/system/modules/add" class="btn btn-primary"><i class="fa-solid fa-plus me-2"></i><?= $this->t('system.modules.add_new') ?></a>
 </div>
 
 <ul class="nav nav-pills mb-3" id="mods-type-filter" role="tablist">
-    <li class="nav-item"><a class="nav-link active" href="#" data-type="" role="tab">All <span class="badge rounded-pill text-bg-light ms-1"><?= count($modules) ?></span></a></li>
+    <li class="nav-item"><a class="nav-link active" href="#" data-type="" role="tab"><?= $this->t('system.modules.filter_all') ?> <span class="badge rounded-pill text-bg-light ms-1"><?= count($modules) ?></span></a></li>
 <?php foreach ($typePills as $id => $label): ?>
     <li class="nav-item"><a class="nav-link" href="#" data-type="<?= $this->escape($id) ?>" role="tab"><i class="fa-solid <?= $typeIcon($id) ?> me-1"></i><?= $this->escape($label) ?> <span class="badge rounded-pill text-bg-light ms-1"><?= (int) ($counts[$id] ?? 0) ?></span></a></li>
 <?php endforeach; ?>
@@ -74,12 +74,12 @@ $typeIcon = static function ($t) {
             <table class="table table-hover align-middle" id="mods-table" style="width:100%;">
                 <thead>
                     <tr>
-                        <th>Module</th>
-                        <th>Type</th>
-                        <th>Version</th>
-                        <th>Source</th>
-                        <th>Status</th>
-                        <th class="text-end" data-orderable="false">Actions</th>
+                        <th><?= $this->t('system.modules.col_module') ?></th>
+                        <th><?= $this->t('system.modules.col_type') ?></th>
+                        <th><?= $this->t('system.modules.col_version') ?></th>
+                        <th><?= $this->t('system.modules.col_source') ?></th>
+                        <th><?= $this->t('system.modules.col_status') ?></th>
+                        <th class="text-end" data-orderable="false"><?= $this->t('system.modules.col_actions') ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -88,7 +88,7 @@ $typeIcon = static function ($t) {
                         <td data-order="<?= $this->escape($m['name']) ?>">
                             <div class="fw-semibold"><?= $this->escape($m['name']) ?>
                                 <code class="text-body-secondary fw-normal ms-1">/<?= $this->escape($m['slug']) ?></code>
-                                <?php if ($m['protected']): ?><i class="fa-solid fa-lock text-body-secondary ms-1" title="Protected — always active"></i><?php endif; ?>
+                                <?php if ($m['protected']): ?><i class="fa-solid fa-lock text-body-secondary ms-1" title="<?= $this->escape($this->t('system.modules.protected_title')) ?>"></i><?php endif; ?>
                             </div>
                             <?php if (!empty($m['description'])): ?><div class="small text-body-secondary mods-desc" title="<?= $this->escape($m['description']) ?>"><?= $this->escape($m['description']) ?></div><?php endif; ?>
                             <div class="small text-body-secondary">
@@ -101,23 +101,23 @@ $typeIcon = static function ($t) {
                         </td>
                         <td><span class="badge text-bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle"><i class="fa-solid <?= $typeIcon($typeOf($m)) ?> me-1"></i><?= $this->escape($labelOf($m)) ?></span></td>
                         <td class="text-body-secondary"><?= $m['version'] ? $this->escape($m['version']) : '—' ?></td>
-                        <td><span class="badge text-bg-<?= $m['source'] === 'bundled' ? 'secondary' : 'info' ?>"><?= $srcLabel($m['source']) ?></span></td>
+                        <td><span class="badge text-bg-<?= $m['source'] === 'bundled' ? 'secondary' : 'info' ?>"><?= $this->t($m['source'] === 'bundled' ? 'system.modules.source_bundled' : 'system.modules.source_addon') ?></span></td>
                         <td data-order="<?= $m['active'] ? 1 : 0 ?>">
-                            <?php if ($m['active']): ?><span class="badge text-bg-success">Active</span>
-                            <?php else: ?><span class="badge text-bg-secondary">Inactive</span><?php endif; ?>
+                            <?php if ($m['active']): ?><span class="badge text-bg-success"><?= $this->t('system.modules.status_active') ?></span>
+                            <?php else: ?><span class="badge text-bg-secondary"><?= $this->t('system.modules.status_inactive') ?></span><?php endif; ?>
                         </td>
                         <td class="text-end text-nowrap">
                             <?php if ($m['protected']): ?>
-                                <span class="text-body-secondary small">always on</span>
+                                <span class="text-body-secondary small"><?= $this->t('system.modules.always_on') ?></span>
                             <?php elseif ($m['active']): ?>
-                                <button type="button" class="btn btn-sm btn-outline-warning" data-mod-toggle="deactivate" data-slug="<?= $this->escape($m['slug']) ?>" data-theme="<?= (($m['type'] ?? '') === 'theme') ? 1 : 0 ?>" data-required-by="<?= $this->escape(implode(',', array_values($m['required_by'] ?? []))) ?>"><i class="fa-solid fa-pause me-1"></i>Deactivate</button>
+                                <button type="button" class="btn btn-sm btn-outline-warning" data-mod-toggle="deactivate" data-slug="<?= $this->escape($m['slug']) ?>" data-theme="<?= (($m['type'] ?? '') === 'theme') ? 1 : 0 ?>" data-required-by="<?= $this->escape(implode(',', array_values($m['required_by'] ?? []))) ?>"><i class="fa-solid fa-pause me-1"></i><?= $this->t('system.modules.deactivate') ?></button>
                             <?php else: ?>
-                                <button type="button" class="btn btn-sm btn-outline-success" data-mod-toggle="activate" data-slug="<?= $this->escape($m['slug']) ?>" data-theme="<?= (($m['type'] ?? '') === 'theme') ? 1 : 0 ?>"><i class="fa-solid fa-play me-1"></i>Activate</button>
+                                <button type="button" class="btn btn-sm btn-outline-success" data-mod-toggle="activate" data-slug="<?= $this->escape($m['slug']) ?>" data-theme="<?= (($m['type'] ?? '') === 'theme') ? 1 : 0 ?>"><i class="fa-solid fa-play me-1"></i><?= $this->t('system.modules.activate') ?></button>
                             <?php endif; ?>
                             <?php $deletable = !$m['protected'] && (($m['area'] ?? '') !== 'core') && !$m['active']; ?>
                             <?php if ($deletable): ?>
                                 <?php $depTokens = array_map(function ($s) use ($bySlug, $tokenOf) { return $tokenOf($bySlug[$s] ?? ['name' => $s]); }, Tiger_Module_Dependency::dependents($m['slug'])); ?>
-                                <button type="button" class="btn btn-sm btn-outline-danger ms-1" data-mod-delete data-slug="<?= $this->escape($m['slug']) ?>" data-token="<?= $this->escape($tokenOf($m)) ?>" data-name="<?= $this->escape($m['name']) ?>" data-deps="<?= $this->escape(implode(', ', $depTokens)) ?>" title="Delete this module"><i class="fa-solid fa-trash-can"></i></button>
+                                <button type="button" class="btn btn-sm btn-outline-danger ms-1" data-mod-delete data-slug="<?= $this->escape($m['slug']) ?>" data-token="<?= $this->escape($tokenOf($m)) ?>" data-name="<?= $this->escape($m['name']) ?>" data-deps="<?= $this->escape(implode(', ', $depTokens)) ?>" title="<?= $this->escape($this->t('system.modules.delete_title')) ?>"><i class="fa-solid fa-trash-can"></i></button>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -133,18 +133,18 @@ $typeIcon = static function ($t) {
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border border-danger">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="mod-delete-title"><i class="fa-solid fa-triangle-exclamation me-2"></i>DANGER!</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="mod-delete-title"><i class="fa-solid fa-triangle-exclamation me-2"></i><?= $this->t('system.modules.danger') ?></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="<?= $this->escape($this->t('system.modules.close')) ?>"></button>
             </div>
             <div class="modal-body">
-                <p class="fw-semibold text-danger-emphasis">Deleting this module is a destructive action that will destroy data. You <u>CANNOT UNDO</u> this action!</p>
-                <p class="mb-2">Please type <code id="mod-delete-token" class="text-danger-emphasis fw-bold"></code> to delete this module.</p>
-                <input type="text" id="mod-delete-input" class="form-control" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Type the module name to confirm">
+                <p class="fw-semibold text-danger-emphasis"><?= $this->t('system.modules.delete_warning') ?></p>
+                <p class="mb-2"><?= $this->t('system.modules.delete_type_pre') ?> <code id="mod-delete-token" class="text-danger-emphasis fw-bold"></code> <?= $this->t('system.modules.delete_type_post') ?></p>
+                <input type="text" id="mod-delete-input" class="form-control" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="<?= $this->escape($this->t('system.modules.delete_placeholder')) ?>">
                 <div id="mod-delete-feedback" class="mt-2"></div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="mod-delete-btn" disabled><i class="fa-solid fa-trash-can me-1"></i>Delete this module</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= $this->t('system.modules.cancel') ?></button>
+                <button type="button" class="btn btn-danger" id="mod-delete-btn" disabled><i class="fa-solid fa-trash-can me-1"></i><?= $this->t('system.modules.delete_btn') ?></button>
             </div>
         </div>
     </div>

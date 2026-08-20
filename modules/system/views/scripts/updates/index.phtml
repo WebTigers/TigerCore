@@ -9,16 +9,16 @@ $pending = $this->pending ?? [];
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1">Updates</h1>
-        <p class="text-body-secondary mb-0">Keep TigerCore and your modules current — one click, no shell.</p>
+        <h1 class="h3 mb-1"><?= $this->t('system.updates.title') ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('system.updates.subtitle') ?></p>
     </div>
     <div class="text-nowrap">
         <button type="button" id="updates-refresh" class="btn btn-outline-secondary">
-            <i class="fa-solid fa-rotate me-2"></i>Check again
+            <i class="fa-solid fa-rotate me-2"></i><?= $this->t('system.updates.check_again') ?>
         </button>
         <?php if ($pending): ?>
             <button type="button" id="updates-all" class="btn btn-primary">
-                <i class="fa-solid fa-cloud-arrow-down me-2"></i>Update All
+                <i class="fa-solid fa-cloud-arrow-down me-2"></i><?= $this->t('system.updates.update_all') ?>
             </button>
         <?php endif; ?>
     </div>
@@ -30,29 +30,29 @@ $pending = $this->pending ?? [];
     <div class="card border-0 shadow-sm">
         <div class="card-body text-center p-5">
             <i class="fa-solid fa-circle-check text-success fs-1 mb-3"></i>
-            <h2 class="h5">Everything's up to date</h2>
-            <p class="text-body-secondary mb-0">TigerCore and all modules are on their latest versions.</p>
+            <h2 class="h5"><?= $this->t('system.updates.uptodate_title') ?></h2>
+            <p class="text-body-secondary mb-0"><?= $this->t('system.updates.uptodate_body') ?></p>
         </div>
     </div>
 <?php else: ?>
     <div class="card border-0 shadow-sm">
         <div class="card-header d-flex align-items-center gap-2">
             <input type="checkbox" id="updates-select-all" class="form-check-input mt-0" checked
-                   aria-label="Select all updates">
-            <span class="fw-semibold"><?= count($pending) ?> update<?= count($pending) === 1 ? '' : 's' ?> available</span>
+                   aria-label="<?= $this->escape($this->t('system.updates.select_all')) ?>">
+            <span class="fw-semibold"><?= $this->escape($this->t(count($pending) === 1 ? 'system.updates.available_one' : 'system.updates.available_many', count($pending))) ?></span>
         </div>
         <ul class="list-group list-group-flush" id="updates-list">
             <?php foreach ($pending as $u): ?>
                 <li class="list-group-item d-flex align-items-center gap-3"
                     data-slug="<?= $this->escape($u['slug']) ?>" data-type="<?= $this->escape($u['type']) ?>">
                     <input type="checkbox" class="form-check-input mt-0 update-check" checked
-                           aria-label="Update <?= $this->escape($u['name']) ?>">
+                           aria-label="<?= $this->escape($this->t('system.updates.update_aria', $u['name'])) ?>">
                     <i class="fa-solid fa-fw <?= $u['type'] === 'core' ? 'fa-cube text-primary' : 'fa-puzzle-piece text-body-secondary' ?>"></i>
                     <div class="flex-grow-1">
                         <div class="fw-semibold">
                             <?= $this->escape($u['name']) ?>
                             <?php if ($u['type'] === 'core'): ?>
-                                <span class="badge text-bg-light border ms-1">platform</span>
+                                <span class="badge text-bg-light border ms-1"><?= $this->t('system.updates.badge_platform') ?></span>
                             <?php endif; ?>
                         </div>
                         <div class="small text-body-secondary">
@@ -60,14 +60,14 @@ $pending = $this->pending ?? [];
                             <i class="fa-solid fa-arrow-right-long mx-1"></i>
                             <span class="font-monospace fw-semibold text-success"><?= $this->escape($u['latest']) ?></span>
                             <?php if ($u['type'] === 'core' && $u['method'] !== 'installer'): ?>
-                                <span class="badge text-bg-warning ms-2">manual step</span>
+                                <span class="badge text-bg-warning ms-2"><?= $this->t('system.updates.badge_manual') ?></span>
                             <?php endif; ?>
                         </div>
                         <?php if (!empty($u['notes'])): $nid = 'notes-' . preg_replace('/[^a-z0-9]+/i', '-', $u['slug']); ?>
                             <button type="button" class="btn btn-link btn-sm p-0 mt-1 text-decoration-none small"
                                     data-bs-toggle="collapse" data-bs-target="#<?= $nid ?>"
                                     aria-expanded="false" aria-controls="<?= $nid ?>">
-                                <i class="fa-solid fa-scroll me-1"></i>What's new in <?= $this->escape($u['latest']) ?>
+                                <i class="fa-solid fa-scroll me-1"></i><?= $this->escape($this->t('system.updates.whats_new', $u['latest'])) ?>
                             </button>
                             <div class="collapse" id="<?= $nid ?>">
                                 <pre class="small text-body-secondary bg-body-tertiary rounded p-3 mt-2 mb-0" style="white-space:pre-wrap;max-height:20rem;overflow:auto;"><?= $this->escape($u['notes']) ?></pre>
@@ -75,7 +75,7 @@ $pending = $this->pending ?? [];
                         <?php endif; ?>
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-primary update-one">
-                        <i class="fa-solid fa-cloud-arrow-down me-1"></i>Update
+                        <i class="fa-solid fa-cloud-arrow-down me-1"></i><?= $this->t('system.updates.update') ?>
                     </button>
                     <span class="update-status small"></span>
                 </li>
@@ -85,7 +85,7 @@ $pending = $this->pending ?? [];
 <?php endif; ?>
 
 <div id="updates-log-card" class="card border-0 shadow-sm mt-4 d-none">
-    <div class="card-header fw-semibold"><i class="fa-solid fa-list-check me-2"></i>Update log</div>
+    <div class="card-header fw-semibold"><i class="fa-solid fa-list-check me-2"></i><?= $this->t('system.updates.log') ?></div>
     <div class="card-body">
         <pre id="updates-log" class="mb-0 small overflow-auto" style="white-space:pre-wrap;max-height:24rem;"></pre>
     </div>
@@ -93,12 +93,12 @@ $pending = $this->pending ?? [];
 
 <?php if (!empty($this->history)): ?>
 <div class="card border-0 shadow-sm mt-4">
-    <div class="card-header fw-semibold"><i class="fa-solid fa-clock-rotate-left me-2"></i>Update history</div>
+    <div class="card-header fw-semibold"><i class="fa-solid fa-clock-rotate-left me-2"></i><?= $this->t('system.updates.history') ?></div>
     <div class="table-responsive">
         <table class="table table-sm mb-0 align-middle">
             <thead>
                 <tr class="text-body-secondary small">
-                    <th class="ps-3">When</th><th>Item</th><th>Version</th><th>Outcome</th><th></th>
+                    <th class="ps-3"><?= $this->t('system.updates.col_when') ?></th><th><?= $this->t('system.updates.col_item') ?></th><th><?= $this->t('system.updates.col_version') ?></th><th><?= $this->t('system.updates.col_outcome') ?></th><th></th>
                 </tr>
             </thead>
             <tbody>
@@ -116,7 +116,7 @@ $pending = $this->pending ?? [];
                         <td><span class="badge <?= $badge ?>"><?= $this->escape($h['outcome']) ?></span></td>
                         <td class="pe-3 text-end">
                             <?php if (!empty($h['log'])): ?>
-                                <button class="btn btn-sm btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#uh-<?= (int) $i ?>">log</button>
+                                <button class="btn btn-sm btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#uh-<?= (int) $i ?>"><?= $this->t('system.updates.log_link') ?></button>
                             <?php endif; ?>
                         </td>
                     </tr>

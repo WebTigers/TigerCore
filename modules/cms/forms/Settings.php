@@ -18,7 +18,7 @@ class Cms_Form_Settings extends Tiger_Form
         $control = ['class' => 'form-control'];
         $select  = ['class' => 'form-select'];
 
-        $home = ['' => '— Built-in landing page —'];
+        $home = ['' => $this->_t('cms.settings.opt_builtin_landing')];
         $pm   = new Tiger_Model_Page();
         foreach ($pm->fetchAll(
             $pm->activeSelect()

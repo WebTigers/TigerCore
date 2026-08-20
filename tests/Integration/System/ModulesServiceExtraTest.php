@@ -139,7 +139,7 @@ final class ModulesServiceExtraTest extends IntegrationTestCase
         }
 
         $this->assertSame(0, (int) $res->result);
-        $this->assertStringContainsString('larger than the server allows', $this->messages($res));
+        $this->assertStringContainsString('system.error.upload_too_large', $this->messages($res));
     }
 
     #[Test]
@@ -154,7 +154,7 @@ final class ModulesServiceExtraTest extends IntegrationTestCase
         }
 
         $this->assertSame(0, (int) $res->result);
-        $this->assertStringContainsString('Upload failed', $this->messages($res));
+        $this->assertStringContainsString('system.error.upload_failed', $this->messages($res));
     }
 
     #[Test]
@@ -171,7 +171,7 @@ final class ModulesServiceExtraTest extends IntegrationTestCase
         }
 
         $this->assertSame(0, (int) $res->result);
-        $this->assertStringContainsString('Invalid upload', $this->messages($res));
+        $this->assertStringContainsString('system.error.upload_invalid', $this->messages($res));
     }
 
     // ---- seeding ---------------------------------------------------------------------------------

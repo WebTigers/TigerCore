@@ -10,7 +10,6 @@
  * self-contained here and points at the org-scoped Profile_Service_OrgLogo. Free-aspect crop (a logo
  * isn't a square headshot) and a PNG export so transparency survives.
  */
-$t   = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
 $lg  = (string) $this->logoUrl;
 ?>
 <div class="card">
@@ -20,18 +19,18 @@ $lg  = (string) $this->logoUrl;
         <div class="d-flex align-items-center gap-3 mb-4">
             <div class="flex-shrink-0 border rounded bg-body-tertiary d-flex align-items-center justify-content-center"
                  style="width:160px;height:96px;overflow:hidden;">
-                <img id="logo-img" src="<?= $this->escape($lg) ?>" alt="Logo"
+                <img id="logo-img" src="<?= $this->escape($lg) ?>" alt="<?= $this->escape($this->t('profile.org.logo.alt')) ?>"
                      class="mw-100 mh-100 <?= $lg === '' ? 'd-none' : '' ?>" style="object-fit:contain;">
                 <i id="logo-placeholder" class="fa-solid fa-building fa-2x text-secondary <?= $lg === '' ? '' : 'd-none' ?>"></i>
             </div>
             <div>
                 <button type="button" id="logo-change" class="btn btn-outline-primary btn-sm">
-                    <i class="fa-solid fa-image me-2"></i><?= $t('profile.org.logo.change') ?>
+                    <i class="fa-solid fa-image me-2"></i><?= $this->t('profile.org.logo.change') ?>
                 </button>
                 <button type="button" id="logo-remove" class="btn btn-link btn-sm text-danger <?= $lg === '' ? 'd-none' : '' ?>">
-                    <?= $t('profile.org.logo.remove') ?>
+                    <?= $this->t('profile.org.logo.remove') ?>
                 </button>
-                <div class="form-text mb-0"><?= $t('profile.org.logo.hint') ?></div>
+                <div class="form-text mb-0"><?= $this->t('profile.org.logo.hint') ?></div>
             </div>
         </div>
         <input type="file" id="logo-file" accept="image/png,image/jpeg,image/webp" class="d-none">
@@ -44,15 +43,15 @@ $lg  = (string) $this->logoUrl;
             <div class="row">
                 <div class="col-xl-6 col-lg-8">
                     <div class="mb-3">
-                        <label class="form-label" for="org-name"><?= $t('profile.org.name') ?></label>
+                        <label class="form-label" for="org-name"><?= $this->t('profile.org.name') ?></label>
                         <input type="text" class="form-control" id="org-name" name="name" maxlength="255"
                                value="<?= $this->escape($this->orgName) ?>">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="org-slug"><?= $t('profile.org.slug') ?></label>
+                        <label class="form-label" for="org-slug"><?= $this->t('profile.org.slug') ?></label>
                         <input type="text" class="form-control" id="org-slug" name="slug" maxlength="191"
                                value="<?= $this->escape($this->orgSlug) ?>">
-                        <div class="form-text"><?= $t('profile.org.slug_help') ?></div>
+                        <div class="form-text"><?= $this->t('profile.org.slug_help') ?></div>
                     </div>
                 </div>
             </div>
@@ -60,7 +59,7 @@ $lg  = (string) $this->logoUrl;
     </div>
     <div class="card-footer text-end">
         <button type="button" id="org-basic-save" class="btn btn-primary">
-            <i class="fa-solid fa-floppy-disk me-2"></i><?= $t('profile.org.save') ?>
+            <i class="fa-solid fa-floppy-disk me-2"></i><?= $this->t('profile.org.save') ?>
         </button>
     </div>
 </div>
@@ -70,16 +69,16 @@ $lg  = (string) $this->logoUrl;
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="logo-crop-title"><?= $t('profile.org.logo.adjust') ?></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="logo-crop-title"><?= $this->t('profile.org.logo.adjust') ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= $this->escape($this->t('profile.close')) ?>"></button>
             </div>
             <div class="modal-body">
                 <img id="logo-crop-image" alt="" style="display:block;max-width:100%;max-height:60vh;margin:0 auto;">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal"><?= $t('profile.address.cancel') ?></button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal"><?= $this->t('profile.address.cancel') ?></button>
                 <button type="button" class="btn btn-primary" id="logo-crop-save">
-                    <i class="fa-solid fa-check me-2"></i><?= $t('profile.org.logo.save') ?>
+                    <i class="fa-solid fa-check me-2"></i><?= $this->t('profile.org.logo.save') ?>
                 </button>
             </div>
         </div>
@@ -102,13 +101,13 @@ document.addEventListener('DOMContentLoaded', function () {
             form.querySelectorAll('.is-invalid').forEach(function (x) { x.classList.remove('is-invalid'); });
             if (res && res.result === 1) {
                 if (res.data && res.data.slug) { document.getElementById('org-slug').value = res.data.slug; }
-                TigerDOM.notify(fb, (res.messages && res.messages[0]) ? res.messages[0].message : 'Saved.', { type: 'success' });
+                TigerDOM.notify(fb, (res.messages && res.messages[0]) ? res.messages[0].message : <?= json_encode($this->t('profile.org.saved')) ?>, { type: 'success' });
                 return;
             }
             if (res && res.form) { Object.keys(res.form).forEach(function (f) { var el = form.querySelector('[name="' + f + '"]'); if (el) { el.classList.add('is-invalid'); } }); }
             if (res && res.data && res.data.field) { var el = form.querySelector('[name="' + res.data.field + '"]'); if (el) { el.classList.add('is-invalid'); } }
             (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
-        }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+        }).catch(function () { TigerDOM.notify(fb, <?= json_encode($this->t('profile.net_error')) ?>, { type: 'error' }); });
     });
 
     // ----- Logo: pick / drop (TigerUpload) -> crop (Cropper.js) -> upload (org-scoped) -----
@@ -131,15 +130,15 @@ document.addEventListener('DOMContentLoaded', function () {
         url: '/api', field: 'file', auto: false,
         params: { module: 'profile', service: 'OrgLogo', method: 'upload' }
     });
-    up.dropOnWindow({ label: 'Drop your logo', sublabel: 'to set your organization logo',
+    up.dropOnWindow({ label: <?= json_encode($this->t('profile.org.logo.drop_label')) ?>, sublabel: <?= json_encode($this->t('profile.org.logo.drop_sub')) ?>,
         onDrop: function (files) { openCropper(files && files[0]); } });
     up.subscribe({
         onSuccess: function (item) {
             if (item.response && item.response.url) { showLogo(bust(item.response.url)); }
             getModal().hide();
-            TigerDOM.notify(fb, 'Logo updated.', { type: 'success' });
+            TigerDOM.notify(fb, <?= json_encode($this->t('profile.org.logo.saved')) ?>, { type: 'success' });
         },
-        onError: function (item) { TigerDOM.notify(fb, (item && item.error) || 'Upload failed — please try again.', { type: 'error' }); }
+        onError: function (item) { TigerDOM.notify(fb, (item && item.error) || <?= json_encode($this->t('profile.org.logo.error_upload')) ?>, { type: 'error' }); }
     });
 
     document.getElementById('logo-change').addEventListener('click', function () { input.click(); });
@@ -192,9 +191,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 img.classList.add('d-none'); img.src = '';
                 document.getElementById('logo-placeholder').classList.remove('d-none');
                 this.classList.add('d-none');
-                TigerDOM.notify(fb, (res.messages && res.messages[0]) ? res.messages[0].message : 'Logo removed.', { type: 'success' });
+                TigerDOM.notify(fb, (res.messages && res.messages[0]) ? res.messages[0].message : <?= json_encode($this->t('profile.org.logo.removed')) ?>, { type: 'success' });
             }
-        }.bind(this)).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+        }.bind(this)).catch(function () { TigerDOM.notify(fb, <?= json_encode($this->t('profile.net_error')) ?>, { type: 'error' }); });
     });
 });
 </script>

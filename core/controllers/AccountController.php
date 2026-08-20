@@ -45,8 +45,10 @@ class AccountController extends AdminController
     {
         parent::indexAction();                        // widgets + per-user layout, ACL-filtered for this role
         $this->view->title     = 'My Account';
-        $this->view->dashTitle = 'My Account';
-        $this->view->dashLead  = 'Your subscription, licenses, and profile.';
-        $this->view->dashEmptyLead = 'Your account details will appear here as you add subscriptions and services.';
+        // dashTitle/dashLead/dashEmptyLead are translation KEYS — the shared dashboard view (admin/index.phtml)
+        // resolves them through $this->t() (they render in the visitor's locale).
+        $this->view->dashTitle = 'core.account.title';
+        $this->view->dashLead  = 'core.account.lead';
+        $this->view->dashEmptyLead = 'core.account.empty_lead';
     }
 }

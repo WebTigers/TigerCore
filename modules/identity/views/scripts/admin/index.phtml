@@ -13,11 +13,11 @@ $va   = $this->themeAssets;
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1">Site Identity</h1>
-        <p class="text-body-secondary mb-0">Your site's name, logo, favicon, and social profiles — the brand that appears in browser tabs, search results, and social shares.</p>
+        <h1 class="h3 mb-1"><?= $this->escape($this->t('identity.page.title')) ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->escape($this->t('identity.page.subtitle')) ?></p>
     </div>
     <div class="text-nowrap">
-        <button type="button" id="identity-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+        <button type="button" id="identity-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->escape($this->t('identity.action.save')) ?></button>
     </div>
 </div>
 
@@ -29,17 +29,17 @@ $va   = $this->themeAssets;
 
         <div class="col-lg-7">
             <div class="card h-100">
-                <div class="card-header fw-semibold"><i class="fa-solid fa-fingerprint me-2"></i>Identity</div>
+                <div class="card-header fw-semibold"><i class="fa-solid fa-fingerprint me-2"></i><?= $this->escape($this->t('identity.card.identity')) ?></div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label" for="<?= $this->escape($el('site_name')->getId()) ?>">Site name</label>
+                        <label class="form-label" for="<?= $this->escape($el('site_name')->getId()) ?>"><?= $this->escape($this->t('identity.label.site_name')) ?></label>
                         <?= $el('site_name') ?>
-                        <div class="form-text">Shown in the site header and browser tab, and used as the default page title and brand name in search results.</div>
+                        <div class="form-text"><?= $this->escape($this->t('identity.help.site_name')) ?></div>
                     </div>
                     <div class="mb-0">
-                        <label class="form-label" for="<?= $this->escape($el('tagline')->getId()) ?>">Tagline</label>
+                        <label class="form-label" for="<?= $this->escape($el('tagline')->getId()) ?>"><?= $this->escape($this->t('identity.label.tagline')) ?></label>
                         <?= $el('tagline') ?>
-                        <div class="form-text">A short line describing the site (optional).</div>
+                        <div class="form-text"><?= $this->escape($this->t('identity.help.tagline')) ?></div>
                     </div>
                 </div>
             </div>
@@ -47,15 +47,15 @@ $va   = $this->themeAssets;
 
         <div class="col-lg-5">
             <div class="card h-100">
-                <div class="card-header fw-semibold"><i class="fa-solid fa-image me-2"></i>Logo &amp; favicon</div>
+                <div class="card-header fw-semibold"><i class="fa-solid fa-image me-2"></i><?= $this->escape($this->t('identity.card.logo_favicon')) ?></div>
                 <div class="card-body">
                     <div class="mb-4">
-                        <?= $this->mediaField('logo_media_id', $this->logoId, ['kind' => 'image', 'label' => 'Logo']) ?>
-                        <div class="form-text">Used for your brand in search results (Organization schema) and available to themes.</div>
+                        <?= $this->mediaField('logo_media_id', $this->logoId, ['kind' => 'image', 'label' => $this->t('identity.label.logo')]) ?>
+                        <div class="form-text"><?= $this->escape($this->t('identity.help.logo')) ?></div>
                     </div>
                     <div class="mb-0">
-                        <?= $this->mediaField('favicon_media_id', $this->faviconId, ['kind' => 'image', 'label' => 'Favicon']) ?>
-                        <div class="form-text">The little icon in the browser tab. Use a <strong>square</strong> image — 512&times;512 or larger is ideal; the browser scales it down to every size it needs.</div>
+                        <?= $this->mediaField('favicon_media_id', $this->faviconId, ['kind' => 'image', 'label' => $this->t('identity.label.favicon')]) ?>
+                        <div class="form-text"><?= $this->t('identity.help.favicon') ?></div>
                     </div>
                 </div>
             </div>
@@ -63,18 +63,18 @@ $va   = $this->themeAssets;
 
         <div class="col-12">
             <div class="card">
-                <div class="card-header fw-semibold"><i class="fa-solid fa-share-nodes me-2"></i>Social profiles</div>
+                <div class="card-header fw-semibold"><i class="fa-solid fa-share-nodes me-2"></i><?= $this->escape($this->t('identity.card.social')) ?></div>
                 <div class="card-body">
-                    <p class="text-body-secondary small mb-3">Full URLs to your official profiles. These are published as your brand's verified links (schema.org <code>sameAs</code>) — leave any blank.</p>
+                    <p class="text-body-secondary small mb-3"><?= $this->t('identity.help.social') ?></p>
                     <div class="row g-3">
                         <?php
                         $socials = [
-                            'social_twitter'   => ['X / Twitter', 'fa-x-twitter'],
-                            'social_facebook'  => ['Facebook',    'fa-facebook'],
-                            'social_instagram' => ['Instagram',   'fa-instagram'],
-                            'social_linkedin'  => ['LinkedIn',    'fa-linkedin'],
-                            'social_youtube'   => ['YouTube',     'fa-youtube'],
-                            'social_github'    => ['GitHub',      'fa-github'],
+                            'social_twitter'   => [$this->t('identity.social.twitter'),   'fa-x-twitter'],
+                            'social_facebook'  => [$this->t('identity.social.facebook'),  'fa-facebook'],
+                            'social_instagram' => [$this->t('identity.social.instagram'), 'fa-instagram'],
+                            'social_linkedin'  => [$this->t('identity.social.linkedin'),  'fa-linkedin'],
+                            'social_youtube'   => [$this->t('identity.social.youtube'),   'fa-youtube'],
+                            'social_github'    => [$this->t('identity.social.github'),     'fa-github'],
                         ];
                         foreach ($socials as $name => $meta): ?>
                             <div class="col-md-6">

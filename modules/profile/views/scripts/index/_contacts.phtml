@@ -13,7 +13,6 @@
  * .default_country (this->phoneDefault). intl-tel-input is loaded by the layout only when
  * useIntlTel is set (Profile_IndexController sets it).
  */
-$t = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
 ?>
 <div class="card">
     <div class="card-body">
@@ -25,7 +24,7 @@ $t = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
             <input type="hidden" name="phone_country" id="contact-phone-country" value="">
             <div class="row g-2 align-items-end">
                 <div class="col-sm-3">
-                    <label class="form-label" for="contact-type"><?= $t('profile.contact.type') ?></label>
+                    <label class="form-label" for="contact-type"><?= $this->t('profile.contact.type') ?></label>
                     <select class="form-select" id="contact-type" name="type">
                         <?php foreach ($this->contactTypes as $val => $label): ?>
                             <option value="<?= $this->escape($val) ?>"><?= $this->escape($label) ?></option>
@@ -33,10 +32,10 @@ $t = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
                     </select>
                 </div>
                 <div class="col-sm-5">
-                    <label class="form-label" for="contact-value"><?= $t('profile.contact.value') ?></label>
+                    <label class="form-label" for="contact-value"><?= $this->t('profile.contact.value') ?></label>
                     <div id="contact-value-wrap">
                         <input type="text" class="form-control" id="contact-value"
-                               placeholder="<?= $this->escape($t('profile.contact.value_ph')) ?>">
+                               placeholder="<?= $this->escape($this->t('profile.contact.value_ph')) ?>">
                     </div>
                     <div id="contact-phone-wrap" class="d-none">
                         <input type="tel" class="form-control" id="contact-phone" autocomplete="tel">
@@ -45,14 +44,14 @@ $t = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
                 <div class="col-sm-2">
                     <div class="form-check mt-4 pt-2">
                         <input class="form-check-input" type="checkbox" value="1" id="contact-primary" name="is_primary">
-                        <label class="form-check-label" for="contact-primary"><?= $t('profile.contact.primary') ?></label>
+                        <label class="form-check-label" for="contact-primary"><?= $this->t('profile.contact.primary') ?></label>
                     </div>
                 </div>
                 <div class="col-sm-2">
                     <button type="button" id="contact-save" class="btn btn-primary w-100">
-                        <i class="fa-solid fa-plus me-1"></i><span id="contact-save-label"><?= $t('profile.contact.add') ?></span>
+                        <i class="fa-solid fa-plus me-1"></i><span id="contact-save-label"><?= $this->t('profile.contact.add') ?></span>
                     </button>
-                    <button type="button" id="contact-cancel" class="btn btn-link btn-sm w-100 mt-1 d-none"><?= $t('profile.contact.cancel') ?></button>
+                    <button type="button" id="contact-cancel" class="btn btn-link btn-sm w-100 mt-1 d-none"><?= $this->t('profile.contact.cancel') ?></button>
                 </div>
             </div>
         </form>
@@ -85,13 +84,13 @@ document.addEventListener('DOMContentLoaded', function () {
     var SVC   = <?= json_encode($this->contactSvc ?: 'contact', JSON_UNESCAPED_UNICODE) ?>;   // 'contact' (user) | 'OrgContact' (org) — exact case, ucfirst-only
     var PHONE_DEFAULT = <?= json_encode(strtolower((string) $this->phoneDefault), JSON_UNESCAPED_UNICODE) ?>;
     var STR = {
-        add:    <?= json_encode($t('profile.contact.add'), JSON_UNESCAPED_UNICODE) ?>,
-        update: <?= json_encode($t('profile.contact.update'), JSON_UNESCAPED_UNICODE) ?>,
-        none:   <?= json_encode($t('profile.contact.none'), JSON_UNESCAPED_UNICODE) ?>,
-        saved:  <?= json_encode($t('profile.contact.saved'), JSON_UNESCAPED_UNICODE) ?>,
-        del:    <?= json_encode($t('profile.contact.deleted'), JSON_UNESCAPED_UNICODE) ?>,
-        confirm:<?= json_encode($t('profile.contact.confirm_delete'), JSON_UNESCAPED_UNICODE) ?>,
-        badphone:<?= json_encode($t('profile.contact.bad_phone'), JSON_UNESCAPED_UNICODE) ?>
+        add:    <?= json_encode($this->t('profile.contact.add'), JSON_UNESCAPED_UNICODE) ?>,
+        update: <?= json_encode($this->t('profile.contact.update'), JSON_UNESCAPED_UNICODE) ?>,
+        none:   <?= json_encode($this->t('profile.contact.none'), JSON_UNESCAPED_UNICODE) ?>,
+        saved:  <?= json_encode($this->t('profile.contact.saved'), JSON_UNESCAPED_UNICODE) ?>,
+        del:    <?= json_encode($this->t('profile.contact.deleted'), JSON_UNESCAPED_UNICODE) ?>,
+        confirm:<?= json_encode($this->t('profile.contact.confirm_delete'), JSON_UNESCAPED_UNICODE) ?>,
+        badphone:<?= json_encode($this->t('profile.contact.bad_phone'), JSON_UNESCAPED_UNICODE) ?>
     };
 
     // intl-tel-input is initialised lazily: the Contacts pane is hidden at load, and initialising the
@@ -221,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function () {
             phoneEl.classList.remove('is-invalid'); valueEl.classList.remove('is-invalid');
             if (res && res.form && res.form.value) { (isPhone() ? phoneEl : valueEl).classList.add('is-invalid'); }
             (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
-        }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+        }).catch(function () { TigerDOM.notify(fb, <?= json_encode($this->t('profile.net_error')) ?>, { type: 'error' }); });
     });
 
     function del(id, btn) {
@@ -238,7 +237,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (res.data._csrf) { csrfInput.value = res.data._csrf; }
                 TigerDOM.notify(fb, STR.del, { type: 'success' });
             }
-        }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+        }).catch(function () { TigerDOM.notify(fb, <?= json_encode($this->t('profile.net_error')) ?>, { type: 'error' }); });
     }
 
     toggleType();

@@ -19,18 +19,18 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
 
 <div class="d-flex align-items-center justify-content-between mb-3">
     <div>
-        <h1 class="h3 mb-1"><?= $isEdit ? 'Edit Snippet' : 'New Snippet' ?></h1>
-        <p class="text-body-secondary mb-0"><a href="/code" class="text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i>Back to code</a></p>
+        <h1 class="h3 mb-1"><?= $this->escape($isEdit ? $this->t('code.edit.edit_title') : $this->t('code.edit.new_title')) ?></h1>
+        <p class="text-body-secondary mb-0"><a href="/code" class="text-decoration-none"><i class="fa-solid fa-angle-left me-1"></i><?= $this->escape($this->t('code.edit.back')) ?></a></p>
     </div>
     <div class="text-nowrap">
-        <a href="/code" class="btn btn-outline-secondary">Cancel</a>
-        <button type="button" id="code-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+        <a href="/code" class="btn btn-outline-secondary"><?= $this->escape($this->t('code.edit.cancel')) ?></a>
+        <button type="button" id="code-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->escape($this->t('code.edit.save')) ?></button>
     </div>
 </div>
 
 <div id="code-warning" class="alert alert-warning d-flex align-items-center gap-2 py-2" role="alert">
     <i class="fa-solid fa-triangle-exclamation"></i>
-    <div class="small" id="code-warning-text">This PHP runs on <strong>every request</strong> once active. It's linted on save and auto-deactivates if it fatals on load.</div>
+    <div class="small" id="code-warning-text"><?= $this->t('code.edit.warn') ?></div>
 </div>
 
 <div id="code-feedback"></div>
@@ -43,11 +43,11 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
             <div class="card">
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label" for="code-name">Name</label>
+                        <label class="form-label" for="code-name"><?= $this->escape($this->t('code.edit.name')) ?></label>
                         <?= $el('name')->setAttrib('data-agent-target', 'name')->setAttrib('data-agent-label', 'Snippet name')->setAttrib('data-agent-kind', 'text') ?>
                     </div>
                     <div class="mb-0">
-                        <label class="form-label" for="code-code" id="code-lang-label">Code</label>
+                        <label class="form-label" for="code-code" id="code-lang-label"><?= $this->escape($this->t('code.edit.code')) ?></label>
                         <?= $el('code')->setAttrib('data-agent-target', 'code')->setAttrib('data-agent-label', 'Code')->setAttrib('data-agent-kind', 'code') ?>
                     </div>
                 </div>
@@ -55,39 +55,39 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
         </div>
         <div class="col-lg-4">
             <div class="card mb-4">
-                <div class="card-header fw-semibold">Type</div>
+                <div class="card-header fw-semibold"><?= $this->escape($this->t('code.edit.type')) ?></div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label" for="code-language">Language</label>
+                        <label class="form-label" for="code-language"><?= $this->escape($this->t('code.edit.language')) ?></label>
                         <?= $el('language') ?>
                     </div>
                     <div class="mb-0" id="code-loc-row">
-                        <label class="form-label" for="code-auto-insert">Inject at</label>
+                        <label class="form-label" for="code-auto-insert"><?= $this->escape($this->t('code.edit.inject_at')) ?></label>
                         <?= $el('auto_insert') ?>
-                        <div class="form-text">Where injected CSS/JS/HTML/PHTML lands.</div>
+                        <div class="form-text"><?= $this->escape($this->t('code.edit.inject_hint')) ?></div>
                     </div>
                 </div>
             </div>
             <div class="card mb-4">
-                <div class="card-header fw-semibold">Activation</div>
+                <div class="card-header fw-semibold"><?= $this->escape($this->t('code.edit.activation')) ?></div>
                 <div class="card-body">
                     <div class="form-check form-switch mb-3">
                         <?= $el('active') ?>
-                        <label class="form-check-label" for="code-active">Active — run this snippet</label>
+                        <label class="form-check-label" for="code-active"><?= $this->escape($this->t('code.edit.active_label')) ?></label>
                     </div>
                     <div class="mb-0">
-                        <label class="form-label" for="code-priority">Priority</label>
+                        <label class="form-label" for="code-priority"><?= $this->escape($this->t('code.edit.priority')) ?></label>
                         <?= $el('priority') ?>
-                        <div class="form-text">Lower loads first. Runs globally (every request).</div>
+                        <div class="form-text"><?= $this->escape($this->t('code.edit.priority_hint')) ?></div>
                     </div>
                 </div>
             </div>
             <div class="card">
-                <div class="card-header fw-semibold">Notes</div>
+                <div class="card-header fw-semibold"><?= $this->escape($this->t('code.edit.notes')) ?></div>
                 <div class="card-body">
-                    <label class="form-label" for="code-description">Description</label>
+                    <label class="form-label" for="code-description"><?= $this->escape($this->t('code.edit.description')) ?></label>
                     <?= $el('description') ?>
-                    <div class="form-text">What this snippet does (for the list).</div>
+                    <div class="form-text"><?= $this->escape($this->t('code.edit.description_hint')) ?></div>
                 </div>
             </div>
         </div>
@@ -96,18 +96,18 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
 
 <?php if ($isEdit && count($versions)): ?>
 <div class="card mt-4">
-    <div class="card-header fw-semibold"><i class="fa-solid fa-clock-rotate-left me-2"></i>Version history</div>
+    <div class="card-header fw-semibold"><i class="fa-solid fa-clock-rotate-left me-2"></i><?= $this->escape($this->t('code.edit.versions')) ?></div>
     <div class="table-responsive">
         <table class="table table-sm mb-0 align-middle">
-            <thead><tr><th>Version</th><th>Name</th><th>State</th><th>Saved</th><th class="text-end">&nbsp;</th></tr></thead>
+            <thead><tr><th><?= $this->escape($this->t('code.edit.col_version')) ?></th><th><?= $this->escape($this->t('code.edit.col_name')) ?></th><th><?= $this->escape($this->t('code.edit.col_state')) ?></th><th><?= $this->escape($this->t('code.edit.col_saved')) ?></th><th class="text-end">&nbsp;</th></tr></thead>
             <tbody>
             <?php foreach ($versions as $v): ?>
                 <tr>
                     <td class="fw-semibold">#<?= $this->escape($v->version) ?></td>
-                    <td><?= $this->escape($v->name ?: '(untitled)') ?></td>
-                    <td><span class="badge text-bg-light"><?= ((int) $v->active === 1) ? 'Active' : 'Inactive' ?></span></td>
+                    <td><?= $this->escape($v->name ?: $this->t('code.edit.untitled')) ?></td>
+                    <td><span class="badge text-bg-light"><?= $this->escape(((int) $v->active === 1) ? $this->t('code.edit.state_active') : $this->t('code.edit.state_inactive')) ?></span></td>
                     <td class="text-body-secondary"><?= $this->escape(substr((string) $v->created_at, 0, 16)) ?></td>
-                    <td class="text-end"><button type="button" class="btn btn-sm btn-outline-secondary" data-code-restore="<?= $this->escape($v->version) ?>">Restore</button></td>
+                    <td class="text-end"><button type="button" class="btn btn-sm btn-outline-secondary" data-code-restore="<?= $this->escape($v->version) ?>"><?= $this->escape($this->t('code.edit.restore')) ?></button></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>

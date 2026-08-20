@@ -7,7 +7,6 @@
  * read-only (changing the login identifier needs a verification flow, out of base scope). Saves
  * through /api. Rendered as a partial: the parent passes the model (form, passwordForm, avatarUrl…).
  */
-$t  = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
 $av = (string) $this->avatarUrl;
 ?>
 <div class="card">
@@ -16,7 +15,7 @@ $av = (string) $this->avatarUrl;
         <!-- Avatar -->
         <div class="d-flex align-items-center gap-3 mb-4">
             <div class="position-relative flex-shrink-0" style="width:96px;height:96px;">
-                <img id="avatar-img" src="<?= $this->escape($av) ?>" alt="Avatar"
+                <img id="avatar-img" src="<?= $this->escape($av) ?>" alt="<?= $this->escape($this->t('profile.avatar.alt')) ?>"
                      class="rounded-circle w-100 h-100 <?= $av === '' ? 'd-none' : '' ?>" style="object-fit:cover;">
                 <div id="avatar-placeholder"
                      class="rounded-circle w-100 h-100 bg-secondary-subtle d-flex align-items-center justify-content-center <?= $av === '' ? '' : 'd-none' ?>">
@@ -25,12 +24,12 @@ $av = (string) $this->avatarUrl;
             </div>
             <div>
                 <button type="button" id="avatar-change" class="btn btn-outline-primary btn-sm">
-                    <i class="fa-solid fa-camera me-2"></i><?= $t('profile.avatar.change') ?>
+                    <i class="fa-solid fa-camera me-2"></i><?= $this->t('profile.avatar.change') ?>
                 </button>
                 <button type="button" id="avatar-remove" class="btn btn-link btn-sm text-danger <?= $av === '' ? 'd-none' : '' ?>">
-                    <?= $t('profile.avatar.remove') ?>
+                    <?= $this->t('profile.avatar.remove') ?>
                 </button>
-                <div class="form-text mb-0"><?= $t('profile.avatar.hint') ?> Or drop a photo anywhere on the page.</div>
+                <div class="form-text mb-0"><?= $this->t('profile.avatar.hint') ?> <?= $this->t('profile.avatar.hint_drop') ?></div>
             </div>
         </div>
         <input type="file" id="avatar-file" accept="image/png,image/jpeg,image/webp" class="d-none">
@@ -42,23 +41,23 @@ $av = (string) $this->avatarUrl;
             <?= $this->form->getElement('_csrf') ?>
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label class="form-label" for="profile-display-name"><?= $t('profile.user.display_name') ?></label>
+                    <label class="form-label" for="profile-display-name"><?= $this->t('profile.user.display_name') ?></label>
                     <input type="text" class="form-control" id="profile-display-name" name="display_name"
                            value="<?= $this->escape($this->displayName) ?>"
-                           placeholder="<?= $this->escape($t('profile.user.display_name_ph')) ?>" autocomplete="name">
+                           placeholder="<?= $this->escape($this->t('profile.user.display_name_ph')) ?>" autocomplete="name">
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" for="profile-username"><?= $t('profile.user.username') ?></label>
+                    <label class="form-label" for="profile-username"><?= $this->t('profile.user.username') ?></label>
                     <input type="text" class="form-control" id="profile-username" name="username"
                            value="<?= $this->escape($this->username) ?>" autocomplete="username">
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" for="profile-email"><?= $t('profile.user.email') ?></label>
+                    <label class="form-label" for="profile-email"><?= $this->t('profile.user.email') ?></label>
                     <input type="email" class="form-control" id="profile-email"
                            value="<?= $this->escape($this->email) ?>" disabled readonly>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" for="profile-locale"><?= $t('profile.user.locale') ?></label>
+                    <label class="form-label" for="profile-locale"><?= $this->t('profile.user.locale') ?></label>
                     <select class="form-select" id="profile-locale" name="locale">
                         <?php foreach ($this->locales as $code => $name): ?>
                             <option value="<?= $this->escape($code) ?>" <?= $code === $this->locale ? 'selected' : '' ?>>
@@ -68,9 +67,9 @@ $av = (string) $this->avatarUrl;
                     </select>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" for="profile-timezone"><?= $t('profile.user.timezone') ?></label>
+                    <label class="form-label" for="profile-timezone"><?= $this->t('profile.user.timezone') ?></label>
                     <select class="form-select" id="profile-timezone" name="timezone"
-                            data-tiger-combo data-placeholder="<?= $this->escape($t('profile.user.timezone_ph')) ?>">
+                            data-tiger-combo data-placeholder="<?= $this->escape($this->t('profile.user.timezone_ph')) ?>">
                         <option value="">—</option>
                         <?php foreach ($this->timezones as $tzId => $tzLabel): ?>
                             <option value="<?= $this->escape($tzId) ?>" <?= $tzId === $this->timezone ? 'selected' : '' ?>>
@@ -84,7 +83,7 @@ $av = (string) $this->avatarUrl;
     </div>
     <div class="card-footer text-end">
         <button type="button" id="profile-basic-save" class="btn btn-primary">
-            <i class="fa-solid fa-floppy-disk me-2"></i>Save
+            <i class="fa-solid fa-floppy-disk me-2"></i><?= $this->t('profile.save') ?>
         </button>
     </div>
 </div>
@@ -95,19 +94,19 @@ $av = (string) $this->avatarUrl;
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="avatar-crop-title"><?= $t('profile.avatar.adjust') ?></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="avatar-crop-title"><?= $this->t('profile.avatar.adjust') ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= $this->escape($this->t('profile.close')) ?>"></button>
             </div>
             <div class="modal-body">
                 <div class="bg-body-tertiary rounded text-center">
                     <img id="avatar-crop-image" alt="" style="display:block;max-width:100%;max-height:60vh;margin:0 auto;">
                 </div>
-                <p class="form-text text-center mt-2 mb-0">Drag to move · drag a corner to resize · scroll to zoom.</p>
+                <p class="form-text text-center mt-2 mb-0"><?= $this->t('profile.avatar.crop_hint') ?></p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= $this->t('profile.cancel') ?></button>
                 <button type="button" class="btn btn-primary" id="avatar-crop-save">
-                    <i class="fa-solid fa-check me-2"></i><?= $t('profile.avatar.save') ?>
+                    <i class="fa-solid fa-check me-2"></i><?= $this->t('profile.avatar.save') ?>
                 </button>
             </div>
         </div>
@@ -130,12 +129,12 @@ document.addEventListener('DOMContentLoaded', function () {
             if (res && res.result === 1) {
                 var dn = document.getElementById('profile-display-name').value.trim();
                 window.dispatchEvent(new CustomEvent('tiger:display-name-changed', { detail: { name: dn || null } }));
-                TigerDOM.notify(fb, 'Profile saved.', { type: 'success' });
+                TigerDOM.notify(fb, <?= json_encode($this->t('profile.user.saved')) ?>, { type: 'success' });
                 return;
             }
             if (res && res.form) { Object.keys(res.form).forEach(function (f) { var el = form.querySelector('[name="' + f + '"]'); if (el) { el.classList.add('is-invalid'); } }); }
             (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
-        }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+        }).catch(function () { TigerDOM.notify(fb, <?= json_encode($this->t('profile.net_error')) ?>, { type: 'error' }); });
     });
 
     // ----- Avatar: pick / drop (TigerUpload) -> crop (Cropper.js) -> upload -----
@@ -160,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function () {
         url: '/api', field: 'file', auto: false,
         params: { module: 'profile', service: 'avatar', method: 'upload' }
     });
-    up.dropOnWindow({ label: 'Drop your photo', sublabel: 'to set it as your avatar',
+    up.dropOnWindow({ label: <?= json_encode($this->t('profile.avatar.drop_label')) ?>, sublabel: <?= json_encode($this->t('profile.avatar.drop_sub')) ?>,
         onDrop: function (files) { openCropper(files && files[0]); } });
     up.subscribe({
         onSuccess: function (item) {
@@ -170,9 +169,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 window.dispatchEvent(new CustomEvent('tiger:avatar-changed', { detail: { url: u } }));
             }
             getModal().hide();
-            TigerDOM.notify(fb, 'Photo updated.', { type: 'success' });
+            TigerDOM.notify(fb, <?= json_encode($this->t('profile.avatar.saved')) ?>, { type: 'success' });
         },
-        onError: function (item) { TigerDOM.notify(fb, (item && item.error) || 'Upload failed — please try again.', { type: 'error' }); }
+        onError: function (item) { TigerDOM.notify(fb, (item && item.error) || <?= json_encode($this->t('profile.avatar.error_upload')) ?>, { type: 'error' }); }
     });
 
     document.getElementById('avatar-change').addEventListener('click', function () { input.click(); });
@@ -182,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // for a blank Cropper inside a Bootstrap modal), then show the modal.
     function openCropper(file) {
         if (!file || !/^image\/(png|jpeg|webp)$/.test(file.type)) {
-            TigerDOM.notify(fb, 'Please choose a JPG, PNG, or WebP image.', { type: 'error' });
+            TigerDOM.notify(fb, <?= json_encode($this->t('profile.avatar.error_type')) ?>, { type: 'error' });
             return;
         }
         var reader = new FileReader();
@@ -231,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('avatar-placeholder').classList.remove('d-none');
                 btn.classList.add('d-none');
                 window.dispatchEvent(new CustomEvent('tiger:avatar-changed', { detail: { url: null } }));
-                TigerDOM.notify(fb, 'Photo removed.', { type: 'success' });
+                TigerDOM.notify(fb, <?= json_encode($this->t('profile.avatar.removed')) ?>, { type: 'success' });
             }
         });
     });

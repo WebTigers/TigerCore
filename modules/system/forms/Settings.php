@@ -47,7 +47,7 @@ class System_Form_Settings extends Tiger_Form
                 'attribs'    => array_merge($control, ['id' => 'set-autologout-seconds', 'inputmode' => 'numeric']),
             ]],
             ['radio', 'autologout_action', [
-                'multiOptions' => ['logout' => 'Full logout (end the session)', 'lock' => 'Lock screen (re-enter password)'],
+                'multiOptions' => ['logout' => $this->_t('system.settings.autologout.action_logout'), 'lock' => $this->_t('system.settings.autologout.action_lock')],
                 'value'        => 'logout',
                 'separator'    => '',
                 'attribs'      => ['class' => 'form-check-input'],
@@ -59,7 +59,7 @@ class System_Form_Settings extends Tiger_Form
                 'attribs' => ['id' => 'set-rc-enabled', 'class' => 'form-check-input'],
             ]],
             ['select', 'recaptcha_version', [
-                'multiOptions' => ['v2' => 'v2 — checkbox', 'v3' => 'v3 — invisible score'],
+                'multiOptions' => ['v2' => $this->_t('system.settings.recaptcha.version_v2'), 'v3' => $this->_t('system.settings.recaptcha.version_v3')],
                 'value'        => 'v2',
                 'attribs'      => ['id' => 'set-rc-version', 'class' => 'form-select'],
             ]],

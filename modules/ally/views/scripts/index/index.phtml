@@ -7,8 +7,8 @@
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="h3 mb-1"><i class="fa-solid fa-universal-access me-2"></i>Accessibility</h1>
-        <p class="text-body-secondary mb-0">Scan pages for nominal ADA / WCAG-A gaps. Inspector only — it reports, it never changes your content.</p>
+        <h1 class="h3 mb-1"><i class="fa-solid fa-universal-access me-2"></i><?= $this->t('ally.title') ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('ally.subtitle') ?></p>
     </div>
 </div>
 
@@ -17,33 +17,33 @@
 <div class="row g-4">
     <div class="col-lg-5">
         <div class="card border-0 shadow-sm">
-            <div class="card-header fw-semibold"><i class="fa-solid fa-magnifying-glass me-2"></i>Scan</div>
+            <div class="card-header fw-semibold"><i class="fa-solid fa-magnifying-glass me-2"></i><?= $this->t('ally.scan_card') ?></div>
             <div class="card-body">
                 <div class="mb-3">
-                    <label class="form-label" for="ally-page">A content page</label>
+                    <label class="form-label" for="ally-page"><?= $this->t('ally.page_label') ?></label>
                     <div class="input-group">
-                        <select id="ally-page" class="form-select"><option value="">Loading pages…</option></select>
-                        <button type="button" id="ally-scan-page" class="btn btn-primary"><i class="fa-solid fa-play me-1"></i>Scan</button>
+                        <select id="ally-page" class="form-select"><option value=""><?= $this->escape($this->t('ally.loading_pages')) ?></option></select>
+                        <button type="button" id="ally-scan-page" class="btn btn-primary"><i class="fa-solid fa-play me-1"></i><?= $this->t('ally.scan_btn') ?></button>
                     </div>
                 </div>
                 <button type="button" id="ally-scan-all" class="btn btn-outline-secondary btn-sm mb-3">
-                    <i class="fa-solid fa-list-check me-1"></i>Scan all pages
+                    <i class="fa-solid fa-list-check me-1"></i><?= $this->t('ally.scan_all') ?>
                 </button>
                 <hr>
                 <div class="mb-2">
-                    <label class="form-label" for="ally-html">…or paste HTML</label>
+                    <label class="form-label" for="ally-html"><?= $this->t('ally.paste_label') ?></label>
                     <textarea id="ally-html" class="form-control font-monospace" rows="6" placeholder="<div>…</div>"></textarea>
                 </div>
-                <button type="button" id="ally-scan-html" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-code me-1"></i>Scan HTML</button>
+                <button type="button" id="ally-scan-html" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-code me-1"></i><?= $this->t('ally.scan_html') ?></button>
             </div>
         </div>
     </div>
 
     <div class="col-lg-7">
         <div class="card border-0 shadow-sm">
-            <div class="card-header fw-semibold"><i class="fa-solid fa-clipboard-check me-2"></i>Report</div>
+            <div class="card-header fw-semibold"><i class="fa-solid fa-clipboard-check me-2"></i><?= $this->t('ally.report_card') ?></div>
             <div class="card-body">
-                <div id="ally-report"><p class="text-body-secondary small mb-0">Pick a page (or paste HTML) and scan.</p></div>
+                <div id="ally-report"><p class="text-body-secondary small mb-0"><?= $this->t('ally.report_empty') ?></p></div>
             </div>
         </div>
     </div>

@@ -11,8 +11,8 @@ $code = $this->escape($this->code ?? '');
 ?>
 <div class="tiger-auth-brand">
     <span class="tiger-auth-mark"><i class="fa-solid fa-lock"></i></span>
-    <h1 class="h4 mb-1">Set a new password</h1>
-    <p class="text-body-secondary small mb-0">Choose a strong password you don't use elsewhere.</p>
+    <h1 class="h4 mb-1"><?= $this->escape($this->t('core.auth.reset.title')) ?></h1>
+    <p class="text-body-secondary small mb-0"><?= $this->escape($this->t('core.auth.reset.subtitle')) ?></p>
 </div>
 
 <div id="reset-feedback"></div>
@@ -21,12 +21,12 @@ $code = $this->escape($this->code ?? '');
     <input type="hidden" name="cid" value="<?= $cid ?>">
     <input type="hidden" name="code" value="<?= $code ?>">
     <div class="mb-3">
-        <label class="form-label" for="reset-password">New password</label>
+        <label class="form-label" for="reset-password"><?= $this->escape($this->t('core.auth.reset.new_password')) ?></label>
         <input type="password" class="form-control form-control-lg" id="reset-password" name="password"
                autocomplete="new-password" autofocus required>
     </div>
     <div class="mb-3">
-        <label class="form-label" for="reset-confirm">Confirm password</label>
+        <label class="form-label" for="reset-confirm"><?= $this->escape($this->t('core.auth.reset.confirm_password')) ?></label>
         <input type="password" class="form-control form-control-lg" id="reset-confirm" name="confirm"
                autocomplete="new-password" required>
     </div>
@@ -34,12 +34,12 @@ $code = $this->escape($this->code ?? '');
     <div class="mb-3 d-flex justify-content-center"><?= $rc ?></div>
     <?php endif; ?>
     <div class="d-grid mb-2">
-        <button type="submit" id="reset-submit" class="btn btn-primary btn-lg">Set new password</button>
+        <button type="submit" id="reset-submit" class="btn btn-primary btn-lg"><?= $this->escape($this->t('core.auth.reset.submit')) ?></button>
     </div>
 </form>
 
 <div class="tiger-auth-foot">
-    <a href="/auth/login" class="small text-decoration-none">Back to sign in</a>
+    <a href="/auth/login" class="small text-decoration-none"><?= $this->escape($this->t('core.auth.back_to_login')) ?></a>
 </div>
 
 <script>
