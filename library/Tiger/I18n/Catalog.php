@@ -23,8 +23,10 @@ class Tiger_I18n_Catalog
 {
     /**
      * The language files that contribute to a locale, in the SAME merge order the bootstrap
-     * uses (core → first-party modules → app modules → app global; later wins). Mirrors
-     * `Tiger_Application_Bootstrap::_languageFiles` so the catalog can't drift from the runtime.
+     * uses (core → first-party modules → first-party themes → app modules → app themes → app
+     * global; later wins). Mirrors `Tiger_Application_Bootstrap::_languageFiles` so the catalog
+     * can't drift from the runtime — themes ship their chrome strings in
+     * `themes/<theme>/languages/<lang>/*.php` and are self-translating.
      *
      * @param  string $locale language-only locale (en, es)
      * @return string[]        absolute paths to existing files, in load order
@@ -35,7 +37,9 @@ class Tiger_I18n_Catalog
         $files  = [];
         $files[] = TIGER_CORE_PATH . '/core/languages/' . $locale . '/core.php';
         foreach (glob(TIGER_CORE_PATH . '/modules/*/languages/' . $locale . '/*.php') ?: [] as $f) { $files[] = $f; }
+        foreach (glob(TIGER_CORE_PATH . '/themes/*/languages/' . $locale . '/*.php') ?: [] as $f) { $files[] = $f; }
         foreach (glob(APPLICATION_PATH . '/modules/*/languages/' . $locale . '/*.php') ?: [] as $f) { $files[] = $f; }
+        foreach (glob(APPLICATION_PATH . '/themes/*/languages/' . $locale . '/*.php') ?: [] as $f) { $files[] = $f; }
         $files[] = APPLICATION_PATH . '/languages/' . $locale . '/app.php';
 
         return array_values(array_filter($files, 'is_file'));
