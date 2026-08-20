@@ -24,4 +24,7 @@ return [
     'ally.scan_html'       => 'Analizar HTML',
     'ally.report_card'     => 'Informe',
     'ally.report_empty'    => 'Elige una página (o pega HTML) y analiza.',
+    'ally.js.choose_page' => 'Elige una página para analizar.',
+    'ally.js.network_error' => 'Error de red — inténtalo de nuevo.',
+    'ally.js.paste_html' => 'Primero pega algo de HTML.',
 ];

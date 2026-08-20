@@ -73,6 +73,14 @@ $who      = $this->escape(($identity && $identity->username) ? $identity->userna
     <a href="/auth/logout" class="small text-decoration-none"><?= $this->t('core.auth.lock.not_you', $who) ?></a>
 </div>
 
+<?php
+$this->i18n([
+    'codeInvalid' => 'core.js.code_invalid',
+    'codeSent' => 'core.js.code_sent',
+    'incorrectPassword' => 'core.js.incorrect_password',
+    'networkError' => 'core.js.network_error',
+]);
+?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var fb      = document.getElementById('lock-feedback');
@@ -97,8 +105,8 @@ document.addEventListener('DOMContentLoaded', function () {
             return post({ password: document.getElementById('lock-password').value });
         }).then(function (res) {
             if (res && res.result === 1) { unlocked(res); return; }
-            fail('Incorrect password.'); document.getElementById('lock-password').value = '';
-        }).catch(function () { fail('Network error — please try again.'); });
+            fail(Tiger.t('incorrectPassword')); document.getElementById('lock-password').value = '';
+        }).catch(function () { fail(Tiger.t('networkError')); });
     });
 
     // --- mode toggles ---
@@ -118,9 +126,9 @@ document.addEventListener('DOMContentLoaded', function () {
         TigerButton.run(btn, function () {
             return post({ send_code: 1 });
         }).then(function () {
-            document.getElementById('lock-code-note').textContent = 'We sent a 6-digit code to <?= $email ?>. Enter it below.';
+            document.getElementById('lock-code-note').textContent = Tiger.t('codeSent', <?= json_encode((string)($email ?? '')) ?>);
             sendForm.style.display = 'none'; codeForm.style.display = ''; document.getElementById('lock-code').focus();
-        }).catch(function () { fail('Network error — please try again.'); });
+        }).catch(function () { fail(Tiger.t('networkError')); });
     });
 
     // --- code unlock: verify ---
@@ -132,8 +140,8 @@ document.addEventListener('DOMContentLoaded', function () {
             return post({ code: document.getElementById('lock-code').value });
         }).then(function (res) {
             if (res && res.result === 1) { unlocked(res); return; }
-            fail('That code is invalid or has expired.'); document.getElementById('lock-code').value = '';
-        }).catch(function () { fail('Network error — please try again.'); });
+            fail(Tiger.t('codeInvalid')); document.getElementById('lock-code').value = '';
+        }).catch(function () { fail(Tiger.t('networkError')); });
     });
 });
 </script>

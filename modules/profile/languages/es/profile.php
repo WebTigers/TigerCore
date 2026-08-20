@@ -114,4 +114,5 @@ return [
     'profile.address.group.rest'     => 'Todos los países',
 
     'profile.soon'                  => 'Próximamente en la siguiente actualización.',
+    'profile.js.cropper_failed' => 'No se pudo iniciar el recortador: %s',
 ];

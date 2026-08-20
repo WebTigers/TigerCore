@@ -94,6 +94,15 @@ $bridge = (string) $this->bridge;
   </div>
 </div>
 
+<?php
+$this->i18n([
+    'copied' => 'mcp.js.copied',
+    'revokeBody' => 'mcp.js.revoke_body',
+    'revokeLabel' => 'mcp.js.revoke_label',
+    'revokeTitle' => 'mcp.js.revoke_title',
+    'tokenRevoked' => 'mcp.js.token_revoked',
+]);
+?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; }); };
@@ -137,7 +146,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var el = document.querySelector(b.getAttribute('data-copy'));
         if (!el) { return; }
         var text = (el.value !== undefined) ? el.value : el.textContent;
-        navigator.clipboard.writeText(text).then(function () { TigerDOM.toast('Copied.', { type: 'success' }); });
+        navigator.clipboard.writeText(text).then(function () { TigerDOM.toast(Tiger.t('copied'), { type: 'success' }); });
     });
 
     // ---- enable toggle ----
@@ -201,9 +210,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     document.getElementById('mcp-tokens').addEventListener('click', function (e) {
         var b = e.target.closest('.mcp-revoke'); if (!b) { return; }
-        TigerModal.confirm({ title: 'Revoke token', body: 'Any client using this token will stop working.', confirmLabel: 'Revoke', variant: 'danger' }).then(function (ok) {
+        TigerModal.confirm({ title: Tiger.t('revokeTitle'), body: Tiger.t('revokeBody'), confirmLabel: Tiger.t('revokeLabel'), variant: 'danger' }).then(function (ok) {
             if (!ok) { return; }
-            api('mcp', 'settings', 'revokeToken', { credential_id: b.getAttribute('data-id') }).then(function () { TigerDOM.toast('Token revoked.', { type: 'success' }); loadTokens(); });
+            api('mcp', 'settings', 'revokeToken', { credential_id: b.getAttribute('data-id') }).then(function () { TigerDOM.toast(Tiger.t('tokenRevoked'), { type: 'success' }); loadTokens(); });
         });
     });
 

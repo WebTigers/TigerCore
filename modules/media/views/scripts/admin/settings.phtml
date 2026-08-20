@@ -232,6 +232,16 @@ $s = $this->storage;   // storage prefill (no secrets — only has_key/has_secre
     </div>
 </div>
 
+<?php
+$this->i18n([
+    'connectionFailed' => 'media.js.connection_failed',
+    'connectionOk' => 'media.js.connection_ok',
+    'localNoTest' => 'media.js.local_no_test',
+    'networkError' => 'media.js.network_error',
+    'settingsSaved' => 'media.js.settings_saved',
+    'storageSaved' => 'media.js.storage_saved',
+]);
+?>
 <script>
 // ---- Filenames: save obfuscation flags ----
 document.getElementById('media-settings-save').addEventListener('click', function () {
@@ -243,10 +253,10 @@ document.getElementById('media-settings-save').addEventListener('click', functio
         return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
             .then(function (r) { return r.json().catch(function () { return {}; }); });
     }).then(function (res) {
-        if (res && res.result === 1) { TigerDOM.notify(fb, 'Settings saved.', { type: 'success' }); return; }
+        if (res && res.result === 1) { TigerDOM.notify(fb, Tiger.t('settingsSaved'), { type: 'success' }); return; }
         if (res && res.form) { Object.keys(res.form).forEach(function (f) { var el = form.querySelector('[name="' + f + '"]'); if (el) { el.classList.add('is-invalid'); } }); }
         (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
-    }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+    }).catch(function () { TigerDOM.notify(fb, Tiger.t('networkError'), { type: 'error' }); });
 });
 
 // ---- Storage: adapter toggle + test connection + save ----
@@ -292,15 +302,15 @@ document.getElementById('media-settings-save').addEventListener('click', functio
     document.getElementById('media-storage-test').addEventListener('click', function () {
         var res = document.getElementById('media-storage-test-result');
         res.innerHTML = '';
-        if (current() === 'none') { TigerDOM.notify(fb, 'Local storage needs no connection test.', { type: 'info' }); return; }
+        if (current() === 'none') { TigerDOM.notify(fb, Tiger.t('localNoTest'), { type: 'info' }); return; }
         TigerButton.run(this, function () {
             return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: payload('testConnection') })
                 .then(function (r) { return r.json().catch(function () { return {}; }); });
         }).then(function (r) {
             var ok = r && r.result === 1;
-            var msg = (r && r.messages && r.messages[0] && r.messages[0].message) || (ok ? 'Connection succeeded.' : 'Connection failed.');
+            var msg = (r && r.messages && r.messages[0] && r.messages[0].message) || (ok ? Tiger.t('connectionOk') : Tiger.t('connectionFailed'));
             res.innerHTML = '<div class="alert alert-' + (ok ? 'success' : 'danger') + ' mb-0 small"><i class="fa-solid fa-' + (ok ? 'circle-check' : 'circle-xmark') + ' me-2"></i>' + esc(msg) + '</div>';
-        }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+        }).catch(function () { TigerDOM.notify(fb, Tiger.t('networkError'), { type: 'error' }); });
     });
 
     document.getElementById('media-storage-save').addEventListener('click', function () {
@@ -309,7 +319,7 @@ document.getElementById('media-settings-save').addEventListener('click', functio
                 .then(function (r) { return r.json().catch(function () { return {}; }); });
         }).then(function (r) {
             if (r && r.result === 1) {
-                TigerDOM.notify(fb, 'Storage settings saved.', { type: 'success' });
+                TigerDOM.notify(fb, Tiger.t('storageSaved'), { type: 'success' });
                 // No page refresh — so reflect the just-saved disk in the Migration tab's target list now.
                 var adapter = (r.data && r.data.adapter) || current();
                 var mt = document.getElementById('media-migrate-to');
@@ -322,7 +332,7 @@ document.getElementById('media-settings-save').addEventListener('click', functio
                 return;
             }
             (r && r.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class || 'error' }); });
-        }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+        }).catch(function () { TigerDOM.notify(fb, Tiger.t('networkError'), { type: 'error' }); });
     });
 })();
 
@@ -361,7 +371,7 @@ document.getElementById('media-settings-save').addEventListener('click', functio
                 return;
             }
             (r && r.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class || 'error' }); });
-        }).catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+        }).catch(function () { TigerDOM.notify(fb, Tiger.t('networkError'), { type: 'error' }); });
     });
 })();
 </script>

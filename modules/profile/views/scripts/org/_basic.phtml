@@ -85,6 +85,11 @@ $lg  = (string) $this->logoUrl;
     </div>
 </div>
 
+<?php
+$this->i18n([
+    'cropperFailed' => 'profile.js.cropper_failed',
+]);
+?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var fb = document.getElementById('profile-feedback');
@@ -160,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function () {
             try {
                 cropper = new Cropper(cropImg, { viewMode: 1, autoCropArea: 0.9, responsive: true, background: true });
             } catch (err) {
-                TigerDOM.notify(fb, 'Could not start the cropper: ' + (err && err.message ? err.message : err), { type: 'error' });
+                TigerDOM.notify(fb, Tiger.t('cropperFailed', (err && err.message ? err.message : err)), { type: 'error' });
             }
         };
         cropImg.src = pendingSrc;

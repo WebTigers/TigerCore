@@ -49,6 +49,13 @@
     </div>
 </div>
 
+<?php
+$this->i18n([
+    'choosePage' => 'ally.js.choose_page',
+    'networkError' => 'ally.js.network_error',
+    'pasteHtml' => 'ally.js.paste_html',
+]);
+?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var fb     = document.getElementById('ally-feedback');
@@ -148,18 +155,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     document.getElementById('ally-scan-page').addEventListener('click', function () {
-        if (!pageEl.value) { TigerDOM.notify(fb, 'Choose a page to scan.', { type: 'info' }); return; }
+        if (!pageEl.value) { TigerDOM.notify(fb, Tiger.t('choosePage'), { type: 'info' }); return; }
         api('scan', { page_id: pageEl.value }, this).then(renderReport)
-            .catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+            .catch(function () { TigerDOM.notify(fb, Tiger.t('networkError'), { type: 'error' }); });
     });
     document.getElementById('ally-scan-html').addEventListener('click', function () {
-        if (!htmlEl.value.trim()) { TigerDOM.notify(fb, 'Paste some HTML first.', { type: 'info' }); return; }
+        if (!htmlEl.value.trim()) { TigerDOM.notify(fb, Tiger.t('pasteHtml'), { type: 'info' }); return; }
         api('scan', { html: htmlEl.value }, this).then(renderReport)
-            .catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+            .catch(function () { TigerDOM.notify(fb, Tiger.t('networkError'), { type: 'error' }); });
     });
     document.getElementById('ally-scan-all').addEventListener('click', function () {
         api('scanAll', {}, this).then(renderAll)
-            .catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+            .catch(function () { TigerDOM.notify(fb, Tiger.t('networkError'), { type: 'error' }); });
     });
 
     loadPages();

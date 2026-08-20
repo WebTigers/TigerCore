@@ -19,4 +19,7 @@ return [
     'ally.scan_html' => 'Scan HTML',
     'ally.report_card' => 'Report',
     'ally.report_empty' => 'Pick a page (or paste HTML) and scan.',
+    'ally.js.choose_page' => 'Choose a page to scan.',
+    'ally.js.network_error' => 'Network error — please try again.',
+    'ally.js.paste_html' => 'Paste some HTML first.',
 ];

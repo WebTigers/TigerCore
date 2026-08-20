@@ -373,6 +373,15 @@ $hasSecret = !empty($this->hasSecret);
     </div>
 </form>
 
+<?php
+$this->i18n([
+    'fixFields' => 'system.js.fix_fields',
+    'lookupFailed' => 'system.js.lookup_failed',
+    'networkError' => 'system.js.network_error',
+    'networkErrorShort' => 'system.js.network_error_short',
+    'settingsSaved' => 'system.js.settings_saved',
+]);
+?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var form = document.getElementById('sys-settings-form');
@@ -393,7 +402,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(function (r) { return r.json().catch(function () { return {}; }); });
         })
             .then(function (res) {
-                if (res && res.result === 1) { TigerDOM.notify(fb, 'Settings saved.', { type: 'success' }); return; }
+                if (res && res.result === 1) { TigerDOM.notify(fb, Tiger.t('settingsSaved'), { type: 'success' }); return; }
                 if (res && res.form) {
                     Object.keys(res.form).forEach(function (field) {
                         var input = form.querySelector('[name="' + field + '"]');
@@ -402,9 +411,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 var msgs = (res && res.messages) || [];
                 if (msgs.length) { fb.innerHTML = ''; msgs.forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class, replace: false }); }); }
-                else { TigerDOM.notify(fb, 'Please fix the highlighted fields.', { type: 'error' }); }
+                else { TigerDOM.notify(fb, Tiger.t('fixFields'), { type: 'error' }); }
             })
-            .catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+            .catch(function () { TigerDOM.notify(fb, Tiger.t('networkError'), { type: 'error' }); });
     });
 
     // Live human-readable durations + dim the options when off.
@@ -501,8 +510,8 @@ document.addEventListener('DOMContentLoaded', function () {
             }).then(function (res) {
                 var d = (res && res.data) || {};
                 if (d.ok) { out.className = 'small mt-2 text-success'; out.textContent = '✓ ' + (d.label || (d.city ? d.city + ', ' : '') + (d.country || '?')); }
-                else { out.className = 'small mt-2 text-danger'; out.textContent = '✗ ' + (d.error || 'Lookup failed.'); }
-            }).catch(function () { out.className = 'small mt-2 text-danger'; out.textContent = 'Network error.'; });
+                else { out.className = 'small mt-2 text-danger'; out.textContent = '✗ ' + (d.error || Tiger.t('lookupFailed')); }
+            }).catch(function () { out.className = 'small mt-2 text-danger'; out.textContent = Tiger.t('networkErrorShort'); });
         });
     }
 });

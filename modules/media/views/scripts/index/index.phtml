@@ -10,6 +10,18 @@
  */
 ?>
 <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/vendor/tiger-lightbox/tiger-lightbox.css') ?>">
+<?php
+$this->i18n([
+    'alreadyInLibrary' => 'media.js.already_in_library',
+    'confirmDeleteFile' => 'media.js.confirm_delete_file',
+    'copied' => 'media.js.copied',
+    'copiedToLibrary' => 'media.js.copied_to_library',
+    'copyFailed' => 'media.js.copy_failed',
+    'fileDeleted' => 'media.js.file_deleted',
+    'mediaUpdated' => 'media.js.media_updated',
+    'networkError' => 'media.js.network_error',
+]);
+?>
 <script src="<?= $this->asset($this->themeAssets . '/vendor/tiger-lightbox/tiger-lightbox.js') ?>" defer></script>
 <script src="<?= $this->asset($this->themeAssets . '/vendor/tiger-upload/tiger-upload.js') ?>"></script>
 
@@ -369,17 +381,17 @@ document.addEventListener('DOMContentLoaded', function () {
         TigerButton.run(this, function(){
             return fetch('/api', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body:body }).then(function(r){ return r.json(); });
         }).then(function(res){
-            if (res && res.result===1) { if (editModal) { editModal.hide(); } TigerDOM.toast('Media updated.', { type:'success' }); refresh(); return; }
+            if (res && res.result===1) { if (editModal) { editModal.hide(); } TigerDOM.toast(Tiger.t('mediaUpdated'), { type:'success' }); refresh(); return; }
             editFb.innerHTML=''; ((res&&res.messages)||[]).forEach(function(m){ TigerDOM.notify(editFb, m.message, { type:m.class }); });
-        }).catch(function(){ TigerDOM.notify(editFb, 'Network error — please try again.', { type:'error' }); });
+        }).catch(function(){ TigerDOM.notify(editFb, Tiger.t('networkError'), { type:'error' }); });
     });
 
     function deleteMedia(id, btn, before){
         if (!id) { return; }
-        if (!confirm('Delete this file? The stored bytes are removed.')) { return; }
+        if (!confirm(Tiger.t('confirmDeleteFile'))) { return; }
         TigerButton.run(btn, function(){
             return fetch('/api', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body:new URLSearchParams({ module:'media', service:'media', method:'delete', media_id:id }) }).then(function(r){ return r.json(); });
-        }).then(function(res){ if (before) { before(); } if (res && res.result===1) { TigerDOM.toast('File deleted.', { type:'success' }); } refresh(); })
+        }).then(function(res){ if (before) { before(); } if (res && res.result===1) { TigerDOM.toast(Tiger.t('fileDeleted'), { type:'success' }); } refresh(); })
           .catch(function(){ refresh(); });
     }
     // In-modal delete (both views) …
@@ -402,7 +414,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
     function copiedPopper(btn){
-        var pop=document.createElement('div'); pop.className='media-copied-pop'; pop.textContent='Copied!';
+        var pop=document.createElement('div'); pop.className='media-copied-pop'; pop.textContent=Tiger.t('copied');
         document.body.appendChild(pop);
         var r=btn.getBoundingClientRect();
         pop.style.left=(r.left + r.width/2 + window.scrollX)+'px';
@@ -419,7 +431,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var i=b.querySelector('i'), old=i?i.className:'';
             if(i){ i.className='fa-solid fa-check text-success'; setTimeout(function(){ i.className=old; }, 1000); }
             copiedPopper(b);
-        }).catch(function(){ TigerDOM.toast('Could not copy the URL.', { type:'error' }); });
+        }).catch(function(){ TigerDOM.toast(Tiger.t('copyFailed'), { type:'error' }); });
     });
 
     // ---------- copy a STATIC (module/theme-shipped) image into the managed Library (delegated) ----------
@@ -433,9 +445,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 body:new URLSearchParams({ module:'media', service:'media', method:'copyToLibrary', media_id:b.getAttribute('data-media-copy-lib') }) })
                 .then(function(r){ return r.json(); });
         }).then(function(res){
-            if (res && res.result===1) { TigerDOM.toast((res.data&&res.data.existing)?'Already in your library.':'Copied to your media library.', { type:'success' }); refresh(); return; }
+            if (res && res.result===1) { TigerDOM.toast((res.data&&res.data.existing)?Tiger.t('alreadyInLibrary'):Tiger.t('copiedToLibrary'), { type:'success' }); refresh(); return; }
             ((res&&res.messages)||[]).forEach(function(m){ TigerDOM.toast(m.message, { type:m.class }); });
-        }).catch(function(){ TigerDOM.toast('Network error — please try again.', { type:'error' }); });
+        }).catch(function(){ TigerDOM.toast(Tiger.t('networkError'), { type:'error' }); });
     });
 
     // ---------- upload (TigerUpload engine → BOTH views as independent subscribers) ----------

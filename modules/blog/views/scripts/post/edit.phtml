@@ -19,6 +19,15 @@ $body = $form->getElement('body')->getValue();   // raw HTML into the contentEdi
 ?>
 <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/vendor/codemirror/codemirror.bundle.css') ?>">
 <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/vendor/codemirror/theme-dark.css') ?>">
+<?php
+$this->i18n([
+    'confirmRestore' => 'blog.js.confirm_restore',
+    'fixFields' => 'blog.js.fix_fields',
+    'linkUrl' => 'blog.js.link_url',
+    'mediaPickerUnavailable' => 'blog.js.media_picker_unavailable',
+    'networkError' => 'blog.js.network_error',
+]);
+?>
 <script src="<?= $this->asset($this->themeAssets . '/vendor/codemirror/codemirror.bundle.js') ?>"></script>
 <script src="<?= $this->asset($this->themeAssets . '/js/tiger.code-editor.js') ?>"></script>
 
@@ -251,13 +260,13 @@ document.addEventListener('DOMContentLoaded', function () {
     var linkBtn = document.querySelector('[data-ed-link]');
     if (linkBtn) { linkBtn.addEventListener('mousedown', function (e){ e.preventDefault(); });
         linkBtn.addEventListener('click', function () {
-            var url = prompt('Link URL:'); if (url) { bodyEl.focus(); document.execCommand('createLink', false, url); }
+            var url = prompt(Tiger.t('linkUrl')); if (url) { bodyEl.focus(); document.execCommand('createLink', false, url); }
         });
     }
 
     // Media picker: feature image + inline image insert (uses the platform TigerMediaPicker).
     function pickImage(cb) {
-        if (typeof TigerMediaPicker === 'undefined') { alert('Media picker unavailable.'); return; }
+        if (typeof TigerMediaPicker === 'undefined') { alert(Tiger.t('mediaPickerUnavailable')); return; }
         TigerMediaPicker.open({ kind: 'image', multiple: false, onSelect: function (items) {
             var m = items && items[0]; if (m) { cb(m); }
         }});
@@ -304,10 +313,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 }); }
                 var msgs = (res.messages) || [];
                 if (msgs.length) { fb.innerHTML = ''; msgs.forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class, replace: false }); }); }
-                else { TigerDOM.notify(fb, 'Please fix the highlighted fields.', { type: 'error' }); }
+                else { TigerDOM.notify(fb, Tiger.t('fixFields'), { type: 'error' }); }
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             })
-            .catch(function () { TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' }); });
+            .catch(function () { TigerDOM.notify(fb, Tiger.t('networkError'), { type: 'error' }); });
     }
 
     document.getElementById('ed-save').addEventListener('click', function () {
@@ -321,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.addEventListener('click', function () {
             var el = this;
             var ver = btn.getAttribute('data-ed-restore');
-            if (!confirm('Restore version #' + ver + '? Current content is saved as a new version first.')) { return; }
+            if (!confirm(Tiger.t('confirmRestore', ver))) { return; }
             post({ method: 'restore', version: ver }, function (res) { window.location = res.redirect || window.location.href; }, el);
         });
     });

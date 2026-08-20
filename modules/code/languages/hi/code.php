@@ -69,4 +69,8 @@ return [
     'code.lang.js' => 'JavaScript — injected as a script',
     'code.auto.head' => 'Head',
     'code.auto.footer' => 'Footer',
+    'code.js.fix_form' => 'Please check the form and try again.',
+    'code.js.network_error' => 'Network error — please try again.',
+    'code.js.confirm_restore' => 'Restore version #%s? Current content is saved as a new version first.',
+    'code.js.confirm_delete_snippet' => 'Delete this snippet? It is soft-deleted and can be recovered.',
 ];

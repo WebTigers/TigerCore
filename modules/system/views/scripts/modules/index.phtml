@@ -150,6 +150,14 @@ $typeIcon = static function ($t) {
     </div>
 </div>
 
+<?php
+$this->i18n([
+    'confirmActivate' => 'system.js.confirm_activate',
+    'deleteFailed' => 'system.js.delete_failed',
+    'deleteUnavailable' => 'system.js.delete_unavailable',
+    'networkError' => 'system.js.network_error',
+]);
+?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -210,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (res.result === 1) { window.location.reload(); return; }
             if (res.data && res.data.conflicts && res.data.conflicts.length) {
                 var names = res.data.conflicts.map(function (c) { return '"' + (c.name || c.slug) + '"'; }).join(', ');
-                if (confirm('Activating "' + slug + '" will deactivate ' + names + ' (only one can be active at a time). Continue?')) {
+                if (confirm(Tiger.t('confirmActivate', slug, names))) {
                     send({ confirm: '1' }).then(function (r2) {
                         if (r2.result === 1) { window.location.reload(); return; }
                         (r2.messages || []).forEach(function (m) { alert(m.message); });
@@ -246,7 +254,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (delInput) { delInput.value = ''; }
         if (delBtn)   { delBtn.disabled = true; }
         if (delFb)    { delFb.innerHTML = ''; }
-        if (delModal) { delModal.show(); } else { alert('Delete unavailable — modal failed to load.'); }
+        if (delModal) { delModal.show(); } else { alert(Tiger.t('deleteUnavailable')); }
     }
 
     /* One delegated listener handles both toggle + delete triggers across every DataTables redraw. */
@@ -270,11 +278,11 @@ document.addEventListener('DOMContentLoaded', function () {
             })
                 .then(function (res) {
                     if (res && res.result === 1) { window.location.reload(); return; }
-                    var m = (res && res.messages && res.messages[0] && res.messages[0].message) || 'Delete failed.';
+                    var m = (res && res.messages && res.messages[0] && res.messages[0].message) || Tiger.t('deleteFailed');
                     if (window.TigerDOM && delFb) { TigerDOM.notify(delFb, m, { type: 'error' }); }
                     else if (delFb) { delFb.textContent = m; }
                 })
-                .catch(function () { if (delFb) { delFb.textContent = 'Network error — please try again.'; } });
+                .catch(function () { if (delFb) { delFb.textContent = Tiger.t('networkError'); } });
         });
     }
 });

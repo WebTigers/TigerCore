@@ -40,4 +40,9 @@ return [
     'mcp.connect.npx.help'       => 'Añádelo a la configuración <code>mcpServers</code> de tu cliente (Claude Desktop, Cursor, …). Usa el puente comunitario <code>mcp-remote</code> — nada que instalar.',
     'mcp.connect.php.help'       => '¿Sin Node? <a href="/mcp/admin/download">Descarga <code>mcp-bridge.php</code></a>, guárdalo en tu equipo y define la ruta abajo. Solo necesita PHP.',
     'mcp.connect.test'           => 'O pruébalo directamente:',
+    'mcp.js.copied' => 'Copiado.',
+    'mcp.js.token_revoked' => 'Token revocado.',
+    'mcp.js.revoke_title' => 'Revocar token',
+    'mcp.js.revoke_body' => 'Cualquier cliente que use este token dejará de funcionar.',
+    'mcp.js.revoke_label' => 'Revocar',
 ];

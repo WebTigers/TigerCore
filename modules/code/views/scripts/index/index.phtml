@@ -9,6 +9,11 @@
 ?>
 <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/vendor/codemirror/codemirror.bundle.css') ?>">
 <link rel="stylesheet" href="<?= $this->asset($this->themeAssets . '/vendor/codemirror/theme-dark.css') ?>">
+<?php
+$this->i18n([
+    'confirmDeleteSnippet' => 'code.js.confirm_delete_snippet',
+]);
+?>
 <script src="<?= $this->asset($this->themeAssets . '/vendor/codemirror/codemirror.bundle.js') ?>"></script>
 <script src="<?= $this->asset($this->themeAssets . '/js/tiger.code-editor.js') ?>"></script>
 
@@ -133,7 +138,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     $('#code-table tbody').on('click', '[data-code-delete]', function () {
         var btn = this;
-        if (!confirm('Delete this snippet? It is soft-deleted and can be recovered.')) { return; }
+        if (!confirm(Tiger.t('confirmDeleteSnippet'))) { return; }
         TigerButton.run(btn, function () { return api('delete', btn.getAttribute('data-code-delete')); }).then(function () { table.ajax.reload(null, false); });
     });
 

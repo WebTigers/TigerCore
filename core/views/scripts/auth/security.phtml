@@ -119,6 +119,16 @@ $available = !empty($twofa['available']);
 </div>
 
 <?php /* QR renderer (vendored, MIT). Progressive: security.phtml uses window.QRCode if present. */ ?>
+<?php
+$this->i18n([
+    'networkError' => 'core.js.network_error',
+    'setupFailed' => 'core.js.setup_failed',
+    'twofaCodeWrong' => 'core.js.twofa_code_wrong',
+    'twofaCodeWrongOn' => 'core.js.twofa_code_wrong_on',
+    'twofaDisabled' => 'core.js.twofa_disabled',
+    'twofaOn' => 'core.js.twofa_on',
+]);
+?>
 <script src="<?= $this->asset($this->themeAssets . '/js/vendor/qrcode.min.js') ?>"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -144,9 +154,9 @@ document.addEventListener('DOMContentLoaded', function () {
             TigerButton.run(btn, function () {
                 return post('/auth/totp-disable', { code: document.getElementById('disable-code').value });
             }).then(function (res) {
-                if (res && res.result === 1) { note('Two-factor authentication disabled.', 'success'); setTimeout(function(){ location.reload(); }, 800); return; }
-                note('That code is incorrect. Two-factor auth is still on.');
-            }).catch(function () { note('Network error — please try again.'); });
+                if (res && res.result === 1) { note(Tiger.t('twofaDisabled'), 'success'); setTimeout(function(){ location.reload(); }, 800); return; }
+                note(Tiger.t('twofaCodeWrongOn'));
+            }).catch(function () { note(Tiger.t('networkError')); });
         });
     }
 
@@ -169,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function () {
         TigerButton.run(beginBtn, function () {
             return post('/auth/totp-setup');
         }).then(function (res) {
-            if (!res || res.result !== 1 || !res.data) { note('Could not start setup. Please try again.'); return; }
+            if (!res || res.result !== 1 || !res.data) { note(Tiger.t('setupFailed')); return; }
             var d = res.data;
             document.getElementById('totp-secret').textContent = d.secret;
             var link = document.getElementById('totp-uri-link');
@@ -185,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('twofa-intro').style.display = 'none';
             document.getElementById('twofa-setup').style.display = '';
             document.getElementById('confirm-code').focus();
-        }).catch(function () { note('Network error — please try again.'); });
+        }).catch(function () { note(Tiger.t('networkError')); });
     });
 
     document.getElementById('copy-recovery').addEventListener('click', function () {
@@ -200,11 +210,11 @@ document.addEventListener('DOMContentLoaded', function () {
         TigerButton.run(btn, function () {
             return post('/auth/totp-activate', { code: document.getElementById('confirm-code').value });
         }).then(function (res) {
-            if (res && res.result === 1) { note('Two-factor authentication is on. 🎉', 'success'); setTimeout(function(){ location.reload(); }, 900); return; }
-            note('That code didn\'t match. Check your app\'s clock and try the current code.');
+            if (res && res.result === 1) { note(Tiger.t('twofaOn'), 'success'); setTimeout(function(){ location.reload(); }, 900); return; }
+            note(Tiger.t('twofaCodeWrong'));
             document.getElementById('confirm-code').value = '';
             document.getElementById('confirm-code').focus();
-        }).catch(function () { note('Network error — please try again.'); });
+        }).catch(function () { note(Tiger.t('networkError')); });
     });
 });
 </script>
