@@ -12,6 +12,7 @@
 return [
     // Header nav
     'theme.nav.why_tiger' => 'Why Tiger',
+    'theme.nav.saas_vs_sias' => 'SaaS vs. SiaS',
     'theme.nav.solutions' => 'Solutions',
     'theme.nav.features'  => 'Features',
     'theme.nav.docs'      => 'Docs',

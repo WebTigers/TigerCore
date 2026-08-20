@@ -79,7 +79,13 @@ $mega = [
 
         <div class="collapse navbar-collapse" id="tigerNav">
             <ul class="navbar-nav mb-2 mb-lg-0">
-                <li class="nav-item"><a class="nav-link" href="/why-tiger"><?= $this->t('theme.nav.why_tiger') ?></a></li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="tigerWhy" role="button" data-bs-toggle="dropdown" aria-expanded="false"><?= $this->t('theme.nav.why_tiger') ?></a>
+                    <ul class="dropdown-menu border-0 shadow" aria-labelledby="tigerWhy">
+                        <li><a class="dropdown-item" href="/why-tiger"><?= $this->t('theme.nav.why_tiger') ?></a></li>
+                        <li><a class="dropdown-item" href="/saas-vs-sias"><?= $this->t('theme.nav.saas_vs_sias') ?></a></li>
+                    </ul>
+                </li>
                 <!-- Solutions: a static mega-menu — HTML injected into the first dropdown. -->
                 <li class="nav-item dropdown tiger-mega">
                     <a class="nav-link dropdown-toggle" href="#" id="tigerSolutions" role="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false"><?= $this->t('theme.nav.solutions') ?></a>

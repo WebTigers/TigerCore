@@ -6,6 +6,7 @@
  */
 return [
     'theme.nav.why_tiger' => 'Tiger क्यों',
+    'theme.nav.saas_vs_sias' => 'SaaS बनाम SiaS',
     'theme.nav.solutions' => 'समाधान',
     'theme.nav.features'  => 'विशेषताएँ',
     'theme.nav.docs'      => 'दस्तावेज़',
