@@ -1,0 +1,170 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /vibe — the SaaS-startup / "vibe coding" pitch. Rendered inside the PUMA public layout.
+ * Bootstrap + --bs-* tokens (restyles live with theme + skin). Shipped marketing.
+ */
+$this->title = 'SaaS con onda — un MVP seguro en minutos | Tiger';
+
+$included = [
+    ['fa-fingerprint',   'Autenticación que te tomaría semanas',  'Contraseñas con políticas y bloqueo, códigos por correo, 2FA con TOTP, restablecimiento de contraseña, sesiones en la base de datos y un registro de auditoría — ya conectado, no un pendiente en tu lista.'],
+    ['fa-building',       'Multi-tenant desde el primer commit','Organizaciones, usuarios y membresías son el modelo, no una refactorización que temes hacer cuando llegues a los 500 clientes. Listo para cobrar cuando tú lo estés.'],
+    ['fa-user-lock',      'Roles y permisos',      'Un ACL que niega por defecto, con roles sobre la membresía. Protege una función con una regla, no con un if que se te olvida escribir.'],
+    ['fa-arrows-to-dot',  'Una sola /api limpia',               'Un único endpoint; el mensaje dice a dónde va. Agregas un método y queda en vivo — sin un zoológico de rutas, y alimenta una app móvil o una SPA más adelante sin costo extra.'],
+];
+?>
+<!-- Hero -->
+<section class="py-5">
+    <div class="container text-center py-lg-5">
+        <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+            <i class="fa-solid fa-robot me-1"></i> Para quienes programan con onda y fundadores de SaaS
+        </span>
+        <h1 class="display-4 fw-bold mb-3">Un MVP seguro en minutos, no en días.</h1>
+        <p class="lead text-secondary mx-auto mb-4" style="max-width: 720px;">
+            Tiger te entrega la base aburrida-pero-esencial de todo SaaS — autenticación, organizaciones, roles,
+            multi-tenant listo para cobrar, i18n y una <code>/api</code> limpia — para que tú y tu IA lancen
+            <em>producto</em> desde el primer commit, sobre un stack que no se dobla cuando funciona.
+        </p>
+        <div class="d-flex flex-wrap gap-2 justify-content-center">
+            <a href="/signup" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-arrow-right-to-bracket me-2"></i>Empieza a construir</a>
+            <a href="/docs" class="btn btn-outline-secondary btn-lg px-4">Lee la documentación</a>
+        </div>
+    </div>
+</section>
+
+<!-- Ship product, not plumbing -->
+<section class="pb-2">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">Lanza producto, no plomería</h2>
+            <p class="text-secondary mx-auto mb-0" style="max-width:640px;">
+                El 80% sin glamour que todo SaaS necesita — ya construido, ya seguro. Invierte tu capital en
+                aquello que solo tú puedes crear.
+            </p>
+        </div>
+        <div class="row g-4">
+<?php foreach ($included as $c): ?>
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body d-flex gap-3 p-4">
+                        <div class="flex-shrink-0 d-inline-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary-emphasis" style="width:48px;height:48px;">
+                            <i class="fa-solid <?= $c[0] ?> fs-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="h6 fw-semibold mb-1"><?= $c[1] ?></h3>
+                            <p class="small text-secondary mb-0"><?= $c[2] ?></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- Built for vibe coding -->
+<section class="py-5 mt-4" style="background: var(--bs-tertiary-bg);">
+    <div class="container">
+        <div class="row g-4 align-items-center">
+            <div class="col-lg-5">
+                <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">Programar con onda que no se pudre</span>
+                <h2 class="fw-bold mb-3">Tu IA lee las reglas antes de escribir</h2>
+                <p class="text-secondary mb-3">
+                    Tiger incluye un <code>AGENTS.md</code> y patrones predecibles y documentados que tu asistente
+                    consume primero — así "agrega un servicio de facturación" aterriza como un servicio real, con su
+                    regla de ACL, su formulario y su método <code>/api</code>, al estilo de la casa. Describe la
+                    función; las convenciones la mantienen limpia.
+                </p>
+                <ul class="list-unstyled small text-secondary mb-0">
+                    <li class="mb-2"><i class="fa-solid fa-check text-primary me-2"></i>Documentación que vive en el código — una sola forma obvia de hacer cada cosa.</li>
+                    <li class="mb-2"><i class="fa-solid fa-check text-primary me-2"></i><code>make:module</code> genera un controlador + servicio + ACL en vivo en segundos.</li>
+                    <li class="mb-0"><i class="fa-solid fa-check text-primary me-2"></i>Una referencia de API generada, directo desde tus docblocks.</li>
+                </ul>
+            </div>
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4 font-monospace small">
+                        <div class="text-secondary mb-2"># descríbelo a tu IA y obtén un endpoint real y protegido</div>
+                        <div><span class="text-secondary">$</span> vendor/bin/tiger make:module billing</div>
+                        <div class="text-secondary mt-2">→ Billing_Service_Invoice::create() &nbsp;<span class="text-primary">// validar → transacción</span></div>
+                        <div class="text-secondary">→ configs/acl.ini &nbsp;<span class="text-primary">// regla que niega por defecto</span></div>
+                        <div class="text-secondary">→ POST /api {module:billing, service:invoice, method:create}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Enterprise-shaped + fast/cheap -->
+<section class="py-5">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="fa-solid fa-building-shield text-primary fs-2 mb-3"></i>
+                        <h3 class="h5 fw-bold">Un MVP con forma de empresa</h3>
+                        <p class="text-secondary small mb-0">
+                            Registro de auditoría, ACL por tenant, sesiones seguras, i18n, configuración en vivo — la
+                            base que gana contratos corporativos viene desde tu primer commit, así tu MVP tiene forma
+                            de producción, no de reescritura pendiente.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="fa-solid fa-gauge-high text-primary fs-2 mb-3"></i>
+                        <div class="small text-secondary text-uppercase mb-0" style="letter-spacing:.06em;">responde en</div>
+                        <div class="display-6 fw-bold text-primary mb-1">~10&thinsp;ms</div>
+                        <p class="text-secondary small mb-0">
+                            Un núcleo ligero, sin el peso de un framework en cada request — estable en la mediana y en
+                            la cola. Lo rápido es lo predeterminado, así un buen pico el día del lanzamiento no se
+                            convierte en una caída.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="fa-solid fa-piggy-bank text-primary fs-2 mb-3"></i>
+                        <div class="small text-secondary text-uppercase mb-0" style="letter-spacing:.06em;">corre en</div>
+                        <div class="display-6 fw-bold text-primary mb-1">un hosting de $5</div>
+                        <p class="text-secondary small mb-0">
+                            Cero paso de build, huella mínima — Tiger corre en hosting compartido barato donde los
+                            frameworks pesados ni siquiera arrancan. Gasta tu presupuesto en tu idea, no en tu factura
+                            de infraestructura.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p class="text-secondary text-center mt-3 mb-0" style="font-size:.7rem; line-height:1.45;">
+            ~10&thinsp;ms medidos (un solo request en caliente, máquina de 2&#8209;vCPU, PHP&nbsp;8 + OPcache) — no es
+            un benchmark controlado; los resultados varían según la carga y el hardware.
+        </p>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="pb-5">
+    <div class="container">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="fw-bold mb-3">De la idea a una app segura y funcionando hoy</h2>
+                <p class="text-secondary mb-4">Un solo comando genera una app multi-tenant funcionando y con tema — luego, ponle onda.</p>
+                <div class="bg-body-tertiary border rounded-3 d-inline-block px-4 py-3 mb-4 text-start font-monospace small">
+                    <span class="text-secondary">$</span> composer create-project webtigers/tiger my-app<br>
+                    <span class="text-secondary">$</span> cd my-app &amp;&amp; vendor/bin/tiger install:admin
+                </div>
+                <div>
+                    <a href="/signup" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-arrow-right-to-bracket me-2"></i>Crea tu cuenta</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

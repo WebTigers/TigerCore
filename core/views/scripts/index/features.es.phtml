@@ -1,0 +1,124 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /features — the full feature catalog. A sectioned grid of cards drawn from across the audience
+ * pages (/cms, /vibe, /agency, /developers, …) into one place. Classy notes for now — a placeholder
+ * that still looks finished; the deep detail lives on the audience pages. Rendered in the PUMA public
+ * layout; Bootstrap + --bs-* tokens, so it restyles live with the theme + skin.
+ */
+$this->title = 'Funciones — todo lo que trae Tiger | Tiger';
+
+// [section title, section subtitle, [ [icon, name, note], … ] ]
+$sections = [
+    ['Cimientos', 'La base sobre la que se levanta cada app', [
+        ['fa-building',      'Núcleo multiempresa',   'Organizaciones, usuarios y membresías listos desde el inicio: los roles viven en la membresía, no en el usuario.'],
+        ['fa-bolt',          'Cero cadena de build',  'Sin npm, sin webpack, sin Sass. <code>composer install</code> y la interfaz ya se muestra.'],
+        ['fa-layer-group',   'Agnóstico de front-end','<code>.phtml</code> renderizado en el servidor o cualquier SPA, todo contra una sola <code>/api</code> JSON.'],
+        ['fa-gauge-high',    'Hecho para la velocidad','Un núcleo ligero y afinado con OPcache: páginas de ~10 ms, incluso en un hosting compartido de 5 dólares.'],
+        ['fa-server',        'Autoaloja donde quieras','cPanel, un VPS de 5 dólares o una flota tras un balanceador de carga. Sin nube de un proveedor obligada.'],
+    ]],
+    ['Autenticación y seguridad', 'Nivel empresarial, conectado desde el primer commit', [
+        ['fa-fingerprint',  'Credenciales y 2FA',       'Política de contraseñas, bloqueo, códigos por correo y TOTP: la identidad se mantiene separada de las credenciales.'],
+        ['fa-user-shield',  'ACL de denegar por defecto','Cada petición se autoriza antes de ejecutarse; los roles se resuelven en vivo, por cada empresa.'],
+        ['fa-user-clock',   'Sesiones y cierre automático','Sesiones respaldadas en la base de datos, con tiempo de inactividad decidido por el servidor y pantalla de bloqueo.'],
+        ['fa-list-check',   'Bitácora de accesos',      'Cada intento de inicio de sesión queda registrado: la base para limitar la tasa y detectar anomalías.'],
+        ['fa-key',          'Rotación sin caídas',      'Rota la llave de cifrado y el pepper de contraseñas sin forzar restablecimientos.'],
+    ]],
+    ['Contenido y temas', 'Un CMS que no te encierra', [
+        ['fa-file-lines',      'CMS en base de datos',       'Páginas, layouts y partials como filas: edita el contenido sin necesidad de un despliegue.'],
+        ['fa-object-group',    'Constructor visual',          'Arrastrar y soltar con GrapesJS, más cuerpos en Markdown, HTML o PHTML de confianza.'],
+        ['fa-bars-staggered',  'Menús personalizados',        'Navegación creada por el admin, que cascada por empresa, con un constructor de arrastrar y soltar.'],
+        ['fa-clock-rotate-left','Versionado y programación',  'Cada guardado captura una versión; una fecha de publicación futura agenda la salida en vivo.'],
+        ['fa-palette',         'Temas y skins, en vivo',      'Claro/oscuro y skins intercambiables que se cambian al vuelo sin recargar, por usuario o por empresa.'],
+        ['fa-id-badge',        'Identidad del sitio',         'Nombre, logo, favicon y redes: editables y conectados al head de la página.'],
+    ]],
+    ['Servicios web &mdash; el patrón <code>/api</code>', 'REST sin el relleno', [
+        ['fa-arrows-to-dot', 'Un solo endpoint',   'Una única <code>/api</code>; el mensaje nombra el servicio y el método. Agregas un método y ya está en vivo.'],
+        ['fa-lock',          'Protegido por ACL',  'Autorizado antes de ejecutarse: el recurso es el servicio, el privilegio es el método.'],
+        ['fa-table',         'DataTables incluido','Grids del lado del servidor que traen filas desde <code>/api</code>, nunca HTML renderizado en el servidor.'],
+        ['fa-compass',       'Se describe solo',   'Como el enrutamiento es datos, un catálogo OpenAPI sale del propio patrón.'],
+    ]],
+    ['Experiencia de desarrollo', 'Hecho para construir encima', [
+        ['fa-cubes',          'Todo es un módulo',        'Suelta una carpeta —controladores, servicios, modelos, migraciones, vistas, ACL— y se conecta solo.'],
+        ['fa-terminal',       'CLI con todo incluido',    '<code>make:module</code> arma una función viva; migraciones, install:admin y rotación de secretos vienen dentro.'],
+        ['fa-book-open',      'Docs en el código',        'Los docblocks generan la referencia de la API; un <code>AGENTS.md</code> guía a tu IA antes de que escriba.'],
+        ['fa-scale-balanced', 'Licencia BSD',             'Sin copyleft: crea productos comerciales y publica módulos de código cerrado.'],
+        ['fa-database',       'Migraciones aditivas',     'Un runner sin dependencias escanea el núcleo, la app y cada módulo en busca de cambios de esquema.'],
+    ]],
+    ['Internacional y configurable', 'Cámbialo en producción, sin desplegar', [
+        ['fa-sliders',        'Overrides de config en vivo','Cualquier ajuste se puede sobrescribir en tiempo de petición —global o por empresa— sin desplegar.'],
+        ['fa-language',       'Traducciones en vivo',      'Sobrescribe o agrega cualquier texto en tiempo de petición; claves semánticas con prefijo de dueño.'],
+        ['fa-earth-americas', 'URLs localizadas',          '<code>/es/</code> funciona en cada ruta; la resolución y la persistencia vienen incorporadas.'],
+    ]],
+    ['SEO y marketing', 'Encontrable por defecto', [
+        ['fa-hashtag',         'Registro del head',         'title, description, canonical y robots: aportados, nunca escritos a mano en el código.'],
+        ['fa-share-nodes',     'Open Graph y Twitter',      'Tarjetas de compartir enriquecidas, con la imagen principal resuelta a dimensiones reales.'],
+        ['fa-sitemap',         'Sitemap y robots',          'Cada URL pública mapeada y servida como ruta: páginas, blog y docs.'],
+        ['fa-diagram-project', 'Datos estructurados JSON-LD','Organization, WebSite, Breadcrumb y Article para resultados enriquecidos.'],
+    ]],
+];
+?>
+<!-- Hero -->
+<section class="py-5">
+    <div class="container text-center py-lg-4">
+        <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+            Toda la caja de herramientas
+        </span>
+        <h1 class="display-4 fw-bold mb-3">Todo lo que trae Tiger</h1>
+        <p class="lead text-secondary mx-auto mb-0" style="max-width: 720px;">
+            Toda la base aburrida pero imprescindible que cada sitio y SaaS necesita —autenticación, multiempresa, un CMS, una
+            <code>/api</code> limpia, i18n y más— ya construida. Un recorrido por lo que viene en la caja.
+        </p>
+    </div>
+</section>
+
+<?php foreach ($sections as $i => $s): $alt = ($i % 2 === 1); ?>
+<section class="py-5"<?= $alt ? ' style="background: var(--bs-tertiary-bg);"' : '' ?>>
+    <div class="container">
+        <div class="mb-4">
+            <h2 class="fw-bold h3 mb-1"><?= $s[0] ?></h2>
+            <p class="text-secondary mb-0"><?= $s[1] ?></p>
+        </div>
+        <div class="row g-4">
+<?php foreach ($s[2] as $f): ?>
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body d-flex gap-3 p-4">
+                        <div class="flex-shrink-0 d-inline-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary-emphasis" style="width:44px;height:44px;">
+                            <i class="fa-solid <?= $f[0] ?> fs-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="h6 fw-semibold mb-1"><?= $f[1] ?></h3>
+                            <p class="small text-secondary mb-0"><?= $f[2] ?></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<?php endforeach; ?>
+        </div>
+    </div>
+</section>
+<?php endforeach; ?>
+
+<!-- CTA -->
+<section class="py-5">
+    <div class="container">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="fw-bold mb-3">Míralo en acción</h2>
+                <p class="text-secondary mb-4">Un solo comando arma una app en funcionamiento, con tema y multiempresa, con todo lo anterior.</p>
+                <div class="bg-body-tertiary border rounded-3 d-inline-block px-4 py-3 mb-4 text-start font-monospace small">
+                    <span class="text-secondary">$</span> composer create-project webtigers/tiger my-app<br>
+                    <span class="text-secondary">$</span> cd my-app &amp;&amp; vendor/bin/tiger install:admin
+                </div>
+                <div>
+                    <a href="https://github.com/WebTigers/Tiger" class="btn btn-primary btn-lg px-4" target="_blank" rel="noopener">
+                        <i class="fa-brands fa-github me-2"></i>Ver en GitHub
+                    </a>
+                    <a href="/docs" class="btn btn-outline-secondary btn-lg px-4 ms-2">Leer la documentación</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
