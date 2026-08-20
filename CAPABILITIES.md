@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**183 classes** across **32 capabilities** · **18 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**185 classes** across **32 capabilities** · **19 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -139,6 +139,7 @@
 
 ### Config, i18n & options
 
+- **Tiger_I18n_Catalog** `@api` — read the SHIPPED translation files as key => value maps.  ·  `library/Tiger/I18n/Catalog.php`
 - **Tiger_I18n_Country** `@api` — the country list, localized + biased-sorted.  ·  `library/Tiger/I18n/Country.php`
 - **Tiger_I18n_Timezone** `@api` — the IANA timezone list, enriched for a searchable picker.  ·  `library/Tiger/I18n/Timezone.php`
 - **Tiger_Model_Config** `@api` — Config — the runtime config override layer (see migration 0009).  ·  `library/Tiger/Model/Config.php`
@@ -258,6 +259,7 @@
 - **Tiger_View_Helper_CodeInject** `@api` — emit Tiger Code's client tier into the page.  ·  `library/Tiger/View/Helper/CodeInject.php`
 - **Tiger_View_Helper_FormRecaptcha** `@api` — renders the Google reCAPTCHA widget.  ·  `library/Tiger/View/Helper/FormRecaptcha.php`
 - **Tiger_View_Helper_I18n** `@api` — hand the page's JS ONLY the localized strings it needs, WITHOUT an inline `<script>` blob.  ·  `library/Tiger/View/Helper/I18n.php`
+- **Tiger_View_Helper_LocaleView** `@api` — render the LOCALE variant of a view when one ships, else the default.  ·  `library/Tiger/View/Helper/LocaleView.php`
 - **Tiger_View_Helper_MediaField** `@api` — a form field that picks media via TigerMediaPicker.  ·  `library/Tiger/View/Helper/MediaField.php`
 - **Tiger_View_Helper_Menu** `@api` — render a custom menu in a view: `<?= $this->menu('primary') ?>`.  ·  `library/Tiger/View/Helper/Menu.php`
 - **Tiger_View_Helper_PageField** `@api` — read a custom field value (Tiger_Fields) from a page on the front end.  ·  `library/Tiger/View/Helper/PageField.php`
@@ -308,4 +310,5 @@
 - **SEO** (`seo`, app)  ·  services: Head, Schema  ·  `modules/seo`
 - **Signup** (`signup`, plugin)  ·  services: Signup  ·  `modules/signup`
 - **System** (`system`, plugin)  ·  services: Acl, Dashboard, Logs, Modules, Nav, Settings, Updates  ·  `modules/system`
+- **Translations** (`translations`, app)  ·  services: Translation  ·  `modules/translations`
 
