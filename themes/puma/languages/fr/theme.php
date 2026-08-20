@@ -5,8 +5,10 @@
  * PUMA theme — public chrome strings (French).
  */
 return [
-    'theme.nav.why_tiger' => 'Pourquoi Tiger',
-    'theme.nav.saas_vs_sias' => 'SaaS vs. SiaS',
+    'theme.nav.why_tiger'      => 'Pourquoi Tiger',
+    'theme.nav.why_tiger_desc' => 'L’argument pour Tiger : possédez toute votre stack, créez un vrai SaaS, sans lock-in.',
+    'theme.nav.saas_vs_sias'      => 'SaaS vs. SiaS',
+    'theme.nav.saas_vs_sias_desc' => 'Êtes-vous vraiment propriétaire de votre app ? La différence qui coûte tout — et comment repérer le piège.',
     'theme.nav.solutions' => 'Solutions',
     'theme.nav.features'  => 'Fonctionnalités',
     'theme.nav.docs'      => 'Docs',

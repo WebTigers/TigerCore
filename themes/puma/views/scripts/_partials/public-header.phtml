@@ -33,13 +33,13 @@ $mega = [
 <style>
 /* Solutions mega-menu. Panel stays light; the cards sit a touch darker so they read as cards. On
    desktop it's a full-width panel that opens on HOVER; on mobile it stacks inside the collapsed nav. */
-.tiger-mega .dropdown-menu { background: var(--bs-body-bg); }
-.tiger-mega .mega-card {
+.tiger-mega .dropdown-menu, .tiger-mini .dropdown-menu { background: var(--bs-body-bg); }
+.tiger-mega .mega-card, .tiger-mini .mega-card {
     background: var(--bs-tertiary-bg);
     border: 1px solid var(--bs-border-color-translucent);
     transition: background-color .12s ease, border-color .12s ease;
 }
-.tiger-mega .mega-card:hover { background: var(--bs-secondary-bg); border-color: var(--bs-primary); }
+.tiger-mega .mega-card:hover, .tiger-mini .mega-card:hover { background: var(--bs-secondary-bg); border-color: var(--bs-primary); }
 
 @media (min-width: 992px) {
     .navbar > .container { position: relative; }   /* anchor the full-width panel */
@@ -64,6 +64,28 @@ $mega = [
     }
     .tiger-mega .dropdown-toggle::after { transition: transform .14s ease; }
     .tiger-mega:hover .dropdown-toggle::after { transform: rotate(180deg); }
+
+    /* Mini-mega (Why Tiger): hover-open like the big one, but a normal-width panel under the toggle. */
+    .tiger-mini .dropdown-menu {
+        margin-top: 0;
+        min-width: 32rem;
+        display: block;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(.4rem);
+        transition: opacity .14s ease, transform .14s ease, visibility 0s linear .14s;
+        pointer-events: none;
+    }
+    .tiger-mini:hover > .dropdown-menu,
+    .tiger-mini:focus-within > .dropdown-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        transition-delay: 0s;
+        pointer-events: auto;
+    }
+    .tiger-mini .dropdown-toggle::after { transition: transform .14s ease; }
+    .tiger-mini:hover .dropdown-toggle::after { transform: rotate(180deg); }
 }
 </style>
 <nav class="navbar navbar-expand-lg border-bottom sticky-top" style="background: var(--bs-body-bg);" aria-label="Primary">
@@ -79,12 +101,27 @@ $mega = [
 
         <div class="collapse navbar-collapse" id="tigerNav">
             <ul class="navbar-nav mb-2 mb-lg-0">
-                <li class="nav-item dropdown">
+                <!-- Why Tiger: a mini-mega — two cards, opens on hover (desktop). -->
+                <li class="nav-item dropdown tiger-mini">
                     <a class="nav-link dropdown-toggle" href="#" id="tigerWhy" role="button" data-bs-toggle="dropdown" aria-expanded="false"><?= $this->t('theme.nav.why_tiger') ?></a>
-                    <ul class="dropdown-menu border-0 shadow" aria-labelledby="tigerWhy">
-                        <li><a class="dropdown-item" href="/why-tiger"><?= $this->t('theme.nav.why_tiger') ?></a></li>
-                        <li><a class="dropdown-item" href="/saas-vs-sias"><?= $this->t('theme.nav.saas_vs_sias') ?></a></li>
-                    </ul>
+                    <div class="dropdown-menu border-0 shadow-lg p-3" aria-labelledby="tigerWhy">
+                        <div class="row g-3">
+                            <div class="col-12 col-lg-6">
+                                <a class="mega-card d-block h-100 text-decoration-none text-body rounded-3 p-3" href="/why-tiger">
+                                    <i class="fa-solid fa-paw text-primary fs-4 mb-2 d-block"></i>
+                                    <div class="fw-semibold mb-1"><?= $this->t('theme.nav.why_tiger') ?></div>
+                                    <p class="small text-secondary mb-0"><?= $this->t('theme.nav.why_tiger_desc') ?></p>
+                                </a>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                                <a class="mega-card d-block h-100 text-decoration-none text-body rounded-3 p-3" href="/saas-vs-sias">
+                                    <i class="fa-solid fa-scale-balanced text-primary fs-4 mb-2 d-block"></i>
+                                    <div class="fw-semibold mb-1"><?= $this->t('theme.nav.saas_vs_sias') ?></div>
+                                    <p class="small text-secondary mb-0"><?= $this->t('theme.nav.saas_vs_sias_desc') ?></p>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </li>
                 <!-- Solutions: a static mega-menu — HTML injected into the first dropdown. -->
                 <li class="nav-item dropdown tiger-mega">

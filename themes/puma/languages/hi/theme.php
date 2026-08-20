@@ -5,8 +5,10 @@
  * PUMA theme — public chrome strings (Hindi).
  */
 return [
-    'theme.nav.why_tiger' => 'Tiger क्यों',
-    'theme.nav.saas_vs_sias' => 'SaaS बनाम SiaS',
+    'theme.nav.why_tiger'      => 'Tiger क्यों',
+    'theme.nav.why_tiger_desc' => 'Tiger क्यों — अपने पूरे स्टैक के मालिक बनें, असली SaaS बनाएँ, और वेंडर लॉक-इन से बचें।',
+    'theme.nav.saas_vs_sias'      => 'SaaS बनाम SiaS',
+    'theme.nav.saas_vs_sias_desc' => 'क्या आप सचमुच अपने ऐप के मालिक हैं? वह अंतर जो आपको सब कुछ गँवा सकता है — और जाल को कैसे पहचानें।',
     'theme.nav.solutions' => 'समाधान',
     'theme.nav.features'  => 'विशेषताएँ',
     'theme.nav.docs'      => 'दस्तावेज़',
