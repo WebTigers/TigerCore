@@ -84,4 +84,7 @@ return [
     'backup.restore_modal.confirm_label' => 'Type <code>RESTORE</code> to confirm',
     'backup.action.cancel'               => 'Cancel',
     'backup.action.restore_now'          => 'Restore now',
+    'backup.js.select_component'     => 'Select at least one component.',
+    'backup.js.confirm_delete_named' => 'Delete %s? This removes the archive permanently.',
+    'backup.js.choose_zip'           => 'Choose a .zip archive first.',
 ];

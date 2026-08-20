@@ -78,4 +78,18 @@ return [
     'access.org.slug_required'   => 'A slug is required (or provide a name to derive one from).',
     'access.org.parent_self'     => 'An organization cannot be its own parent.',
     'access.org.no_self_delete'  => 'You cannot delete the organization you are currently acting in.',
+
+    // --- JS-facing strings (registered via $this->i18n, resolved by Tiger.t) ---
+    'access.js.search_orgs'         => 'Search name / slug…',
+    'access.js.search_users'        => 'Search email / username…',
+    'access.js.edit'                => 'Edit',
+    'access.js.delete'              => 'Delete',
+    'access.js.org_no_delete'       => "Your active organization can't be deleted",
+    'access.js.delete_self'         => 'You cannot delete yourself',
+    'access.js.not_permitted'       => 'Not permitted',
+    'access.js.confirm_delete_org'  => 'Delete this organization? It is soft-deleted and can be recovered.',
+    'access.js.confirm_delete_user' => 'Delete this user? They are soft-deleted and can be recovered.',
+    'access.js.fix_fields'          => 'Please fix the highlighted fields and try again.',
+    'access.js.network_error'       => 'Network error — please try again.',
+    'access.js.parent_root'         => '— root —',
 ];

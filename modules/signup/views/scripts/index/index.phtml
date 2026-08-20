@@ -12,6 +12,14 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
 // v3 site key for the JS to mint a token before this button-click AJAX submit (empty when off / v2).
 $rcSite = (class_exists('Tiger_Recaptcha') && Tiger_Recaptcha::isEnabled() && Tiger_Recaptcha::version() === 'v3')
     ? (string) Tiger_Recaptcha::siteKey() : '';
+// Localized strings this page's JS references — delivered via the carrier + tiger.i18n.js, not inline.
+$this->i18n([
+    'verifySent'   => 'signup.js.verify_sent',
+    'fixFields'    => 'signup.js.fix_fields',
+    'checkField'   => 'signup.js.check_field',
+    'wentWrong'    => 'signup.js.went_wrong',
+    'networkError' => 'signup.js.network_error',
+]);
 ?>
 <div class="tiger-auth-brand">
     <span class="tiger-auth-mark"><i class="fa-solid fa-paw"></i></span>
@@ -146,7 +154,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (res && res.result === 1) {
                 form.style.display = 'none';
                 TigerDOM.notify(document.getElementById('signup-done'),
-                    '<strong>Almost there.</strong> We emailed a verification link to activate your account — click it, then sign in.',
+                    Tiger.t('verifySent'),
                     { type: 'success', dismissAfter: 0 });
                 return;
             }
@@ -159,17 +167,17 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (cell) {
                         var fbk = cell.querySelector('.invalid-feedback') || cell.appendChild(Object.assign(document.createElement('div'), { className: 'invalid-feedback' }));
                         var msgs = res.form[field];
-                        fbk.textContent = (msgs && typeof msgs === 'object') ? (Object.values(msgs)[0] || 'Please check this field.') : String(msgs || 'Please check this field.');
+                        fbk.textContent = (msgs && typeof msgs === 'object') ? (Object.values(msgs)[0] || Tiger.t('checkField')) : String(msgs || Tiger.t('checkField'));
                         fbk.style.display = 'block';
                     }
                 });
-                TigerDOM.notify(fb, 'Please fix the highlighted fields.', { type: 'error' });
+                TigerDOM.notify(fb, Tiger.t('fixFields'), { type: 'error' });
                 return;
             }
             (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class, replace: false }); });
-            if (!res || !res.messages || !res.messages.length) { TigerDOM.notify(fb, 'Something went wrong. Please try again.', { type: 'error' }); }
+            if (!res || !res.messages || !res.messages.length) { TigerDOM.notify(fb, Tiger.t('wentWrong'), { type: 'error' }); }
         }).catch(function () {
-            TigerDOM.notify(fb, 'Network error — please try again.', { type: 'error' });
+            TigerDOM.notify(fb, Tiger.t('networkError'), { type: 'error' });
         });
         });
     });

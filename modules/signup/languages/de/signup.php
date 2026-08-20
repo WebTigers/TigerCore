@@ -39,4 +39,11 @@ return [
     'signup.verify.action.signin'  => 'Sign in',
     'signup.verify.invalid.body'   => 'This verification link is invalid or has expired. You can sign up again, or contact support if you already registered.',
     'signup.verify.action.back'    => 'Back to signup',
+
+    // JS-facing strings (registered via $this->i18n, resolved by Tiger.t)
+    'signup.js.verify_sent'   => '<strong>Almost there.</strong> We emailed a verification link to activate your account — click it, then sign in.',
+    'signup.js.fix_fields'    => 'Please fix the highlighted fields.',
+    'signup.js.check_field'   => 'Please check this field.',
+    'signup.js.went_wrong'    => 'Something went wrong. Please try again.',
+    'signup.js.network_error' => 'Network error — please try again.',
 ];

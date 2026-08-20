@@ -10,6 +10,13 @@ $backups   = $this->backups ?? [];
 $disks     = $this->disks ?? [['name' => 'local', 'label' => 'Local (this server)']];
 $allComps  = $this->components ?? ['database', 'media', 'modules', 'platform'];
 $settings  = $this->settings ?? [];
+
+// Localized strings this page's JS references — delivered via the carrier + tiger.i18n.js, not inline.
+$this->i18n([
+    'selectComponent'   => 'backup.js.select_component',
+    'confirmDeleteNamed' => 'backup.js.confirm_delete_named',
+    'chooseZip'         => 'backup.js.choose_zip',
+]);
 $sched     = $this->schedule ?? [];
 
 $compLabels = [
@@ -230,7 +237,7 @@ $outcomeBadge = [
     // Back up now
     document.getElementById('backup-run').addEventListener('click', function () {
         var comps = checkedComponents();
-        if (!comps.length) { TigerDOM.notify(fb, 'Select at least one component.', { type: 'error' }); return; }
+        if (!comps.length) { TigerDOM.notify(fb, Tiger.t('selectComponent'), { type: 'error' }); return; }
         var body = new URLSearchParams();
         body.set('module', 'backup'); body.set('service', 'backup'); body.set('method', 'run');
         body.set('disk', document.getElementById('backup-disk').value);
@@ -245,7 +252,7 @@ $outcomeBadge = [
     document.addEventListener('click', function (e) {
         var del = e.target.closest('[data-delete]');
         if (del) {
-            if (!confirm('Delete ' + del.getAttribute('data-name') + '? This removes the archive permanently.')) { return; }
+            if (!confirm(Tiger.t('confirmDeleteNamed', del.getAttribute('data-name')))) { return; }
             api('remove', { backup_id: del.getAttribute('data-delete') }, del).then(function (res) { notify(res); if (res && res.result === 1) { setTimeout(function () { location.reload(); }, 700); } });
         }
     });
@@ -268,7 +275,7 @@ $outcomeBadge = [
     // Restore from upload
     document.getElementById('restore-upload').addEventListener('click', function () {
         var f = document.getElementById('restore-file').files[0];
-        if (!f) { TigerDOM.notify(fb, 'Choose a .zip archive first.', { type: 'error' }); return; }
+        if (!f) { TigerDOM.notify(fb, Tiger.t('chooseZip'), { type: 'error' }); return; }
         pending = { kind: 'upload', file: f };
         document.getElementById('restore-target').textContent = f.name;
         confirmInput.value = ''; modal.show();
