@@ -23,6 +23,7 @@ class Translations_IndexController extends Tiger_Controller_Admin_Action
         $supported = $this->_supportedLocales();
         $default   = $this->_defaultLocale($supported);
 
+        $this->view->useDataTables = true;   // load jQuery + DataTables + tiger.datatable.js (admin layout gate)
         $this->view->title     = 'Translations — Tiger Admin';
         $this->view->locales   = $supported;
         $this->view->localeMap = $this->_localeNames($supported);
