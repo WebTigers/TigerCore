@@ -116,6 +116,17 @@ class IndexController extends Zend_Controller_Action
         $this->view->localeView();
     }
 
+    /**
+     * `/saas-vs-sias` — "You don't own your app. Your platform does." SaaS vs SiaS (Software *in* a
+     * Service): the vibe-coding lock-in trap and what real ownership looks like. Shipped marketing.
+     *
+     * @return void
+     */
+    public function saasVsSiasAction()
+    {
+        $this->view->localeView();
+    }
+
     /** The configured home-page id (tiger.site.home_page), or '' for the built-in landing. */
     protected function _homePageId()
     {
