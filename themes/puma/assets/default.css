@@ -96,3 +96,62 @@ footer.tiger-foot {
 
 /* edge-to-edge: no max-width, no padding, no margin */
 .container-full-bleed{width:100%;max-width:none;margin:0;padding:0;}
+
+/* Public header menus — the Solutions mega-menu + the Why-Tiger mini-mega. Moved here out of an
+ * inline <style> in public-header.phtml (it rendered on every page). The panel stays on the body
+ * background; the cards sit a touch darker so they read as cards. On desktop the panel opens on
+ * HOVER; on mobile it stacks inside the collapsed nav. */
+.tiger-mega .dropdown-menu, .tiger-mini .dropdown-menu { background: var(--bs-body-bg); }
+.tiger-mega .mega-card, .tiger-mini .mega-card {
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color-translucent);
+    transition: background-color .12s ease, border-color .12s ease;
+}
+.tiger-mega .mega-card:hover, .tiger-mini .mega-card:hover { background: var(--bs-secondary-bg); border-color: var(--bs-primary); }
+
+@media (min-width: 992px) {
+    .navbar > .container { position: relative; }   /* anchor the full-width panel */
+    .tiger-mega { position: static; }
+    .tiger-mega .dropdown-menu {
+        left: 0; right: 0;                  /* span the container width */
+        margin-top: 0;
+        display: block;                     /* out of display:none so we can fade it */
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(.4rem);
+        transition: opacity .14s ease, transform .14s ease, visibility 0s linear .14s;
+        pointer-events: none;
+    }
+    .tiger-mega:hover > .dropdown-menu,
+    .tiger-mega:focus-within > .dropdown-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        transition-delay: 0s;
+        pointer-events: auto;
+    }
+    .tiger-mega .dropdown-toggle::after { transition: transform .14s ease; }
+    .tiger-mega:hover .dropdown-toggle::after { transform: rotate(180deg); }
+
+    /* Mini-mega (Why Tiger): hover-open like the big one, but a normal-width panel under the toggle. */
+    .tiger-mini .dropdown-menu {
+        margin-top: 0;
+        min-width: 40rem;
+        display: block;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(.4rem);
+        transition: opacity .14s ease, transform .14s ease, visibility 0s linear .14s;
+        pointer-events: none;
+    }
+    .tiger-mini:hover > .dropdown-menu,
+    .tiger-mini:focus-within > .dropdown-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        transition-delay: 0s;
+        pointer-events: auto;
+    }
+    .tiger-mini .dropdown-toggle::after { transition: transform .14s ease; }
+    .tiger-mini:hover .dropdown-toggle::after { transform: rotate(180deg); }
+}

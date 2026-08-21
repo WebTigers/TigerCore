@@ -53,7 +53,7 @@ $included = [
                         </div>
                         <div>
                             <h3 class="h6 fw-semibold mb-1"><?= $c[1] ?></h3>
-                            <p class="small text-secondary mb-0"><?= $c[2] ?></p>
+                            <p class="text-secondary mb-0"><?= $c[2] ?></p>
                         </div>
                     </div>
                 </div>
@@ -76,7 +76,7 @@ $included = [
                     form, and its <code>/api</code> method, in the house style. Describe the feature; the
                     conventions keep it clean.
                 </p>
-                <ul class="list-unstyled small text-secondary mb-0">
+                <ul class="list-unstyled text-secondary mb-0">
                     <li class="mb-2"><i class="fa-solid fa-check text-primary me-2"></i>Docs that live in the code — one obvious way to do each thing.</li>
                     <li class="mb-2"><i class="fa-solid fa-check text-primary me-2"></i><code>make:module</code> scaffolds a live controller + service + ACL in seconds.</li>
                     <li class="mb-0"><i class="fa-solid fa-check text-primary me-2"></i>A generated API reference, straight from your docblocks.</li>
@@ -84,7 +84,7 @@ $included = [
             </div>
             <div class="col-lg-7">
                 <div class="card border-0 shadow-sm">
-                    <div class="card-body p-4 font-monospace small">
+                    <div class="card-body p-4 font-monospace">
                         <div class="text-secondary mb-2"># describe it to your AI, get a real, secured endpoint</div>
                         <div><span class="text-secondary">$</span> vendor/bin/tiger make:module billing</div>
                         <div class="text-secondary mt-2">→ Billing_Service_Invoice::create() &nbsp;<span class="text-primary">// validate → transaction</span></div>
@@ -106,7 +106,7 @@ $included = [
                     <div class="card-body text-center p-4">
                         <i class="fa-solid fa-building-shield text-primary fs-2 mb-3"></i>
                         <h3 class="h5 fw-bold">Enterprise-shaped MVP</h3>
-                        <p class="text-secondary small mb-0">
+                        <p class="text-secondary mb-0">
                             Audit logging, per-tenant ACL, secure sessions, i18n, live config — the substrate that
                             wins enterprise deals ships with your first commit, so your MVP is production-shaped, not a
                             rewrite-in-waiting.
@@ -118,9 +118,9 @@ $included = [
                 <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
                     <div class="card-body text-center p-4">
                         <i class="fa-solid fa-gauge-high text-primary fs-2 mb-3"></i>
-                        <div class="small text-secondary text-uppercase mb-0" style="letter-spacing:.06em;">responds in</div>
+                        <div class="text-secondary text-uppercase mb-0" style="letter-spacing:.06em;">responds in</div>
                         <div class="display-6 fw-bold text-primary mb-1">~10&thinsp;ms</div>
-                        <p class="text-secondary small mb-0">
+                        <p class="text-secondary mb-0">
                             A lean core with no per-request framework bloat — steady at the median and the tail. Fast is
                             the default, so a good launch-day spike doesn't become an outage.
                         </p>
@@ -131,9 +131,9 @@ $included = [
                 <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
                     <div class="card-body text-center p-4">
                         <i class="fa-solid fa-piggy-bank text-primary fs-2 mb-3"></i>
-                        <div class="small text-secondary text-uppercase mb-0" style="letter-spacing:.06em;">runs on</div>
+                        <div class="text-secondary text-uppercase mb-0" style="letter-spacing:.06em;">runs on</div>
                         <div class="display-6 fw-bold text-primary mb-1">a $5 host</div>
-                        <p class="text-secondary small mb-0">
+                        <p class="text-secondary mb-0">
                             Zero build step, tiny footprint — Tiger runs on cheap shared hosting the heavy frameworks
                             can't even boot on. Keep the burn on your idea, not your infra bill.
                         </p>
@@ -155,7 +155,7 @@ $included = [
             <div class="card-body p-4 p-lg-5">
                 <h2 class="fw-bold mb-3">From idea to a secure, running app today</h2>
                 <p class="text-secondary mb-4">One command scaffolds a running, themed, multi-tenant app — then vibe on.</p>
-                <div class="bg-body-tertiary border rounded-3 d-inline-block px-4 py-3 mb-4 text-start font-monospace small">
+                <div class="bg-body-tertiary border rounded-3 d-inline-block px-4 py-3 mb-4 text-start font-monospace">
                     <span class="text-secondary">$</span> composer create-project webtigers/tiger my-app<br>
                     <span class="text-secondary">$</span> cd my-app &amp;&amp; vendor/bin/tiger install:admin
                 </div>
