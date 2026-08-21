@@ -11,12 +11,13 @@ use Tiger_Model_Module;
 
 /**
  * Tiger_Model_Module — the module lifecycle registry and, more importantly, THE boot gate.
- * `inactiveSlugs()` is what Tiger_Application_Resource_Modules calls to strip deactivated modules
- * from the controller-directory map before dispatch, so its contract is load-bearing and
- * exact-by-omission: it returns ONLY rows with `active = 0`. A module with no row at all is
- * "active by absence" and must NOT appear — a false positive there would silently unmount a live
- * module. The lifecycle writers (`setActive` upsert, `install`, `uninstall`) are the surfaces that
- * put rows into (and take them out of) that gate.
+ *
+ * `inactiveSlugs()` is what Tiger_Application_Resource_Modules calls to strip modules from the
+ * controller-directory map before dispatch. Its contract is now AREA-AWARE (and resolved only among
+ * DISCOVERED modules): a CORE module is skipped only if it has an `active=0` row (opt-out); an APP
+ * module is skipped UNLESS it has an `active=1` row (opt-in). The raw row halves it composes are
+ * `deactivatedSlugs()` (active=0) and `activeSlugs()` (active=1). The lifecycle writers (`setActive`
+ * upsert, `install`, `uninstall`) put rows into / take them out of that gate.
  */
 #[CoversClass(Tiger_Model_Module::class)]
 final class ModuleTest extends IntegrationTestCase
@@ -27,30 +28,95 @@ final class ModuleTest extends IntegrationTestCase
     {
         parent::setUp();
         $this->module = new Tiger_Model_Module();
+        $this->resetSkipCache();
     }
 
-    private function slugs(): array
+    /** The area-aware skip set memoizes per request in a static; clear it so each read sees fresh rows. */
+    private function resetSkipCache(): void
     {
-        $s = $this->module->inactiveSlugs();
+        $p = new \ReflectionProperty(Tiger_Model_Module::class, '_skipCache');
+        $p->setValue(null, null);   // PHP 8.1+: no setAccessible() needed
+    }
+
+    /** A model whose discovered-module layout (slug => 'core'|'app') is injected, so the area-aware
+     *  gate can be exercised without depending on the real modules on disk. */
+    private function modelSeeing(array $areasBySlug): Tiger_Model_Module
+    {
+        return new class ($areasBySlug) extends Tiger_Model_Module {
+            /** @var array<string,string> slug => area */
+            public array $fakeAreas;
+            public function __construct(array $areas)
+            {
+                $this->fakeAreas = $areas;
+                parent::__construct();
+            }
+            protected function _discovered()
+            {
+                $out = [];
+                foreach ($this->fakeAreas as $slug => $area) { $out[$slug] = ['area' => $area]; }
+                return $out;
+            }
+        };
+    }
+
+    private function skipOf(Tiger_Model_Module $m): array
+    {
+        $this->resetSkipCache();
+        $s = $m->inactiveSlugs();
         sort($s);
         return $s;
     }
 
     #[Test]
-    public function inactive_slugs_returns_only_deactivated_rows_never_active_or_rowless(): void
+    public function inactive_slugs_is_area_aware_core_opt_out_app_opt_in(): void
     {
-        // active row → NOT in the gate list; inactive row → IN it; and a module with NO row is
-        // "active by absence" and equally absent from the list.
-        $this->module->insert(['slug' => 'blog',   'active' => 1, 'source' => Tiger_Model_Module::SOURCE_DISCOVERED]);
-        $this->module->insert(['slug' => 'forum',  'active' => 0, 'source' => Tiger_Model_Module::SOURCE_DISCOVERED]);
-        $this->module->insert(['slug' => 'wiki',   'active' => 0, 'source' => Tiger_Model_Module::SOURCE_DISCOVERED]);
-        // (no row for 'shop' — active by absence)
+        // Six modules across the two areas × three row states.
+        $m = $this->modelSeeing([
+            'coremod'  => 'core',   // core, no row   → ACTIVE  (opt-out)
+            'coredead' => 'core',   // core, active=0 → skipped
+            'coreon'   => 'core',   // core, active=1 → ACTIVE
+            'appmod'   => 'app',    // app,  no row   → skipped (opt-in)
+            'appon'    => 'app',    // app,  active=1 → ACTIVE
+            'appdead'  => 'app',    // app,  active=0 → skipped
+        ]);
+        $mk = fn (string $slug, int $active) =>
+            $m->insert(['slug' => $slug, 'active' => $active, 'source' => Tiger_Model_Module::SOURCE_DISCOVERED]);
+        $mk('coredead', 0);
+        $mk('coreon', 1);
+        $mk('appon', 1);
+        $mk('appdead', 0);
+        // coremod + appmod: no row
 
-        $this->assertSame(
-            ['forum', 'wiki'],
-            $this->slugs(),
-            'the gate returns exactly the active=0 slugs — not the active one, not the row-less one'
-        );
+        $skip = $this->skipOf($m);
+
+        // CORE = opt-out: live unless explicitly deactivated.
+        $this->assertNotContains('coremod', $skip, 'core module with no row is active by default');
+        $this->assertNotContains('coreon', $skip);
+        $this->assertContains('coredead', $skip, 'core module with an active=0 row is skipped');
+
+        // APP = opt-in: inert unless explicitly activated.
+        $this->assertContains('appmod', $skip, 'app module with no row is inert (must be activated)');
+        $this->assertContains('appdead', $skip);
+        $this->assertNotContains('appon', $skip, 'app module with an active=1 row is live');
+    }
+
+    #[Test]
+    public function raw_row_halves_return_exactly_their_active_flag(): void
+    {
+        // deactivatedSlugs()/activeSlugs() are pure row queries (no discovery), the inputs the gate composes.
+        $this->module->insert(['slug' => 'blog',  'active' => 1, 'source' => Tiger_Model_Module::SOURCE_DISCOVERED]);
+        $this->module->insert(['slug' => 'forum', 'active' => 0, 'source' => Tiger_Model_Module::SOURCE_DISCOVERED]);
+        $this->module->insert(['slug' => 'wiki',  'active' => 0, 'source' => Tiger_Model_Module::SOURCE_DISCOVERED]);
+
+        // contains/not-contains (the shared test DB may hold other module rows from sibling tests).
+        $deact = $this->module->deactivatedSlugs();
+        $this->assertContains('forum', $deact);
+        $this->assertContains('wiki', $deact);
+        $this->assertNotContains('blog', $deact, 'an active=1 row is never in deactivatedSlugs');
+        $active = $this->module->activeSlugs();
+        $this->assertContains('blog', $active);
+        $this->assertNotContains('forum', $active, 'an active=0 row is never in activeSlugs');
+        $this->assertNotContains('wiki', $active);
     }
 
     #[Test]
@@ -64,7 +130,7 @@ final class ModuleTest extends IntegrationTestCase
         $this->assertSame(0, (int) $row->active);
         $this->assertSame('inactive', $row->status, 'status tracks the active flag');
         $this->assertSame(Tiger_Model_Module::SOURCE_DISCOVERED, $row->source);
-        $this->assertContains('gallery', $this->module->inactiveSlugs(), 'a freshly-deactivated module is in the gate');
+        $this->assertContains('gallery', $this->module->deactivatedSlugs(), 'a freshly-deactivated module has an active=0 row');
 
         // … a second toggle UPSERTS the SAME row (no duplicate) and flips the flags back.
         $id2 = $this->module->setActive('gallery', true);
@@ -72,7 +138,8 @@ final class ModuleTest extends IntegrationTestCase
         $row2 = $this->module->bySlug('gallery');
         $this->assertSame(1, (int) $row2->active);
         $this->assertSame('active', $row2->status);
-        $this->assertNotContains('gallery', $this->module->inactiveSlugs(), 're-activated → out of the gate');
+        $this->assertNotContains('gallery', $this->module->deactivatedSlugs(), 're-activated → no longer an active=0 row');
+        $this->assertContains('gallery', $this->module->activeSlugs());
         $this->assertCount(1, $this->module->fetchAll($this->module->select()->where('slug = ?', 'gallery')), 'exactly one row survives the upsert');
     }
 
@@ -97,7 +164,7 @@ final class ModuleTest extends IntegrationTestCase
         $this->assertSame('WebTigers/TigerShop', $row->repository);
         $this->assertSame('v0.1.0-beta', $row->ref);
         $this->assertSame(Tiger_Model_Module::SOURCE_URL, $row->source);
-        $this->assertNotContains('shop', $this->module->inactiveSlugs(), 'an installed module is active, not gated');
+        $this->assertContains('shop', $this->module->activeSlugs(), 'an installed module has an active=1 row');
     }
 
     #[Test]
@@ -106,21 +173,20 @@ final class ModuleTest extends IntegrationTestCase
         // A module the admin had turned off, then (re)installs, must come back ACTIVE — install
         // forces active=1 on the existing row rather than minting a duplicate.
         $first = $this->module->setActive('forum', false);
-        $this->assertContains('forum', $this->module->inactiveSlugs());
+        $this->assertContains('forum', $this->module->deactivatedSlugs());
 
         $second = $this->module->install('forum', ['name' => 'Forum', 'version' => '1.2.3']);
         $this->assertSame($first, $second, 'install upserts the same row');
         $row = $this->module->bySlug('forum');
         $this->assertSame(1, (int) $row->active, 'install re-activates a deactivated module');
         $this->assertSame('1.2.3', $row->version, 'provenance is refreshed on the existing row');
-        $this->assertNotContains('forum', $this->module->inactiveSlugs());
+        $this->assertContains('forum', $this->module->activeSlugs());
     }
 
     #[Test]
     public function uninstall_hard_deletes_the_row(): void
     {
-        // The module table is NOT soft-deleted: uninstall removes the row entirely, so the module
-        // reverts to "active by absence" (its files being gone is the installer's concern).
+        // The module table is NOT soft-deleted: uninstall removes the row entirely.
         $this->module->install('temp', ['name' => 'Temp']);
         $this->assertNotNull($this->module->bySlug('temp'));
 
@@ -130,14 +196,13 @@ final class ModuleTest extends IntegrationTestCase
     }
 
     #[Test]
-    public function uninstalling_a_deactivated_module_removes_it_from_the_gate(): void
+    public function uninstalling_a_deactivated_module_removes_its_row(): void
     {
-        // A subtle safety check: if uninstall only soft-deleted, an active=0 row would linger and
-        // keep the (now-absent) module permanently gated. Hard-delete makes it vanish from the gate.
+        // Hard-delete makes an active=0 row vanish rather than lingering.
         $this->module->setActive('doomed', false);
-        $this->assertContains('doomed', $this->module->inactiveSlugs());
+        $this->assertContains('doomed', $this->module->deactivatedSlugs());
 
         $this->module->uninstall('doomed');
-        $this->assertNotContains('doomed', $this->module->inactiveSlugs(), 'an uninstalled module is not left gated');
+        $this->assertNotContains('doomed', $this->module->deactivatedSlugs(), 'an uninstalled module leaves no row');
     }
 }

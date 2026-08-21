@@ -25,14 +25,7 @@ class System_Bootstrap extends Zend_Application_Module_Bootstrap
     /** Top-level "Updates" item — the WordPress-simple one-click updater (ACL-gated in the menu). */
     protected function _initAdminNav()
     {
-        Tiger_Admin_Nav::register([
-            'key'      => 'system_updates',
-            'label'    => 'system.nav.updates',
-            'icon'     => 'fa-cloud-arrow-down',
-            'href'     => '/system/updates',
-            'resource' => 'System_UpdatesController',
-            'order'    => 15,
-        ]);
+        // Updates lives under the Modules toggle (see the admin-menu core nav), not as a top-level item.
         Tiger_Admin_Nav::register([
             'key'      => 'system_acl',
             'label'    => 'system.nav.acl',

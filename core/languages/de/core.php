@@ -187,4 +187,5 @@ return [
     'core.datatable.paginate_last' => 'Letzte',
     'core.datatable.paginate_next' => 'Nächste',
     'core.datatable.paginate_prev' => 'Vorherige',
+    'core.nav.modules_manage' => 'Verwalten',
 ];

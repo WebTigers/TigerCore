@@ -50,7 +50,11 @@ $nav = $this->nav ?? array_merge([
     ['key' => 'users',     'label' => 'core.nav.users',   'href' => '/access/user',    'icon' => 'fa-users',    'match' => '/access/user',   'resource' => 'Access_UserController'],
     ['key' => 'orgs',      'label' => 'core.nav.orgs',    'href' => '/access/org',     'icon' => 'fa-building',  'match' => '/access/org',    'resource' => 'Access_OrgController'],
     ['key' => 'code',      'label' => 'core.nav.code',    'href' => '/code',           'icon' => 'fa-code',            'match' => '/code',          'resource' => 'Code_IndexController'],
-    ['key' => 'modules',   'label' => 'core.nav.modules', 'href' => '/system/modules', 'icon' => 'fa-puzzle-piece',    'match' => '/system/modules','resource' => 'System_ModulesController'],
+    // Modules is a toggle (like Settings): Manage = the module manager, Updates = the update center.
+    ['key' => 'modules',   'label' => 'core.nav.modules', 'icon' => 'fa-puzzle-piece', 'children' => [
+        ['key' => 'modules_manage', 'label' => 'core.nav.modules_manage', 'href' => '/system/modules', 'match' => '/system/modules', 'resource' => 'System_ModulesController'],
+        ['key' => 'modules_update', 'label' => 'system.nav.updates',       'href' => '/system/updates', 'match' => '/system/updates', 'resource' => 'System_UpdatesController'],
+    ]],
 ], Tiger_Admin_Nav::items(), [
     ['key' => 'settings',  'label' => 'core.nav.settings','icon' => 'fa-gear',         'children' => Tiger_Admin_Settings::pages()],
 ]);

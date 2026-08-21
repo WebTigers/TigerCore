@@ -7,12 +7,14 @@
  * Drop-in replacement for Zend_Application_Resource_Modules (resolved in place of it because
  * Tiger_Application_Bootstrap::_initTigerPaths registers the `Tiger_Application_Resource`
  * plugin prefix). It does ONE thing before delegating to the stock behavior: remove
- * deactivated modules from the front controller's controller-directory map.
+ * NON-ACTIVE modules from the front controller's controller-directory map — the area-aware
+ * gate (`Tiger_Model_Module::inactiveSlugs()`): a CORE module is stripped only if deactivated
+ * (opt-out), an APP module is stripped unless it was activated (opt-in).
  *
  * That map is the single control point ZF1 uses for BOTH bootstrapping (parent::init()
  * iterates it) and dispatch (the router/dispatcher read it) — so stripping a module here
- * means it neither loads its Bootstrap nor answers any URL. Deactivation = invisible, not
- * deleted.
+ * means it neither loads its Bootstrap nor answers any URL. A deactivated core module and a
+ * never-activated app module are both invisible, not deleted.
  *
  * Fail-safe: any error (no DB, no `module` table on a fresh install) leaves the map
  * untouched, so every module stays active — never a worse state than stock ZF1.

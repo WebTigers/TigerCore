@@ -85,6 +85,10 @@ final class StaticMediaTest extends IntegrationTestCase
         // The reachability gate checks public/<assetBase> exists (i.e. the module was activated).
         $this->publicDir = APPLICATION_ROOT . '/public/' . ltrim(self::BASE, '/');
         @mkdir($this->publicDir, 0775, true);
+
+        // The fixture is an APP module (application/modules), which is now opt-in: it must be
+        // ACTIVATED (an active=1 row) to be discovered/contribute media. (Rolled back per test.)
+        (new \Tiger_Model_Module())->setActive(self::SLUG, true);
     }
 
     protected function tearDown(): void
