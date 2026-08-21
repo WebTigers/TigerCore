@@ -1,0 +1,11 @@
+/*! SPDX-License-Identifier: BSD-3-Clause · © 2026 WebTigers · Tiger™/WebTigers™ are trademarks */
+/* Marketing pages — overrides for the public marketing surface (IndexController). Loaded ONLY on
+ * those pages (appended in IndexController::init(), at the end of the CSS stack), so it never touches
+ * the admin, auth, or CMS content pages. Layered on the active skin (loads last, so it wins under
+ * puma, bengal, cheetah, …). Keep it small. */
+
+/* Bump the base body font +0.2rem (1rem → 1.2rem) for comfortable long-form reading. Headings and
+ * .lead keep their own rem sizes, so only the standard body/paragraph/card text grows. */
+body {
+    --bs-body-font-size: 1.2rem;
+}

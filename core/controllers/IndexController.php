@@ -11,6 +11,21 @@
 class IndexController extends Zend_Controller_Action
 {
     /**
+     * Append the marketing-only stylesheet (a larger base font, etc.) to the END of the CSS stack so
+     * it wins the cascade. Done once per request in init() (not per action), and only here — the
+     * admin/auth/CMS surfaces never dispatch through IndexController, so they're untouched and no
+     * body-class scoping is needed.
+     *
+     * @return void
+     */
+    public function init()
+    {
+        if (isset($this->view->themeAssets)) {
+            $this->view->headLink()->appendStylesheet($this->view->asset($this->view->themeAssets . '/marketing.css'));
+        }
+    }
+
+    /**
      * Serve the home page at "/": an admin-chosen CMS page, else the active theme's shipped
      * home (`content/index.phtml`), else the built-in landing.
      *
