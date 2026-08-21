@@ -1,0 +1,74 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /creators — the plugin & theme creator story: build for Tiger, ship on your own terms.
+ * Rendered inside the PUMA public layout; Bootstrap + --bs-* tokens (restyles live with theme + skin).
+ */
+$this->title = 'Créez pour Tiger — votre code, vos règles | Tiger';
+
+$points = [
+    ['fa-scale-balanced', 'Possédez ce que vous construisez', 'Publiez vos modules et thèmes selon les conditions que vous choisissez : fermé, commercial ou ouvert. Tiger est en BSD ; ce que vous construisez dessus reste à vous.'],
+    ['fa-sack-dollar',    'Selon vos propres règles',          'Fixez le prix, licenciez et assurez le support à votre façon : votre propriété intellectuelle reste la vôtre.'],
+    ['fa-store',          'Fait pour être partagé',            'Un chemin d\'installation propre et en un clic — le même que celui des modules officiels — pour que ce que vous créez atteigne chaque site Tiger.'],
+    ['fa-plug',           'Une base propre pour construire',   'Des modules, des thèmes, des blocs et une /api basée sur des messages — vous étendez en ajoutant, jamais en rustinant. Des conventions prévisibles, c\'est moins de colle et plus de produit.'],
+];
+?>
+<!-- Hero -->
+<section class="py-5">
+    <div class="container text-center py-lg-5">
+        <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+            <i class="fa-solid fa-puzzle-piece me-1"></i> Pour les créateurs d'extensions et de thèmes
+        </span>
+        <h1 class="display-4 fw-bold mb-3">Votre code. Vos règles.</h1>
+        <p class="lead text-secondary mx-auto mb-4" style="max-width: 720px;">
+            Construisez des modules et des thèmes pour Tiger et partagez-les à vos conditions. Votre travail reste à vous
+            &mdash; c'est à vous de décider comment le licencier.
+        </p>
+        <div class="d-flex flex-wrap gap-2 justify-content-center">
+            <a href="/docs" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-book me-2"></i>Commencer à construire</a>
+            <a href="/developers" class="btn btn-outline-secondary btn-lg px-4">L'histoire pour les développeurs</a>
+        </div>
+    </div>
+</section>
+
+<!-- Points -->
+<section class="pb-2">
+    <div class="container">
+        <div class="row g-4">
+<?php foreach ($points as $p): ?>
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body d-flex gap-3 p-4">
+                        <div class="flex-shrink-0 d-inline-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary-emphasis" style="width:48px;height:48px;">
+                            <i class="fa-solid <?= $p[0] ?> fs-5"></i>
+                        </div>
+                        <div>
+                            <h2 class="h6 fw-semibold mb-1"><?= $this->escape($p[1]) ?></h2>
+                            <p class="text-secondary mb-0"><?= $this->escape($p[2]) ?></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="py-5">
+    <div class="container">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="fw-bold mb-3">Construisez-le une fois. Partagez-le à votre façon.</h2>
+                <p class="text-secondary mb-4">Générez le squelette d'un module en quelques secondes et partagez-le quand vous êtes prêt.</p>
+                <div class="bg-body-tertiary border rounded-3 d-inline-block px-4 py-3 mb-4 text-start font-monospace">
+                    <span class="text-secondary">$</span> vendor/bin/tiger make:module my-plugin
+                </div>
+                <div>
+                    <a href="/docs" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-book me-2"></i>Lire la documentation</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

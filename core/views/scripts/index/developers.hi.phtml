@@ -1,0 +1,131 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /developers — the open-source / builder story: free, BSD-licensed, extend via modules. Rendered
+ * inside the PUMA public layout; Bootstrap + --bs-* tokens (restyles live with theme + skin).
+ */
+$this->title = 'डेवलपर्स और ओपन सोर्स — मुफ़्त, BSD-लाइसेंस्ड, आपके विस्तार के लिए | Tiger';
+
+$build = [
+    ['fa-cubes',          'हर चीज़ एक मॉड्यूल है',      'application/modules में एक फ़ोल्डर डालें और वह प्लग हो जाता है — controllers, एक /api सेवा, models, migrations, views, ACL, routes। core में कोई बदलाव नहीं, कभी नहीं।'],
+    ['fa-arrows-to-dot',  'एक मैसेज-आधारित /api',       'कोई REST-by-URL चिड़ियाघर नहीं। मैसेज एक सेवा + मेथड को नाम देता है; एक मेथड जोड़ें और वह लाइव हो जाता है। यह पैटर्न ख़ुद को OpenAPI के रूप में भी वर्णित करता है।'],
+    ['fa-terminal',       'एक असली CLI',                'make:module एक जीवंत फ़ीचर तैयार करता है; migrate, install:admin और crypto/secret रोटेशन पहले से बने हुए हैं। रिवर्स-इंजीनियर करने के लिए कोई छिपा हुआ जादू नहीं।'],
+    ['fa-book-open',      'दस्तावेज़ कोड में ही',         'Docblocks API रेफ़रेंस बनाते हैं; एक AGENTS.md परंपराओं को दस्तावेज़ करता है। कोडबेस पढ़े जाने के लिए लिखा गया है — इंसानों और AI दोनों के लिए।'],
+];
+?>
+<!-- Hero -->
+<section class="py-5">
+    <div class="container text-center py-lg-5">
+        <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+            <i class="fa-solid fa-scale-balanced me-1"></i> BSD-3-Clause · ओपन सोर्स
+        </span>
+        <h1 class="display-4 fw-bold mb-3">मुफ़्त, खुला और आपके विस्तार के लिए।</h1>
+        <p class="lead text-secondary mx-auto mb-4" style="max-width: 720px;">
+            Tiger BSD-लाइसेंस्ड है और TigerZF (ZendFramework 1, PHP 8.1&ndash;8.5 के लिए आधुनिकीकृत) पर बना है।
+            कोई लाइसेंस शुल्क नहीं, कोई lock-in नहीं, कोई ब्लैक बॉक्स नहीं — इसे clone करें, मॉड्यूल से विस्तार करें, और अपनी stack के
+            ऊपर से नीचे तक मालिक बनें।
+        </p>
+        <div class="d-flex flex-wrap gap-2 justify-content-center">
+            <a href="https://github.com/WebTigers/Tiger" class="btn btn-primary btn-lg px-4" target="_blank" rel="noopener">
+                <i class="fa-brands fa-github me-2"></i>GitHub पर स्टार दें
+            </a>
+            <a href="/docs" class="btn btn-outline-secondary btn-lg px-4">दस्तावेज़ पढ़ें</a>
+        </div>
+    </div>
+</section>
+
+<!-- Build on it -->
+<section class="pb-2">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">इस पर बनाने के लिए बना</h2>
+            <p class="text-secondary mx-auto mb-0" style="max-width:640px;">
+                <em>जोड़कर</em> विस्तार करें, कभी पैच करके नहीं। आपका कोड framework के बाहर रहता है, इसलिए
+                <code>composer update</code> उसे कभी नहीं मिटा सकता।
+            </p>
+        </div>
+        <div class="row g-4">
+<?php foreach ($build as $b): ?>
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body d-flex gap-3 p-4">
+                        <div class="flex-shrink-0 d-inline-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary-emphasis" style="width:48px;height:48px;">
+                            <i class="fa-solid <?= $b[0] ?> fs-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="h6 fw-semibold mb-1"><?= $b[1] ?></h3>
+                            <p class="text-secondary mb-0"><?= $b[2] ?></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- Own your stack -->
+<section class="py-5 mt-4" style="background: var(--bs-tertiary-bg);">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="fa-solid fa-scale-balanced text-primary fs-2 mb-3"></i>
+                        <h3 class="h5 fw-bold">अनुमति देने वाला लाइसेंस</h3>
+                        <p class="text-secondary mb-0">
+                            BSD-3-Clause — इस पर व्यावसायिक उत्पाद बनाएँ, क्लोज़्ड-सोर्स मॉड्यूल भेजें, कोई copyleft
+                            बंधन नहीं। framework <code>vendor/</code> में एक dependency है, कभी आपके app में कॉपी नहीं होती।
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="fa-solid fa-server text-primary fs-2 mb-3"></i>
+                        <h3 class="h5 fw-bold">कहीं भी सेल्फ-होस्ट करें</h3>
+                        <p class="text-secondary mb-0">
+                            cPanel, एक $5 का VPS, या एक लोड बैलेंसर के पीछे एक फ़्लीट — शून्य build स्टेप, किसी vendor क्लाउड
+                            की ज़रूरत नहीं। आपका डेटा और आपका deploy आपके ही रहते हैं।
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="fa-solid fa-code-branch text-primary fs-2 mb-3"></i>
+                        <h3 class="h5 fw-bold">योगदान करें और साझा करें</h3>
+                        <p class="text-secondary mb-0">
+                            GitHub पर issues और PRs खोलें, या अपने ख़ुद के मॉड्यूल और थीम प्रकाशित करें — वही registry
+                            और वही एक-क्लिक Module Manager जहाँ से बाक़ी सब इंस्टॉल करते हैं।
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="py-5">
+    <div class="container">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="fw-bold mb-3">इसे clone करें और अपना बनाएँ</h2>
+                <p class="text-secondary mb-4">एक कमांड एक चलता हुआ app तैयार करता है जिस पर आपका पूरा नियंत्रण होता है — फिर इसे एक मॉड्यूल से विस्तार दें।</p>
+                <div class="bg-body-tertiary border rounded-3 d-inline-block px-4 py-3 mb-4 text-start font-monospace">
+                    <span class="text-secondary">$</span> composer create-project webtigers/tiger my-app<br>
+                    <span class="text-secondary">$</span> cd my-app &amp;&amp; vendor/bin/tiger make:module hello
+                </div>
+                <div>
+                    <a href="https://github.com/WebTigers/Tiger" class="btn btn-primary btn-lg px-4" target="_blank" rel="noopener">
+                        <i class="fa-brands fa-github me-2"></i>GitHub पर देखें
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

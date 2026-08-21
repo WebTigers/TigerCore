@@ -1,0 +1,278 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /get-tiger — Real SaaS apps, under $20/mo, no vendor lock-in. Rendered inside the PUMA public
+ * layout. Bootstrap + --bs-* tokens only (no bespoke CSS), so it restyles live with theme + skin
+ * (accents use text-primary -> orange under the Bengal skin). LEFT-aligned to match the design.
+ * Shipped marketing; the view owns its content.
+ */
+$this->title = 'Obtenha o Tiger — Apps SaaS reais por menos de $20/mês, sem dependência de fornecedores | Tiger';
+
+$features = [
+    ['fa-layer-group',    'Arquitetura multitenant',   'Integrada ao modelo, não acoplada por cima.'],
+    ['fa-user-shield',    'Multiusuário com ACL completo',    'Segurança de negação por padrão no nível do framework.'],
+    ['fa-users-gear',     'Administração de usuários e organizações',     'Organizações, usuários e associações, gerenciados desde o início.'],
+    ['fa-database',       'Sessões em banco de dados',          'Pronto para balanceamento de carga desde o primeiro dia.'],
+    ['fa-language',       'Tradução / i18n',          'Substituição de textos ao vivo, sem novo deploy.'],
+    ['fa-shield-halved',  'Segurança TigerShield',        'Um WAF na camada do PHP — inicialização em ~50µs.'],
+    ['fa-lock',           'TigerSSL',                    'Certificados Let\'s Encrypt automáticos.'],
+    ['fa-box-archive',    'TigerBackup',                 'Compacta, move, descompacta — pronto.'],
+    ['fa-code',           'JS/CSS sem build',             'React, Vue, vanilla — traga o que quiser.'],
+    ['fa-palette',        'Temas e skins',          'Reestilização em tempo de execução, sem recompilar.'],
+];
+
+$compare = [
+    ['Custo mensal',    '$80+ — Vercel + Supabase + Auth + mais',      'Menos de $20/mês no TigerDen'],
+    ['Carregamento de página',       '2–3s entre vários saltos de rede',           '~10ms — um único processo, sem chamadas externas'],
+    ['Portabilidade',     'Preso a mais de 4 fornecedores; migrar = reescrever',   'Compacta, move, descompacta — roda onde rodar PHP + MariaDB'],
+    ['Auth / ACL',      'Espalhado por SDKs de fornecedores e gambiarras de JWT',  'Integrado, no nível do framework, testado em batalha'],
+    ['Multitenancy',   'Um complemento de última hora',                        'Integrado à arquitetura'],
+    ['Propriedade',       'Um cliente leve da plataforma de outra pessoa',  'Você é dono de tudo que está no sistema de arquivos'],
+    ['Offline / isolado','Morto sem internet — uma casca vazia',     'Totalmente funcional, zero dependências externas'],
+    ['Frontend',        'Opinativo — exige Vite / Webpack',       'Sem build; traga o que quiser'],
+];
+?>
+
+<!-- Hero -->
+<section class="py-5">
+    <div class="container py-lg-3">
+        <div class="text-primary text-uppercase fw-bold mb-3" style="letter-spacing:.14em;">A plataforma SaaS nativa de IA</div>
+        <h1 class="display-3 fw-bold mb-4">Apps SaaS reais. Menos de $20/mês.<br><span class="text-primary">Sem dependência de fornecedores.</span></h1>
+        <p class="lead text-secondary mb-4" style="max-width: 60ch;">
+            Pare de pagar demais por uma plataforma vibe. Outras stacks cobram $80+/mês e mesmo assim você não é dono
+            de nada — você está alugando quatro fornecedores e torcendo para que nenhum deles mude os preços. O Tiger te dá
+            tudo o que você precisa para construir e implantar apps SaaS reais, portáveis e de nível empresarial, e você
+            é dono de toda a sua stack.
+        </p>
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-4">
+            <a href="#get" class="btn btn-primary btn-lg px-4">Começar agora &rarr;</a>
+            <code class="bg-body-tertiary border rounded-3 px-3 py-2 fs-6">
+                <span class="text-primary">$</span> composer create-project webtigers/tiger
+                <span class="text-secondary ms-2">copiar</span>
+            </code>
+        </div>
+        <div class="d-flex flex-wrap gap-3 gap-md-4 text-secondary">
+            <span><strong class="text-body-emphasis">Um comando.</strong> Um app SaaS funcional em segundos.</span>
+            <span>Código aberto <strong class="text-body-emphasis">BSD-3</strong>.</span>
+            <span>Roda onde rodar <strong class="text-body-emphasis">PHP + MariaDB</strong>.</span>
+        </div>
+    </div>
+</section>
+
+<!-- Stats -->
+<section class="pb-5">
+    <div class="container">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 bg-body-tertiary"><div class="card-body">
+                    <div class="display-6 fw-bold">~10<span class="fs-5 text-secondary">ms</span></div>
+                    <div class="text-secondary">Carregamentos de página — um único processo, sem saltos externos</div>
+                </div></div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 bg-body-tertiary"><div class="card-body">
+                    <div class="display-6 fw-bold">50<span class="fs-5 text-secondary">µs</span></div>
+                    <div class="text-secondary">Inicialização de segurança TigerShield</div>
+                </div></div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 bg-body-tertiary"><div class="card-body">
+                    <div class="display-6 fw-bold">$0<span class="fs-5 text-secondary"> / fornecedor</span></div>
+                    <div class="text-secondary">Sem conta de quatro fornecedores, sem chamar de volta para funcionar</div>
+                </div></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- What you get -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">Pronto desde o início</div>
+        <h2 class="fw-bold mb-2">Tudo o que um SaaS real precisa — já integrado</h2>
+        <p class="text-secondary mb-4" style="max-width: 640px;">Não é um starter kit que você monta a partir de uma dúzia
+            de fornecedores. A base chata-mas-essencial vem pronta, testada e é sua.</p>
+        <div class="row g-3">
+            <?php foreach ($features as $f): ?>
+                <div class="col-md-6">
+                    <div class="d-flex gap-3 p-3 bg-body rounded-3 border h-100">
+                        <i class="fa-solid <?= $f[0] ?> fa-lg text-primary mt-1"></i>
+                        <div>
+                            <div class="fw-semibold"><?= $f[1] ?></div>
+                            <div class="text-secondary"><?= $f[2] ?></div>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- Comparison -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">O problema da stack de vibe-coding</div>
+        <h2 class="fw-bold mb-2">Quatro fornecedores, $80+/mês, e mesmo assim você não é dono de nada</h2>
+        <p class="text-secondary mb-4" style="max-width: 640px;">A típica vibe stack é um cliente leve da
+            plataforma de outra pessoa. O Tiger é o pacote inteiro, no seu próprio sistema de arquivos.</p>
+        <div class="table-responsive">
+            <table class="table align-middle border rounded-3 overflow-hidden">
+                <thead>
+                    <tr>
+                        <th scope="col" style="width:22%"></th>
+                        <th scope="col" class="text-secondary">Vibe stack típica</th>
+                        <th scope="col" class="cell-emphasis text-primary-emphasis">Tiger</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($compare as $row): ?>
+                        <tr>
+                            <th scope="row" class="fw-semibold"><?= $row[0] ?></th>
+                            <td class="text-secondary"><?= $row[1] ?></td>
+                            <td class="cell-emphasis"><i class="fa-solid fa-check text-success me-2"></i><?= $row[2] ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- BYO Claude Code -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-7">
+                <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">Traga seu próprio Claude Code</div>
+                <h2 class="fw-bold mb-3">Você controla a IA. Você controla o código.</h2>
+                <p class="text-secondary mb-0" style="max-width: 620px;">O Tiger foi feito sob medida para o
+                    desenvolvimento assistido por IA. Traga sua própria assinatura do Claude Code e comece a construir — sem
+                    um intermediário de IA proprietário levando uma fatia ou adicionando latência. Você controla a
+                    infraestrutura, de cima a baixo.</p>
+            </div>
+            <div class="col-lg-5">
+                <div class="card bg-dark text-light border-0">
+                    <div class="card-body">
+                        <div class="text-primary text-uppercase fw-bold mb-2">Sem intermediários</div>
+                        <ul class="mb-0">
+                            <li>Sem sobretaxa de IA por assento</li>
+                            <li>Sem um salto extra de latência</li>
+                            <li>Suas chaves, suas regras</li>
+                            <li>O código continua sendo seu</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Four ways -->
+<section class="py-5" id="get">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">Quatro maneiras de começar</div>
+        <h2 class="fw-bold mb-2">Escolha como quer executá-lo</h2>
+        <p class="text-secondary mb-4" style="max-width: 620px;">De um servidor com um clique a um comando do
+            Composer — o mesmo Tiger, com o ponto de entrada que você escolher.</p>
+        <div class="row row-cols-1 row-cols-md-2 g-4">
+
+            <div class="col">
+                <div class="card h-100 border-primary shadow-sm position-relative">
+                    <span class="badge text-bg-primary position-absolute top-0 end-0 m-3">Mais rápido</span>
+                    <div class="card-body">
+                        <div class="text-secondary fw-bold font-monospace">01</div>
+                        <h3 class="h4 fw-bold mb-1">TigerDen</h3>
+                        <div class="text-primary fw-semibold mb-2">Hospedagem instantânea — o servidor é seu</div>
+                        <div class="h5 fw-bold mb-2">$19 <span class="fs-6 text-secondary fw-normal">/ mês</span></div>
+                        <p class="text-secondary mb-0">Seu próprio servidor Tiger, lançado sob demanda e no ar em
+                            minutos — com TigerSSL, TigerShield e TigerPASS incluídos, e seu agente de IA pronto para
+                            usar. Nós o lançamos e entregamos as chaves a você; você é dono e opera o servidor. Zero
+                            configuração para ir ao ar, sem etapa de build, sem servidor para levantar.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-secondary fw-bold font-monospace">02</div>
+                        <h3 class="h4 fw-bold mb-1">TigerInstall</h3>
+                        <div class="text-primary fw-semibold mb-2">Hospedagem compartilhada</div>
+                        <p class="text-secondary mb-0">Já tem hospedagem compartilhada? O TigerInstall deixa você
+                            funcionando com uma instalação de um clique em qualquer host LAMP padrão — sem shell, sem
+                            Composer, sem DevOps.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-secondary fw-bold font-monospace">03</div>
+                        <h3 class="h4 fw-bold mb-1">Tiger + Composer</h3>
+                        <div class="text-primary fw-semibold mb-2">Controle total, para desenvolvedores</div>
+                        <div class="bg-body-tertiary border rounded-3 p-3 font-monospace mb-2">
+                            <span class="text-primary">$</span> composer create-project webtigers/tiger
+                        </div>
+                        <p class="text-secondary mb-0">Um app SaaS funcional em segundos. Seu desde o primeiro commit.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-secondary fw-bold font-monospace">04</div>
+                        <h3 class="h4 fw-bold mb-1">Tiger + Docker</h3>
+                        <div class="text-primary fw-semibold mb-2">Ambiente de desenvolvimento local</div>
+                        <p class="text-secondary mb-0">Suba um ambiente local completo em segundos. Construa
+                            localmente, implante onde rodar PHP + MariaDB.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Portability -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">Portabilidade de verdade</div>
+        <h2 class="fw-bold mb-3">Seu app. Onde você colocá-lo.</h2>
+        <p class="text-secondary" style="max-width: 680px;">Sem APIs de exportação. Sem formatos proprietários. Sem
+            projetos de replataformação de seis meses. Sem orçamentos de consultores. O TigerBackup é toda a história de migração:</p>
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+            <?php $steps = ['Exportar banco de dados','Compactar diretório','Baixar','Enviar','Descompactar','Restaurar'];
+            foreach ($steps as $i => $s): ?>
+                <span class="badge text-bg-light border fs-6 fw-semibold py-2 px-3"><?= $s ?></span>
+                <?php if ($i < count($steps) - 1): ?><i class="fa-solid fa-arrow-right text-primary"></i><?php endif; ?>
+            <?php endforeach; ?>
+        </div>
+        <p class="text-secondary mb-0" style="max-width: 680px;">O Tiger roda em qualquer servidor com PHP e MariaDB —
+            um VPS de $5, hardware dedicado, até um Raspberry Pi. Seu app não chama de volta quatro fornecedores para
+            descobrir se tem permissão para funcionar. Ele é seu. Ele roda onde você colocá-lo.</p>
+    </div>
+</section>
+
+<!-- Open source -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">Código aberto</div>
+        <h2 class="fw-bold mb-2">Licenciado sob BSD-3. Sem pegadinhas.</h2>
+        <p class="text-secondary mb-3" style="max-width: 620px;">O Tiger é software livre e de código aberto sob a
+            licença BSD-3. Sem surpresas de relicenciamento. Construa o que quiser, implante onde quiser e
+            fique com tudo o que construir.</p>
+        <div class="d-flex flex-wrap gap-3 mb-2">
+            <a href="https://github.com/WebTigers/Tiger" class="link-primary text-decoration-none fw-semibold"><i class="fa-brands fa-github me-1"></i>GitHub — Tiger</a>
+            <a href="https://github.com/WebTigers/TigerCore" class="link-primary text-decoration-none fw-semibold"><i class="fa-brands fa-github me-1"></i>Motor — TigerCore</a>
+            <a href="https://tiger.webtigers.com" class="link-primary text-decoration-none fw-semibold">tiger.webtigers.com</a>
+            <a href="https://webtigers.com" class="link-primary text-decoration-none fw-semibold">Marketplace</a>
+        </div>
+        <p class="text-secondary small mt-3" style="max-width: 720px;">O TigerDen é um serviço de hospedagem de
+            lançamento instantâneo: nós provisionamos seu servidor Tiger dedicado e entregamos as chaves a você — você é
+            dono e opera o servidor. Não é um serviço totalmente gerenciado. Os preços e pontos de entrada mostrados
+            refletem a oferta de lançamento; algumas opções vão sendo liberadas ao longo do lançamento.</p>
+    </div>
+</section>

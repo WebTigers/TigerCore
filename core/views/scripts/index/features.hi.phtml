@@ -1,0 +1,124 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /features — the full feature catalog. A sectioned grid of cards drawn from across the audience
+ * pages (/cms, /vibe, /agency, /developers, …) into one place. Classy notes for now — a placeholder
+ * that still looks finished; the deep detail lives on the audience pages. Rendered in the PUMA public
+ * layout; Bootstrap + --bs-* tokens, so it restyles live with the theme + skin.
+ */
+$this->title = 'फ़ीचर्स — Tiger जो कुछ देता है वह सब | Tiger';
+
+// [section title, section subtitle, [ [icon, name, note], … ] ]
+$sections = [
+    ['नींव', 'वह आधार जिस पर हर app खड़ा होता है', [
+        ['fa-building',      'मल्टी-टेनेंट कोर',       'Orgs, users और memberships बॉक्स से बाहर ही — भूमिकाएँ membership पर रहती हैं, user पर नहीं।'],
+        ['fa-bolt',          'ज़ीरो build टूलचेन',      'कोई npm नहीं, कोई webpack नहीं, कोई Sass नहीं। <code>composer install</code> और UI रेंडर हो जाता है।'],
+        ['fa-layer-group',   'फ़्रंट-एंड अज्ञेयवादी',   'सर्वर-रेंडर्ड <code>.phtml</code> या कोई भी SPA — सब एक ही JSON <code>/api</code> के विरुद्ध।'],
+        ['fa-gauge-high',    'गति के लिए बना',          'एक दुबला, OPcache-ट्यून किया कोर — ~10ms पेज, यहाँ तक कि $5 के शेयर्ड होस्ट पर भी।'],
+        ['fa-server',        'कहीं भी सेल्फ-होस्ट करें','cPanel, एक $5 का VPS, या लोड बैलेंसर के पीछे एक फ़्लीट। किसी vendor क्लाउड की ज़रूरत नहीं।'],
+    ]],
+    ['प्रमाणीकरण और सुरक्षा', 'एंटरप्राइज़-ग्रेड, पहले commit से ही जुड़ी हुई', [
+        ['fa-fingerprint',  'क्रेडेंशियल्स और 2FA',    'पासवर्ड नीति, लॉकआउट, ईमेल कोड और TOTP — पहचान क्रेडेंशियल्स से अलग रखी गई।'],
+        ['fa-user-shield',  'डिफ़ॉल्ट-से-अस्वीकार ACL','हर अनुरोध चलने से पहले अधिकृत; भूमिकाएँ लाइव, प्रति टेनेंट हल की जातीं।'],
+        ['fa-user-clock',   'सेशन और ऑटो-लॉगआउट',      'DB-समर्थित सेशन, सर्वर-निर्णीत निष्क्रियता टाइमआउट और लॉक स्क्रीन के साथ।'],
+        ['fa-list-check',   'लॉगिन ऑडिट लॉग',          'हर साइन-इन प्रयास रिकॉर्ड — रेट-लिमिटिंग और विसंगति पहचान का आधार।'],
+        ['fa-key',          'ज़ीरो-डाउनटाइम रोटेशन',    'एन्क्रिप्शन कुंजी और पासवर्ड pepper को बिना जबरन रीसेट के घुमाएँ।'],
+    ]],
+    ['सामग्री और थीमिंग', 'एक CMS जो आपको बाँधता नहीं', [
+        ['fa-file-lines',      'डेटाबेस CMS',            'पेज, layouts और partials पंक्तियों के रूप में — बिना deploy के सामग्री संपादित करें।'],
+        ['fa-object-group',    'विज़ुअल बिल्डर',         'GrapesJS ड्रैग-एंड-ड्रॉप, साथ में Markdown, HTML या विश्वसनीय PHTML बॉडी।'],
+        ['fa-bars-staggered',  'कस्टम मेन्यू',           'admin द्वारा रचित, टेनेंट-कैस्केडिंग नेविगेशन, एक ड्रैग-ड्रॉप बिल्डर के साथ।'],
+        ['fa-clock-rotate-left','वर्ज़निंग और शेड्यूलिंग','हर सेव एक वर्ज़न का स्नैपशॉट लेता है; भविष्य की प्रकाशन तिथि गो-लाइव शेड्यूल करती है।'],
+        ['fa-palette',         'थीम और skins, लाइव',     'लाइट/डार्क और बदली जा सकने वाली skins जो बिना रीलोड हॉट-स्वैप होती हैं — प्रति user या प्रति org।'],
+        ['fa-id-badge',        'साइट पहचान',             'नाम, logo, favicon और सोशल — संपादन योग्य, और पेज के head से जुड़े।'],
+    ]],
+    ['वेब सेवाएँ &mdash; <code>/api</code> पैटर्न', 'बिना फुलावट के REST', [
+        ['fa-arrows-to-dot', 'एक endpoint',   'एक अकेली <code>/api</code>; मैसेज सेवा + मेथड को नाम देता है। एक मेथड जोड़ें, वह लाइव है।'],
+        ['fa-lock',          'ACL से सुरक्षित','चलने से पहले अधिकृत — संसाधन = सेवा, विशेषाधिकार = मेथड।'],
+        ['fa-table',         'DataTables अंतर्निर्मित','सर्वर-साइड grids <code>/api</code> से पंक्तियाँ लाते हैं, कभी सर्वर-रेंडर्ड HTML नहीं।'],
+        ['fa-compass',       'स्व-वर्णनकारी',  'चूँकि routing डेटा है, इस पैटर्न से एक OpenAPI कैटलॉग अपने आप निकल आता है।'],
+    ]],
+    ['डेवलपर अनुभव', 'इस पर बनाने के लिए बना', [
+        ['fa-cubes',          'हर चीज़ एक मॉड्यूल है',  'एक फ़ोल्डर डालें — controllers, services, models, migrations, views, ACL — वह प्लग हो जाता है।'],
+        ['fa-terminal',       'बैटरी-सहित CLI',         '<code>make:module</code> एक जीवंत फ़ीचर तैयार करता है; migrate, install:admin और secret रोटेशन अंदर ही आते हैं।'],
+        ['fa-book-open',      'दस्तावेज़ कोड में',       'Docblocks API रेफ़रेंस बनाते हैं; एक <code>AGENTS.md</code> आपकी AI को लिखने से पहले मार्गदर्शन देता है।'],
+        ['fa-scale-balanced', 'BSD-लाइसेंस्ड',          'कोई copyleft नहीं — व्यावसायिक उत्पाद बनाएँ और क्लोज़्ड-सोर्स मॉड्यूल भेजें।'],
+        ['fa-database',       'अतिरिक्तिशील migrations','एक dependency-मुक्त runner core, app और हर मॉड्यूल में स्कीमा बदलावों के लिए स्कैन करता है।'],
+    ]],
+    ['अंतरराष्ट्रीय और कॉन्फ़िगरेबल', 'प्रोडक्शन में बदलें, बिना deploy', [
+        ['fa-sliders',        'लाइव config ओवरराइड',    'कोई भी सेटिंग अनुरोध के समय ओवरराइड करने योग्य — वैश्विक या प्रति org — बिना deploy।'],
+        ['fa-language',       'लाइव अनुवाद',            'अनुरोध के समय कोई भी स्ट्रिंग ओवरराइड करें या जोड़ें; अर्थपूर्ण, मालिक-उपसर्ग वाली कुंजियाँ।'],
+        ['fa-earth-americas', 'स्थानीयकृत URLs',        '<code>/es/</code> हर रूट पर काम करता है; समाधान और स्थायित्व अंतर्निर्मित हैं।'],
+    ]],
+    ['SEO और मार्केटिंग', 'डिफ़ॉल्ट रूप से खोजने योग्य', [
+        ['fa-hashtag',         'Head रजिस्ट्री',         'title, description, canonical और robots — योगदान किए गए, कभी हार्डकोड नहीं।'],
+        ['fa-share-nodes',     'Open Graph और Twitter',  'समृद्ध शेयर कार्ड, हीरो छवि वास्तविक आयामों में हल की गई।'],
+        ['fa-sitemap',         'Sitemap और robots',      'हर सार्वजनिक URL मैप की गई और एक रूट के रूप में परोसी गई — पेज, blog और docs।'],
+        ['fa-diagram-project', 'JSON-LD संरचित डेटा',    'समृद्ध परिणामों के लिए Organization, WebSite, Breadcrumb और Article।'],
+    ]],
+];
+?>
+<!-- Hero -->
+<section class="py-5">
+    <div class="container text-center py-lg-4">
+        <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+            पूरा टूलबॉक्स
+        </span>
+        <h1 class="display-4 fw-bold mb-3">Tiger जो कुछ देता है वह सब</h1>
+        <p class="lead text-secondary mx-auto mb-0" style="max-width: 720px;">
+            वह उबाऊ-पर-अनिवार्य आधार जो हर साइट और SaaS को चाहिए — auth, मल्टी-टेनेंसी, एक CMS, एक
+            साफ़ <code>/api</code>, i18n, और भी बहुत कुछ — पहले से बना हुआ। बॉक्स में जो है उसका एक भ्रमण।
+        </p>
+    </div>
+</section>
+
+<?php foreach ($sections as $i => $s): $alt = ($i % 2 === 1); ?>
+<section class="py-5"<?= $alt ? ' style="background: var(--bs-tertiary-bg);"' : '' ?>>
+    <div class="container">
+        <div class="mb-4">
+            <h2 class="fw-bold h3 mb-1"><?= $s[0] ?></h2>
+            <p class="text-secondary mb-0"><?= $s[1] ?></p>
+        </div>
+        <div class="row g-4">
+<?php foreach ($s[2] as $f): ?>
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body d-flex gap-3 p-4">
+                        <div class="flex-shrink-0 d-inline-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary-emphasis" style="width:44px;height:44px;">
+                            <i class="fa-solid <?= $f[0] ?> fs-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="h6 fw-semibold mb-1"><?= $f[1] ?></h3>
+                            <p class="text-secondary mb-0"><?= $f[2] ?></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<?php endforeach; ?>
+        </div>
+    </div>
+</section>
+<?php endforeach; ?>
+
+<!-- CTA -->
+<section class="py-5">
+    <div class="container">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="fw-bold mb-3">इसे चलते हुए देखें</h2>
+                <p class="text-secondary mb-4">एक कमांड एक चलता हुआ, थीम्ड, मल्टी-टेनेंट app तैयार करता है, ऊपर की सारी चीज़ों के साथ।</p>
+                <div class="bg-body-tertiary border rounded-3 d-inline-block px-4 py-3 mb-4 text-start font-monospace">
+                    <span class="text-secondary">$</span> composer create-project webtigers/tiger my-app<br>
+                    <span class="text-secondary">$</span> cd my-app &amp;&amp; vendor/bin/tiger install:admin
+                </div>
+                <div>
+                    <a href="https://github.com/WebTigers/Tiger" class="btn btn-primary btn-lg px-4" target="_blank" rel="noopener">
+                        <i class="fa-brands fa-github me-2"></i>GitHub पर देखें
+                    </a>
+                    <a href="/docs" class="btn btn-outline-secondary btn-lg px-4 ms-2">दस्तावेज़ पढ़ें</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

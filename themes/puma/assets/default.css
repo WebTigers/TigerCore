@@ -14,6 +14,12 @@
     font-family: "pIqaD";
     src: url("fonts/klingon/pIqaD.ttf") format("truetype");
     font-display: swap;
+    /* Scope the face to the pIqaD script's Private-Use-Area block ONLY. The font also ships serif
+     * Latin glyphs, so without this the browser would draw loanwords/brands (Tiger, GitHub, digits,
+     * punctuation) in the font's serif Latin instead of falling through to the body sans-serif. With
+     * the range limited to the CSUR Klingon block, "pIqaD" covers Klingon codepoints and everything
+     * else falls through to the next family in the stack. */
+    unicode-range: U+F8D0-F8FF;
 }
 html[lang="tlh"] {
     --bs-body-font-family: "pIqaD", system-ui, sans-serif;
@@ -21,6 +27,9 @@ html[lang="tlh"] {
 html[lang="tlh"] body {
     font-family: var(--bs-body-font-family);
 }
+/* Render a single element in pIqaD regardless of the page locale — e.g. the Klingon option in the
+ * language switcher, shown in its own script on every page (the @font-face above is global). */
+.tiger-lang-piqad { font-family: "pIqaD", system-ui, sans-serif; }
 
 /* Outline-primary buttons track the ACTIVE SKIN's primary color. Bootstrap 5.3 bakes the stock
  * blue (#0d6efd) straight into .btn-outline-primary's component vars, so a skin that only swaps

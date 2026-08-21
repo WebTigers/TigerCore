@@ -1,0 +1,113 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /agency — the agency story: one client or a hundred, run from a single back office. Rendered
+ * inside the PUMA public layout; Bootstrap + --bs-* tokens (restyles live with theme + skin).
+ * Shipped marketing.
+ */
+$this->title = 'Agenturfreundlich — Hunderte Kundenseiten hosten | Tiger';
+
+$benefits = [
+    ['fa-diagram-project', 'Eine Installation, viele Mandanten', 'Jeder Kunde ist eine Organisation auf derselben Plattform — isolierte Daten, eigene Benutzer und Rollen, eigenes Theme und eigene Inhalte. Du fügst einen Kunden hinzu, keinen Server.'],
+    ['fa-gauge-high',      'Jedes Projekt sofort in Fahrt bringen', 'Neuer Kunde am Montag, eine laufende Multi-Mandanten-Seite noch am selben Tag. Überspringe den Auth-/Rollen-/CMS-Boilerplate, den du bei jedem Auftrag neu aufbaust, und geh direkt zu seinem Briefing.'],
+    ['fa-palette',         'White-Label pro Kunde',        'Theme und Skin werden pro Organisation aufgelöst, sodass jeder Kunde seine Marke sieht — nicht deine und keine Vorlage. Wechsle den Look live, ohne erneutes Deployment.'],
+    ['fa-user-shield',     'Abgegrenzter Zugriff, sicher',  'ACL mit Verbot als Standard und Rollen an der Mitgliedschaft. Gib einem Kunden Zugriff auf seine Organisation und auf nichts sonst; füge einen Kollegen hier als Manager, dort als Viewer hinzu.'],
+    ['fa-server',          'Läuft, wo du hostest',          'cPanel, ein 5-$-VPS oder eine Flotte hinter einem Load Balancer — kein Build-Schritt, winziger Fußabdruck. Hoste Hunderte Seiten ohne eine Hosting-Rechnung, die die Marge auffrisst.'],
+    ['fa-sliders',         'Live-Konfiguration, keine Deployments', 'Ändere die Einstellungen, Texte oder das Branding eines Kunden über das Admin — die Konfigurations- und Übersetzungsebenen überschreiben zur Laufzeit, sodass Änderungen ohne Release live gehen.'],
+];
+?>
+<!-- Hero -->
+<section class="py-5">
+    <div class="container text-center py-lg-5">
+        <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+            <i class="fa-solid fa-people-group me-1"></i> Für Agenturen &amp; Freelancer
+        </span>
+        <h1 class="display-4 fw-bold mb-3">Ein Kunde oder hundert.</h1>
+        <p class="lead text-secondary mx-auto mb-4" style="max-width: 720px;">
+            Tiger ist bis ins Mark Multi-Mandanten-fähig, sodass eine einzige Installation alle deine
+            Kundenseiten betreibt — jede isoliert, im White-Label und aus einem Back Office verwaltet.
+            Bring jedes Projekt sofort in Fahrt und behalte die Marge, die früher die Hosting-Rechnung auffraß.
+        </p>
+        <div class="d-flex flex-wrap gap-2 justify-content-center">
+            <a href="/signup" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-arrow-right-to-bracket me-2"></i>Jetzt loslegen</a>
+            <a href="/docs" class="btn btn-outline-secondary btn-lg px-4">Zur Dokumentation</a>
+        </div>
+    </div>
+</section>
+
+<!-- One client / many clients framing -->
+<section class="pb-2">
+    <div class="container">
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-5">
+                <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="fa-solid fa-user text-primary fs-2 mb-3"></i>
+                        <h2 class="h5 fw-bold">Solo &amp; Einzelkunde</h2>
+                        <p class="text-secondary mb-0">
+                            Stelle eine ausgefeilte, sichere Seite für einen Kunden bereit, ohne Auth, Rollen und
+                            ein CMS von Grund auf zu verdrahten. Alles ist dabei — du konzentrierst dich auf sein Briefing, nicht auf den Boilerplate.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="fa-solid fa-city text-primary fs-2 mb-3"></i>
+                        <h2 class="h5 fw-bold">Viele Kunden im großen Maßstab</h2>
+                        <p class="text-secondary mb-0">
+                            Betreibe dein gesamtes Portfolio auf einer Plattform — jeder Kunde ein isolierter Mandant mit eigenen
+                            Benutzern, Rollen, Theme und Inhalten, alles aus einem einzigen Admin. Füge den nächsten Kunden in Minuten hinzu.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Benefits grid -->
+<section id="features" class="py-5 mt-4" style="background: var(--bs-tertiary-bg);">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">Gebaut für die Art, wie Agenturen wirklich arbeiten</h2>
+            <p class="text-secondary mb-0">Isolierte Mandanten, White-Label-Branding, Live-Konfiguration — kein Neuaufbau pro Kunde.</p>
+        </div>
+        <div class="row g-4">
+<?php foreach ($benefits as $b): ?>
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary-emphasis mb-3" style="width:48px;height:48px;">
+                            <i class="fa-solid <?= $b[0] ?> fs-5"></i>
+                        </div>
+                        <h3 class="h6 fw-semibold"><?= $this->escape($b[1]) ?></h3>
+                        <p class="text-secondary mb-0"><?= $this->escape($b[2]) ?></p>
+                    </div>
+                </div>
+            </div>
+<?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="py-5">
+    <div class="container">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="fw-bold mb-3">Mach deinen nächsten Kunden zu einem Mandanten</h2>
+                <p class="text-secondary mb-4">Ein Befehl gerüstet eine laufende, gethemte Multi-Mandanten-Plattform, auf der du weiterwachsen kannst.</p>
+                <div class="bg-body-tertiary border rounded-3 d-inline-block px-4 py-3 mb-4 text-start font-monospace">
+                    <span class="text-secondary">$</span> composer create-project webtigers/tiger my-agency<br>
+                    <span class="text-secondary">$</span> cd my-agency &amp;&amp; vendor/bin/tiger install:admin
+                </div>
+                <div>
+                    <a href="/signup" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-arrow-right-to-bracket me-2"></i>Konto erstellen</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,74 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /hosting — the hosting-partner story: add Tiger to your stack, free. Rendered inside the PUMA public
+ * layout; Bootstrap + --bs-* tokens (restyles live with theme + skin).
+ */
+$this->title = 'Hosting-Partner — nimm Tiger in deinen Stack auf | Tiger';
+
+$points = [
+    ['fa-feather',       'Schlanker als WordPress',   'Tiger läuft mit einem winzigen Footprint ohne Plugin-Wildwuchs — weniger Ressourcen pro Website bedeuten mehr Websites pro Server und gesündere Margen.'],
+    ['fa-headset',       'Weniger Support-Tickets',   'Kein Roulette mit Plugin-Konflikten, keine "Das Update hat meine Website zerschossen"-Tickets. Ein vorhersehbarer Kern erzeugt weit weniger Support-Last als eine WordPress-Installation.'],
+    ['fa-bolt',          'Schnellere Installationen', 'Kein Build-Schritt, Bereitstellung mit einem Klick. Nimm es in deinen cPanel- oder Softaculous-Stack auf, und deine Kunden sind in Sekunden startklar.'],
+    ['fa-handshake',     'Zu deinen Bedingungen, nicht zu unseren', 'Kostenlos hinzuzufügen — keine Tiger-Gebühren, keine neuen Verträge. Wenn wir Kunden an dich vermitteln, tun wir das über das Empfehlungsprogramm, das du bereits betreibst.'],
+];
+?>
+<!-- Hero -->
+<section class="py-5">
+    <div class="container text-center py-lg-5">
+        <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+            <i class="fa-solid fa-server me-1"></i> Für Hosting-Partner
+        </span>
+        <h1 class="display-4 fw-bold mb-3">Nimm Tiger in deinen Stack auf. Kostenlos.</h1>
+        <p class="lead text-secondary mx-auto mb-4" style="max-width: 720px;">
+            Tiger installiert sich schneller, läuft schlanker und erzeugt weniger Support-Tickets als WordPress. Es ist
+            kostenlos, es in deinen cPanel- oder Softaculous-Stack aufzunehmen &mdash; und wenn wir dir Kunden schicken, tun wir das über
+            das Empfehlungsprogramm, das du bereits betreibst.
+        </p>
+        <div class="d-flex flex-wrap gap-2 justify-content-center">
+            <a href="https://github.com/WebTigers/Tiger" class="btn btn-primary btn-lg px-4" target="_blank" rel="noopener">
+                <i class="fa-brands fa-github me-2"></i>Sieh, wie es läuft
+            </a>
+            <a href="/docs" class="btn btn-outline-secondary btn-lg px-4">Dokumentation lesen</a>
+        </div>
+    </div>
+</section>
+
+<!-- Points -->
+<section class="pb-2">
+    <div class="container">
+        <div class="row g-4">
+<?php foreach ($points as $p): ?>
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body d-flex gap-3 p-4">
+                        <div class="flex-shrink-0 d-inline-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary-emphasis" style="width:48px;height:48px;">
+                            <i class="fa-solid <?= $p[0] ?> fs-5"></i>
+                        </div>
+                        <div>
+                            <h2 class="h6 fw-semibold mb-1"><?= $this->escape($p[1]) ?></h2>
+                            <p class="text-secondary mb-0"><?= $this->escape($p[2]) ?></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="py-5">
+    <div class="container">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="fw-bold mb-3">Biete deinen Kunden etwas Schlankeres</h2>
+                <p class="text-secondary mb-4">Kostenlos hinzuzufügen. Wir helfen deinem Geschäft zu wachsen — über das Empfehlungsprogramm, das du bereits hast.</p>
+                <a href="https://github.com/WebTigers/Tiger" class="btn btn-primary btn-lg px-4" target="_blank" rel="noopener">
+                    <i class="fa-brands fa-github me-2"></i>Auf GitHub ansehen
+                </a>
+            </div>
+        </div>
+    </div>
+</section>

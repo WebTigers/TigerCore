@@ -1,0 +1,344 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /saas-vs-sias — "You don't own your app. Your platform does." SaaS vs SiaS (Software *in* a Service):
+ * the vibe-coding lock-in trap and what real ownership looks like. Rendered inside the PUMA public
+ * layout. Bootstrap + --bs-* tokens only (no bespoke CSS), so it restyles live with theme + skin
+ * (accents use text-primary -> orange under the Bengal skin). LEFT-aligned to match the other pages.
+ * Shipped marketing; the view owns its content.
+ */
+$this->title = 'SaaS vs. SiaS — आपका ऐप आपका नहीं है। आपके प्लेटफ़ॉर्म का है। | Tiger';
+
+// "How to spot a SiaS platform" — the five questions.
+$questions = [
+    ['क्या मैं इसे अपने खुद के सर्वर पर बिना किसी बदलाव के चला सकता हूँ?',
+        'यह नहीं कि "क्या मैं कोड एक्सपोर्ट कर सकता हूँ"। क्या मैं जो मेरे पास है — अभी — उसे लेकर एक $5 के VPS पर रखूँ और वह काम करे? अगर जवाब में stack के किसी हिस्से को दोबारा लिखना, फिर से कॉन्फ़िगर करना या बदलना शामिल है, तो यह SiaS है।'],
+    ['क्या मेरा ऐप प्लेटफ़ॉर्म से इंटरनेट कनेक्शन के बिना काम करता है?',
+        'अगर प्लेटफ़ॉर्म के सर्वर बंद होने पर आपका ऐप्लिकेशन काम करना बंद कर देता है, तो आप किसी ऐप के मालिक नहीं हैं। आप किसी और के ऐप के सब्सक्रिप्शन के मालिक हैं।'],
+    ['क्या मैं एक घंटे से कम में hosting provider बदल सकता हूँ?',
+        'असली portability का मतलब है zip करो, ले जाओ, unzip करो, हो गया। अगर "migration" के लिए एक consultant, एक rewrite, या एक weekend से ज़्यादा समय चाहिए, तो आप फँसे हुए हैं।'],
+    ['क्या मैं अपनी खुद की authentication और authorization को नियंत्रित करता हूँ?',
+        'अगर आपके उपयोगकर्ताओं का login, permissions और security प्लेटफ़ॉर्म की auth layer — Supabase, Firebase, Auth0, या किसी proprietary सिस्टम — द्वारा संचालित हैं, तो आपके उपयोगकर्ताओं के साथ के रिश्ते उनके हैं, आपके नहीं।'],
+    ['क्या वह framework जिस पर आपका ऐप चलता है open source और self-hostable है?',
+        'यह नहीं कि "क्या stack का कोई हिस्सा open source है"। क्या वह असली framework जो आपके ऐप्लिकेशन को चलाता है, उपलब्ध, खुला और प्लेटफ़ॉर्म की भागीदारी के बिना कहीं भी deploy करने योग्य है?'],
+];
+
+// "The real cost of SiaS" — five cards.
+$costs = [
+    ['fa-arrow-trend-up',    'समय के साथ आप ज़्यादा भुगतान करते हैं',
+        'SiaS प्लेटफ़ॉर्म सस्ते शुरू होते हैं — $0 का free tier, $20 का starter. लेकिन कीमत उपयोग के साथ बढ़ती है: डेटाबेस rows, API calls, bandwidth, function invocations. जब तक आपके पास असली ग्राहक होंगे, आप ऐसी infrastructure के लिए $200–500/माह चुका रहे होंगे जिसे न आप नियंत्रित करते हैं और न optimize कर सकते हैं।'],
+    ['fa-lock',              'आप छोड़ नहीं सकते',
+        'यही तो business model है। आप जितना ज़्यादा समय तक बनाते हैं, उतने ही ज़्यादा निर्भर हो जाते हैं। आपकी auth उनकी auth है, आपका डेटाबेस उनका डेटाबेस है, आपकी pipeline उनकी pipeline है। छोड़ना कोई migration नहीं है — यह शून्य से फिर से बनाना है। वे यह जानते हैं। यही रणनीति है।'],
+    ['fa-user-secret',       'आप अपनी security को नियंत्रित नहीं करते',
+        'आपके उपयोगकर्ताओं का डेटा किसी और की infrastructure में बैठा है, किसी और की प्रथाओं द्वारा संचालित है, किसी और के कर्मचारियों के लिए सुलभ है। जिस तक आप पहुँच नहीं सकते, उसका आप audit नहीं कर सकते। जिसे आप नियंत्रित नहीं करते, उसे आप ठीक नहीं कर सकते।'],
+    ['fa-money-bill-trend-up','आप एक pricing बदलाव भर की दूरी पर संकट से हैं',
+        'SiaS प्लेटफ़ॉर्म कीमतें बदलते हैं। वे हमेशा बदलते हैं। जब वे ऐसा करते हैं, तो आपके पास दो विकल्प होते हैं: ज़्यादा भुगतान करें, या अपने पूरे ऐप्लिकेशन को कहीं और फिर से बनाएँ। कोई तीसरा विकल्प नहीं है। यही leverage है — और वह आपने उन्हें मुफ़्त में दे दिया।'],
+    ['fa-building-circle-exclamation','आप एक अधिग्रहण भर की दूरी पर सब कुछ खोने से हैं',
+        'Startups अधिग्रहित हो जाती हैं। प्लेटफ़ॉर्म समा लिए जाते हैं। सेवाएँ बंद हो जाती हैं। जब वह प्लेटफ़ॉर्म जिस पर आपने बनाया, किसी PE फ़र्म द्वारा खरीद लिया जाता है — या बस funding खत्म हो जाती है — तो आपके ऐप का भविष्य ऐसे लोग तय करते हैं जिनसे आप कभी नहीं मिले, एक ऐसे boardroom में जहाँ आप कभी नहीं जाएँगे।'],
+];
+
+// "What real ownership looks like" — six points.
+$ownership = [
+    ['fa-server',        'आपका कोड कहीं भी चलता है',   'किसी भी मानक stack वाला कोई भी सर्वर आपके ऐप्लिकेशन को चलाता है। कोई proprietary runtimes नहीं, कोई vendor-specific APIs नहीं, कोई प्लेटफ़ॉर्म dependencies नहीं।'],
+    ['fa-user-shield',   'आपकी auth आपकी है',        'उपयोगकर्ता authentication, authorization, roles और permissions आपके ऐप्लिकेशन में रहते हैं — किसी third-party सेवा में नहीं।'],
+    ['fa-database',      'आपका डेटा आपका है',      'आपका डेटाबेस आपके सर्वर पर चलता है। आप backups नियंत्रित करते हैं। आप access नियंत्रित करते हैं। आप encryption नियंत्रित करते हैं।'],
+    ['fa-file-zipper',   'आपकी migration योजना एक zip फ़ाइल है', 'डेटाबेस dump करें। डायरेक्टरी zip करें। कहीं भी upload करें। Unzip करें। Restore करें। हो गया। यही portability है।'],
+    ['fa-scale-balanced','आपकी लागत अनुमानित है', 'सर्वर hosting पारदर्शी कीमतों वाली एक commodity है। कोई per-row शुल्क नहीं, कोई per-invocation फ़ीस नहीं, कोई bandwidth की चौंकाने वाली बातें नहीं जो रातों-रात आपके बिल को तिगुना कर दें।'],
+    ['fa-infinity',      'आपका भविष्य आपका है',      'कोई प्लेटफ़ॉर्म आपकी कीमतें नहीं बदल सकता। कोई अधिग्रहण आपके ऐप को मार नहीं सकता। कोई vendor आपके व्यवसाय को बंधक नहीं बना सकता।'],
+];
+
+// The comparison table.
+$compare = [
+    ['आपका ऐप कहाँ रहता है',  'उनके प्लेटफ़ॉर्म के अंदर',                              'किसी भी सर्वर पर जो आप चुनें'],
+    ['"export" का क्या मतलब है',   'ऐसा कोड जो उनकी सेवाओं के बिना नहीं चलेगा',        'Zip करो, ले जाओ, unzip करो, हो गया'],
+    ['Authentication &amp; permissions','उनका सिस्टम, उनके नियम',                          'आपका framework, आपके नियम'],
+    ['डेटाबेस',              'उनका managed instance, उनकी कीमत',              'आपका डेटाबेस, आपका सर्वर'],
+    ['scale पर मासिक लागत', '$200–500+ उपयोग-आधारित चौंकाने वाली बातों के साथ',               'एक fixed hosting लागत जो आप नियंत्रित करते हैं'],
+    ['vendor बंद हो जाता है',      'आपका ऐप बंद हो जाता है',                                 'आपका ऐप चलता रहता है'],
+    ['migration योजना',        '3–6 महीने की rewrite',                                  'एक दोपहर'],
+    ['security audit',        '"हम पर भरोसा करें"',                                         'पूर्ण access, पूर्ण नियंत्रण'],
+    ['offline सक्षम',       'नहीं — प्लेटफ़ॉर्म के बिना एक खाली खोल',           'हाँ — पूरी तरह कार्यात्मक, शून्य बाहरी dependencies'],
+];
+
+// The vibe-coding stack (vendor -> what it really costs you).
+$stack = [
+    ['Vercel',           'hosting',            'proprietary deployment runtime'],
+    ['Supabase',         'डेटाबेस &amp; auth','vendor-नियंत्रित data layer'],
+    ['React + Next.js',  'frontend',           'open-source framework, proprietary runtime optimizations'],
+    ['JWT tokens',       'permissions',           'client-side, plain-text authorization'],
+    ['4+ vendors',   'बिल',         '4+ points of failure, 4+ billing रिश्ते, 4+ pricing बदलाव'],
+];
+?>
+
+<!-- Hero -->
+<section class="py-5">
+    <div class="container py-lg-3">
+        <div class="text-primary text-uppercase fw-bold mb-3" style="letter-spacing:.14em;">SaaS vs. SiaS</div>
+        <h1 class="display-3 fw-bold mb-4">आपका ऐप आपका नहीं है।<br><span class="text-primary">आपके प्लेटफ़ॉर्म का है।</span></h1>
+        <p class="lead text-secondary mb-4" style="max-width: 64ch;">
+            एक ऐसा अंतर है जिसके बारे में vibe-coding उद्योग नहीं चाहता कि आप सोचें। वे
+            हर चीज़ को "SaaS" कहते हैं। यह वैसा नहीं है। बाहर जो कुछ भी मौजूद है उसका अधिकांश हिस्सा कुछ पूरी तरह अलग है — और यह
+            अंतर आपको वह सब कुछ खर्च कराएगा जो आपने बनाया है।
+        </p>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <a href="#spot" class="btn btn-primary btn-lg px-4">क्या मैं किसी SiaS प्लेटफ़ॉर्म पर हूँ? &rarr;</a>
+            <a href="/get-tiger" class="btn btn-outline-secondary btn-lg px-4">असली SaaS बनाएँ</a>
+        </div>
+    </div>
+</section>
+
+<!-- The definitions -->
+<section class="pb-5">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="card h-100 border-2 border-primary shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">SaaS</div>
+                        <h2 class="h4 fw-bold mb-2">Software as a Service (सेवा के रूप में सॉफ़्टवेयर)</h2>
+                        <p class="text-secondary mb-0">सॉफ़्टवेयर आपका है। सेवा hosting और
+                            infrastructure है। आप अपना ऐप्लिकेशन लेकर उसे कहीं और चला सकते हैं —
+                            सॉफ़्टवेयर सेवा से स्वतंत्र रूप से मौजूद है। आप अपने कोड, अपने डेटा, अपनी
+                            architecture और अपने भविष्य के मालिक हैं।</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card h-100 border">
+                    <div class="card-body p-4">
+                        <div class="text-secondary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">SiaS</div>
+                        <h2 class="h4 fw-bold mb-2">Software <em>in</em> a Service (सेवा के <em>भीतर</em> सॉफ़्टवेयर)</h2>
+                        <p class="text-secondary mb-0">आपका सॉफ़्टवेयर सेवा के बाहर मौजूद नहीं है। यह
+                            किसी और के प्लेटफ़ॉर्म के अंदर फँसा है, किसी और के proprietary framework पर
+                            चल रहा है, किसी और के डेटाबेस में संग्रहीत है। सेवा हटा दें और सॉफ़्टवेयर
+                            वाष्पित हो जाता है। साथ ले जाने के लिए कुछ नहीं है। zip करने के लिए कुछ नहीं। ले जाने के लिए कुछ नहीं।</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p class="h5 fw-bold text-body-emphasis text-center mt-4 mb-0">SiaS portable नहीं है। कभी था ही नहीं। कभी होगा भी नहीं।</p>
+    </div>
+</section>
+
+<!-- The vibe coding trap -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">vibe-coding का जाल</div>
+        <h2 class="fw-bold mb-3">"अपना ऐप बताइए। हम इसे बनाएँगे। यह आपका है।"</h2>
+        <p class="text-secondary mb-3" style="max-width: 680px;">AI ऐप builders की नई लहर — Bolt,
+            Lovable, Floot, Replit, Create.xyz, HeyBoss, Glide, Creatr — सभी एक ही चीज़ का वादा करते हैं। और यह
+            आपका नहीं है। जो आपका है वह है <em>उनके प्लेटफ़ॉर्म के अंदर एक configuration</em>: prompts, settings
+            और generated कोड का एक समूह जो केवल उनकी infrastructure पर चलता है, उनके proprietary APIs को कॉल करता है,
+            और चलने के लिए उनके runtime पर निर्भर करता है।</p>
+        <div class="d-flex gap-3 p-4 bg-body rounded-3 border" style="max-width: 760px;">
+            <i class="fa-solid fa-triangle-exclamation fa-lg text-primary mt-1"></i>
+            <p class="mb-0"><strong>"GitHub पर export करना" portability नहीं है।</strong> <span class="text-secondary">यह एक
+                marketing checkbox है। export किया गया कोड एक thin client है जो एक ऐसे backend को कॉल करता है जो केवल
+                उसी प्लेटफ़ॉर्म के अंदर मौजूद है जिसे आप छोड़ने की कोशिश कर रहे हैं। इसे एक खाली सर्वर पर चलाकर देखिए — यह काम नहीं करेगा,
+                क्योंकि इसे इसके लिए कभी डिज़ाइन ही नहीं किया गया था।</span></p>
+        </div>
+    </div>
+</section>
+
+<!-- How to spot a SiaS platform -->
+<section class="py-5" id="spot">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">पाँच-सवालों का परीक्षण</div>
+        <h2 class="fw-bold mb-2">किसी SiaS प्लेटफ़ॉर्म को कैसे पहचानें</h2>
+        <p class="text-secondary mb-4" style="max-width: 640px;">ये पाँच सवाल पूछिए। अगर इनमें से
+            <em>किसी</em> का जवाब "नहीं" है, तो आप एक SiaS प्लेटफ़ॉर्म पर हैं।</p>
+        <div class="row g-3">
+            <?php foreach ($questions as $i => $q): ?>
+                <div class="col-12">
+                    <div class="d-flex gap-3 p-3 p-md-4 bg-body-tertiary rounded-3 border">
+                        <div class="display-6 fw-bold text-primary lh-1"><?= sprintf('%02d', $i + 1) ?></div>
+                        <div>
+                            <div class="fw-bold mb-1"><?= $q[0] ?></div>
+                            <div class="text-secondary mb-0"><?= $q[1] ?></div>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- The real cost of SiaS -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">असली लागत</div>
+        <h2 class="fw-bold mb-2">SiaS असल में आपको क्या खर्च कराता है</h2>
+        <p class="text-secondary mb-4" style="max-width: 640px;">Sticker price सबसे सस्ता हिस्सा है। असली
+            बिल बाद में आता है — और तब तक आप छोड़ नहीं सकते।</p>
+        <div class="row g-3">
+            <?php foreach ($costs as $c): ?>
+                <div class="col-md-6">
+                    <div class="d-flex gap-3 p-3 p-md-4 bg-body rounded-3 border h-100">
+                        <i class="fa-solid <?= $c[0] ?> fa-lg text-primary mt-1"></i>
+                        <div>
+                            <div class="fw-semibold mb-1"><?= $c[1] ?></div>
+                            <div class="text-secondary"><?= $c[2] ?></div>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- What real ownership looks like -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">असली स्वामित्व</div>
+        <h2 class="fw-bold mb-2">अपने ऐप का मालिक होना असल में कैसा दिखता है</h2>
+        <p class="text-secondary mb-4" style="max-width: 640px;">किसी pricing पेज पर एक वादा नहीं। architecture का एक
+            गुण।</p>
+        <div class="row g-3">
+            <?php foreach ($ownership as $o): ?>
+                <div class="col-md-6">
+                    <div class="d-flex gap-3 p-3 bg-body-tertiary rounded-3 border h-100">
+                        <i class="fa-solid <?= $o[0] ?> fa-lg text-primary mt-1"></i>
+                        <div>
+                            <div class="fw-semibold"><?= $o[1] ?></div>
+                            <div class="text-secondary"><?= $o[2] ?></div>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- Comparison table -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">आमने-सामने</div>
+        <h2 class="fw-bold mb-4">SiaS प्लेटफ़ॉर्म vs. असली SaaS</h2>
+        <div class="table-responsive">
+            <table class="table align-middle bg-body border rounded-3 overflow-hidden mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col" style="width:22%"></th>
+                        <th scope="col" class="text-secondary">SiaS प्लेटफ़ॉर्म</th>
+                        <th scope="col" class="cell-emphasis text-primary-emphasis">असली SaaS (Tiger)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($compare as $row): ?>
+                        <tr>
+                            <th scope="row" class="fw-semibold"><?= $row[0] ?></th>
+                            <td class="text-secondary"><?= $row[1] ?></td>
+                            <td class="cell-emphasis"><i class="fa-solid fa-check text-success me-2"></i><?= $row[2] ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- The stack vs one framework -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">चार subscriptions जो एक प्लेटफ़ॉर्म होने का दिखावा करती हैं</div>
+        <h2 class="fw-bold mb-2">vibe stack vs. एक framework</h2>
+        <p class="text-secondary mb-4" style="max-width: 680px;">वह कोई architecture नहीं है। वह एक रसीद है।
+            हर vendor एक dependency है। हर dependency एक जोखिम है। हर जोखिम एक लागत है जो आप आखिरकार चुकाएँगे।</p>
+        <div class="row g-4 align-items-center">
+            <div class="col-lg-6">
+                <ul class="list-unstyled mb-0">
+                    <?php foreach ($stack as $s): ?>
+                        <li class="d-flex gap-3 py-2 border-bottom">
+                            <i class="fa-solid fa-xmark text-danger mt-1"></i>
+                            <div>
+                                <span class="fw-semibold"><?= $s[0] ?></span>
+                                <span class="text-secondary"><?= $s[1] ?> के लिए</span>
+                                <div class="text-secondary">&rarr; <?= $s[2] ?></div>
+                            </div>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <div class="col-lg-6">
+                <div class="card border-2 border-primary shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">एक framework. एक सर्वर.</div>
+                        <h3 class="h5 fw-bold mb-3">सब कुछ एक ही जगह</h3>
+                        <div class="row row-cols-2 g-2">
+                            <?php foreach (['Auth', 'ACL', 'Multi-tenancy', 'Sessions', 'Security', 'Ecommerce', 'API + docs', 'AI-ready MCP', 'Theme system', 'Page builder'] as $cap): ?>
+                                <div class="col"><i class="fa-solid fa-check text-success me-2"></i><?= $cap ?></div>
+                            <?php endforeach; ?>
+                        </div>
+                        <p class="text-secondary mb-0 mt-3">कोई बाहरी dependencies नहीं। कोई vendor lock-in नहीं।
+                            कोई SiaS जाल नहीं। एक framework जो एक सर्वर पर चलता है।</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA + four ways -->
+<section class="py-5 bg-body-tertiary" id="build">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">किसी और के ऐप के अंदर बनाना बंद करें</div>
+        <h2 class="display-6 fw-bold mb-3">कुछ ऐसा बनाएँ जो आपका हो।<br><span class="text-primary">असली SaaS बनाएँ। SiaS नहीं।</span></h2>
+        <p class="text-secondary mb-4" style="max-width: 680px;">Tiger एक open-source, BSD-3 लाइसेंस वाला SaaS
+            ऐप्लिकेशन framework है। Auth, ACL, multi-tenancy, admin, sessions, security, ecommerce, और AI
+            integration — शामिल हैं। जहाँ भी PHP और MariaDB चलते हैं वहाँ चलता है। इसे zip करें। इसे ले जाएँ। इसे कोई फ़र्क नहीं पड़ता।</p>
+
+        <div class="row row-cols-1 row-cols-md-2 g-4 mb-4">
+            <div class="col">
+                <div class="card h-100 border-primary shadow-sm position-relative bg-body">
+                    <span class="badge text-bg-primary position-absolute top-0 end-0 m-3">सबसे तेज़</span>
+                    <div class="card-body">
+                        <div class="text-secondary fw-bold font-monospace">01</div>
+                        <h3 class="h4 fw-bold mb-1">TigerDen</h3>
+                        <div class="text-primary fw-semibold mb-2">आपका अपना instance, मिनटों में live</div>
+                        <div class="h5 fw-bold mb-2">$19 <span class="fs-6 text-secondary fw-normal">/ माह</span></div>
+                        <p class="text-secondary mb-0">हम एक समर्पित Tiger सर्वर लॉन्च करते हैं और आपको चाबियाँ सौंप देते हैं —
+                            आप उस box के मालिक हैं और उसे चलाते हैं। कोई setup नहीं, कोई build step नहीं, खड़ा करने के लिए कोई सर्वर नहीं।</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card h-100 shadow-sm bg-body">
+                    <div class="card-body">
+                        <div class="text-secondary fw-bold font-monospace">02</div>
+                        <h3 class="h4 fw-bold mb-1">TigerInstall</h3>
+                        <div class="text-primary fw-semibold mb-2">किसी भी shared hosting पर एक-क्लिक</div>
+                        <p class="text-secondary mb-0">किसी भी मानक LAMP host पर एक-क्लिक setup — कोई shell नहीं,
+                            कोई Composer नहीं, कोई DevOps नहीं।</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card h-100 shadow-sm bg-body">
+                    <div class="card-body">
+                        <div class="text-secondary fw-bold font-monospace">03</div>
+                        <h3 class="h4 fw-bold mb-1">Tiger + Composer</h3>
+                        <div class="text-primary fw-semibold mb-2">पूर्ण नियंत्रण, developers के लिए</div>
+                        <div class="bg-body-tertiary border rounded-3 p-3 font-monospace mb-0">
+                            <span class="text-primary">$</span> composer create-project webtigers/tiger
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card h-100 shadow-sm bg-body">
+                    <div class="card-body">
+                        <div class="text-secondary fw-bold font-monospace">04</div>
+                        <h3 class="h4 fw-bold mb-1">Tiger + Docker</h3>
+                        <div class="text-primary fw-semibold mb-2">Local dev वातावरण</div>
+                        <div class="bg-body-tertiary border rounded-3 p-3 font-monospace mb-0">
+                            <span class="text-primary">$</span> docker run webtigers/tiger
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <a href="/get-tiger" class="btn btn-primary btn-lg px-4">Tiger पाएँ &rarr;</a>
+    </div>
+</section>

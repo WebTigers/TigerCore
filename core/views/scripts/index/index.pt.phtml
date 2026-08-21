@@ -1,0 +1,80 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * Public home page — a deliberately minimal Tiger placeholder for now (the full home gets designed
+ * later). Rendered inside the PUMA public layout; Bootstrap + --bs-* tokens, so it restyles live with
+ * the theme (light/dark) and the active skin. The real marketing lives on the Solutions pages
+ * (/cms, /vibe, /agency, /developers, …) reachable from the header menu.
+ */
+$this->title = 'Tiger — Pare de criar apps. Comece a lançar negócios. · A plataforma SaaS nativa de IA';
+?>
+<section class="py-5">
+    <div class="container">
+        <div class="text-center py-lg-5" style="max-width: 760px; margin: 0 auto;">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-primary-subtle text-primary mb-4" style="width:84px;height:84px;">
+                <i class="fa-solid fa-paw" style="font-size:2.5rem;"></i>
+            </div>
+            <span class="rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">A plataforma SaaS nativa de IA</span>
+            <h1 class="display-4 fw-bold mb-3">Pare de criar apps. Comece a lançar negócios.</h1>
+            <p class="lead text-secondary mb-4">
+                Diga à sua IA o que você quer vender — livros, assinaturas, produtos, uma loja inteira — e o Tiger
+                lança um negócio de verdade que é <strong>100%</strong> seu. No ar em minutos. Sem o
+                inferno dos plugins, sem etapa de compilação, sem GPL — agnóstico de front-end, e
+                feito para ser estendido pela sua IA.
+            </p>
+            <div class="d-flex flex-wrap gap-2 justify-content-center">
+                <a href="/get-tiger" class="btn btn-primary btn-lg px-4">Comece agora</a>
+                <a href="/why-tiger" class="btn btn-outline-primary btn-lg px-4">Por que Tiger</a>
+                <a href="/how-it-works" class="btn btn-outline-primary btn-lg px-4">Como funciona</a>
+                <a href="/docs" class="btn btn-outline-secondary btn-lg px-4">Leia a documentação</a>
+                <a href="https://github.com/WebTigers/Tiger" class="btn btn-outline-primary btn-lg px-4" target="_blank" rel="noopener">
+                    <i class="fa-brands fa-github me-2"></i>Ver no GitHub
+                </a>
+            </div>
+            <p class="text-secondary mt-4 mb-0">
+                <i class="fa-solid fa-arrow-up me-1"></i>
+                Explore para que serve o Tiger em <strong>Soluções</strong>, no menu.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- Tiger is free -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container">
+        <div class="text-center mx-auto mb-5" style="max-width: 820px;">
+            <div class="text-primary text-uppercase fw-bold mb-3" style="letter-spacing:.14em;">Grátis · Código aberto · BSD-3</div>
+            <h2 class="display-4 fw-bold mb-4">Ah, e já mencionamos que <span class="text-primary">o Tiger é GRÁTIS.</span></h2>
+            <p class="lead text-secondary mb-0">O Tiger é software de código aberto sob a permissiva licença
+                <strong class="text-body-emphasis">BSD-3</strong>. Baixe, rode em qualquer lugar onde PHP e
+                um banco de dados rodem, construa o que você quiser em cima dele, e fique com tudo o que construir — sem taxas de licença,
+                sem aprisionamento, sem letras miúdas.</p>
+        </div>
+
+        <div class="row g-4 justify-content-center mb-5 mx-auto" style="max-width: 980px;">
+            <div class="col-sm-6 col-lg-3 text-center">
+                <i class="fa-brands fa-github fa-2x text-primary mb-2"></i>
+                <div class="fw-semibold">Código aberto</div>
+                <div class="text-secondary">Todo o framework, no GitHub. Faça fork, leia, torne-o seu.</div>
+            </div>
+            <div class="col-sm-6 col-lg-3 text-center">
+                <i class="fa-solid fa-download fa-2x text-primary mb-2"></i>
+                <div class="fw-semibold">Rode em qualquer lugar</div>
+                <div class="text-secondary">Qualquer máquina com PHP e um banco de dados — de um VPS de $5 a um Raspberry Pi.</div>
+            </div>
+            <div class="col-sm-6 col-lg-3 text-center">
+                <i class="fa-solid fa-scale-balanced fa-2x text-primary mb-2"></i>
+                <div class="fw-semibold">Licença BSD-3</div>
+                <div class="text-secondary">Use, modifique, venda o que construir — e fique com cada centavo.</div>
+            </div>
+            <div class="col-sm-6 col-lg-3 text-center">
+                <i class="fa-solid fa-puzzle-piece fa-2x text-primary mb-2"></i>
+                <div class="fw-semibold">Estenda do seu jeito</div>
+                <div class="text-secondary">Adicione complementos comerciais premium se quiser — ou crie os seus.</div>
+            </div>
+        </div>
+
+        <h3 class="text-center fw-bold mb-0">O Tiger coloca você no <span class="text-primary">comando</span>.</h3>
+    </div>
+</section>
