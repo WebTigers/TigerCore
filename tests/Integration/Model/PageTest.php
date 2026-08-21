@@ -179,8 +179,34 @@ final class PageTest extends IntegrationTestCase
         $en = $this->insertPage(['org_id' => $org, 'slug' => 'welcome', 'locale' => 'en', 'page_key' => 'welcome']);
         $es = $this->insertPage(['org_id' => $org, 'slug' => 'welcome', 'locale' => 'es', 'page_key' => 'welcome']);
 
-        $this->assertSame($en, $this->page->resolveBySlug('welcome', 'en', $org)->page_id);
-        $this->assertSame($es, $this->page->resolveBySlug('welcome', 'es', $org)->page_id);
-        $this->assertNull($this->page->resolveBySlug('welcome', 'fr', $org), 'an unmatched locale resolves nothing');
+        $this->assertSame($en, $this->page->resolveBySlug('welcome', 'en', $org)->page_id, 'exact en matches');
+        $this->assertSame($es, $this->page->resolveBySlug('welcome', 'es', $org)->page_id, 'exact es matches');
+        // An unmatched locale (fr) falls back to the DEFAULT-locale (en) row instead of 404ing.
+        $this->assertSame($en, $this->page->resolveBySlug('welcome', 'fr', $org)->page_id, 'an unmatched locale serves the default-locale page');
+    }
+
+    #[Test]
+    public function the_resolver_falls_back_to_the_default_locale_then_null(): void
+    {
+        $org = Tiger_Uuid::v7();
+        // A page authored ONLY in the default language (the /why-tiger case) — no es row exists.
+        $en = $this->insertPage(['org_id' => $org, 'slug' => 'why', 'locale' => 'en', 'page_key' => 'why']);
+
+        // An es request serves the en page (English content under a translated shell), not a 404.
+        $this->assertSame($en, $this->page->resolveBySlug('why', 'es', $org)->page_id, 'es falls back to the en page');
+        // But a slug that exists in NO locale still resolves to nothing.
+        $this->assertNull($this->page->resolveBySlug('missing', 'es', $org), 'a truly-absent slug is still null');
+    }
+
+    #[Test]
+    public function an_exact_locale_still_beats_the_default_fallback(): void
+    {
+        $org = Tiger_Uuid::v7();
+        // Both an en (default) and a de row exist; a de request must get the de row, not the en default —
+        // proves the FIELD() priority, which a plain locale-DESC sort would get wrong ('de' < 'en').
+        $en = $this->insertPage(['org_id' => $org, 'slug' => 'hallo', 'locale' => 'en', 'page_key' => 'hallo']);
+        $de = $this->insertPage(['org_id' => $org, 'slug' => 'hallo', 'locale' => 'de', 'page_key' => 'hallo']);
+
+        $this->assertSame($de, $this->page->resolveBySlug('hallo', 'de', $org)->page_id, 'exact de wins over the en default');
     }
 }
