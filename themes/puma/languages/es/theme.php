@@ -7,6 +7,8 @@
 return [
     'theme.nav.why_tiger'      => 'Por qué Tiger',
     'theme.nav.why_tiger_desc' => 'El argumento a favor de Tiger: sé dueño de todo tu stack, crea SaaS de verdad y evita el lock-in.',
+    'theme.nav.how_it_works'      => 'Cómo funciona',
+    'theme.nav.how_it_works_desc' => 'Un framework, tres caminos: crea un sitio web, programa con IA o lanza software empresarial.',
     'theme.nav.saas_vs_sias'      => 'SaaS vs. SiaS',
     'theme.nav.saas_vs_sias_desc' => '¿De verdad eres dueño de tu app? La diferencia que te cuesta todo, y cómo detectar la trampa.',
     'theme.nav.solutions' => 'Soluciones',

@@ -127,6 +127,17 @@ class IndexController extends Zend_Controller_Action
         $this->view->localeView();
     }
 
+    /**
+     * `/how-it-works` — "How Tiger Works": one framework, three paths (website / vibe-code / enterprise),
+     * what ships in the box, the composition model, portability, and the comparisons. Shipped marketing.
+     *
+     * @return void
+     */
+    public function howItWorksAction()
+    {
+        $this->view->localeView();
+    }
+
     /** The configured home-page id (tiger.site.home_page), or '' for the built-in landing. */
     protected function _homePageId()
     {
