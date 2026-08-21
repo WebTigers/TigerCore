@@ -24,7 +24,7 @@ class Blog_Bootstrap extends Zend_Application_Module_Bootstrap
         }
         Tiger_Search::register([
             'key'    => 'articles',
-            'label'  => 'blog.nav.label',
+            'label'  => 'Articles',
             'icon'   => 'fa-newspaper',
             'weight' => 20,
             'search' => function ($term, $ctx) {

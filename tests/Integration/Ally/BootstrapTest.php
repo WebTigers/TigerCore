@@ -59,7 +59,7 @@ final class BootstrapTest extends IntegrationTestCase
 
         $items = $this->registered();
         $this->assertArrayHasKey('ally', $items, 'the Accessibility nav item is registered');
-        $this->assertSame('Accessibility', $items['ally']['label']);
+        $this->assertSame('ally.nav.label', $items['ally']['label'], 'label is a translation key, resolved in the nav render');
         $this->assertSame('/ally', $items['ally']['href']);
         $this->assertSame('Ally_IndexController', $items['ally']['resource'], 'ACL-gated to the controller');
     }

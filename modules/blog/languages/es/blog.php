@@ -115,5 +115,4 @@ return [
     'blog.js.network_error' => 'Error de red — inténtalo de nuevo.',
     'blog.js.confirm_restore' => '¿Restaurar la versión n.º %s? El contenido actual se guarda primero como una nueva versión.',
     'blog.js.link_url' => 'URL del enlace:',
-    'blog.nav.label' => 'Artículos',
 ];
