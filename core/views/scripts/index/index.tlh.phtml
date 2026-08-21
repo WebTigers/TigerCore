@@ -1,0 +1,82 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * Public home page — KLINGON (tlh). REAL, grammatical tlhIngan Hol (Marc Okrand's grammar: OVS,
+ * verb prefixes, noun suffixes), rendered in pIqaD (Unicode PUA U+F8D0–F8FF; the bundled font draws
+ * it). Because Klingon has no canonical vocabulary for app/SaaS/AI/plugin/download/GitHub/BSD/GPL,
+ * the copy is translated by MEANING into warrior idiom and brand/tech terms are kept as loanwords —
+ * exactly how the KLI renders modern text. The romanized Klingon + an English gloss sits beside each
+ * string (the "⇒" comments) so it stays maintainable and defensible; refine against the KLI as needed.
+ * Sibling of index.phtml (localeView renders this on /tlh/); same PUMA layout + Bootstrap tokens.
+ */
+$this->title = '  .  ! · Tiger';
+?>
+<section class="py-5">
+    <div class="container">
+        <div class="text-center py-lg-5" style="max-width: 760px; margin: 0 auto;">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-primary-subtle text-primary mb-4" style="width:84px;height:84px;">
+                <i class="fa-solid fa-paw" style="font-size:2.5rem;"></i>
+            </div>
+            <!-- eyebrow: De'wI' val pat  ⇒  the intelligent-computer platform -->
+            <span class="rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">  </span>
+            <!-- h1: Doch ram yIchenmoHQo'. malja' tIche'!  ⇒  Don't build trivial things. Rule businesses! -->
+            <h1 class="display-4 fw-bold mb-3">  .  !</h1>
+            <!-- lead: Dangevqangbogh Doch yIngu' — paqmey, patlh, malja' naQ je. vaj malja' Sar chenmoH {{Tiger}}; Hoch Daghaj SoH. tugh yIntaH.  ⇒  Identify what you're willing to sell — books, ranks (memberships), a whole business. Then Tiger builds a full business; you own it all. Soon it lives. -->
+            <p class="lead text-secondary mb-4">   — , ,   .     Tiger;   .  .</p>
+            <div class="d-flex flex-wrap gap-2 justify-content-center">
+                <a href="/get-tiger" class="btn btn-primary btn-lg px-4"></a><!-- b_start: yItagh  ⇒  Begin! -->
+                <a href="/why-tiger" class="btn btn-outline-primary btn-lg px-4"> Tiger?</a><!-- b_why: qatlh {{Tiger}}?  ⇒  Why Tiger? -->
+                <a href="/how-it-works" class="btn btn-outline-primary btn-lg px-4"> ?</a><!-- b_how: chay' vangtaH?  ⇒  How does it work? -->
+                <a href="/docs" class="btn btn-outline-secondary btn-lg px-4"> </a><!-- b_docs: De' yIlaD  ⇒  Read the docs. -->
+                <a href="https://github.com/WebTigers/Tiger" class="btn btn-outline-primary btn-lg px-4" target="_blank" rel="noopener">
+                    <i class="fa-brands fa-github me-2"></i>GitHub 
+                </a><!-- b_github: {{GitHub}}Daq yIlegh  ⇒  View it on GitHub. -->
+            </div>
+            <!-- hint: {{Solutions}}Daq {{Tiger}} Qu'mey yISam.  ⇒  Find Tiger's purposes under Solutions. -->
+            <p class="text-secondary mt-4 mb-0">
+                <i class="fa-solid fa-arrow-up me-1"></i>
+                Solutions Tiger  .
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- Tiger is free -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container">
+        <div class="text-center mx-auto mb-5" style="max-width: 820px;">
+            <!-- free_eye: tlhab · poSmoHlu'bogh ngoq · {{BSD-3}}  ⇒  free · open-sourced code · BSD-3 -->
+            <div class="text-primary text-uppercase fw-bold mb-3" style="letter-spacing:.14em;"> ·   · BSD-3</div>
+            <!-- free_h2a: yIQoy: tlhab  ⇒  Hear this: it's free -->
+            <h2 class="display-4 fw-bold mb-4">:  <span class="text-primary">Tiger!</span></h2>
+            <!-- free_lead: poSmoHlu'bogh ngoq 'oH {{Tiger}}'e'; {{BSD-3}} chaw' lo'. yISuq, yIlo', Doch DanIDbogh yIchenmoH, 'ej Hoch DachenmoHbogh yIpol. Huch DaDIlnISbe'.  ⇒  Tiger is open-sourced code; it uses the permissive BSD-3 license. Get it, use it, build whatever you attempt, and keep everything you build. You needn't pay money. -->
+            <p class="lead text-secondary mb-0">   Tiger; BSD-3  . , ,   ,    .  .</p>
+        </div>
+
+        <div class="row g-4 justify-content-center mb-5 mx-auto" style="max-width: 980px;">
+            <div class="col-sm-6 col-lg-3 text-center">
+                <i class="fa-brands fa-github fa-2x text-primary mb-2"></i>
+                <div class="fw-semibold"> </div><!-- c1t: poSmoHlu'bogh ngoq  ⇒  open-sourced code -->
+                <div class="text-secondary">GitHub  . . . .</div><!-- c1d: {{GitHub}}Daq pat naQ. yIlaD. yIchoH. yIghaj.  ⇒  The whole system on GitHub. Read it. Change it. Own it. -->
+            </div>
+            <div class="col-sm-6 col-lg-3 text-center">
+                <i class="fa-solid fa-download fa-2x text-primary mb-2"></i>
+                <div class="fw-semibold"> </div><!-- c2t: Hoch DaqDaq  ⇒  everywhere -->
+                <div class="text-secondary">PHP     .</div><!-- c2d: {{PHP}} qawHaq je lulo'bogh De'wI'mey Hoch.  ⇒  Any computer that uses PHP and a database. -->
+            </div>
+            <div class="col-sm-6 col-lg-3 text-center">
+                <i class="fa-solid fa-scale-balanced fa-2x text-primary mb-2"></i>
+                <div class="fw-semibold">BSD-3 </div><!-- c3t: {{BSD-3}} chaw'  ⇒  BSD-3 licensed -->
+                <div class="text-secondary">. .  .    .</div><!-- c3d: yIlo'. yIchoH. DachenmoHbogh yIngev. 'ej Huch Hoch yIpol.  ⇒  Use it. Change it. Sell what you build. And keep all the money. -->
+            </div>
+            <div class="col-sm-6 col-lg-3 text-center">
+                <i class="fa-solid fa-puzzle-piece fa-2x text-primary mb-2"></i>
+                <div class="fw-semibold"></div><!-- c4t: yIghurmoH  ⇒  extend it -->
+                <div class="text-secondary">    —   .</div><!-- c4d: Huch Doch tIchel DaneHchugh — pagh SoH yIchenmoH.  ⇒  Add paid add-ons if you want — or build your own. -->
+            </div>
+        </div>
+        <!-- driver_a: bIche' 'e' chaw'  ⇒  it lets you rule -->
+        <h3 class="text-center fw-bold mb-0">   <span class="text-primary">{TIGER}</span>.</h3>
+    </div>
+</section>

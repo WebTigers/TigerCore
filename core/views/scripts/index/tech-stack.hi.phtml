@@ -1,0 +1,147 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /tech-stack — "The Technology Stack": why each layer was chosen (proven, portable, fast, secure,
+ * AI-native, owned). Deliberately NON-tribal — it makes the positive case for each choice rather
+ * than dunking on other stacks (the audience is builders, not language partisans). Rendered inside
+ * the PUMA public layout. Bootstrap + --bs-* tokens only. Shipped marketing.
+ */
+$this->title = 'तकनीकी स्टैक — सिद्ध, पोर्टेबल, तेज़, AI-native | Tiger';
+
+// Each layer: [icon, heading, one-line, body]
+$stack = [
+    ['fa-brands fa-php', 'PHP 8', 'वह भाषा जो web को चलाती है',
+        'PHP लगभग 77% सभी वेबसाइटों को शक्ति देता है — WordPress, Wikipedia, Etsy, Slack का backend, Mailchimp। और PHP 8 तेज़ और आधुनिक है — JIT-compiled, वैकल्पिक strict typing के साथ जब आप चाहें। हर request एक साफ़, isolated process में चलती है — साझा state लीक होने का कोई जोखिम नहीं, design से stateless, जो इसे design से stable बनाता है। talent pool बहुत बड़ा और किफ़ायती है, इसलिए hiring एक हल हो चुकी समस्या है।'],
+    ['fa-solid fa-sitemap', 'Modernized ZF1 — कठोर, पूर्वानुमेय MVC + SOA', 'निर्माण से ही AI-native',
+        'Tiger, Zend Framework 1 की architecture का एक PHP 8 विकास चलाता है: आधुनिक भाषा सुविधाओं के साथ enterprise-grade संरचना। AI-सहायता प्राप्त विकास के लिए फ़ायदा बहुत बड़ा है — controllers, controllers directory में रहते हैं, models, models में, views, views में, और हर module एक ही आकार का पालन करता है। जब आपकी AI एक Tiger app पढ़ती है तो वह अनुमान नहीं लगाती; वह एक पूर्वानुमेय pattern पढ़ती है और आत्मविश्वास से काम करती है। wiring स्पष्ट है — जो आप देखते हैं वही चलता है — इसलिए कुछ भी runtime जादू के पीछे छिपा नहीं है जिसे AI को अनुमान लगाना पड़े।'],
+    ['fa-solid fa-cube', 'एक GRX monolith', 'एक process. एक deploy. ~10ms.',
+        'बीस microservices का मतलब है बीस deployments, debug करने के लिए network सीमाएँ, और orchestration का overhead जिसके लिए एक full-time DevOps engineer चाहिए — startup पैमाने पर distributed-systems की जटिलता। एक अच्छी तरह संरचित monolith बनाने में तेज़, debug करने में आसान, deploy करने में सरल, और चलाने में सस्ता है। Tiger एक application है, एक process, एक deployment, ~10ms responses — कोई service mesh नहीं, कोई API gateway नहीं, कोई container choreography नहीं।'],
+    ['fa-brands fa-js', 'एक zero-build frontend', 'अपना खुद का JavaScript लाएँ',
+        'एक JavaScript file डालें, उसे अपनी view में reference करें, और यह काम करती है — React, Vue, Alpine, vanilla, या कुछ नहीं। कोई Webpack नहीं, कोई Vite नहीं, कोई Babel नहीं, कोई bundler नहीं, हज़ारों transitive packages वाला कोई <code>node_modules</code> folder नहीं जिनका आपने कभी audit नहीं किया। यह एक security निर्णय भी है: npm की गहरी dependency trees एक वास्तविक supply-chain attack surface हैं, और supply-chain attack के खिलाफ़ सबसे अच्छा बचाव है supply chain का न होना। सबसे अच्छा हिस्सा वह है जो होता ही नहीं।'],
+    ['fa-solid fa-database', 'MariaDB', 'डिफ़ॉल्ट — या कोई भी PDO database',
+        'Tiger, MariaDB के साथ आता है: MySQL का open-source उत्तराधिकारी, Oracle द्वारा MySQL अधिग्रहण के बाद इसके मूल रचनाकारों द्वारा अनुरक्षित — पूरी तरह MySQL-compatible, सर्वव्यापी, और vendor lock-in से मुक्त। एक बढ़िया, उबाऊ डिफ़ॉल्ट जो हर जगह चलता है। लेकिन data layer, database के प्रति agnostic है: इसे PDO driver वाले किसी भी engine की ओर इंगित करें — PostgreSQL, MySQL, Oracle, या SQL Server — और query builder तथा models एक ही तरह काम करते हैं। आपका database अदृश्य रहता है, और आपका।'],
+    ['fa-solid fa-server', 'Apache या Nginx', 'युद्ध में परखा हुआ। कोई proprietary runtime नहीं।',
+        'Apache ने 1995 से web की सेवा की है, Nginx ने 2004 से; दोनों मिलकर धरती के अधिकांश traffic को संभालते हैं, और हर host इन्हें support करता है। Tiger को किसी edge network, cold-start दंड वाले serverless functions, या किसी vendor routing layer की ज़रूरत नहीं है — बस एक web server जो request को PHP को सौंप दे। कोई cold start नहीं, कोई invocation शुल्क नहीं। request आती है, PHP उसे संभालता है, response भेज दिया जाता है।'],
+    ['fa-solid fa-box-open', 'Composer', 'समझदार, स्पष्ट dependencies',
+        'Composer की dependency trees सपाट और स्पष्ट हैं: आप जो चाहिए वह घोषित करते हैं, versions निर्धारित रूप से resolve होती हैं, आप lock file commit करते हैं, और हर install एक समान होता है। Tiger का <code>composer.json</code> स्थापित vendors से जानबूझकर चुने गए packages की एक छोटी सूची है — AWS SDK, Stripe SDK, PHPMailer — हर एक एक सोची-समझी पसंद, जिसके पीछे एक security team है। आप वास्तव में सूची पढ़ सकते हैं और जान सकते हैं कि वहाँ क्या है और क्यों।'],
+    ['fa-solid fa-bolt', 'Server-side rendering', 'page पूरा आता है',
+        'एक browser Tiger का एक page माँगता है और पूरा, rendered HTML पाता है — किसी client framework के boot होते समय कोई खाली screen नहीं, कोई "loading…" spinner नहीं, कोई hydration step नहीं। इसका मतलब है डिफ़ॉल्ट रूप से तेज़ (किसी framework के bootstrap होने से पहले HTML paint हो जाता है), डिफ़ॉल्ट रूप से SEO-ready (search engines पूरे pages देखते हैं), डिफ़ॉल्ट रूप से accessible (screen readers तुरंत content देखते हैं), और डिफ़ॉल्ट रूप से लचीला (अगर JavaScript विफल हो, तब भी page काम करता है)।'],
+    ['fa-solid fa-key', 'DB-backed sessions', 'server जानता है आप कौन हैं; browser नहीं',
+        'login पर, Tiger एक session record लिखता है और browser को एक opaque token सौंपता है — एक UUID जो अकेले में कोई मायने नहीं रखता। हर request session को देखती है और ACL real time में permissions का मूल्यांकन करता है। token केवल identity ले जाता है, कभी roles या claims नहीं, इसलिए जाली बनाने के लिए कुछ नहीं है और permissions तुरंत बदली या रद्द की जा सकती हैं — किसी token के expire होने की प्रतीक्षा किए बिना। कम ही ज़्यादा है: token identity ले जाता है, server बाकी सब कुछ ले जाता है।'],
+    ['fa-solid fa-diagram-project', 'MVC + SOA', 'अलग की गई ज़िम्मेदारियाँ जिन्हें AI navigate कर सकती है',
+        'web layer के लिए Model, View, Controller — साथ ही एक service layer (SOA) जहाँ business logic रहती है। हर एक का एक काम और एक पूर्वानुमेय स्थान है: data model में, presentation view में, हल्की request-handling controller में, business logic service में। हर layer को स्वतंत्र रूप से test, बदला, या प्रतिस्थापित किया जा सकता है। AI-सहायता प्राप्त विकास के लिए यही पूरा खेल है: जब आपकी AI को बदलना हो कि data कैसे store होता है तो वह model पर जाती है; page कैसा दिखता है, view पर; business logic कैसे व्यवहार करती है, service पर। उसे कभी सोचना नहीं पड़ता कि कोई चीज़ कहाँ है। पूर्वानुमेयता ही उत्पादकता है।'],
+    ['fa-solid fa-scale-balanced', 'BSD-3 license', 'Enterprise-safe, व्यावसायिक रूप से उदार',
+        'इसे जैसे चाहें उपयोग करें — इसे modify करें, इस पर एक commercial product बनाएँ, वह product बेचें, सारा पैसा रखें। केवल इतना अनुरोध: license notice रखें, अपने product का समर्थन करने के लिए project के नाम का उपयोग न करें, और अगर कुछ टूटे तो हमें दोष न दें। copyleft licenses (GPL/AGPL) के विपरीत, जहाँ व्युत्पन्न या यहाँ तक कि networked उपयोग आपके अपने code को खोलने के लिए बाध्य कर सकता है, BSD-3 वह license है जिसे enterprise legal teams बिना लड़ाई के मंज़ूर करती हैं — भरोसा करने लायक पर्याप्त सुरक्षात्मक, व्यावहारिक होने लायक पर्याप्त उदार।'],
+];
+
+// The stack at a glance.
+$glance = [
+    ['भाषा',          'PHP 8',            '77% web, विशाल talent pool, process-isolated, तेज़'],
+    ['Framework',     'Modernized ZF1',   'कठोर MVC + SOA, AI-native संरचना, enterprise patterns'],
+    ['Architecture',  'GRX monolith',     'एक process, एक deploy, ~10ms, कोई microservice फैलाव नहीं'],
+    ['Database',      'MariaDB, या कोई भी PDO engine', 'Postgres, MySQL, Oracle, SQL Server; डिफ़ॉल्ट रूप से MariaDB, कोई lock-in नहीं'],
+    ['Web server',    'Apache / Nginx',   'दशकों से सिद्ध, zero cold starts, कोई vendor runtime नहीं'],
+    ['Dependencies',  'Composer',         'सपाट, स्पष्ट, auditable — कोई npm supply-chain जोखिम नहीं'],
+    ['Frontend',      'Zero-build',       'कोई bundler नहीं, कोई transpiler नहीं, अपना खुद का JS लाएँ'],
+    ['Rendering',     'Server-side',      'पूरा HTML, कोई hydration नहीं, डिफ़ॉल्ट रूप से SEO + accessible'],
+    ['Sessions',      'DB-backed',        'server-side state, opaque token, कोई JWT exposure नहीं'],
+    ['Pattern',       'MVC + SOA',        'अलग की गई ज़िम्मेदारियाँ, पूर्वानुमेय संरचना, AI-friendly'],
+    ['License',       'BSD-3',            'Enterprise-safe, व्यावसायिक रूप से उदार, कोई copyleft नहीं'],
+];
+?>
+
+<!-- Hero -->
+<section class="py-5">
+    <div class="container py-lg-3">
+        <div class="text-primary text-uppercase fw-bold mb-3" style="letter-spacing:.14em;">तकनीकी स्टैक</div>
+        <h1 class="display-3 fw-bold mb-4">हर विकल्प का एक कारण है।<br><span class="text-primary">हर कारण आपका लाभ है।</span></h1>
+        <p class="lead text-secondary mb-4" style="max-width: 64ch;">
+            Tiger का stack trendy होने के लिए नहीं चुना गया — इसे <strong class="text-body-emphasis">सिद्ध,
+            पोर्टेबल, तेज़, सुरक्षित, और AI द्वारा समझे जाने योग्य</strong> होने के लिए चुना गया। हर layer आज web को
+            चलाती है, इसे वर्षों से चला रही है, और चलाती रहेगी — इसलिए जो आप बनाते हैं वह तेज़ रहता है, आपका रहता है,
+            और आपकी AI के लिए इस पर काम करना आसान है।
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="/get-tiger" class="btn btn-primary btn-lg px-4">शुरू करें &rarr;</a>
+            <a href="/how-it-works" class="btn btn-outline-primary btn-lg px-4">यह कैसे काम करता है</a>
+        </div>
+    </div>
+</section>
+
+<!-- The AI-native throughline -->
+<section class="py-4 bg-body-tertiary">
+    <div class="container">
+        <div class="d-flex gap-3 align-items-start">
+            <i class="fa-solid fa-robot fa-lg text-primary mt-1"></i>
+            <p class="mb-0 text-secondary" style="max-width: 760px;">नीचे दिए गए हर विकल्प के पीछे का सूत्र:
+                <strong class="text-body-emphasis">एक पूर्वानुमेय, स्पष्ट architecture जिसे एक AI आत्मविश्वास से पढ़
+                और विस्तारित कर सकती है।</strong> कठोर संरचना यहाँ पुराने ज़माने की नहीं है — यही वह चीज़ है जो
+                Tiger को Claude Code के साथ निर्माण के लिए एक बढ़िया platform बनाती है।</p>
+        </div>
+    </div>
+</section>
+
+<!-- The stack, layer by layer -->
+<section class="py-5">
+    <div class="container">
+        <div class="row g-4">
+            <?php foreach ($stack as $s): ?>
+                <div class="col-md-6">
+                    <div class="card h-100 border-0 bg-body-tertiary">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <i class="<?= $s[0] ?> fa-lg text-primary"></i>
+                                <h2 class="h5 fw-bold mb-0"><?= $s[1] ?></h2>
+                            </div>
+                            <div class="text-primary fw-semibold mb-2"><?= $s[2] ?></div>
+                            <p class="text-secondary mb-0"><?= $s[3] ?></p>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- The stack at a glance -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">एक नज़र में</div>
+        <h2 class="fw-bold mb-4">पूरा stack, एक ही table में</h2>
+        <div class="table-responsive">
+            <table class="table align-middle bg-body border rounded-3 overflow-hidden mb-0">
+                <thead><tr>
+                    <th scope="col" style="width:18%">परत</th>
+                    <th scope="col" class="cell-emphasis text-primary-emphasis" style="width:26%">Tiger का चयन</th>
+                    <th scope="col">क्यों</th>
+                </tr></thead>
+                <tbody>
+                    <?php foreach ($glance as $row): ?>
+                        <tr>
+                            <th scope="row" class="fw-semibold"><?= $row[0] ?></th>
+                            <td class="cell-emphasis fw-semibold"><?= $row[1] ?></td>
+                            <td class="text-secondary"><?= $row[2] ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- Close -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">हर विकल्प एक ही जगह ले जाता है</div>
+        <h2 class="display-6 fw-bold mb-3">यह आपका है।</h2>
+        <p class="text-secondary mb-4" style="max-width: 680px;">कोई vendor lock-in नहीं। कोई proprietary runtime नहीं। कोई build
+            pipeline नहीं जो टूटे। कोई dependency chain नहीं जिसे आप audit न कर सकें। कोई client-side token नहीं जो आपके
+            security model को plain text में ले जाए। कोई microservice नक्षत्र नहीं जिसे चलाने के लिए एक team चाहिए। एक
+            framework, एक server, एक process — पूर्ण स्वामित्व, ~10ms।</p>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="/get-tiger" class="btn btn-primary btn-lg px-4">Tiger प्राप्त करें &rarr;</a>
+            <a href="/saas-vs-sias" class="btn btn-outline-primary btn-lg px-4">SaaS vs. SiaS</a>
+        </div>
+    </div>
+</section>

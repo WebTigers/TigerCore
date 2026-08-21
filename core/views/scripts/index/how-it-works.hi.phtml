@@ -1,0 +1,403 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /how-it-works — "How Tiger Works": one framework, three paths (website / vibe-code / enterprise),
+ * what ships in the box, the composition model, portability, and the side-by-side comparisons.
+ * Rendered inside the PUMA public layout. Bootstrap + --bs-* tokens only (no bespoke CSS), so it
+ * restyles live with theme + skin. LEFT-aligned to match the other pages. Shipped marketing.
+ */
+$this->title = 'Tiger कैसे काम करता है — एक framework, तीन रास्ते, असली SaaS | Tiger';
+
+// Pick your path — three ways in, one platform underneath.
+$paths = [
+    [
+        'fa-wand-magic-sparkles', 'मुझे एक website बनानी है', 'Tiger, WordPress, Wix या Squarespace की जगह लेता है।',
+        'एक theme install करें, visual builder खोलें, blocks खींचें, text edit करें और publish कर दें। WordPress के विपरीत, यह एक असली application framework पर टिका है — security, users, multi-tenancy पहले से मौजूद हैं। जब आपकी website को बढ़ना हो, तो सब कुछ पहले से बना हुआ है। न migration, न दोबारा बनाना।',
+        ['खींचकर-छोड़ने वाला visual page builder', 'Elementor, Divi और दूसरे visual editors जैसा गहरे div-nesting का नरक बहुत कम या बिल्कुल नहीं', 'Themes images और नमूना content के साथ पूरी तरह भरे हुए install होते हैं — कोई खाली खोल नहीं', 'अंतर्निहित SSL, security, accounts, admin panel', 'नीचे एक असली framework, जब आप तैयार हों तब तैयार'],
+    ],
+    [
+        'fa-robot', 'मुझे अपना app vibe-code करना है', 'Tiger, Bolt, Lovable, Floot &amp; हर SiaS platform की जगह लेता है।',
+        'एक TigerDen instance शुरू करें, Claude Code को अपनी SSH keys दें, और prompt करना शुरू करें। यह AI के लिए ही बना है: यह हर API endpoint (Swagger), हर file (TigerVision), हर page (DOM) देखता है, और context को server-side sessions में रखता है। फ़र्क है स्वामित्व का — आपका app आपके अपने server पर बनता है, किसी service में फँसा नहीं रहता।',
+        ['पूरी AI introspection — Swagger, TigerVision, DOM, स्थायी context', 'अपना Claude Code खुद लाएँ — कोई AI बिचौलिया नहीं, कोई अतिरिक्त शुल्क नहीं', 'Auth, ACL, multi-tenancy, sessions पहले से बने — AI बस जोड़ता है', 'जहाँ भी PHP + MariaDB चलें वहाँ चलता है — किसी एक vendor के cloud तक सीमित नहीं'],
+    ],
+    [
+        'fa-code', 'मुझे असली enterprise software चाहिए', 'Tiger, React + Vercel + Supabase stack की जगह लेता है।',
+        'PHP 8.x के लिए आधुनिक बनाया गया ZF1-आधारित PHP framework — एक तेज़, आत्मनिर्भर monolith जो कहीं भी deploy हो सकता है। न npm, न node_modules, न build step, न hydration, न चार-vendor वाली शृंखला। एक framework, एक server, एक process, ~10ms में page load।',
+        ['स्वतः बना Swagger API map', 'श्रेणीबद्ध ACL — users कभी अपने स्तर से ऊपर नहीं चढ़ सकते', 'असली multi-tenancy — N-स्तरीय org पदानुक्रम, न कि per-DB जुगाड़', 'DB-समर्थित sessions — ऐसे JWTs नहीं जिन्हें browser पढ़ सके'],
+    ],
+];
+
+// "Tell Tiger what to build" — example prompts.
+$prompts = [
+    'मेरी कंपनी के लिए एक webpage बना दो।',
+    'एक app बना दो जो ग्राहकों के orders track करे।',
+    'मेरे stock portfolio के लिए एक dashboard बना दो।',
+    'एक page सेट कर दो ताकि मैं credit card से payment ले सकूँ। → TigerStripe.',
+];
+
+// What's included — not bolted on.
+$included = [
+    ['User auth और accounts',       'अंतर्निहित',                    'Plugin (WP Members)',        'Supabase / Firebase / Auth0'],
+    ['Roles और permissions (ACL)',  'अंतर्निहित, श्रेणीबद्ध',      'Plugin (User Role Editor)',  'JWT claims या vendor SDK'],
+    ['Multi-tenancy',                  'अंतर्निहित, N-स्तरीय orgs',      'उपलब्ध नहीं',              'बाहरी add-on या कुछ नहीं'],
+    ['Admin panel',                    'अंतर्निहित',                    'wp-admin (एक blog admin)',    'खुद बनाइए'],
+    ['Ecommerce / payments',           'TigerStripe, अंतर्निहित',       'WooCommerce (plugin)',       'खुद बनाइए'],
+    ['Security',                       'TigerShield, अंतर्निहित',       'Wordfence / Sucuri (plugins)','Platform पर निर्भर'],
+    ['SSL certificates',               'TigerSSL, स्वतः',         'Plugin या host पर निर्भर',   'Platform पर निर्भर'],
+    ['Visual page builder',            'अंतर्निहित (GrapesJS)',         'Elementor / Divi (plugins)', 'Platform-विशिष्ट'],
+    ['Documentation के साथ API',         'स्वतः बना Swagger',      'REST API (बुनियादी)',           'बिखरे हुए endpoints'],
+    ['AI integration',                 'MCP, TigerVision, TigerAgent','उपलब्ध नहीं',              'Platform में बँधा हुआ'],
+    ['Backup और migration',         'TigerBackup — zip करो, ले जाओ, हो गया','Plugin (UpdraftPlus)',      '"Export" जो कहीं और नहीं चलता'],
+    ['Page load समय',                 '~10ms',                       'plugins के साथ 800ms–3s',      'network hops के साथ 2–3s'],
+];
+
+// The backend tiers (bottom-up, as listed). Each tier talks only to its neighbour.
+$tiers = [
+    ['fa-database', 'Database',
+        'Database-अज्ञेय — PDO driver वाला कोई भी engine: MariaDB, PostgreSQL, MySQL, Oracle या SQL Server। आपका data, आपके server पर, सत्य का एकमात्र स्रोत।'],
+    ['fa-table', 'DAL + Models',
+        'data-access परत। <code>Tiger_Model_*</code> gateways हर table को लपेटते हैं — एक parameterized query builder, UUID keys, soft-deletes, और created/updated stamps — ताकि कच्चा SQL कभी ऊपर न रिसे।'],
+    ['fa-gears', 'Services',
+        'व्यापार तर्क (SOA)। भारी, ACL-गेटेड <code>/api</code> services जो पहले validate करती हैं, फिर एक transaction के भीतर चलती हैं। हर नियम यहीं रहता है — कभी controller में नहीं, कभी view में नहीं।'],
+    ['fa-sitemap', 'MVC',
+        'web परत। पतले controllers request को भेजते हैं; views response render करती हैं। केवल request-handling और प्रस्तुति — और कुछ नहीं।'],
+];
+
+// The composition model.
+$arch = [
+    ['fa-window-maximize', 'Layout',  'page का ढाँचा — header, footer, और वह संरचना जिसके भीतर हर page बैठता है। Layout बदलिए और पूरी site फिर से सज जाती है।'],
+    ['fa-file-lines',      'View',    'एक screen की सामग्री, layout के भीतर render की गई। हर action के लिए एक view — और कुछ जोड़ना नहीं।'],
+    ['fa-puzzle-piece',    'Partial', 'framework के पुनः-प्रयोज्य घटक — nav, sidebar, switchers — जहाँ ज़रूरत हो वहाँ render होते हैं और framework द्वारा नियंत्रित होते हैं, content द्वारा नहीं।'],
+    ['fa-pen-to-square',   'Block',   'आपके अपने संपादन-योग्य content क्षेत्र, visual builder से रखे जाते हैं और data के रूप में संग्रहित होते हैं — ताकि content edit करना कभी संरचना को न छुए।'],
+];
+
+// The frontend stack — the web platform itself; the "frameworks" the modern era no longer needs.
+$frontend = [
+    ['fa-brands fa-html5',    'HTML',            'अर्थपूर्ण, server-rendered markup — असली page, पूरा वितरित। browser का मूल document, उसकी कोई आभासी नकल नहीं।'],
+    ['fa-brands fa-css3-alt', 'CSS + Bootstrap', 'Bootstrap 5 और CSS variables — runtime theming और बदली जा सकने वाली skins, बिना किसी Sass build या PostCSS pipeline को बनाए रखे।'],
+    ['fa-brands fa-js',       'Vanilla JS',      'interactivity के लिए सादा, आधुनिक JavaScript — fetch, modules, DOM — एक <code>&lt;script&gt;</code> tag से लोड। न transpiler, न bundler।'],
+    ['fa-solid fa-ban',       'शून्य frontend frameworks', 'न React, न Vue, न Angular, न Next, न build step, न node_modules। आधुनिक browser वही करता है जिसे टालने के लिए ये बनाए गए थे — तो आप पूरा बोझ छोड़ देते हैं।'],
+];
+
+$portSteps = ['Database dump करो', 'Directory zip करो', 'Upload करो', 'Unzip करो', 'Restore करो'];
+
+// Compared: the vibe-coding stack.
+$vibeCompare = [
+    ['मासिक लागत',       '$80+ (Vercel + Supabase + Auth + और भी)',      '$5/माह TigerPASS या $19–29/माह TigerDen'],
+    ['Page load',          '2–3s (कई network hops)',                '~10ms (एकल process)'],
+    ['Dependencies',       'npm, node_modules, 4+ vendor SDKs',           'Composer, कुछ गिने-चुने ज्ञात SDKs'],
+    ['Auth मॉडल',         'सादे-पाठ permission claims वाला JWT',       'Server-side ACL, अपारदर्शी session token'],
+    ['Multi-tenancy',      'per-DB या per-row मैनुअल filtering',          'अंतर्निहित, N-स्तरीय org पदानुक्रम'],
+    ['AI integration',     'बाद में जोड़ी गई, सीमित introspection',            'मूल — Swagger, TigerVision, MCP, DOM'],
+    ['Portability',        'vendors में बँधी, migration = फिर से लिखना',      'zip करो, ले जाओ, unzip करो, चलाओ'],
+    ['Security',           'vendor SDKs में बिखरी हुई',                'TigerShield, framework स्तर पर, 50µs'],
+    ['Frontend',           'Vite/Webpack आवश्यक, React अनिवार्य',      'बिना build, जो चाहे JS लाओ'],
+];
+
+// Compared: WordPress.
+$wpCompare = [
+    ['यह क्या है',         'plugins वाला blog engine',                    'CMS वाला application framework'],
+    ['Security मॉडल',     'Plugins (Wordfence, Sucuri)',                 'अंतर्निहित (TigerShield)'],
+    ['User प्रबंधन',    'बुनियादी roles, plugin से विस्तारित',                'पूर्ण ACL, श्रेणीबद्ध permissions'],
+    ['Multi-tenancy',      'Multisite (नाज़ुक)',                         'मूल, N-स्तरीय org पदानुक्रम'],
+    ['Ecommerce',          'WooCommerce (plugin, भारी)',                 'TigerStripe (अंतर्निहित, हल्का)'],
+    ['Page builder',       'Elementor / Divi (plugin, $$$)',              'अंतर्निहित (GrapesJS)'],
+    ['Plugin निर्भरता',  'production site के लिए 47+ plugins',           'शून्य plugins की ज़रूरत'],
+    ['प्रदर्शन',        'सामान्यतः 800ms–3s',                            '~10ms'],
+    ['AI-तैयार',           'नहीं',                                          'मूल MCP, TigerVision, TigerAgent'],
+];
+?>
+
+<!-- Hero -->
+<section class="py-5">
+    <div class="container py-lg-3">
+        <div class="text-primary text-uppercase fw-bold mb-3" style="letter-spacing:.14em;">Tiger कैसे काम करता है</div>
+        <h1 class="display-3 fw-bold mb-4">एक framework. तीन रास्ते.<br><span class="text-primary">असली SaaS.</span></h1>
+        <p class="lead text-secondary mb-4" style="max-width: 64ch;">
+            Tiger एक संपूर्ण application platform है — न कोई page builder, न कोई vibe-coding खिलौना, न कोई
+            plugin भूलभुलैया। चाहे आप एक website design कर रहे हों, किसी AI को अपना app बनाने के लिए prompt
+            कर रहे हों, या enterprise code लिख रहे हों, नीचे वही एक असली framework है।
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="/get-tiger" class="btn btn-primary btn-lg px-4">शुरू करें &rarr;</a>
+            <a href="/saas-vs-sias" class="btn btn-outline-primary btn-lg px-4">SaaS vs. SiaS</a>
+        </div>
+    </div>
+</section>
+
+<!-- Pick your path -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">अपना रास्ता चुनें</div>
+        <h2 class="fw-bold mb-2">तीन तरीके अंदर आने के. नीचे एक ही platform.</h2>
+        <p class="text-secondary mb-4" style="max-width: 640px;">जहाँ आप हैं वहीं से शुरू करें — framework
+            वही है, इसलिए बढ़ने के लिए आपको कभी migrate या दोबारा नहीं बनाना पड़ता।</p>
+        <div class="row g-4">
+            <?php foreach ($paths as $p): ?>
+                <div class="col-lg-4">
+                    <div class="card h-100 shadow-sm bg-body">
+                        <div class="card-body p-4">
+                            <i class="fa-solid <?= $p[0] ?> fa-lg text-primary mb-3"></i>
+                            <h3 class="h5 fw-bold mb-1"><?= $p[1] ?></h3>
+                            <div class="text-primary fw-semibold mb-3"><?= $p[2] ?></div>
+                            <p class="text-secondary"><?= $p[3] ?></p>
+                            <ul class="text-secondary mb-0 ps-3">
+                                <?php foreach ($p[4] as $b): ?><li class="mb-1"><?= $b ?></li><?php endforeach; ?>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <!-- Tell Tiger what to build -->
+        <div class="card border-0 bg-body mt-4">
+            <div class="card-body p-4">
+                <div class="text-primary text-uppercase fw-bold mb-3" style="letter-spacing:.12em;">Tiger को बताएँ क्या बनाना है</div>
+                <div class="row g-2">
+                    <?php foreach ($prompts as $q): ?>
+                        <div class="col-md-6">
+                            <div class="d-flex gap-2 align-items-start">
+                                <i class="fa-solid fa-terminal text-primary mt-1"></i>
+                                <span class="font-monospace">"<?= $q ?>"</span>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- What's included -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">डिब्बे में</div>
+        <h2 class="fw-bold mb-2">शामिल — बाद में जोड़ा हुआ नहीं</h2>
+        <p class="text-secondary mb-4" style="max-width: 640px;">नीचे दी गई हर चीज़ Tiger के साथ आती है। कोई
+            plugins नहीं, कोई तीसरे-पक्ष की services नहीं, कोई per-feature pricing नहीं।</p>
+        <div class="table-responsive">
+            <table class="table align-middle border rounded-3 overflow-hidden mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col" style="width:22%"></th>
+                        <th scope="col" class="cell-emphasis text-primary-emphasis">Tiger</th>
+                        <th scope="col" class="text-secondary">WordPress</th>
+                        <th scope="col" class="text-secondary">Vibe platforms</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($included as $row): ?>
+                        <tr>
+                            <th scope="row" class="fw-semibold"><?= $row[0] ?></th>
+                            <td class="cell-emphasis"><i class="fa-solid fa-check text-success me-2"></i><?= $row[1] ?></td>
+                            <td class="text-secondary"><?= $row[2] ?></td>
+                            <td class="text-secondary"><?= $row[3] ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- The architecture -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">30 सेकंड में architecture</div>
+        <h2 class="fw-bold mb-1">N-Tier Architecture</h2>
+        <p class="lead text-primary fw-semibold mb-4">थोपने वाली नहीं. संरचित.</p>
+        <h3 class="h4 fw-bold mt-4 mb-2">Backend का Separation of Concerns.</h3>
+        <p class="text-secondary mb-4" style="max-width: 720px;">चार साफ़ परतें, हर एक का एक काम और एक
+            पड़ोसी। एक request इनके ज़रिए नीचे बहती है और response वापस ऊपर बहती है — इसलिए हर चीज़ के लिए
+            ठीक एक जगह होती है, और आपकी AI को हमेशा पता होता है कि कहाँ देखना है।</p>
+
+        <div class="row g-3 mb-5">
+            <?php foreach ($tiers as $t): ?>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card h-100 border-0 bg-body"><div class="card-body">
+                        <i class="fa-solid <?= $t[0] ?> text-primary mb-2"></i>
+                        <div class="fw-semibold"><?= $t[1] ?></div>
+                        <div class="text-secondary"><?= $t[2] ?></div>
+                    </div></div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <h3 class="h4 fw-bold mb-2">और खुद view परत? हर चीज़ एक partial है।</h3>
+        <p class="text-secondary mb-4" style="max-width: 720px;">प्रस्तुति परत एक ही साफ़ composition मॉडल
+            का उपयोग करती है — बस पदानुक्रम में अलग-अलग भूमिकाएँ, सब एक table में संग्रहित, सब एक ही तरह
+            render, सब AI द्वारा inspect करने योग्य। builder blocks को edit करता है; framework partials को
+            नियंत्रित करता है; content edit करके आप संरचना कभी नहीं तोड़ते।</p>
+        <div class="row g-3">
+            <?php foreach ($arch as $a): ?>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card h-100 border-0 bg-body"><div class="card-body">
+                        <i class="fa-solid <?= $a[0] ?> text-primary mb-2"></i>
+                        <div class="fw-semibold"><?= $a[1] ?></div>
+                        <div class="text-secondary"><?= $a[2] ?></div>
+                    </div></div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <h3 class="h4 fw-bold mt-5 mb-2">और frontend? बस web platform.</h3>
+        <p class="text-secondary mb-4" style="max-width: 720px;">भारी frontend frameworks इसलिए बनाए गए थे
+            कि वे मानव programmers को UI/UX संभालने में मदद करें और यह ढकें कि एक दशक पहले browsers क्या नहीं
+            कर सकते थे। लेकिन अब हम उस युग में नहीं रहते, इसलिए Tiger खुद platform पर ही render करता है:
+            अर्थपूर्ण HTML, mobile-first के लिए Bootstrap, CSS variables के साथ, और vanilla JavaScript। न
+            build step, न bundler, न <code>node_modules</code>। अगर आप सच में चाहें तो एक framework लाएँ;
+            पर आधुनिक युग में, आपको उसकी ज़रूरत नहीं है।</p>
+        <div class="row g-3">
+            <?php foreach ($frontend as $fr): ?>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card h-100 border-0 bg-body"><div class="card-body">
+                        <i class="<?= $fr[0] ?> text-primary mb-2"></i>
+                        <div class="fw-semibold"><?= $fr[1] ?></div>
+                        <div class="text-secondary"><?= $fr[2] ?></div>
+                    </div></div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <h3 class="fw-semibold text-body-emphasis mt-5 mb-0">एक विश्व-स्तरीय scalable app के लिए जो कुछ आपको चाहिए, और जो नहीं चाहिए वह कुछ नहीं।</h3>
+    </div>
+</section>
+
+<!-- Portability -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">असली portability</div>
+        <h2 class="fw-bold mb-3">एक feature नहीं. architecture.</h2>
+        <p class="text-secondary mb-3" style="max-width: 680px;">आपका app एक directory और एक database है।
+            TigerBackup ही पूरी migration की कहानी है:</p>
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+            <?php foreach ($portSteps as $i => $s): ?>
+                <span class="badge text-bg-light border fs-6 fw-semibold py-2 px-3"><?= $s ?></span>
+                <?php if ($i < count($portSteps) - 1): ?><i class="fa-solid fa-arrow-right text-primary"></i><?php endif; ?>
+            <?php endforeach; ?>
+        </div>
+        <p class="text-secondary mb-0" style="max-width: 680px;">PHP और MariaDB वाले किसी भी box पर चलता है — एक
+            $5 का VPS, एक TigerDen instance, एक Raspberry Pi, आपके laptop पर एक Docker container। यह घर
+            फ़ोन नहीं करता। एक page परोसने के लिए इसे चार vendors की सहमति नहीं चाहिए।
+            <strong class="text-body-emphasis">यही असली portability है — न कि "GitHub पर export करो और
+            प्रार्थना करो।"</strong></p>
+    </div>
+</section>
+
+<!-- Compared: vibe stack -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">आमने-सामने</div>
+        <h2 class="fw-bold mb-4">Vibe-coding stack vs. Tiger</h2>
+        <div class="table-responsive">
+            <table class="table align-middle bg-body border rounded-3 overflow-hidden mb-0">
+                <thead><tr>
+                    <th scope="col" style="width:22%"></th>
+                    <th scope="col" class="text-secondary">Vibe-coding stack</th>
+                    <th scope="col" class="cell-emphasis text-primary-emphasis">Tiger</th>
+                </tr></thead>
+                <tbody>
+                    <?php foreach ($vibeCompare as $row): ?>
+                        <tr>
+                            <th scope="row" class="fw-semibold"><?= $row[0] ?></th>
+                            <td class="text-secondary"><?= $row[1] ?></td>
+                            <td class="cell-emphasis"><i class="fa-solid fa-check text-success me-2"></i><?= $row[2] ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- Compared: WordPress -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">आमने-सामने</div>
+        <h2 class="fw-bold mb-4">WordPress vs. Tiger</h2>
+        <div class="table-responsive">
+            <table class="table align-middle border rounded-3 overflow-hidden mb-0">
+                <thead><tr>
+                    <th scope="col" style="width:22%"></th>
+                    <th scope="col" class="text-secondary">WordPress</th>
+                    <th scope="col" class="cell-emphasis text-primary-emphasis">Tiger</th>
+                </tr></thead>
+                <tbody>
+                    <?php foreach ($wpCompare as $row): ?>
+                        <tr>
+                            <th scope="row" class="fw-semibold"><?= $row[0] ?></th>
+                            <td class="text-secondary"><?= $row[1] ?></td>
+                            <td class="cell-emphasis"><i class="fa-solid fa-check text-success me-2"></i><?= $row[2] ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- Four ways + open source -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">बनाना शुरू करने के चार तरीके</div>
+        <h2 class="fw-bold mb-2">हर रास्ता आपको वही platform देता है</h2>
+        <p class="text-secondary mb-4" style="max-width: 640px;">वही features, वही architecture, वही
+            portability — अपना प्रवेश-मार्ग चुनें।</p>
+        <div class="row row-cols-1 row-cols-md-2 g-4 mb-4">
+            <div class="col">
+                <div class="card h-100 border-primary shadow-sm position-relative bg-body">
+                    <span class="badge text-bg-primary position-absolute top-0 end-0 m-3">सबसे तेज़</span>
+                    <div class="card-body">
+                        <div class="text-secondary fw-bold font-monospace">01</div>
+                        <h3 class="h4 fw-bold mb-1">TigerDen</h3>
+                        <div class="text-primary fw-semibold mb-2">मिनटों में live</div>
+                        <div class="h5 fw-bold mb-2">$19 <span class="fs-6 text-secondary fw-normal">/ माह</span></div>
+                        <p class="text-secondary mb-0">AWS पर आपकी अपनी instance, Tiger पहले से इंस्टॉल — TigerSSL,
+                            TigerShield, TigerPASS शामिल। कोई DevOps ज़रूरी नहीं।</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card h-100 shadow-sm bg-body"><div class="card-body">
+                    <div class="text-secondary fw-bold font-monospace">02</div>
+                    <h3 class="h4 fw-bold mb-1">TigerInstall</h3>
+                    <div class="text-primary fw-semibold mb-2">Shared hosting</div>
+                    <p class="text-secondary mb-0">पहले से hosting है? किसी भी मानक LAMP host पर एक-क्लिक सेटअप।</p>
+                </div></div>
+            </div>
+            <div class="col">
+                <div class="card h-100 shadow-sm bg-body"><div class="card-body">
+                    <div class="text-secondary fw-bold font-monospace">03</div>
+                    <h3 class="h4 fw-bold mb-1">Tiger + Composer</h3>
+                    <div class="text-primary fw-semibold mb-2">डेवलपर्स के लिए</div>
+                    <div class="bg-body-tertiary border rounded-3 p-3 font-monospace mb-0">
+                        <span class="text-primary">$</span> composer create-project webtigers/tiger
+                    </div>
+                </div></div>
+            </div>
+            <div class="col">
+                <div class="card h-100 shadow-sm bg-body"><div class="card-body">
+                    <div class="text-secondary fw-bold font-monospace">04</div>
+                    <h3 class="h4 fw-bold mb-1">Tiger + Docker</h3>
+                    <div class="text-primary fw-semibold mb-2">स्थानीय dev वातावरण</div>
+                    <div class="bg-body-tertiary border rounded-3 p-3 font-monospace mb-0">
+                        <span class="text-primary">$</span> docker run webtigers/tiger
+                    </div>
+                </div></div>
+            </div>
+        </div>
+
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">Open source · BSD-3</div>
+        <h2 class="h4 fw-bold mb-2">कोई open-core का झाँसा नहीं. कोई surprise नहीं.</h2>
+        <p class="text-secondary mb-3" style="max-width: 640px;">Tiger, BSD-3 के तहत मुफ़्त, open-source
+            software है। कोई "community edition" नहीं जिसमें आधे features गायब हों, कोई license बदलने की
+            धमकी नहीं। जो चाहें बनाएँ, जहाँ चाहें deploy करें, जो कुछ भी बनाएँ वह सब अपने पास रखें।</p>
+        <div class="d-flex flex-wrap gap-3">
+            <a href="https://github.com/WebTigers/Tiger" class="link-primary text-decoration-none fw-semibold"><i class="fa-brands fa-github me-1"></i>GitHub — Tiger</a>
+            <a href="https://tiger.webtigers.com" class="link-primary text-decoration-none fw-semibold">tiger.webtigers.com</a>
+            <a href="https://webtigers.com" class="link-primary text-decoration-none fw-semibold">Marketplace</a>
+        </div>
+    </div>
+</section>

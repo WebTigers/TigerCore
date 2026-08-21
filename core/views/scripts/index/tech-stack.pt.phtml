@@ -1,0 +1,147 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /tech-stack — "The Technology Stack": why each layer was chosen (proven, portable, fast, secure,
+ * AI-native, owned). Deliberately NON-tribal — it makes the positive case for each choice rather
+ * than dunking on other stacks (the audience is builders, not language partisans). Rendered inside
+ * the PUMA public layout. Bootstrap + --bs-* tokens only. Shipped marketing.
+ */
+$this->title = 'A pilha tecnológica — comprovada, portátil, rápida, nativa de IA | Tiger';
+
+// Each layer: [icon, heading, one-line, body]
+$stack = [
+    ['fa-brands fa-php', 'PHP 8', 'A linguagem que move a web',
+        'O PHP move cerca de 77% de todos os sites da web — WordPress, Wikipedia, Etsy, o backend do Slack, Mailchimp. E o PHP 8 é rápido e moderno — compilado com JIT, com tipagem estrita opcional quando você quiser. Cada requisição roda em um processo limpo e isolado — sem estado compartilhado para vazar, sem estado por design, o que o torna estável por design. O conjunto de talentos é enorme e acessível, então contratar é um problema resolvido.'],
+    ['fa-solid fa-sitemap', 'ZF1 modernizado — MVC + SOA rígido e previsível', 'Nativo de IA por construção',
+        'O Tiger roda uma evolução em PHP 8 da arquitetura do Zend Framework 1: estrutura de nível empresarial com recursos modernos de linguagem. O ganho para o desenvolvimento assistido por IA é enorme — os controllers ficam no diretório controllers, os models em models, as views em views, e cada módulo segue a mesma forma. Quando sua IA lê uma aplicação Tiger ela não adivinha; ela lê um padrão previsível e trabalha com confiança. A ligação é explícita — o que você vê é o que roda — então nada fica escondido atrás de mágica em tempo de execução que a IA precise inferir.'],
+    ['fa-solid fa-cube', 'Um monólito GRX', 'Um processo. Um deploy. ~10ms.',
+        'Vinte microsserviços significam vinte deployments, fronteiras de rede para depurar, e uma sobrecarga de orquestração que exige um engenheiro DevOps em tempo integral — complexidade de sistemas distribuídos em escala de startup. Um monólito bem estruturado é mais rápido de construir, mais fácil de depurar, mais simples de implantar e mais barato de operar. O Tiger é uma aplicação, um processo, um deploy, respostas de ~10ms — sem service mesh, sem API gateway, sem coreografia de contêineres.'],
+    ['fa-brands fa-js', 'Um frontend sem build', 'Traga o seu próprio JavaScript',
+        'Coloque um arquivo JavaScript, referencie-o na sua view, e ele funciona — React, Vue, Alpine, vanilla, ou nada. Sem Webpack, sem Vite, sem Babel, sem bundler, sem uma pasta <code>node_modules</code> com dezenas de milhares de pacotes transitivos que você nunca auditou. Isso também é uma decisão de segurança: árvores profundas de dependências do npm são uma superfície de ataque real à cadeia de suprimentos, e a melhor defesa contra um ataque à cadeia de suprimentos é não ter uma cadeia de suprimentos. A melhor parte é a que não existe.'],
+    ['fa-solid fa-database', 'MariaDB', 'O padrão — ou qualquer banco de dados PDO',
+        'O Tiger vem com MariaDB: a continuação de código aberto do MySQL, mantida por seus criadores originais depois que a Oracle adquiriu o MySQL — totalmente compatível com MySQL, onipresente e livre de vendor lock-in. Um ótimo padrão, entediante, que roda em todo lugar. Mas a camada de dados é agnóstica ao banco: aponte-a para qualquer engine com um driver PDO — PostgreSQL, MySQL, Oracle ou SQL Server — e o query builder e os models funcionam do mesmo jeito. Seu banco de dados permanece invisível, e seu.'],
+    ['fa-solid fa-server', 'Apache ou Nginx', 'Testado em combate. Sem runtime proprietário.',
+        'O Apache serve a web desde 1995, o Nginx desde 2004; juntos eles lidam com a maior parte do tráfego do planeta, e todo host os suporta. O Tiger não precisa de uma edge network, de funções serverless com penalidades de cold-start, nem de uma camada de roteamento proprietária — apenas um servidor web que entrega uma requisição ao PHP. Sem cold starts, sem taxas de invocação. A requisição chega, o PHP a trata, a resposta é enviada.'],
+    ['fa-solid fa-box-open', 'Composer', 'Dependências sensatas e explícitas',
+        'As árvores de dependências do Composer são planas e explícitas: você declara o que precisa, as versões resolvem de forma determinística, você faz commit do arquivo lock, e cada instalação é idêntica. O <code>composer.json</code> do Tiger é uma lista curta de pacotes intencionais de fornecedores estabelecidos — AWS SDK, Stripe SDK, PHPMailer — cada um uma escolha deliberada com uma equipe de segurança por trás. Você realmente consegue ler a lista e saber o que há ali e por quê.'],
+    ['fa-solid fa-bolt', 'Renderização no lado do servidor', 'A página chega completa',
+        'Um navegador solicita uma página do Tiger e recebe HTML completo e renderizado — sem tela em branco enquanto um framework do cliente inicializa, sem spinner de "carregando…", sem etapa de hidratação. Isso significa rápido por padrão (o HTML é pintado antes que qualquer framework consiga inicializar), pronto para SEO por padrão (os mecanismos de busca veem páginas completas), acessível por padrão (leitores de tela veem o conteúdo imediatamente) e resiliente por padrão (se o JavaScript falhar, a página ainda funciona).'],
+    ['fa-solid fa-key', 'Sessões apoiadas em banco de dados', 'O servidor sabe quem você é; o navegador não',
+        'No login, o Tiger grava um registro de sessão e entrega ao navegador um token opaco — um UUID que não significa nada por si só. Cada requisição consulta a sessão e o ACL avalia as permissões em tempo real. O token carrega apenas a identidade, nunca papéis ou claims, então não há nada para forjar e as permissões podem ser alteradas ou revogadas instantaneamente — sem esperar um token expirar. Menos é mais: o token carrega a identidade, o servidor carrega todo o resto.'],
+    ['fa-solid fa-diagram-project', 'MVC + SOA', 'Responsabilidades separadas que a IA consegue navegar',
+        'Model, View, Controller para a camada web — mais uma camada de serviços (SOA) onde vive a lógica de negócio. Cada uma tem um único trabalho e um local previsível: os dados no model, a apresentação na view, o tratamento leve de requisições no controller, a lógica de negócio no serviço. Cada camada pode ser testada, alterada ou substituída de forma independente. Para o desenvolvimento assistido por IA isso é o jogo inteiro: quando sua IA precisa mudar como os dados são armazenados, ela vai ao model; como uma página aparece, à view; como a lógica de negócio se comporta, ao serviço. Ela nunca precisa se perguntar onde algo está. Previsibilidade é produtividade.'],
+    ['fa-solid fa-scale-balanced', 'Licença BSD-3', 'Segura para empresas, comercialmente permissiva',
+        'Use como quiser — modifique, construa um produto comercial sobre ela, venda esse produto, fique com todo o dinheiro. Os únicos pedidos: mantenha o aviso de licença, não use o nome do projeto para endossar seu produto, e não nos culpe se algo quebrar. Diferente das licenças copyleft (GPL/AGPL), onde o uso derivado ou até em rede pode forçar a abertura do seu próprio código, a BSD-3 é a licença que as equipes jurídicas empresariais aprovam sem briga — protetora o suficiente para confiar, permissiva o suficiente para ser prática.'],
+];
+
+// The stack at a glance.
+$glance = [
+    ['Linguagem',     'PHP 8',            '77% da web, enorme conjunto de talentos, isolado por processo, rápido'],
+    ['Framework',     'ZF1 modernizado',  'MVC + SOA rígido, estrutura nativa de IA, padrões empresariais'],
+    ['Arquitetura',   'Monólito GRX',     'Um processo, um deploy, ~10ms, sem proliferação de microsserviços'],
+    ['Banco de dados', 'MariaDB, ou qualquer engine PDO', 'Postgres, MySQL, Oracle, SQL Server; MariaDB por padrão, sem lock-in'],
+    ['Servidor web',  'Apache / Nginx',   'Comprovado por décadas, zero cold starts, sem runtime de fornecedor'],
+    ['Dependências',  'Composer',         'Planas, explícitas, auditáveis — sem risco de cadeia de suprimentos do npm'],
+    ['Frontend',      'Sem build',        'Sem bundler, sem transpilador, traga o seu próprio JS'],
+    ['Renderização',  'No lado do servidor', 'HTML completo, sem hidratação, SEO + acessível por padrão'],
+    ['Sessões',       'Apoiadas em banco', 'Estado no lado do servidor, token opaco, sem exposição de JWT'],
+    ['Padrão',        'MVC + SOA',        'Responsabilidades separadas, estrutura previsível, amigável à IA'],
+    ['Licença',       'BSD-3',            'Segura para empresas, comercialmente permissiva, sem copyleft'],
+];
+?>
+
+<!-- Hero -->
+<section class="py-5">
+    <div class="container py-lg-3">
+        <div class="text-primary text-uppercase fw-bold mb-3" style="letter-spacing:.14em;">A pilha tecnológica</div>
+        <h1 class="display-3 fw-bold mb-4">Cada escolha tem uma razão.<br><span class="text-primary">Cada razão é a sua vantagem.</span></h1>
+        <p class="lead text-secondary mb-4" style="max-width: 64ch;">
+            A pilha do Tiger não foi escolhida para estar na moda — foi escolhida para ser <strong class="text-body-emphasis">comprovada,
+            portátil, rápida, segura e compreendida pela IA</strong>. Cada camada move a web hoje, moveu-a por
+            anos, e continuará movendo — então o que você constrói permanece rápido, continua seu, e é fácil para
+            a sua IA trabalhar nele.
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="/get-tiger" class="btn btn-primary btn-lg px-4">Comece agora &rarr;</a>
+            <a href="/how-it-works" class="btn btn-outline-primary btn-lg px-4">Como funciona</a>
+        </div>
+    </div>
+</section>
+
+<!-- The AI-native throughline -->
+<section class="py-4 bg-body-tertiary">
+    <div class="container">
+        <div class="d-flex gap-3 align-items-start">
+            <i class="fa-solid fa-robot fa-lg text-primary mt-1"></i>
+            <p class="mb-0 text-secondary" style="max-width: 760px;">O fio condutor por trás de cada escolha abaixo:
+                <strong class="text-body-emphasis">uma arquitetura previsível e explícita que uma IA consegue ler e
+                estender com confiança.</strong> Estrutura rígida não é antiquada aqui — é exatamente o que faz
+                do Tiger uma ótima plataforma para construir com o Claude Code.</p>
+        </div>
+    </div>
+</section>
+
+<!-- The stack, layer by layer -->
+<section class="py-5">
+    <div class="container">
+        <div class="row g-4">
+            <?php foreach ($stack as $s): ?>
+                <div class="col-md-6">
+                    <div class="card h-100 border-0 bg-body-tertiary">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <i class="<?= $s[0] ?> fa-lg text-primary"></i>
+                                <h2 class="h5 fw-bold mb-0"><?= $s[1] ?></h2>
+                            </div>
+                            <div class="text-primary fw-semibold mb-2"><?= $s[2] ?></div>
+                            <p class="text-secondary mb-0"><?= $s[3] ?></p>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- The stack at a glance -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">De relance</div>
+        <h2 class="fw-bold mb-4">A pilha completa, em uma tabela</h2>
+        <div class="table-responsive">
+            <table class="table align-middle bg-body border rounded-3 overflow-hidden mb-0">
+                <thead><tr>
+                    <th scope="col" style="width:18%">Camada</th>
+                    <th scope="col" class="cell-emphasis text-primary-emphasis" style="width:26%">A escolha do Tiger</th>
+                    <th scope="col">Por quê</th>
+                </tr></thead>
+                <tbody>
+                    <?php foreach ($glance as $row): ?>
+                        <tr>
+                            <th scope="row" class="fw-semibold"><?= $row[0] ?></th>
+                            <td class="cell-emphasis fw-semibold"><?= $row[1] ?></td>
+                            <td class="text-secondary"><?= $row[2] ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- Close -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">Cada escolha leva ao mesmo lugar</div>
+        <h2 class="display-6 fw-bold mb-3">Ela é sua.</h2>
+        <p class="text-secondary mb-4" style="max-width: 680px;">Sem vendor lock-in. Sem runtime proprietário. Sem pipeline de
+            build que quebra. Sem cadeia de dependências que você não possa auditar. Sem token no lado do cliente carregando
+            seu modelo de segurança em texto puro. Sem constelação de microsserviços que precisa de uma equipe para operar. Um
+            framework, um servidor, um processo — propriedade total, ~10ms.</p>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="/get-tiger" class="btn btn-primary btn-lg px-4">Obtenha o Tiger &rarr;</a>
+            <a href="/saas-vs-sias" class="btn btn-outline-primary btn-lg px-4">SaaS vs. SiaS</a>
+        </div>
+    </div>
+</section>

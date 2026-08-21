@@ -13,7 +13,15 @@ $meta  = [
     'en' => ['🇺🇸', 'English'], 'es' => ['🇲🇽', 'Español'], 'fr' => ['🇫🇷', 'Français'],
     'de' => ['🇩🇪', 'Deutsch'], 'pt' => ['🇧🇷', 'Português'], 'it' => ['🇮🇹', 'Italiano'],
     'hi' => ['🇮🇳', 'हिन्दी'],
-    'tlh' => ['🖖', 'tlhIngan Hol'],   // Klingon (ISO 639-2) — no flag emoji exists; 🖖 is the closest Trek mark
+    // Klingon (ISO 639-2) — no flag emoji exists, so we ship a real flag image (img/flags/klingon.png).
+    // Its name is shown in pIqaD (real Klingon "tlhIngan Hol" = the PUA codepoints below, forced to the
+    // pIqaD font by .tiger-lang-piqad so it renders on every page); a Latin title keeps it identifiable.
+    'tlh' => [
+        '<img src="' . $this->escape($this->asset($this->themeAssets . '/img/flags/klingon.png')) . '" alt="" width="16" height="12" class="align-middle">',
+        "\u{F8E4}\u{F8D7}\u{F8DC}\u{F8D0}\u{F8DB} \u{F8D6}\u{F8DD}\u{F8D9}",   // tlhIngan Hol
+        'tiger-lang-piqad',   // label CSS class (forces the pIqaD font)
+        'tlhIngan Hol',       // Latin title/tooltip
+    ],
 ];
 $flag = $meta[$lang][0] ?? '🌐';
 ?>
@@ -21,7 +29,7 @@ $flag = $meta[$lang][0] ?? '🌐';
     <a href="#" class="btn btn-link text-body fs-5 px-2 lh-1 text-decoration-none" data-bs-toggle="dropdown" aria-label="Language" title="Language"><?= $flag ?></a>
     <ul class="dropdown-menu dropdown-menu-end shadow">
 <?php foreach ($codes as $code): $m = $meta[$code] ?? ['🌐', strtoupper($code)]; ?>
-        <li><a class="dropdown-item tiger-lang-switch<?= $code === $lang ? ' active' : '' ?>" href="#" data-lang="<?= $this->escape($code) ?>"><span class="me-2"><?= $m[0] ?></span><?= $this->escape($m[1]) ?></a></li>
+        <li><a class="dropdown-item tiger-lang-switch<?= $code === $lang ? ' active' : '' ?>" href="#" data-lang="<?= $this->escape($code) ?>" title="<?= $this->escape($m[3] ?? $m[1]) ?>"><span class="me-2"><?= $m[0] ?></span><span class="<?= $this->escape($m[2] ?? '') ?>"><?= $this->escape($m[1]) ?></span></a></li>
 <?php endforeach; ?>
     </ul>
 </div>

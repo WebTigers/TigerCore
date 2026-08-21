@@ -1,0 +1,74 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /creators — the plugin & theme creator story: build for Tiger, ship on your own terms.
+ * Rendered inside the PUMA public layout; Bootstrap + --bs-* tokens (restyles live with theme + skin).
+ */
+$this->title = 'Crie para o Tiger — seu código, suas regras | Tiger';
+
+$points = [
+    ['fa-scale-balanced', 'O que você constrói é seu',    'Publique seus módulos e temas sob os termos que você escolher: fechado, comercial ou aberto. O Tiger é BSD; o que você construir sobre ele continua sendo seu.'],
+    ['fa-sack-dollar',    'Sob suas próprias regras',       'Defina o preço, licencie e dê suporte do seu jeito: sua propriedade intelectual continua sendo sua.'],
+    ['fa-store',          'Feito para ser compartilhado',   'Um caminho de instalação limpo e com um clique — o mesmo que os módulos oficiais usam — para que o que você criar chegue a cada site Tiger.'],
+    ['fa-plug',           'Uma base limpa para construir','Módulos, temas, blocos e uma /api baseada em mensagens — você estende adicionando, nunca remendando. Convenções previsíveis significam menos cola e mais produto.'],
+];
+?>
+<!-- Hero -->
+<section class="py-5">
+    <div class="container text-center py-lg-5">
+        <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+            <i class="fa-solid fa-puzzle-piece me-1"></i> Para criadores de plugins e temas
+        </span>
+        <h1 class="display-4 fw-bold mb-3">Seu código. Suas regras.</h1>
+        <p class="lead text-secondary mx-auto mb-4" style="max-width: 720px;">
+            Construa módulos e temas para o Tiger e compartilhe do seu jeito. Seu trabalho continua sendo seu
+            &mdash; como você o licencia é decisão sua.
+        </p>
+        <div class="d-flex flex-wrap gap-2 justify-content-center">
+            <a href="/docs" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-book me-2"></i>Comece a construir</a>
+            <a href="/developers" class="btn btn-outline-secondary btn-lg px-4">A história para desenvolvedores</a>
+        </div>
+    </div>
+</section>
+
+<!-- Points -->
+<section class="pb-2">
+    <div class="container">
+        <div class="row g-4">
+<?php foreach ($points as $p): ?>
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body d-flex gap-3 p-4">
+                        <div class="flex-shrink-0 d-inline-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary-emphasis" style="width:48px;height:48px;">
+                            <i class="fa-solid <?= $p[0] ?> fs-5"></i>
+                        </div>
+                        <div>
+                            <h2 class="h6 fw-semibold mb-1"><?= $this->escape($p[1]) ?></h2>
+                            <p class="text-secondary mb-0"><?= $this->escape($p[2]) ?></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="py-5">
+    <div class="container">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="fw-bold mb-3">Construa uma vez. Compartilhe do seu jeito.</h2>
+                <p class="text-secondary mb-4">Gere o esqueleto de um módulo em segundos e compartilhe quando estiver pronto.</p>
+                <div class="bg-body-tertiary border rounded-3 d-inline-block px-4 py-3 mb-4 text-start font-monospace">
+                    <span class="text-secondary">$</span> vendor/bin/tiger make:module my-plugin
+                </div>
+                <div>
+                    <a href="/docs" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-book me-2"></i>Leia a documentação</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

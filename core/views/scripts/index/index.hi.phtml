@@ -1,0 +1,80 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * Public home page — a deliberately minimal Tiger placeholder for now (the full home gets designed
+ * later). Rendered inside the PUMA public layout; Bootstrap + --bs-* tokens, so it restyles live with
+ * the theme (light/dark) and the active skin. The real marketing lives on the Solutions pages
+ * (/cms, /vibe, /agency, /developers, …) reachable from the header menu.
+ */
+$this->title = 'Tiger — ऐप्स बनाना बंद करें. व्यवसाय लॉन्च करना शुरू करें. · AI-नेटिव SaaS प्लेटफ़ॉर्म';
+?>
+<section class="py-5">
+    <div class="container">
+        <div class="text-center py-lg-5" style="max-width: 760px; margin: 0 auto;">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-primary-subtle text-primary mb-4" style="width:84px;height:84px;">
+                <i class="fa-solid fa-paw" style="font-size:2.5rem;"></i>
+            </div>
+            <span class="rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">AI-नेटिव SaaS प्लेटफ़ॉर्म</span>
+            <h1 class="display-4 fw-bold mb-3">ऐप्स बनाना बंद करें. व्यवसाय लॉन्च करना शुरू करें.</h1>
+            <p class="lead text-secondary mb-4">
+                अपनी AI को बताएं कि आप क्या बेचना चाहते हैं — किताबें, मेंबरशिप, मर्च, एक पूरी दुकान — और Tiger
+                एक असली व्यवसाय लॉन्च करता है जो <strong>100%</strong> आपका है. मिनटों में लाइव. न प्लगइन का
+                झंझट, न कोई बिल्ड स्टेप, न GPL — front-end अज्ञेयवादी, और आपकी AI द्वारा विस्तारित किए जाने के
+                लिए बनाया गया.
+            </p>
+            <div class="d-flex flex-wrap gap-2 justify-content-center">
+                <a href="/get-tiger" class="btn btn-primary btn-lg px-4">शुरू करें</a>
+                <a href="/why-tiger" class="btn btn-outline-primary btn-lg px-4">Tiger क्यों</a>
+                <a href="/how-it-works" class="btn btn-outline-primary btn-lg px-4">यह कैसे काम करता है</a>
+                <a href="/docs" class="btn btn-outline-secondary btn-lg px-4">दस्तावेज़ पढ़ें</a>
+                <a href="https://github.com/WebTigers/Tiger" class="btn btn-outline-primary btn-lg px-4" target="_blank" rel="noopener">
+                    <i class="fa-brands fa-github me-2"></i>GitHub पर देखें
+                </a>
+            </div>
+            <p class="text-secondary mt-4 mb-0">
+                <i class="fa-solid fa-arrow-up me-1"></i>
+                मेनू में <strong>Solutions</strong> के अंतर्गत जानें कि Tiger किसके लिए है.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- Tiger is free -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container">
+        <div class="text-center mx-auto mb-5" style="max-width: 820px;">
+            <div class="text-primary text-uppercase fw-bold mb-3" style="letter-spacing:.14em;">मुफ़्त · ओपन सोर्स · BSD-3</div>
+            <h2 class="display-4 fw-bold mb-4">अरे हाँ, और क्या हमने बताया कि <span class="text-primary">Tiger मुफ़्त है.</span></h2>
+            <p class="lead text-secondary mb-0">Tiger उदार
+                <strong class="text-body-emphasis">BSD-3</strong> लाइसेंस के तहत ओपन-सोर्स सॉफ़्टवेयर है. इसे डाउनलोड करें, जहाँ भी PHP और
+                एक डेटाबेस चलते हैं वहाँ चलाएं, इस पर जो चाहें बनाएं, और जो कुछ भी आप बनाते हैं वह सब अपने पास रखें — न लाइसेंस शुल्क,
+                न लॉक-इन, न कोई शर्त.</p>
+        </div>
+
+        <div class="row g-4 justify-content-center mb-5 mx-auto" style="max-width: 980px;">
+            <div class="col-sm-6 col-lg-3 text-center">
+                <i class="fa-brands fa-github fa-2x text-primary mb-2"></i>
+                <div class="fw-semibold">ओपन सोर्स</div>
+                <div class="text-secondary">पूरा framework, GitHub पर. इसे fork करें, पढ़ें, अपना बनाएं.</div>
+            </div>
+            <div class="col-sm-6 col-lg-3 text-center">
+                <i class="fa-solid fa-download fa-2x text-primary mb-2"></i>
+                <div class="fw-semibold">कहीं भी चलाएं</div>
+                <div class="text-secondary">PHP और एक डेटाबेस वाली कोई भी मशीन — $5 के VPS से लेकर Raspberry Pi तक.</div>
+            </div>
+            <div class="col-sm-6 col-lg-3 text-center">
+                <i class="fa-solid fa-scale-balanced fa-2x text-primary mb-2"></i>
+                <div class="fw-semibold">BSD-3 लाइसेंस प्राप्त</div>
+                <div class="text-secondary">इसका उपयोग करें, संशोधित करें, जो बनाएं उसे बेचें — और हर डॉलर अपने पास रखें.</div>
+            </div>
+            <div class="col-sm-6 col-lg-3 text-center">
+                <i class="fa-solid fa-puzzle-piece fa-2x text-primary mb-2"></i>
+                <div class="fw-semibold">अपने तरीके से विस्तार करें</div>
+                <div class="text-secondary">चाहें तो प्रीमियम पेड कमर्शियल ऐड-ऑन जोड़ें — या अपने खुद के बनाएं.</div>
+            </div>
+        </div>
+
+        <h3 class="text-center fw-bold mb-0">Tiger आपको <span class="text-primary">चालक की सीट</span> पर बिठाता है.</h3>
+    </div>
+</section>

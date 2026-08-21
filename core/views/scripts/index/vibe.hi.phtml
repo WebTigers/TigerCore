@@ -1,0 +1,168 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /vibe — the SaaS-startup / "vibe coding" pitch. Rendered inside the PUMA public layout.
+ * Bootstrap + --bs-* tokens (restyles live with theme + skin). Shipped marketing.
+ */
+$this->title = 'Vibe SaaS स्टार्टअप — मिनटों में एक सुरक्षित MVP | Tiger';
+
+$included = [
+    ['fa-fingerprint',   'ऐसा Auth जिसमें हफ्तों लगते',  'नीति और लॉकआउट वाले पासवर्ड, ईमेल कोड, TOTP 2FA, पासवर्ड रीसेट, DB सेशन और एक ऑडिट लॉग — जुड़े हुए, कोई अधूरा काम नहीं।'],
+    ['fa-building',       'पहले commit से ही Multi-tenant','Orgs, यूज़र और membership ही मॉडल हैं, कोई ऐसा रीफैक्टर नहीं जिससे आप 500 ग्राहकों पर डरते हों। जब आप तैयार हों तब बिलिंग के लिए तैयार।'],
+    ['fa-user-lock',      'भूमिकाएँ और अनुमतियाँ',      'membership पर भूमिकाओं के साथ एक deny-by-default ACL। किसी फ़ीचर को एक नियम से गेट करें, न कि उस if से जिसे लिखना आप भूल जाते हैं।'],
+    ['fa-arrows-to-dot',  'एक साफ़-सुथरी /api',               'एक ही endpoint, संदेश बताता है वह कहाँ जाएगा। एक method जोड़ें और वह लाइव — कोई route का चिड़ियाघर नहीं, और आगे चलकर यह किसी mobile app या SPA को मुफ़्त में feed करती है।'],
+];
+?>
+<!-- Hero -->
+<section class="py-5">
+    <div class="container text-center py-lg-5">
+        <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+            <i class="fa-solid fa-robot me-1"></i> vibe coders और SaaS संस्थापकों के लिए
+        </span>
+        <h1 class="display-4 fw-bold mb-3">मिनटों में एक सुरक्षित MVP, दिनों में नहीं।</h1>
+        <p class="lead text-secondary mx-auto mb-4" style="max-width: 720px;">
+            Tiger आपको हर SaaS का उबाऊ-पर-ज़रूरी आधार सौंपता है — auth, orgs, भूमिकाएँ, बिलिंग-रेडी
+            multi-tenancy, i18n और एक साफ़ <code>/api</code> — ताकि आप और आपकी AI जोड़ी पहले commit से ही
+            <em>प्रोडक्ट</em> शिप करें, ऐसे stack पर जो चलने पर टूटता नहीं।
+        </p>
+        <div class="d-flex flex-wrap gap-2 justify-content-center">
+            <a href="/signup" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-arrow-right-to-bracket me-2"></i>बनाना शुरू करें</a>
+            <a href="/docs" class="btn btn-outline-secondary btn-lg px-4">दस्तावेज़ पढ़ें</a>
+        </div>
+    </div>
+</section>
+
+<!-- Ship product, not plumbing -->
+<section class="pb-2">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">प्रोडक्ट शिप करें, प्लंबिंग नहीं</h2>
+            <p class="text-secondary mx-auto mb-0" style="max-width:640px;">
+                वह बिना ग्लैमर वाला 80% जो हर SaaS को चाहिए — पहले से बना, पहले से सुरक्षित। अपना runway उसी चीज़ पर लगाएँ
+                जिसे सिर्फ़ आप बना सकते हैं।
+            </p>
+        </div>
+        <div class="row g-4">
+<?php foreach ($included as $c): ?>
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body d-flex gap-3 p-4">
+                        <div class="flex-shrink-0 d-inline-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary-emphasis" style="width:48px;height:48px;">
+                            <i class="fa-solid <?= $c[0] ?> fs-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="h6 fw-semibold mb-1"><?= $c[1] ?></h3>
+                            <p class="text-secondary mb-0"><?= $c[2] ?></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- Built for vibe coding -->
+<section class="py-5 mt-4" style="background: var(--bs-tertiary-bg);">
+    <div class="container">
+        <div class="row g-4 align-items-center">
+            <div class="col-lg-5">
+                <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">ऐसा vibe-code जो सड़ता नहीं</span>
+                <h2 class="fw-bold mb-3">लिखने से पहले आपकी AI नियम पढ़ती है</h2>
+                <p class="text-secondary mb-3">
+                    Tiger एक <code>AGENTS.md</code> और पूर्वानुमेय, प्रलेखित पैटर्न भेजता है जिन्हें आपका असिस्टेंट
+                    पहले ग्रहण करता है — इसलिए "एक billing service जोड़ो" एक असली service के रूप में उतरता है, अपने ACL नियम,
+                    अपने form और अपनी <code>/api</code> method के साथ, घर की शैली में। फ़ीचर बताइए; convention उसे
+                    साफ़ रखते हैं।
+                </p>
+                <ul class="list-unstyled text-secondary mb-0">
+                    <li class="mb-2"><i class="fa-solid fa-check text-primary me-2"></i>ऐसे दस्तावेज़ जो कोड में ही रहते हैं — हर काम करने का एक स्पष्ट तरीका।</li>
+                    <li class="mb-2"><i class="fa-solid fa-check text-primary me-2"></i><code>make:module</code> सेकंडों में एक लाइव controller + service + ACL तैयार कर देता है।</li>
+                    <li class="mb-0"><i class="fa-solid fa-check text-primary me-2"></i>एक जनरेट की गई API reference, सीधे आपके docblocks से।</li>
+                </ul>
+            </div>
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4 font-monospace">
+                        <div class="text-secondary mb-2"># अपनी AI को बताएँ, एक असली और सुरक्षित endpoint पाएँ</div>
+                        <div><span class="text-secondary">$</span> vendor/bin/tiger make:module billing</div>
+                        <div class="text-secondary mt-2">→ Billing_Service_Invoice::create() &nbsp;<span class="text-primary">// validate → transaction</span></div>
+                        <div class="text-secondary">→ configs/acl.ini &nbsp;<span class="text-primary">// deny-by-default नियम</span></div>
+                        <div class="text-secondary">→ POST /api {module:billing, service:invoice, method:create}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Enterprise-shaped + fast/cheap -->
+<section class="py-5">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="fa-solid fa-building-shield text-primary fs-2 mb-3"></i>
+                        <h3 class="h5 fw-bold">enterprise जैसा MVP</h3>
+                        <p class="text-secondary mb-0">
+                            ऑडिट लॉगिंग, प्रति-tenant ACL, सुरक्षित सेशन, i18n, लाइव config — वह आधार जो enterprise सौदे
+                            जिताता है, आपके पहले commit के साथ ही आ जाता है, इसलिए आपका MVP प्रोडक्शन जैसा होता है, न कि
+                            फिर से लिखे जाने की प्रतीक्षा में।
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="fa-solid fa-gauge-high text-primary fs-2 mb-3"></i>
+                        <div class="text-secondary text-uppercase mb-0" style="letter-spacing:.06em;">जवाब देता है</div>
+                        <div class="display-6 fw-bold text-primary mb-1">~10&thinsp;ms में</div>
+                        <p class="text-secondary mb-0">
+                            एक हल्का core, हर request पर framework का कोई भार नहीं — median और tail दोनों पर स्थिर। तेज़
+                            होना ही डिफ़ॉल्ट है, इसलिए लॉन्च-डे का एक अच्छा उछाल किसी outage में नहीं बदलता।
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="fa-solid fa-piggy-bank text-primary fs-2 mb-3"></i>
+                        <div class="text-secondary text-uppercase mb-0" style="letter-spacing:.06em;">चलता है</div>
+                        <div class="display-6 fw-bold text-primary mb-1">$5 की होस्टिंग पर</div>
+                        <p class="text-secondary mb-0">
+                            कोई build चरण नहीं, बेहद छोटा footprint — Tiger सस्ती शेयर्ड होस्टिंग पर चलता है जहाँ भारी
+                            framework boot तक नहीं हो पाते। खर्च अपने आइडिया पर रखें, अपने infra बिल पर नहीं।
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p class="text-secondary text-center mt-3 mb-0" style="font-size:.7rem; line-height:1.45;">
+            ~10&thinsp;ms मापा गया (एक warm request, 2&#8209;vCPU मशीन, PHP&nbsp;8 + OPcache) — यह कोई नियंत्रित
+            benchmark नहीं है; परिणाम workload और hardware के अनुसार बदलते हैं।
+        </p>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="pb-5">
+    <div class="container">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="fw-bold mb-3">आइडिया से एक सुरक्षित, चलते हुए app तक, आज ही</h2>
+                <p class="text-secondary mb-4">एक ही कमांड एक चलता हुआ, थीम वाला, multi-tenant app तैयार करता है — फिर अपनी vibe में लग जाइए।</p>
+                <div class="bg-body-tertiary border rounded-3 d-inline-block px-4 py-3 mb-4 text-start font-monospace">
+                    <span class="text-secondary">$</span> composer create-project webtigers/tiger my-app<br>
+                    <span class="text-secondary">$</span> cd my-app &amp;&amp; vendor/bin/tiger install:admin
+                </div>
+                <div>
+                    <a href="/signup" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-arrow-right-to-bracket me-2"></i>अपना खाता बनाएँ</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
