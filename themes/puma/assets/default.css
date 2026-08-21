@@ -11,6 +11,20 @@
  * outline. Rebinding the button vars to var(--bs-primary) makes the border, label, hover-fill,
  * active state, and focus ring all follow the skin — no per-skin rule needed. Lives in the theme
  * base so every skin inherits it; a skin may still override for a bespoke outline. */
+/* Emphasized comparison-table column (the "our product" column on the marketing pages). A soft,
+ * theme-aware primary wash that reads well in BOTH light and dark mode and follows the active skin —
+ * unlike Bootstrap's .table-primary, whose fixed powder-blue background + forced black text clash in
+ * dark mode. Applied per cell (th + td) down the column; the tint is stronger in dark mode so the
+ * column still reads against the darker ground. */
+.cell-emphasis {
+    --bs-table-bg: rgba(var(--bs-primary-rgb), .08);
+    --bs-table-color: var(--bs-body-color);
+}
+:root[data-bs-theme="dark"] .cell-emphasis,
+[data-bs-theme="dark"] .cell-emphasis {
+    --bs-table-bg: rgba(var(--bs-primary-rgb), .16);
+}
+
 .btn-outline-primary {
     --bs-btn-color: var(--bs-primary);
     --bs-btn-border-color: var(--bs-primary);
