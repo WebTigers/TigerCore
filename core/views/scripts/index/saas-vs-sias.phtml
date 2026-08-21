@@ -1,0 +1,344 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /saas-vs-sias — "You don't own your app. Your platform does." SaaS vs SiaS (Software *in* a Service):
+ * the vibe-coding lock-in trap and what real ownership looks like. Rendered inside the PUMA public
+ * layout. Bootstrap + --bs-* tokens only (no bespoke CSS), so it restyles live with theme + skin
+ * (accents use text-primary -> orange under the Bengal skin). LEFT-aligned to match the other pages.
+ * Shipped marketing; the view owns its content.
+ */
+$this->title = 'SaaS vs. SiaS — You don\'t own your app. Your platform does. | Tiger';
+
+// "How to spot a SiaS platform" — the five questions.
+$questions = [
+    ['Can I run this on my own server with zero modifications?',
+        'Not "can I export the code." Can I take what I have — right now — put it on a $5 VPS, and have it work? If the answer involves rewriting, reconfiguring, or replacing any part of the stack, it\'s SiaS.'],
+    ['Does my app function without an internet connection to the platform?',
+        'If your application stops working when the platform\'s servers go down, you don\'t own an app. You own a subscription to someone else\'s app.'],
+    ['Can I switch hosting providers in under an hour?',
+        'Real portability means zip, move, unzip, done. If "migration" requires a consultant, a rewrite, or more than a weekend, you\'re locked in.'],
+    ['Do I control my own authentication and authorization?',
+        'If your users\' login, permissions, and security are governed by the platform\'s auth layer — Supabase, Firebase, Auth0, or a proprietary system — your user relationships belong to them, not you.'],
+    ['Is the framework my app runs on open source and self-hostable?',
+        'Not "is part of the stack open source." Is the actual framework that runs your application available, open, and deployable anywhere without the platform\'s involvement?'],
+];
+
+// "The real cost of SiaS" — five cards.
+$costs = [
+    ['fa-arrow-trend-up',    'You pay more over time',
+        'SiaS platforms start cheap — $0 free tier, $20 starter. But pricing scales with usage: database rows, API calls, bandwidth, function invocations. By the time you have real customers, you\'re paying $200–500/mo for infrastructure you don\'t control and can\'t optimize.'],
+    ['fa-lock',              'You can\'t leave',
+        'This is the business model. The longer you build, the more dependent you become. Your auth is their auth, your database is their database, your pipeline is their pipeline. Leaving isn\'t a migration — it\'s a rebuild from scratch. They know this. It\'s the strategy.'],
+    ['fa-user-secret',       'You don\'t control your security',
+        'Your users\' data sits in someone else\'s infrastructure, governed by someone else\'s practices, accessible to someone else\'s employees. You can\'t audit what you can\'t access. You can\'t fix what you don\'t control.'],
+    ['fa-money-bill-trend-up','You\'re one pricing change away from crisis',
+        'SiaS platforms change pricing. They always do. When they do, you have two choices: pay more, or rebuild your entire application elsewhere. There is no third option. That\'s leverage — and you gave it to them for free.'],
+    ['fa-building-circle-exclamation','You\'re one acquisition away from losing everything',
+        'Startups get acquired. Platforms get absorbed. Services shut down. When the platform you built on gets bought by a PE firm — or simply runs out of funding — your app\'s future is decided by people you\'ve never met, in a boardroom you\'ll never enter.'],
+];
+
+// "What real ownership looks like" — six points.
+$ownership = [
+    ['fa-server',        'Your code runs anywhere',   'Any server with a standard stack runs your application. No proprietary runtimes, no vendor-specific APIs, no platform dependencies.'],
+    ['fa-user-shield',   'Your auth is yours',        'User authentication, authorization, roles, and permissions live in your application — not in a third-party service.'],
+    ['fa-database',      'Your data is yours',        'Your database runs on your server. You control the backups. You control the access. You control the encryption.'],
+    ['fa-file-zipper',   'Your migration plan is a zip file', 'Dump the database. Zip the directory. Upload it anywhere. Unzip. Restore. Done. That\'s portability.'],
+    ['fa-scale-balanced','Your costs are predictable', 'Server hosting is a commodity with transparent pricing. No per-row charges, no per-invocation fees, no bandwidth surprises that triple your bill overnight.'],
+    ['fa-infinity',      'Your future is yours',      'No platform can change your pricing. No acquisition can kill your app. No vendor can hold your business hostage.'],
+];
+
+// The comparison table.
+$compare = [
+    ['Where your app lives',  'Inside their platform',                              'On any server you choose'],
+    ['What "export" means',   'Code that won\'t run without their services',        'Zip, move, unzip, done'],
+    ['Auth &amp; permissions','Their system, their rules',                          'Your framework, your rules'],
+    ['Database',              'Their managed instance, their pricing',              'Your database, your server'],
+    ['Monthly cost at scale', '$200–500+ with usage-based surprises',               'Flat hosting cost you control'],
+    ['Vendor goes down',      'Your app goes down',                                 'Your app keeps running'],
+    ['Migration plan',        '3–6 month rewrite',                                  'An afternoon'],
+    ['Security audit',        '"Trust us"',                                         'Full access, full control'],
+    ['Offline capable',       'No — an empty shell without the platform',           'Yes — fully functional, zero external dependencies'],
+];
+
+// The vibe-coding stack (vendor -> what it really costs you).
+$stack = [
+    ['Vercel',           'hosting',            'proprietary deployment runtime'],
+    ['Supabase',         'database &amp; auth','vendor-controlled data layer'],
+    ['React + Next.js',  'frontend',           'open-source framework, proprietary runtime optimizations'],
+    ['JWT tokens',       'permissions',        'client-side, plain-text authorization'],
+    ['4+ vendors',       'the bill',           '4+ points of failure, 4+ billing relationships, 4+ pricing changes'],
+];
+?>
+
+<!-- Hero -->
+<section class="py-5">
+    <div class="container py-lg-3" style="max-width: 1080px;">
+        <div class="text-primary text-uppercase fw-bold small mb-3" style="letter-spacing:.14em;">SaaS vs. SiaS</div>
+        <h1 class="display-3 fw-bold mb-4">You don't own your app.<br><span class="text-primary">Your platform does.</span></h1>
+        <p class="lead text-secondary mb-4" style="max-width: 64ch;">
+            There's a distinction the vibe-coding industry doesn't want you to think about. They call
+            everything "SaaS." It's not. Most of what's out there is something else entirely — and the
+            difference will cost you everything you've built.
+        </p>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <a href="#spot" class="btn btn-primary btn-lg px-4">Am I on a SiaS platform? &rarr;</a>
+            <a href="/get-tiger" class="btn btn-outline-secondary btn-lg px-4">Build real SaaS</a>
+        </div>
+    </div>
+</section>
+
+<!-- The definitions -->
+<section class="pb-5">
+    <div class="container" style="max-width: 1080px;">
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="card h-100 border-2 border-primary shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="text-primary text-uppercase fw-bold small mb-2" style="letter-spacing:.12em;">SaaS</div>
+                        <h2 class="h4 fw-bold mb-2">Software as a Service</h2>
+                        <p class="text-secondary mb-0">You own the software. The service is hosting and
+                            infrastructure. You can take your application and run it somewhere else — the
+                            software exists independently of the service. You own your code, your data, your
+                            architecture, and your future.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card h-100 border">
+                    <div class="card-body p-4">
+                        <div class="text-secondary text-uppercase fw-bold small mb-2" style="letter-spacing:.12em;">SiaS</div>
+                        <h2 class="h4 fw-bold mb-2">Software <em>in</em> a Service</h2>
+                        <p class="text-secondary mb-0">Your software doesn't exist outside the service. It's
+                            trapped inside someone else's platform, running on someone else's proprietary
+                            framework, stored in someone else's database. Pull the service and the software
+                            evaporates. There is nothing to take with you. Nothing to zip up. Nothing to move.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p class="h5 fw-bold text-body-emphasis text-center mt-4 mb-0">SiaS is not portable. It never was. It never will be.</p>
+    </div>
+</section>
+
+<!-- The vibe coding trap -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container" style="max-width: 1080px;">
+        <div class="text-primary text-uppercase fw-bold small mb-2" style="letter-spacing:.12em;">The vibe-coding trap</div>
+        <h2 class="fw-bold mb-3">"Describe your app. We'll build it. You own it."</h2>
+        <p class="text-secondary mb-3" style="max-width: 680px;">The new wave of AI app builders — Bolt,
+            Lovable, Floot, Replit, Create.xyz, HeyBoss, Glide, Creatr — all promise the same thing. And you
+            don't own it. What you own is a <em>configuration inside their platform</em>: a set of prompts,
+            settings, and generated code that only runs on their infrastructure, calls their proprietary APIs,
+            and depends on their runtime to function.</p>
+        <div class="d-flex gap-3 p-4 bg-body rounded-3 border" style="max-width: 760px;">
+            <i class="fa-solid fa-triangle-exclamation fa-lg text-primary mt-1"></i>
+            <p class="mb-0"><strong>"Export to GitHub" is not portability.</strong> <span class="text-secondary">It's a
+                marketing checkbox. The exported code is a thin client that calls a backend that only exists
+                inside the platform you're trying to leave. Try running it on a bare server — it won't work,
+                because it was never designed to.</span></p>
+        </div>
+    </div>
+</section>
+
+<!-- How to spot a SiaS platform -->
+<section class="py-5" id="spot">
+    <div class="container" style="max-width: 1080px;">
+        <div class="text-primary text-uppercase fw-bold small mb-2" style="letter-spacing:.12em;">The five-question test</div>
+        <h2 class="fw-bold mb-2">How to spot a SiaS platform</h2>
+        <p class="text-secondary mb-4" style="max-width: 640px;">Ask these five questions. If the answer to
+            <em>any</em> of them is "no," you're on a SiaS platform.</p>
+        <div class="row g-3">
+            <?php foreach ($questions as $i => $q): ?>
+                <div class="col-12">
+                    <div class="d-flex gap-3 p-3 p-md-4 bg-body-tertiary rounded-3 border">
+                        <div class="display-6 fw-bold text-primary lh-1"><?= sprintf('%02d', $i + 1) ?></div>
+                        <div>
+                            <div class="fw-bold mb-1"><?= $q[0] ?></div>
+                            <div class="text-secondary small mb-0"><?= $q[1] ?></div>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- The real cost of SiaS -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container" style="max-width: 1080px;">
+        <div class="text-primary text-uppercase fw-bold small mb-2" style="letter-spacing:.12em;">The real cost</div>
+        <h2 class="fw-bold mb-2">What SiaS actually costs you</h2>
+        <p class="text-secondary mb-4" style="max-width: 640px;">The sticker price is the cheapest part. The
+            real bill comes due later — and by then you can't walk away.</p>
+        <div class="row g-3">
+            <?php foreach ($costs as $c): ?>
+                <div class="col-md-6">
+                    <div class="d-flex gap-3 p-3 p-md-4 bg-body rounded-3 border h-100">
+                        <i class="fa-solid <?= $c[0] ?> fa-lg text-primary mt-1"></i>
+                        <div>
+                            <div class="fw-semibold mb-1"><?= $c[1] ?></div>
+                            <div class="text-secondary small"><?= $c[2] ?></div>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- What real ownership looks like -->
+<section class="py-5">
+    <div class="container" style="max-width: 1080px;">
+        <div class="text-primary text-uppercase fw-bold small mb-2" style="letter-spacing:.12em;">Real ownership</div>
+        <h2 class="fw-bold mb-2">What owning your app actually looks like</h2>
+        <p class="text-secondary mb-4" style="max-width: 640px;">Not a promise on a pricing page. A property
+            of the architecture.</p>
+        <div class="row g-3">
+            <?php foreach ($ownership as $o): ?>
+                <div class="col-md-6">
+                    <div class="d-flex gap-3 p-3 bg-body-tertiary rounded-3 border h-100">
+                        <i class="fa-solid <?= $o[0] ?> fa-lg text-primary mt-1"></i>
+                        <div>
+                            <div class="fw-semibold"><?= $o[1] ?></div>
+                            <div class="text-secondary small"><?= $o[2] ?></div>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- Comparison table -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container" style="max-width: 1080px;">
+        <div class="text-primary text-uppercase fw-bold small mb-2" style="letter-spacing:.12em;">Side by side</div>
+        <h2 class="fw-bold mb-4">SiaS platform vs. real SaaS</h2>
+        <div class="table-responsive">
+            <table class="table align-middle bg-body border rounded-3 overflow-hidden mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col" style="width:22%"></th>
+                        <th scope="col" class="text-secondary">SiaS platform</th>
+                        <th scope="col" class="table-primary text-primary-emphasis">Real SaaS (Tiger)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($compare as $row): ?>
+                        <tr>
+                            <th scope="row" class="fw-semibold"><?= $row[0] ?></th>
+                            <td class="text-secondary"><?= $row[1] ?></td>
+                            <td class="table-primary"><i class="fa-solid fa-check text-success me-2"></i><?= $row[2] ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- The stack vs one framework -->
+<section class="py-5">
+    <div class="container" style="max-width: 1080px;">
+        <div class="text-primary text-uppercase fw-bold small mb-2" style="letter-spacing:.12em;">Four subscriptions pretending to be a platform</div>
+        <h2 class="fw-bold mb-2">The vibe stack vs. one framework</h2>
+        <p class="text-secondary mb-4" style="max-width: 680px;">That's not an architecture. It's a receipt.
+            Every vendor is a dependency. Every dependency is a risk. Every risk is a cost you'll pay eventually.</p>
+        <div class="row g-4 align-items-center">
+            <div class="col-lg-6">
+                <ul class="list-unstyled mb-0">
+                    <?php foreach ($stack as $s): ?>
+                        <li class="d-flex gap-3 py-2 border-bottom">
+                            <i class="fa-solid fa-xmark text-danger mt-1"></i>
+                            <div>
+                                <span class="fw-semibold"><?= $s[0] ?></span>
+                                <span class="text-secondary">for <?= $s[1] ?></span>
+                                <div class="text-secondary small">&rarr; <?= $s[2] ?></div>
+                            </div>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <div class="col-lg-6">
+                <div class="card border-2 border-primary shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <div class="text-primary text-uppercase fw-bold small mb-2" style="letter-spacing:.12em;">One framework. One server.</div>
+                        <h3 class="h5 fw-bold mb-3">Everything in one place</h3>
+                        <div class="row row-cols-2 g-2 small">
+                            <?php foreach (['Auth', 'ACL', 'Multi-tenancy', 'Sessions', 'Security', 'Ecommerce', 'API + docs', 'AI-ready MCP', 'Theme system', 'Page builder'] as $cap): ?>
+                                <div class="col"><i class="fa-solid fa-check text-success me-2"></i><?= $cap ?></div>
+                            <?php endforeach; ?>
+                        </div>
+                        <p class="text-secondary small mb-0 mt-3">No external dependencies. No vendor lock-in.
+                            No SiaS trap. One framework that runs on one server.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA + four ways -->
+<section class="py-5 bg-body-tertiary" id="build">
+    <div class="container" style="max-width: 1080px;">
+        <div class="text-primary text-uppercase fw-bold small mb-2" style="letter-spacing:.12em;">Stop building inside someone else's app</div>
+        <h2 class="display-6 fw-bold mb-3">Build something you own.<br><span class="text-primary">Build real SaaS. Not SiaS.</span></h2>
+        <p class="text-secondary mb-4" style="max-width: 680px;">Tiger is an open-source, BSD-3 licensed SaaS
+            application framework. Auth, ACL, multi-tenancy, admin, sessions, security, ecommerce, and AI
+            integration — included. Runs anywhere PHP and MariaDB run. Zip it. Move it. It doesn't care.</p>
+
+        <div class="row row-cols-1 row-cols-md-2 g-4 mb-4">
+            <div class="col">
+                <div class="card h-100 border-primary shadow-sm position-relative bg-body">
+                    <span class="badge text-bg-primary position-absolute top-0 end-0 m-3">Fastest</span>
+                    <div class="card-body">
+                        <div class="text-secondary small fw-bold font-monospace">01</div>
+                        <h3 class="h4 fw-bold mb-1">TigerDen</h3>
+                        <div class="text-primary fw-semibold mb-2">Your own instance, live in minutes</div>
+                        <div class="h5 fw-bold mb-2">$19 <span class="fs-6 text-secondary fw-normal">/ mo</span></div>
+                        <p class="text-secondary mb-0">We launch a dedicated Tiger server and hand you the keys —
+                            you own and drive the box. No setup, no build step, no server to stand up.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card h-100 shadow-sm bg-body">
+                    <div class="card-body">
+                        <div class="text-secondary small fw-bold font-monospace">02</div>
+                        <h3 class="h4 fw-bold mb-1">TigerInstall</h3>
+                        <div class="text-primary fw-semibold mb-2">One-click on any shared hosting</div>
+                        <p class="text-secondary mb-0">A one-click setup on any standard LAMP host — no shell,
+                            no Composer, no DevOps.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card h-100 shadow-sm bg-body">
+                    <div class="card-body">
+                        <div class="text-secondary small fw-bold font-monospace">03</div>
+                        <h3 class="h4 fw-bold mb-1">Tiger + Composer</h3>
+                        <div class="text-primary fw-semibold mb-2">Full control, for developers</div>
+                        <div class="bg-body-tertiary border rounded-3 p-3 font-monospace small mb-0">
+                            <span class="text-primary">$</span> composer create-project webtigers/tiger
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card h-100 shadow-sm bg-body">
+                    <div class="card-body">
+                        <div class="text-secondary small fw-bold font-monospace">04</div>
+                        <h3 class="h4 fw-bold mb-1">Tiger + Docker</h3>
+                        <div class="text-primary fw-semibold mb-2">Local dev environment</div>
+                        <div class="bg-body-tertiary border rounded-3 p-3 font-monospace small mb-0">
+                            <span class="text-primary">$</span> docker run webtigers/tiger
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <a href="/get-tiger" class="btn btn-primary btn-lg px-4">Get Tiger &rarr;</a>
+    </div>
+</section>

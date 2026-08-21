@@ -115,4 +115,31 @@ final class TranslationTest extends IntegrationTestCase
             'a soft-deleted override is no longer returned'
         );
     }
+
+    #[Test]
+    public function forget_hard_deletes_the_override_so_the_key_can_be_re_set(): void
+    {
+        // forget() is a HARD delete on purpose: the UNIQUE (locale, scope, scope_id, key) means a
+        // soft-deleted row would still occupy the slot and collide when set() next inserts the key.
+        $this->t->set('en', Tiger_Model_Translation::SCOPE_GLOBAL, '', 'core.gone', 'here');
+
+        $removed = $this->t->forget('en', Tiger_Model_Translation::SCOPE_GLOBAL, '', 'core.gone');
+        $this->assertSame(1, (int) $removed, 'one row removed');
+
+        $count = (int) $this->db->fetchOne(
+            'SELECT COUNT(*) FROM translation WHERE locale = ? AND scope = ? AND scope_id = ? AND translation_key = ?',
+            ['en', Tiger_Model_Translation::SCOPE_GLOBAL, '', 'core.gone']
+        );
+        $this->assertSame(0, $count, 'the row is gone entirely (hard delete), not soft-deleted');
+
+        // Re-setting the same coordinates now inserts cleanly — no UNIQUE collision with a tombstone.
+        $this->t->set('en', Tiger_Model_Translation::SCOPE_GLOBAL, '', 'core.gone', 'again');
+        $this->assertSame('again', $this->t->get('en', Tiger_Model_Translation::SCOPE_GLOBAL, '', 'core.gone'));
+    }
+
+    #[Test]
+    public function forget_on_a_missing_override_is_a_harmless_no_op(): void
+    {
+        $this->assertSame(0, (int) $this->t->forget('en', Tiger_Model_Translation::SCOPE_GLOBAL, '', 'core.never'), 'nothing to remove → 0');
+    }
 }

@@ -359,7 +359,9 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
         $files   = [];
         $files[] = TIGER_CORE_PATH . '/core/languages/' . $lang . '/core.php';
         foreach (glob(TIGER_CORE_PATH . '/modules/*/languages/' . $lang . '/*.php') ?: [] as $f) { $files[] = $f; }
+        foreach (glob(TIGER_CORE_PATH . '/themes/*/languages/' . $lang . '/*.php') ?: [] as $f) { $files[] = $f; }
         foreach (glob(APPLICATION_PATH . '/modules/*/languages/' . $lang . '/*.php') ?: [] as $f) { $files[] = $f; }
+        foreach (glob(APPLICATION_PATH . '/themes/*/languages/' . $lang . '/*.php') ?: [] as $f) { $files[] = $f; }
         $files[] = APPLICATION_PATH . '/languages/' . $lang . '/app.php';
 
         return array_values(array_filter($files, 'is_file'));

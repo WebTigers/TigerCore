@@ -100,4 +100,30 @@ class Tiger_Model_Translation extends Tiger_Model_Table
             'translation_value' => $value,
         ]);
     }
+
+    /**
+     * Drop an override — revert the key to its file (base-tier) value.
+     *
+     * A HARD delete on purpose: the row's UNIQUE (locale, scope, scope_id, translation_key)
+     * means a soft-deleted row would still occupy the slot and collide the next time the same
+     * key is overridden (set() inserts, since activeSelect() can't see the soft-deleted row).
+     * There is nothing to audit in a live-override tier — reverting just returns the string to
+     * the shipped file value — so it's removed outright.
+     *
+     * @param  string $locale  language-only locale (en, es)
+     * @param  string $scope   SCOPE_GLOBAL | SCOPE_ORG
+     * @param  string $scopeId scope discriminator (org id for SCOPE_ORG, '' otherwise)
+     * @param  string $key     owner-prefixed semantic translation key
+     * @return int             the number of rows removed (0 if there was no override)
+     */
+    public function forget($locale, $scope, $scopeId, $key)
+    {
+        $db = $this->getAdapter();
+        return $db->delete($this->_name, [
+            $db->quoteInto('locale = ?', (string) $locale),
+            $db->quoteInto('scope = ?', $scope),
+            $db->quoteInto('scope_id = ?', (string) $scopeId),
+            $db->quoteInto('translation_key = ?', $key),
+        ]);
+    }
 }

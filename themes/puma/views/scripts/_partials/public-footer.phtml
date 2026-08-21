@@ -22,16 +22,16 @@ $termsUrl   = $footerCfg('terms_url');
 ?>
 <footer class="border-top mt-5 py-4" style="background: var(--bs-tertiary-bg);">
     <div class="container d-flex flex-wrap justify-content-between align-items-center gap-2 small text-secondary">
-        <span><i class="fa-solid fa-paw text-primary me-1"></i> <strong>Tiger</strong> — the AI-native SaaS platform. Own the business your AI ships.</span>
+        <span><i class="fa-solid fa-paw text-primary me-1"></i> <strong>Tiger</strong> — <?= $this->t('theme.footer.tagline') ?></span>
         <span class="d-flex align-items-center gap-3">
 <?php if ($privacyUrl): ?>
-            <a href="<?= $this->escape($privacyUrl) ?>" class="link-secondary text-decoration-none">Privacy</a>
+            <a href="<?= $this->escape($privacyUrl) ?>" class="link-secondary text-decoration-none"><?= $this->t('theme.footer.privacy') ?></a>
 <?php endif; ?>
 <?php if ($termsUrl): ?>
-            <a href="<?= $this->escape($termsUrl) ?>" class="link-secondary text-decoration-none">Terms</a>
+            <a href="<?= $this->escape($termsUrl) ?>" class="link-secondary text-decoration-none"><?= $this->t('theme.footer.terms') ?></a>
 <?php endif; ?>
-            <a href="https://github.com/WebTigers/Tiger" class="link-secondary text-decoration-none" target="_blank" rel="noopener">GitHub</a>
-            <a href="/" class="link-secondary text-decoration-none">Home</a>
+            <a href="https://github.com/WebTigers/Tiger" class="link-secondary text-decoration-none" target="_blank" rel="noopener"><?= $this->t('theme.footer.github') ?></a>
+            <a href="/" class="link-secondary text-decoration-none"><?= $this->t('theme.footer.home') ?></a>
 <?php if ($tigerVersion): ?>
             <span class="opacity-75">v<?= $this->escape($tigerVersion) ?></span>
 <?php endif; ?>

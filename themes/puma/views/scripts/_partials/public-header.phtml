@@ -19,32 +19,27 @@
 $identity   = Zend_Auth::getInstance()->hasIdentity() ? Zend_Auth::getInstance()->getIdentity() : null;
 $authRegion = $this->placeholder('tigerHeaderAuth');
 
-// Solutions mega-menu cards: [icon, title, tagline, href, description]. Static content.
+// Solutions mega-menu cards: [icon, key-base, href]. Labels resolve through the translator
+// (theme.mega.<name>.{title,tag,desc}) so the whole mega-menu localizes with the site.
 $mega = [
-    ['fa-wand-magic-sparkles', 'Build Killer Websites',      'No WordPress&reg; required',
-        '/cms',        'Install Tiger and start building in minutes. Full CMS, drag-and-drop page builder, themes, and 10ms page loads — no plugins required.'],
-    ['fa-people-group',        'Agency Friendly',            'Host hundreds of sites',
-        '/agency',     'Multi-tenant by design. One install, unlimited client sites, each with their own branding, users, and permissions — your agency scales without your server costs scaling with it.'],
-    ['fa-rocket',              'Vibe SaaS Startups',         'A secure MVP in minutes, not days',
-        '/vibe',       'Auth, billing, ACL, tenant isolation, and database sessions — all included. Tell your AI what to build and Tiger handles the architecture. Ship your MVP before lunch.'],
-    ['fa-code',                'Developers &amp; Open Source','Free, BSD-licensed, yours to extend',
-        '/developers', 'Fork it. Extend it. Build modules on a clean, AI-native architecture — and share them on your own terms. Your code stays yours.'],
-    ['fa-puzzle-piece',        'Plugin &amp; Theme Creators', 'Your code. Your terms.',
-        '/creators',   'Build modules and themes for Tiger and share them on your terms. Your work stays yours — how you license it is up to you.'],
-    ['fa-server',              'Hosting Partners',            'Add Tiger to your stack. Free.',
-        '/hosting',    'Tiger installs faster, runs leaner, and generates fewer support tickets than WordPress. Free to add to your cPanel or Softaculous stack — and we help grow your business through the referral program you already run.'],
+    ['fa-wand-magic-sparkles', 'theme.mega.websites',   '/cms'],
+    ['fa-people-group',        'theme.mega.agency',     '/agency'],
+    ['fa-rocket',              'theme.mega.saas',        '/vibe'],
+    ['fa-code',                'theme.mega.developers', '/developers'],
+    ['fa-puzzle-piece',        'theme.mega.creators',   '/creators'],
+    ['fa-server',              'theme.mega.hosting',     '/hosting'],
 ];
 ?>
 <style>
 /* Solutions mega-menu. Panel stays light; the cards sit a touch darker so they read as cards. On
    desktop it's a full-width panel that opens on HOVER; on mobile it stacks inside the collapsed nav. */
-.tiger-mega .dropdown-menu { background: var(--bs-body-bg); }
-.tiger-mega .mega-card {
+.tiger-mega .dropdown-menu, .tiger-mini .dropdown-menu { background: var(--bs-body-bg); }
+.tiger-mega .mega-card, .tiger-mini .mega-card {
     background: var(--bs-tertiary-bg);
     border: 1px solid var(--bs-border-color-translucent);
     transition: background-color .12s ease, border-color .12s ease;
 }
-.tiger-mega .mega-card:hover { background: var(--bs-secondary-bg); border-color: var(--bs-primary); }
+.tiger-mega .mega-card:hover, .tiger-mini .mega-card:hover { background: var(--bs-secondary-bg); border-color: var(--bs-primary); }
 
 @media (min-width: 992px) {
     .navbar > .container { position: relative; }   /* anchor the full-width panel */
@@ -69,6 +64,28 @@ $mega = [
     }
     .tiger-mega .dropdown-toggle::after { transition: transform .14s ease; }
     .tiger-mega:hover .dropdown-toggle::after { transform: rotate(180deg); }
+
+    /* Mini-mega (Why Tiger): hover-open like the big one, but a normal-width panel under the toggle. */
+    .tiger-mini .dropdown-menu {
+        margin-top: 0;
+        min-width: 32rem;
+        display: block;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(.4rem);
+        transition: opacity .14s ease, transform .14s ease, visibility 0s linear .14s;
+        pointer-events: none;
+    }
+    .tiger-mini:hover > .dropdown-menu,
+    .tiger-mini:focus-within > .dropdown-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        transition-delay: 0s;
+        pointer-events: auto;
+    }
+    .tiger-mini .dropdown-toggle::after { transition: transform .14s ease; }
+    .tiger-mini:hover .dropdown-toggle::after { transform: rotate(180deg); }
 }
 </style>
 <nav class="navbar navbar-expand-lg border-bottom sticky-top" style="background: var(--bs-body-bg);" aria-label="Primary">
@@ -84,21 +101,42 @@ $mega = [
 
         <div class="collapse navbar-collapse" id="tigerNav">
             <ul class="navbar-nav mb-2 mb-lg-0">
-                <li class="nav-item"><a class="nav-link" href="/why-tiger">Why Tiger</a></li>
+                <!-- Why Tiger: a mini-mega — two cards, opens on hover (desktop). -->
+                <li class="nav-item dropdown tiger-mini">
+                    <a class="nav-link dropdown-toggle" href="#" id="tigerWhy" role="button" data-bs-toggle="dropdown" aria-expanded="false"><?= $this->t('theme.nav.why_tiger') ?></a>
+                    <div class="dropdown-menu border-0 shadow-lg p-3" aria-labelledby="tigerWhy">
+                        <div class="row g-3">
+                            <div class="col-12 col-lg-6">
+                                <a class="mega-card d-block h-100 text-decoration-none text-body rounded-3 p-3" href="/why-tiger">
+                                    <i class="fa-solid fa-paw text-primary fs-4 mb-2 d-block"></i>
+                                    <div class="fw-semibold mb-1"><?= $this->t('theme.nav.why_tiger') ?></div>
+                                    <p class="small text-secondary mb-0"><?= $this->t('theme.nav.why_tiger_desc') ?></p>
+                                </a>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                                <a class="mega-card d-block h-100 text-decoration-none text-body rounded-3 p-3" href="/saas-vs-sias">
+                                    <i class="fa-solid fa-scale-balanced text-primary fs-4 mb-2 d-block"></i>
+                                    <div class="fw-semibold mb-1"><?= $this->t('theme.nav.saas_vs_sias') ?></div>
+                                    <p class="small text-secondary mb-0"><?= $this->t('theme.nav.saas_vs_sias_desc') ?></p>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </li>
                 <!-- Solutions: a static mega-menu — HTML injected into the first dropdown. -->
                 <li class="nav-item dropdown tiger-mega">
-                    <a class="nav-link dropdown-toggle" href="#" id="tigerSolutions" role="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">Solutions</a>
+                    <a class="nav-link dropdown-toggle" href="#" id="tigerSolutions" role="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false"><?= $this->t('theme.nav.solutions') ?></a>
                     <div class="dropdown-menu border-0 shadow-lg p-3 p-lg-4" aria-labelledby="tigerSolutions">
                         <div class="row g-3">
 <?php foreach ($mega as $m): ?>
                             <div class="col-12 col-md-6 col-lg-4">
-                                <a class="mega-card d-block h-100 text-decoration-none text-body rounded-3 p-3" href="<?= $m[3] ?>">
+                                <a class="mega-card d-block h-100 text-decoration-none text-body rounded-3 p-3" href="<?= $m[2] ?>">
                                     <div class="d-flex gap-3">
                                         <i class="fa-solid <?= $m[0] ?> text-primary fs-4 mt-1"></i>
                                         <div>
-                                            <div class="fw-semibold"><?= $m[1] ?></div>
-                                            <div class="small text-primary-emphasis fw-semibold mb-1"><?= $m[2] ?></div>
-                                            <p class="small text-secondary mb-0"><?= $m[4] ?></p>
+                                            <div class="fw-semibold"><?= $this->t($m[1] . '.title') ?></div>
+                                            <div class="small text-primary-emphasis fw-semibold mb-1"><?= $this->t($m[1] . '.tag') ?></div>
+                                            <p class="small text-secondary mb-0"><?= $this->t($m[1] . '.desc') ?></p>
                                         </div>
                                     </div>
                                 </a>
@@ -107,9 +145,9 @@ $mega = [
                         </div>
                     </div>
                 </li>
-                <li class="nav-item"><a class="nav-link" href="/features">Features</a></li>
-                <li class="nav-item"><a class="nav-link" href="/docs">Docs</a></li>
-                <li class="nav-item"><a class="nav-link" href="https://github.com/WebTigers/Tiger" target="_blank" rel="noopener">GitHub</a></li>
+                <li class="nav-item"><a class="nav-link" href="/features"><?= $this->t('theme.nav.features') ?></a></li>
+                <li class="nav-item"><a class="nav-link" href="/docs"><?= $this->t('theme.nav.docs') ?></a></li>
+                <li class="nav-item"><a class="nav-link" href="https://github.com/WebTigers/Tiger" target="_blank" rel="noopener"><?= $this->t('theme.nav.github') ?></a></li>
             </ul>
 
             <!-- Centered search region: a feature that fills `tigerHeaderSearch` (e.g. TigerDocs' ⌘K)
@@ -124,7 +162,7 @@ $mega = [
                     <form action="/search" method="get" role="search" class="mb-0">
                         <div class="input-group input-group-sm">
                             <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
-                            <input type="search" name="q" class="form-control" placeholder="Search…" aria-label="Search" autocomplete="off" data-search-input>
+                            <input type="search" name="q" class="form-control" placeholder="<?= $this->escape($this->t('theme.search.placeholder')) ?>" aria-label="<?= $this->escape($this->t('theme.search.placeholder')) ?>" autocomplete="off" data-search-input>
                         </div>
                     </form>
                     <div class="dropdown-menu w-100 shadow" style="max-height: 60vh; overflow-y: auto;" data-search-results></div>
@@ -149,10 +187,10 @@ $mega = [
                 $_role     = (is_object($identity) && !empty($identity->role)) ? $identity->role : 'guest';
                 $_canAdmin = $_acl && $_acl->has('AdminController') ? $_acl->isAllowed($_role, 'AdminController') : false;
                 ?>
-                <a class="btn btn-primary ms-2" href="<?= $_canAdmin ? '/admin' : '/account' ?>"><i class="fa-solid fa-gauge-high me-1"></i><?= $_canAdmin ? 'Dashboard' : 'My Account' ?></a>
+                <a class="btn btn-primary ms-2" href="<?= $_canAdmin ? '/admin' : '/account' ?>"><i class="fa-solid fa-gauge-high me-1"></i><?= $_canAdmin ? $this->t('theme.auth.dashboard') : $this->t('theme.auth.account') ?></a>
 <?php else: ?>
-                <a class="btn btn-link ms-2 text-decoration-none" href="/signup">Sign up</a>
-                <a class="btn btn-outline-secondary" href="/login">Sign in</a>
+                <a class="btn btn-link ms-2 text-decoration-none" href="/signup"><?= $this->t('theme.auth.signup') ?></a>
+                <a class="btn btn-outline-secondary" href="/login"><?= $this->t('theme.auth.signin') ?></a>
 <?php endif; ?>
             </div>
         </div>

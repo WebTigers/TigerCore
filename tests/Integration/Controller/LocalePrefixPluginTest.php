@@ -15,7 +15,7 @@ use Zend_Controller_Request_Simple;
 /**
  * Tiger_Controller_Plugin_LocalePrefix — semantic /xx/ locale URLs + language resolution at
  * routeStartup. It strips a leading SUPPORTED-language segment so every route matches the remainder,
- * and resolves the request language by precedence: URL prefix → signed-in user's `user.locale` →
+ * and resolves the request language by precedence: URL prefix → cookie → signed-in user's `user.locale` →
  * `locale` cookie → browser Accept-Language → configured default. The choice persists to the cookie.
  *
  * The user tier reads `user.locale` from the DB (an account choice follows a person across devices),
@@ -127,17 +127,32 @@ final class LocalePrefixPluginTest extends IntegrationTestCase
     }
 
     #[Test]
-    public function a_signed_in_users_stored_locale_outranks_the_cookie(): void
+    public function an_explicit_cookie_choice_beats_the_users_stored_locale(): void
     {
-        // The account choice follows the person across devices — it beats the device cookie.
-        $userId = (new Tiger_Model_User())->insert(['email' => 'loc@user.test', 'status' => 'active', 'locale' => 'es']);
+        // user.locale is a SUGGESTION, not a mandate: an explicit UI selection (the switcher writes the
+        // cookie) wins over the stored account preference — so switching the language works when signed in.
+        $userId = (new Tiger_Model_User())->insert(['email' => 'loc@user.test', 'status' => 'active', 'locale' => 'en']);
         $this->login($userId, 'org-test', 'user');
-        $_COOKIE['locale'] = 'en';   // a stale device cookie that must lose to the account locale
+        $_COOKIE['locale'] = 'es';   // the user just picked Spanish in the switcher
 
         $req = $this->http('/pricing');
         $this->plugin()->routeStartup($req);
 
-        $this->assertSame('es', $_COOKIE['locale'], 'user.locale wins over the cookie');
+        $this->assertSame('es', $_COOKIE['locale'], 'the explicit cookie choice wins over user.locale');
+    }
+
+    #[Test]
+    public function the_users_stored_locale_is_the_fallback_when_no_url_or_cookie(): void
+    {
+        // With no explicit choice (no /xx/ URL, no cookie, no supported browser header), the account
+        // locale fills in — a personalized fallback that follows the person across devices.
+        $userId = (new Tiger_Model_User())->insert(['email' => 'loc3@user.test', 'status' => 'active', 'locale' => 'es']);
+        $this->login($userId, 'org-test', 'user');
+
+        $req = $this->http('/pricing');
+        $this->plugin()->routeStartup($req);
+
+        $this->assertSame('es', $_COOKIE['locale'], 'user.locale is the fallback when nothing explicit is set');
     }
 
     #[Test]
