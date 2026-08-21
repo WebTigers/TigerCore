@@ -13,7 +13,7 @@ $this->title = 'The Technology Stack — proven, portable, fast, AI-native | Tig
 $stack = [
     ['fa-brands fa-php', 'PHP 8', 'The language that runs the web',
         'PHP powers roughly 77% of all websites — WordPress, Wikipedia, Etsy, Slack\'s backend, Mailchimp. And PHP 8 is fast and modern — JIT-compiled, with optional strict typing when you want it. Each request runs in a clean, isolated process — no shared state to leak, stateless by design, which makes it stable by design. The talent pool is huge and affordable, so hiring is a solved problem.'],
-    ['fa-solid fa-sitemap', 'Modernized ZF1 — a rigid, predictable MVC', 'AI-native by construction',
+    ['fa-solid fa-sitemap', 'Modernized ZF1 — rigid, predictable MVC + SOA', 'AI-native by construction',
         'Tiger runs a PHP 8 evolution of Zend Framework 1\'s architecture: enterprise-grade structure with modern language features. The payoff for AI-assisted development is huge — controllers live in the controllers directory, models in models, views in views, and every module follows the same shape. When your AI reads a Tiger app it doesn\'t guess; it reads a predictable pattern and works with confidence. The wiring is explicit — what you see is what runs — so nothing is hidden behind runtime magic the AI has to infer.'],
     ['fa-solid fa-cube', 'A GRX monolith', 'One process. One deploy. ~10ms.',
         'Twenty microservices mean twenty deployments, network boundaries to debug, and orchestration overhead that needs a full-time DevOps engineer — distributed-systems complexity at startup scale. A well-structured monolith is faster to build, easier to debug, simpler to deploy, and cheaper to run. Tiger is one application, one process, one deployment, ~10ms responses — no service mesh, no API gateway, no container choreography.'],
@@ -29,8 +29,8 @@ $stack = [
         'A browser requests a Tiger page and gets complete, rendered HTML — no blank screen while a client framework boots, no "loading…" spinner, no hydration step. That means fast by default (HTML paints before any framework could bootstrap), SEO-ready by default (search engines see full pages), accessible by default (screen readers see content immediately), and resilient by default (if JavaScript fails, the page still works).'],
     ['fa-solid fa-key', 'DB-backed sessions', 'The server knows who you are; the browser doesn\'t',
         'On login, Tiger writes a session record and hands the browser an opaque token — a UUID that means nothing on its own. Every request looks up the session and the ACL evaluates permissions in real time. The token carries identity only, never roles or claims, so there\'s nothing to forge and permissions can be changed or revoked instantly — no waiting for a token to expire. Less is more: the token carries identity, the server carries everything else.'],
-    ['fa-solid fa-diagram-project', 'MVC', 'Separated concerns the AI can navigate',
-        'Model, View, Controller — each with one job and one predictable location: data and business logic in the model, presentation in the view, request handling in the controller. Each layer can be tested, changed, or replaced independently. For AI-assisted development that\'s the whole game: when your AI needs to change how data is stored it goes to the model; how a page looks, the view; how a request is handled, the controller. It never has to wonder where something lives. Predictability is productivity.'],
+    ['fa-solid fa-diagram-project', 'MVC + SOA', 'Separated concerns the AI can navigate',
+        'Model, View, Controller for the web layer — plus a service layer (SOA) where the business logic lives. Each has one job and one predictable location: data in the model, presentation in the view, thin request-handling in the controller, business logic in the service. Every layer can be tested, changed, or replaced independently. For AI-assisted development that\'s the whole game: when your AI needs to change how data is stored it goes to the model; how a page looks, the view; how the business logic behaves, the service. It never has to wonder where something lives. Predictability is productivity.'],
     ['fa-solid fa-scale-balanced', 'BSD-3 license', 'Enterprise-safe, commercially permissive',
         'Use it however you want — modify it, build a commercial product on it, sell that product, keep all the money. The only asks: keep the license notice, don\'t use the project name to endorse your product, and don\'t blame us if something breaks. Unlike copyleft licenses (GPL/AGPL), where derivative or even networked use can force your own code open, BSD-3 is the license enterprise legal teams approve without a fight — protective enough to trust, permissive enough to be practical.'],
 ];
@@ -38,7 +38,7 @@ $stack = [
 // The stack at a glance.
 $glance = [
     ['Language',     'PHP 8',            '77% of the web, huge talent pool, process-isolated, fast'],
-    ['Framework',    'Modernized ZF1',   'Rigid MVC, AI-native structure, enterprise patterns'],
+    ['Framework',    'Modernized ZF1',   'Rigid MVC + SOA, AI-native structure, enterprise patterns'],
     ['Architecture', 'GRX monolith',     'One process, one deploy, ~10ms, no microservice sprawl'],
     ['Database',     'MariaDB',          'Open-source MySQL heritage, no vendor lock-in'],
     ['Web server',   'Apache / Nginx',   'Decades proven, zero cold starts, no vendor runtime'],
@@ -46,7 +46,7 @@ $glance = [
     ['Frontend',     'Zero-build',       'No bundler, no transpiler, bring your own JS'],
     ['Rendering',    'Server-side',      'Complete HTML, no hydration, SEO + accessible by default'],
     ['Sessions',     'DB-backed',        'Server-side state, opaque token, no JWT exposure'],
-    ['Pattern',      'MVC',              'Separated concerns, predictable structure, AI-friendly'],
+    ['Pattern',      'MVC + SOA',        'Separated concerns, predictable structure, AI-friendly'],
     ['License',      'BSD-3',            'Enterprise-safe, commercially permissive, no copyleft'],
 ];
 ?>
