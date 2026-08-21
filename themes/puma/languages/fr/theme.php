@@ -9,6 +9,8 @@ return [
     'theme.nav.why_tiger_desc' => 'L’argument pour Tiger : possédez toute votre stack, créez un vrai SaaS, sans lock-in.',
     'theme.nav.how_it_works'      => 'Comment ça marche',
     'theme.nav.how_it_works_desc' => 'Un framework, trois voies : créez un site, codez avec l’IA ou livrez un logiciel d’entreprise.',
+    'theme.nav.tech_stack'      => 'Stack technique',
+    'theme.nav.tech_stack_desc' => 'Chaque couche choisie pour être éprouvée, rapide et facile à faire évoluer par votre IA.',
     'theme.nav.saas_vs_sias'      => 'SaaS vs. SiaS',
     'theme.nav.saas_vs_sias_desc' => 'Êtes-vous vraiment propriétaire de votre app ? La différence qui coûte tout — et comment repérer le piège.',
     'theme.nav.solutions' => 'Solutions',
