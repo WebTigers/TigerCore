@@ -115,4 +115,6 @@ return [
 
     'profile.soon'                  => 'Próximamente en la siguiente actualización.',
     'profile.js.cropper_failed' => 'No se pudo iniciar el recortador: %s',
+    'profile.nav.label' => 'Perfil',
+    'profile.nav.org' => 'Mi organización',
 ];

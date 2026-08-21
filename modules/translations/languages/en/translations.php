@@ -50,4 +50,5 @@ return [
     'translations.error.no_ai'      => 'No AI provider is connected. Add one in AI Agent settings to use Translate.',
     'translations.error.bad_translate' => 'Nothing to translate, or an unsupported language.',
     'translations.error.ai_failed'  => 'The AI translation could not be completed. Please try again.',
+    'translations.nav.label' => 'Translations',
 ];

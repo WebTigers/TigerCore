@@ -12,7 +12,7 @@ class Schedule_Bootstrap extends Zend_Application_Module_Bootstrap
     {
         Tiger_Admin_Nav::register([
             'key'      => 'schedule',
-            'label'    => 'Scheduler',
+            'label'    => 'schedule.nav.label',
             'icon'     => 'fa-clock',
             'href'     => '/schedule',
             'resource' => 'Schedule_IndexController',

@@ -51,7 +51,7 @@ class Analytics_Bootstrap extends Zend_Application_Module_Bootstrap
             Tiger_Dashboard::registerWidget([
                 'id'       => 'analytics.traffic',
                 'module'   => 'analytics',
-                'title'    => 'Traffic',
+                'title'    => 'analytics.widget.traffic',
                 'icon'     => 'fa-chart-line',
                 'widget'   => 'Analytics_Widget_Ga',
                 'resource' => 'Analytics_AdminController',
@@ -67,7 +67,7 @@ class Analytics_Bootstrap extends Zend_Application_Module_Bootstrap
     {
         Tiger_Admin_Settings::register([
             'key'      => 'analytics',
-            'label'    => 'Analytics',
+            'label'    => 'analytics.nav.label',
             'icon'     => 'fa-chart-line',
             'href'     => '/analytics/admin',
             'resource' => 'Analytics_AdminController',

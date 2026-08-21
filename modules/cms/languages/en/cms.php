@@ -225,4 +225,5 @@ return [
     'cms.js.item_saved' => '%s saved',
     'cms.js.item_removed' => 'Item removed',
     'cms.js.item' => 'Item',
+    'cms.nav.settings' => 'CMS',
 ];

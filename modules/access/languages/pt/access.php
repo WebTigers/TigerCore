@@ -1,77 +1,95 @@
 <?php
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
-// STUB — pt: English placeholders; translate the values.
 /**
- * Access module — Portuguese (pt) stub. Same keys as en/access.php; values are English placeholders.
+ * Access module — Brazilian Portuguese strings (locale `pt`). Mirrors en/access.php.
  */
 return [
-    'access.label.name'                        => 'Name',
-    'access.label.slug'                        => 'Slug',
-    'access.label.status'                      => 'Status',
-    'access.label.created'                     => 'Created',
-    'access.label.email'                       => 'Email',
-    'access.label.username'                    => 'Username',
-    'access.label.parent'                      => 'Parent',
-    'access.label.members'                     => 'Members',
-    'access.label.roles'                       => 'Roles',
-    'access.label.orgs'                        => 'Orgs',
-    'access.label.actions'                     => 'Actions',
-    'access.action.save'                       => 'Save',
-    'access.action.cancel'                     => 'Cancel',
-    'access.form.none'                         => '—',
-    'access.filter.all_statuses'               => 'All statuses',
-    'access.filter.clear'                      => 'Clear',
-    'access.filter.clear_title'                => 'Clear filters',
-    'access.status.active'                     => 'Active',
-    'access.status.suspended'                  => 'Suspended',
-    'access.user.list.title'                   => 'Users',
-    'access.user.list.subtitle'                => 'Identities — email, username, status, and membership.',
-    'access.user.list.new'                     => 'New User',
-    'access.user.edit.title_new'               => 'New User',
-    'access.user.edit.title_edit'              => 'Edit User',
-    'access.user.edit.back'                    => 'Back to users',
-    'access.user.field.email_help'             => 'The canonical login identifier. Must be unique.',
-    'access.user.field.username_help'          => 'Optional. Unique if set.',
-    'access.user.field.language'               => 'Language',
-    'access.user.field.language_help'          => 'The user\'s preferred language.',
-    'access.user.field.timezone'               => 'Timezone',
-    'access.user.field.timezone_placeholder'   => 'Search by city, abbreviation (EST), or offset (-05:00)…',
-    'access.user.field.password'               => 'Set Password',
-    'access.user.field.password_help'          => 'Leave blank to keep the current password. Setting it here resets it immediately.',
-    'access.user.saved'                        => 'User saved.',
-    'access.user.deleted'                      => 'User deleted.',
-    'access.user.email_taken'                  => 'That email is already in use.',
-    'access.user.username_taken'               => 'That username is already in use.',
-    'access.user.no_self_delete'               => 'You cannot delete your own account.',
-    'access.org.list.title'                    => 'Organizations',
-    'access.org.list.subtitle'                 => 'Tenants — name, slug, hierarchy, and membership.',
-    'access.org.list.new'                      => 'New Organization',
-    'access.org.edit.title_new'                => 'New Organization',
-    'access.org.edit.title_edit'               => 'Edit Organization',
-    'access.org.edit.back'                     => 'Back to organizations',
-    'access.org.field.slug_help'               => 'URL-safe identifier. Auto-derived from the name if left blank; must be unique.',
-    'access.org.field.parent'                  => 'Parent organization',
-    'access.org.field.parent_help'             => 'For sub-tenants; leave as “none” for a root organization.',
-    'access.org.parent.none'                   => '— none (root organization) —',
-    'access.org.saved'                         => 'Organization saved.',
-    'access.org.deleted'                       => 'Organization deleted.',
-    'access.org.slug_taken'                    => 'That slug is already in use.',
-    'access.org.slug_required'                 => 'A slug is required (or provide a name to derive one from).',
-    'access.org.parent_self'                   => 'An organization cannot be its own parent.',
-    'access.org.no_self_delete'                => 'You cannot delete the organization you are currently acting in.',
+    // --- Shared labels (form fields + table columns) ---
+    'access.label.name'          => 'Nome',
+    'access.label.slug'          => 'Identificador',
+    'access.label.status'        => 'Status',
+    'access.label.created'       => 'Criado',
+    'access.label.email'         => 'E-mail',
+    'access.label.username'      => 'Nome de usuário',
+    'access.label.parent'        => 'Pai',
+    'access.label.members'       => 'Membros',
+    'access.label.roles'         => 'Papéis',
+    'access.label.orgs'          => 'Organizações',
+    'access.label.actions'       => 'Ações',
+
+    // --- Common actions / UI bits ---
+    'access.action.save'         => 'Salvar',
+    'access.action.cancel'       => 'Cancelar',
+    'access.form.none'           => '—',
+
+    // --- Filter toolbar ---
+    'access.filter.all_statuses' => 'Todos os status',
+    'access.filter.clear'        => 'Limpar',
+    'access.filter.clear_title'  => 'Limpar filtros',
+
+    // --- Status values ---
+    'access.status.active'       => 'Ativo',
+    'access.status.suspended'    => 'Suspenso',
+
+    // --- Users: list ---
+    'access.user.list.title'     => 'Usuários',
+    'access.user.list.subtitle'  => 'Identidades: e-mail, nome de usuário, status e associação.',
+    'access.user.list.new'       => 'Novo usuário',
+
+    // --- Users: editor ---
+    'access.user.edit.title_new'  => 'Novo usuário',
+    'access.user.edit.title_edit' => 'Editar usuário',
+    'access.user.edit.back'       => 'Voltar aos usuários',
+    'access.user.field.email_help'          => 'O identificador de login canônico. Deve ser único.',
+    'access.user.field.username_help'       => 'Opcional. Único se definido.',
+    'access.user.field.language'            => 'Idioma',
+    'access.user.field.language_help'       => 'O idioma preferido do usuário.',
+    'access.user.field.timezone'            => 'Fuso horário',
+    'access.user.field.timezone_placeholder'=> 'Busque por cidade, abreviação (EST) ou deslocamento (-05:00)…',
+    'access.user.field.password'            => 'Definir senha',
+    'access.user.field.password_help'       => 'Deixe em branco para manter a senha atual. Defini-la aqui a redefine imediatamente.',
+
+    // --- Users: /api service messages ---
+    'access.user.saved'          => 'Usuário salvo.',
+    'access.user.deleted'        => 'Usuário excluído.',
+    'access.user.email_taken'    => 'Esse e-mail já está em uso.',
+    'access.user.username_taken' => 'Esse nome de usuário já está em uso.',
+    'access.user.no_self_delete' => 'Você não pode excluir a sua própria conta.',
+
+    // --- Organizations: list ---
+    'access.org.list.title'      => 'Organizações',
+    'access.org.list.subtitle'   => 'Inquilinos: nome, identificador, hierarquia e associação.',
+    'access.org.list.new'        => 'Nova organização',
+
+    // --- Organizations: editor ---
+    'access.org.edit.title_new'  => 'Nova organização',
+    'access.org.edit.title_edit' => 'Editar organização',
+    'access.org.edit.back'       => 'Voltar às organizações',
+    'access.org.field.slug_help'    => 'Identificador compatível com URL. Derivado do nome se deixado em branco; deve ser único.',
+    'access.org.field.parent'       => 'Organização pai',
+    'access.org.field.parent_help'  => 'Para subinquilinos; deixe como “nenhuma” para uma organização raiz.',
+    'access.org.parent.none'        => '— nenhuma (organização raiz) —',
+
+    // --- Organizations: /api service messages ---
+    'access.org.saved'           => 'Organização salva.',
+    'access.org.deleted'         => 'Organização excluída.',
+    'access.org.slug_taken'      => 'Esse identificador (slug) já está em uso.',
+    'access.org.slug_required'   => 'É necessário um identificador (ou forneça um nome para derivá-lo).',
+    'access.org.parent_self'     => 'Uma organização não pode ser pai de si mesma.',
+    'access.org.no_self_delete'  => 'Você não pode excluir a organização na qual está atuando no momento.',
 
     // --- JS-facing strings (registered via $this->i18n, resolved by Tiger.t) ---
-    'access.js.search_orgs'         => 'Search name / slug…',
-    'access.js.search_users'        => 'Search email / username…',
-    'access.js.edit'                => 'Edit',
-    'access.js.delete'              => 'Delete',
-    'access.js.org_no_delete'       => "Your active organization can't be deleted",
-    'access.js.delete_self'         => 'You cannot delete yourself',
-    'access.js.not_permitted'       => 'Not permitted',
-    'access.js.confirm_delete_org'  => 'Delete this organization? It is soft-deleted and can be recovered.',
-    'access.js.confirm_delete_user' => 'Delete this user? They are soft-deleted and can be recovered.',
-    'access.js.fix_fields'          => 'Please fix the highlighted fields and try again.',
-    'access.js.network_error'       => 'Network error — please try again.',
-    'access.js.parent_root'         => '— root —',
+    'access.js.search_orgs'         => 'Buscar nome / identificador…',
+    'access.js.search_users'        => 'Buscar e-mail / nome de usuário…',
+    'access.js.edit'                => 'Editar',
+    'access.js.delete'              => 'Excluir',
+    'access.js.org_no_delete'       => 'Não é possível excluir a sua organização ativa',
+    'access.js.delete_self'         => 'Você não pode excluir a si mesmo',
+    'access.js.not_permitted'       => 'Não permitido',
+    'access.js.confirm_delete_org'  => 'Excluir esta organização? Ela é excluída de forma reversível e pode ser recuperada.',
+    'access.js.confirm_delete_user' => 'Excluir este usuário? Ele é excluído de forma reversível e pode ser recuperado.',
+    'access.js.fix_fields'          => 'Corrija os campos destacados e tente novamente.',
+    'access.js.network_error'       => 'Erro de rede — tente novamente.',
+    'access.js.parent_root'         => '— raiz —',
 ];

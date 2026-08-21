@@ -104,4 +104,7 @@ return [
     'agent.js.remove_label' => 'Remove',
     'agent.js.remove_skill_title' => 'Remove skill',
     'agent.js.remove_skill_body' => 'Remove this skill and its files? (It stays in the catalog to reinstall.)',
+    'agent.nav.label' => 'Agent IA',
+    'agent.nav.skills' => 'Compétences de l\'agent',
+    'agent.nav.mcp' => 'Connexions MCP',
 ];

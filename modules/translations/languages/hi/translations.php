@@ -45,4 +45,5 @@ return [
     'translations.error.no_ai'      => 'कोई AI प्रदाता कनेक्ट नहीं है। अनुवाद उपयोग करने के लिए AI Agent सेटिंग्स में एक जोड़ें।',
     'translations.error.bad_translate' => 'अनुवाद करने के लिए कुछ नहीं, या असमर्थित भाषा।',
     'translations.error.ai_failed'  => 'AI अनुवाद पूरा नहीं हो सका। कृपया पुनः प्रयास करें।',
+    'translations.nav.label' => 'अनुवाद',
 ];

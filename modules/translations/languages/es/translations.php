@@ -45,4 +45,5 @@ return [
     'translations.error.no_ai'      => 'No hay un proveedor de IA conectado. Agrega uno en la configuración del Agente de IA para usar Traducir.',
     'translations.error.bad_translate' => 'No hay nada que traducir o el idioma no es compatible.',
     'translations.error.ai_failed'  => 'No se pudo completar la traducción con IA. Inténtalo de nuevo.',
+    'translations.nav.label' => 'Traducciones',
 ];

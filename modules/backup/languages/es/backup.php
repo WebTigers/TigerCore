@@ -86,4 +86,5 @@ return [
     'backup.js.select_component'     => 'Selecciona al menos un componente.',
     'backup.js.confirm_delete_named' => '¿Eliminar %s? Esto quita el archivo de forma permanente.',
     'backup.js.choose_zip'           => 'Elige primero un archivo .zip.',
+    'backup.nav.label' => 'Copia de seguridad',
 ];

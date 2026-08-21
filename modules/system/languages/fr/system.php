@@ -329,4 +329,8 @@ return [
     'system.js.license_confirm' => 'Install',
     'system.js.drop_label' => 'Drop your module .zip',
     'system.js.drop_sublabel' => 'unpacked into your modules folder',
+    'system.nav.label' => 'Système',
+    'system.nav.updates' => 'Mises à jour',
+    'system.nav.acl' => 'Simulateur ACL',
+    'system.nav.logs' => 'Journaux',
 ];

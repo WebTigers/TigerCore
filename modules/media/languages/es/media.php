@@ -160,4 +160,5 @@ return [
     'media.js.copy_failed' => 'No se pudo copiar la URL.',
     'media.js.already_in_library' => 'Ya está en tu biblioteca.',
     'media.js.copied_to_library' => 'Copiado a tu biblioteca de medios.',
+    'media.nav.label' => 'Medios',
 ];

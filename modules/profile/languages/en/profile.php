@@ -115,4 +115,6 @@ return [
 
     'profile.soon'                  => 'Coming in the next update.',
     'profile.js.cropper_failed' => 'Could not start the cropper: %s',
+    'profile.nav.label' => 'Profile',
+    'profile.nav.org' => 'My Organization',
 ];

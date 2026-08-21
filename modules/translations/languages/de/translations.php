@@ -45,4 +45,5 @@ return [
     'translations.error.no_ai'      => 'Es ist kein KI-Anbieter verbunden. Fügen Sie einen in den KI-Agent-Einstellungen hinzu, um Übersetzen zu nutzen.',
     'translations.error.bad_translate' => 'Nichts zu übersetzen oder nicht unterstützte Sprache.',
     'translations.error.ai_failed'  => 'Die KI-Übersetzung konnte nicht abgeschlossen werden. Bitte erneut versuchen.',
+    'translations.nav.label' => 'Übersetzungen',
 ];

@@ -14,7 +14,7 @@ class System_Bootstrap extends Zend_Application_Module_Bootstrap
     {
         Tiger_Admin_Settings::register([
             'key'      => 'system',
-            'label'    => 'System',
+            'label'    => 'system.nav.label',
             'icon'     => 'fa-server',
             'href'     => '/system/settings',
             'resource' => 'System_SettingsController',
@@ -27,7 +27,7 @@ class System_Bootstrap extends Zend_Application_Module_Bootstrap
     {
         Tiger_Admin_Nav::register([
             'key'      => 'system_updates',
-            'label'    => 'Updates',
+            'label'    => 'system.nav.updates',
             'icon'     => 'fa-cloud-arrow-down',
             'href'     => '/system/updates',
             'resource' => 'System_UpdatesController',
@@ -35,7 +35,7 @@ class System_Bootstrap extends Zend_Application_Module_Bootstrap
         ]);
         Tiger_Admin_Nav::register([
             'key'      => 'system_acl',
-            'label'    => 'ACL Simulator',
+            'label'    => 'system.nav.acl',
             'icon'     => 'fa-scale-balanced',
             'href'     => '/system/acl',
             'resource' => 'System_AclController',
@@ -43,7 +43,7 @@ class System_Bootstrap extends Zend_Application_Module_Bootstrap
         ]);
         Tiger_Admin_Nav::register([
             'key'      => 'system_logs',
-            'label'    => 'Logs',
+            'label'    => 'system.nav.logs',
             'icon'     => 'fa-rectangle-list',
             'href'     => '/system/logs',
             'resource' => 'System_LogsController',

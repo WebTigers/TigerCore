@@ -70,4 +70,6 @@ return [
     'analytics.widget.active_users_28d'=> 'usuarios activos · 28 d',
     'analytics.widget.page_views'      => 'páginas vistas',
     'analytics.widget.view_dashboard'  => 'Ver panel',
+    'analytics.nav.label' => 'Analíticas',
+    'analytics.widget.traffic' => 'Tráfico',
 ];

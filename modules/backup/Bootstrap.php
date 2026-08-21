@@ -28,7 +28,7 @@ class Backup_Bootstrap extends Zend_Application_Module_Bootstrap
     {
         Tiger_Admin_Nav::register([
             'key'      => 'backup',
-            'label'    => 'Backup',
+            'label'    => 'backup.nav.label',
             'icon'     => 'fa-box-archive',
             'href'     => '/backup',
             'resource' => 'Backup_IndexController',

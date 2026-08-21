@@ -122,4 +122,7 @@ return [
     'agent.js.remove_label' => 'Quitar',
     'agent.js.remove_skill_title' => 'Quitar skill',
     'agent.js.remove_skill_body' => '¿Quitar este skill y sus archivos? (Permanece en el catálogo para reinstalar.)',
+    'agent.nav.label' => 'Agente IA',
+    'agent.nav.skills' => 'Habilidades del agente',
+    'agent.nav.mcp' => 'Conexiones MCP',
 ];

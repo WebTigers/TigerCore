@@ -19,7 +19,7 @@ class Translations_Bootstrap extends Zend_Application_Module_Bootstrap
         }
         Tiger_Admin_Nav::register([
             'key'      => 'translations',
-            'label'    => 'Translations',
+            'label'    => 'translations.nav.label',
             'icon'     => 'fa-language',
             'href'     => '/translations',
             'resource' => 'Translations_IndexController',

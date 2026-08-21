@@ -53,4 +53,5 @@ return [
     'schedule.last.never'     => 'Nunca',
     'schedule.action.edit_title' => 'Editar programación',
     'schedule.action.run_now'    => 'Ejecutar ahora',
+    'schedule.nav.label' => 'Programador',
 ];

@@ -27,7 +27,7 @@ class Identity_Bootstrap extends Zend_Application_Module_Bootstrap
     {
         Tiger_Admin_Settings::register([
             'key'      => 'identity',
-            'label'    => 'Site Identity',
+            'label'    => 'identity.nav.label',
             'icon'     => 'fa-fingerprint',
             'href'     => '/identity/admin',
             'resource' => 'Identity_AdminController',

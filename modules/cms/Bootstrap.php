@@ -22,7 +22,7 @@ class Cms_Bootstrap extends Zend_Application_Module_Bootstrap
     {
         Tiger_Admin_Settings::register([
             'key'      => 'cms',
-            'label'    => 'CMS',
+            'label'    => 'cms.nav.settings',
             'icon'     => 'fa-file-lines',
             'href'     => '/cms/settings',
             'resource' => 'Cms_SettingsController',
