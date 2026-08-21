@@ -52,6 +52,18 @@ $included = [
     ['Page load time',                 '~10ms',                       '800ms–3s with plugins',      '2–3s with network hops'],
 ];
 
+// The backend tiers (bottom-up, as listed). Each tier talks only to its neighbour.
+$tiers = [
+    ['fa-database', 'Database',
+        'MariaDB — your data, on your server. The single source of truth: plain, portable, and boring in the best way.'],
+    ['fa-table', 'DAL + Models',
+        'The data-access layer. <code>Tiger_Model_*</code> gateways wrap every table — a parameterized query builder, UUID keys, soft-deletes, and created/updated stamps — so raw SQL never leaks upward.'],
+    ['fa-gears', 'Services',
+        'The business logic (SOA). Fat, ACL-gated <code>/api</code> services that validate first, then run inside a transaction. Every rule lives here — never in a controller, never in a view.'],
+    ['fa-sitemap', 'MVC',
+        'The web layer. Thin controllers dispatch the request; views render the response. Request-handling and presentation only — nothing else.'],
+];
+
 // The composition model.
 $arch = [
     ['fa-window-maximize', 'Layout',  'The page shell — header, footer, structure.'],
@@ -186,11 +198,29 @@ $wpCompare = [
 <section class="py-5 bg-body-tertiary">
     <div class="container">
         <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">The architecture in 30 seconds</div>
-        <h2 class="fw-bold mb-2">Everything is a partial</h2>
-        <p class="text-secondary mb-4" style="max-width: 680px;">Tiger uses one clean composition model —
-            just different roles in the hierarchy, all stored in one table, all rendered the same way, all
-            introspectable by AI. The builder edits blocks; the framework controls partials; you never break
-            the structure by editing content.</p>
+        <h2 class="fw-bold mb-1">N-Tier Architecture</h2>
+        <p class="lead text-primary fw-semibold mb-3">Not opinionated. Structured.</p>
+        <p class="text-secondary mb-4" style="max-width: 720px;">Four clean tiers, each with one job and one
+            neighbour. A request flows down through them and the response flows back up — so there's exactly
+            one place for everything, and your AI always knows where to look.</p>
+
+        <div class="d-flex flex-column gap-2 mb-5" style="max-width: 860px;">
+            <?php foreach ($tiers as $t): ?>
+                <div class="d-flex gap-3 align-items-start bg-body rounded-3 border p-3">
+                    <i class="fa-solid <?= $t[0] ?> fa-lg text-primary mt-1" style="width:1.5rem;text-align:center;"></i>
+                    <div>
+                        <div class="fw-bold"><?= $t[1] ?></div>
+                        <div class="text-secondary"><?= $t[2] ?></div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <h3 class="h4 fw-bold mb-2">And the view tier itself? Everything is a partial.</h3>
+        <p class="text-secondary mb-4" style="max-width: 720px;">The presentation layer uses one clean
+            composition model — just different roles in the hierarchy, all stored in one table, all rendered
+            the same way, all introspectable by AI. The builder edits blocks; the framework controls
+            partials; you never break the structure by editing content.</p>
         <div class="row g-3">
             <?php foreach ($arch as $a): ?>
                 <div class="col-md-6 col-lg-3">
