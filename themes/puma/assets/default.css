@@ -5,6 +5,24 @@
     --bs-body-font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
+/* Outline-primary buttons track the ACTIVE SKIN's primary color. Bootstrap 5.3 bakes the stock
+ * blue (#0d6efd) straight into .btn-outline-primary's component vars, so a skin that only swaps
+ * --bs-primary (bengal orange, cheetah teal, jaguar navy, tabby orange) would still render a blue
+ * outline. Rebinding the button vars to var(--bs-primary) makes the border, label, hover-fill,
+ * active state, and focus ring all follow the skin — no per-skin rule needed. Lives in the theme
+ * base so every skin inherits it; a skin may still override for a bespoke outline. */
+.btn-outline-primary {
+    --bs-btn-color: var(--bs-primary);
+    --bs-btn-border-color: var(--bs-primary);
+    --bs-btn-hover-bg: var(--bs-primary);
+    --bs-btn-hover-border-color: var(--bs-primary);
+    --bs-btn-active-bg: var(--bs-primary);
+    --bs-btn-active-border-color: var(--bs-primary);
+    --bs-btn-disabled-color: var(--bs-primary);
+    --bs-btn-disabled-border-color: var(--bs-primary);
+    --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+
 /* Dropdown menus — guarantee an OPAQUE, theme-aware background. Bootstrap derives the menu
  * background from --bs-body-bg with no fallback, so if that variable ever fails to resolve in a
  * given context the background-color collapses to `transparent` and page content shows through
