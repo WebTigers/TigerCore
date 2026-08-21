@@ -187,4 +187,5 @@ return [
     'core.datatable.paginate_last' => 'अंतिम',
     'core.datatable.paginate_next' => 'अगला',
     'core.datatable.paginate_prev' => 'पिछला',
+    'core.nav.modules_manage' => 'प्रबंधित करें',
 ];

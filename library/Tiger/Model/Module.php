@@ -4,10 +4,13 @@
 /**
  * Tiger_Model_Module — the module lifecycle registry (see migration 0023).
  *
- * The source of truth for which modules are ACTIVE. `inactiveSlugs()` is the hot path the
- * boot-time gate (Tiger_Application_Resource_Modules) calls to strip deactivated modules from
- * the controller-directory map — it must stay a single cheap indexed query. Everything else
- * feeds the Modules admin + (later) the installer.
+ * The source of truth for which modules are ACTIVE, via an AREA-AWARE gate: CORE modules
+ * (`tiger-core/modules`) are active UNLESS deactivated (opt-out — a base install needs no rows);
+ * APP modules (`application/modules`) are inert UNLESS activated (opt-in — dropping one in does
+ * nothing until Activate). `inactiveSlugs()` resolves that skip set; the boot-time gate
+ * (Tiger_Application_Resource_Modules) + every module-config consumer (routes/nav/acl/…) call it to
+ * strip non-active modules. `deactivatedSlugs()`/`activeSlugs()` are the raw row halves it composes.
+ * Everything else feeds the Modules admin + the installer.
  *
  * @api
  */
@@ -21,15 +24,82 @@ class Tiger_Model_Module extends Tiger_Model_Table
     const SOURCE_UPLOAD     = 'upload';
     const SOURCE_DISCOVERED = 'discovered';
 
+    /** Per-request memo of the resolved skip set (inactiveSlugs) — reset on any activation change. */
+    protected static $_skipCache;
+
     /**
-     * Slugs of deactivated modules (active = 0). The gate's query — keep it lean.
+     * The slugs to SKIP at boot — the AREA-AWARE "not active" gate every module-config consumer uses
+     * (the bootstrap controller-map strip, routes, nav, acl, fields, schedule, …). Two rules, because
+     * core and app modules opt in oppositely:
      *
-     * @return array<int,string> the slugs of inactive modules
+     *   - **CORE** modules (`tiger-core/modules`, discovery area 'core'): active UNLESS explicitly
+     *     deactivated (a row with `active=0`) — opt-OUT, so a base install needs no rows at all.
+     *   - **APP** modules (`application/modules`, area 'app'): inactive UNLESS explicitly activated
+     *     (a row with `active=1`) — opt-IN, so dropping a module in is inert until Activate writes the row.
+     *
+     * A slug in this set neither bootstraps its `Bootstrap.php` nor answers a URL nor contributes any
+     * `configs/*.ini`. Result is memoized per request (reset by setActive/install). Fail-soft: on any
+     * error (no DB / no `module` table on a fresh install) returns [] — every module stays active,
+     * never a worse state than stock ZF1.
+     *
+     * @return array<int,string> the slugs of modules to skip
      */
     public function inactiveSlugs()
     {
+        if (self::$_skipCache !== null) { return self::$_skipCache; }
+        try {
+            $deactivated = array_flip(array_map('strval', $this->deactivatedSlugs()));  // active = 0 rows
+            $activated   = array_flip(array_map('strval', $this->activeSlugs()));        // active = 1 rows
+            $discovered  = $this->_discovered();
+        } catch (Throwable $e) {
+            return [];   // broken/absent DB → skip nothing (all active), the safe fresh-boot default
+        }
+        $skip = [];
+        foreach ($discovered as $slug => $d) {
+            $slug = (string) $slug;
+            if ($slug === '') { continue; }
+            if (($d['area'] ?? 'app') === 'core') {
+                if (isset($deactivated[$slug])) { $skip[] = $slug; }   // core: opt-out (skip only if deactivated)
+            } else {
+                if (!isset($activated[$slug]))  { $skip[] = $slug; }   // app:  opt-in  (skip unless activated)
+            }
+        }
+        return self::$_skipCache = $skip;
+    }
+
+    /**
+     * The discovered modules keyed by slug (each carries its `area` = 'core'|'app'). A seam so a test
+     * can inject a known module layout without the real filesystem; production reads Tiger_Module_Discovery.
+     *
+     * @return array<string,array>
+     */
+    protected function _discovered()
+    {
+        return class_exists('Tiger_Module_Discovery') ? Tiger_Module_Discovery::all() : [];
+    }
+
+    /**
+     * Slugs with an explicit `active = 0` row (deactivated). The raw query — the deactivation half of
+     * the gate, and the input the admin uses to show "deactivated" state.
+     *
+     * @return array<int,string>
+     */
+    public function deactivatedSlugs()
+    {
         $db = $this->getAdapter();
         return $db->fetchCol($db->select()->from($this->_name, ['slug'])->where('active = 0'));
+    }
+
+    /**
+     * Slugs with an explicit `active = 1` row (activated). The opt-in half of the gate (app modules
+     * are inert until one of these rows exists).
+     *
+     * @return array<int,string>
+     */
+    public function activeSlugs()
+    {
+        $db = $this->getAdapter();
+        return $db->fetchCol($db->select()->from($this->_name, ['slug'])->where('active = 1'));
     }
 
     /**
@@ -68,6 +138,7 @@ class Tiger_Model_Module extends Tiger_Model_Table
      */
     public function setActive($slug, $active, array $meta = [])
     {
+        self::$_skipCache = null;   // an activation change invalidates the memoized skip set
         $row  = $this->bySlug($slug);
         $data = [
             'active' => $active ? 1 : 0,
@@ -93,6 +164,7 @@ class Tiger_Model_Module extends Tiger_Model_Table
      */
     public function install($slug, array $meta)
     {
+        self::$_skipCache = null;   // an install activates the module → invalidate the memoized skip set
         $data = [
             'name'       => $meta['name']       ?? null,
             'version'    => $meta['version']    ?? null,
