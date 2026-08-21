@@ -1,0 +1,126 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+// STUB — tlh (Klingon): English placeholders; translate the values to Klingon (pIqaD).
+/**
+ * TigerAgent — English strings (SOURCE). Semantic, owner-prefixed keys (AGENTS.md i18n / I18N.md).
+ */
+return [
+    // Settings screen
+    'agent.settings.title'        => 'AI Agent',
+    'agent.settings.subtitle'     => 'Connect your own AI account and let the agent work inside your site.',
+    'agent.settings.saved'        => 'Agent settings saved.',
+    'agent.settings.save'         => 'Save',
+    'agent.settings.provider'     => 'Provider',
+    'agent.settings.model'        => 'Model',
+    'agent.settings.model.ph'     => 'e.g. claude-sonnet-5',
+    'agent.settings.model.refresh' => 'Refresh the model list',
+    'agent.settings.key'          => 'API key',
+    'agent.settings.key.ph'       => 'Paste a key to connect (leave blank to keep the current one)',
+    'agent.settings.enabled'      => 'Enable the AI agent',
+    'agent.settings.connected'    => 'Connected — a key is stored (encrypted).',
+    'agent.settings.disconnected' => 'Not connected — paste an API key to enable the agent.',
+    'agent.settings.connection'   => 'Connection',
+    'agent.settings.crypto_missing' => 'Encryption isn’t configured (<code>tiger.crypto.key</code>), so an API key can’t be stored securely yet.',
+    'agent.settings.mode_max'     => 'Automation ceiling',
+    'agent.settings.mode_max.help' => 'The highest automation level anyone here may use. Users can dial down, never past this.',
+    'agent.settings.mode.ask'     => 'Ask — approve every change (safest)',
+    'agent.settings.mode.auto'    => 'Auto — routine changes run automatically; code/files still ask',
+    'agent.settings.mode.yolo'    => 'YOLO — everything the role allows runs automatically',
+    'agent.settings.how.title'    => 'How it works',
+    'agent.settings.how.body1'    => 'The agent acts <strong>as you</strong> — it can never do more than your role permits. Reads run on their own; changes are shown for your approval first.',
+    'agent.settings.how.body2'    => '<strong>Bring your own account:</strong> the key you paste is yours, stored encrypted on this server and never shared. Your AI provider bills you directly.',
+
+    // Aside modes
+    'agent.mode.ask'              => 'Ask',
+    'agent.mode.auto'            => 'Auto',
+    'agent.mode.yolo'           => 'YOLO',
+    'agent.mode.ask.hint'       => 'Approve every change',
+    'agent.mode.auto.hint'      => 'Routine changes auto-run; code/files ask',
+    'agent.mode.yolo.hint'      => 'Everything auto-runs — hold on tight',
+
+    // Turn results
+    'agent.turn.ok'             => 'Done.',
+    'agent.approve.ok'          => 'Actions completed.',
+
+    // Attachments (drag-drop / paperclip)
+    'agent.file.attached'       => 'File attached.',
+    'agent.file.type'           => 'That file type isn’t supported.',
+    'agent.file.too_large'      => 'That file is too large.',
+    'agent.file.failed'         => 'The file couldn’t be attached. Please try again.',
+
+    // Errors
+    'agent.error.empty'         => 'Type a message for the agent.',
+    'agent.error.unconfigured'  => 'The AI agent isn’t connected yet. Add an API key under Settings → AI Agent.',
+    'agent.error.provider'      => 'The AI provider couldn’t be reached. Check the key and try again.',
+    'agent.error.run_missing'   => 'That conversation or turn is no longer available.',
+
+    // Aside UI
+    'agent.aside.title'         => 'Agent',
+    'agent.aside.placeholder'   => 'Ask the agent to build, change, or explain something…',
+    'agent.aside.new'           => 'New chat',
+    'agent.aside.send'          => 'Send',
+    'agent.aside.approve'       => 'Approve',
+    'agent.aside.approve_all'   => 'Approve all',
+    'agent.aside.thinking'      => 'Working…',
+    'agent.aside.empty'         => 'Start a conversation — the agent acts with your permissions.',
+
+    // Skills (messages)
+    'agent.skills.installed'      => 'Skill installed.',
+    'agent.skills.install_failed' => 'That skill could not be installed.',
+    'agent.skills.none_found'     => 'No SKILL.md found at that URL.',
+    'agent.skills.enabled'        => 'Skill turned on.',
+    'agent.skills.disabled'       => 'Skill turned off.',
+    'agent.skills.removed'        => 'Skill removed.',
+
+    // Skills (admin screen)
+    'agent.skills.title'          => 'Agent Skills',
+    'agent.skills.subtitle'       => 'Installable know-how for the AI agent. Tiger browses these repos — it does not vouch for them; review a skill’s source before you install and turn it on. Installed skills are pinned to the top.',
+    'agent.skills.rescan'         => 'Rescan',
+    'agent.skills.rescan.title'   => 'Re-scan the sources',
+    'agent.skills.add_url'        => 'Add from a GitHub URL',
+    'agent.skills.url.ph'         => 'https://github.com/owner/repo (or a subfolder / a SKILL.md)',
+    'agent.skills.install'        => 'Install',
+    'agent.skills.add_url.help'   => 'Any repo, branch, subfolder, or a link straight to a SKILL.md — not just the listed sources.',
+    'agent.skills.col.skill'      => 'Skill',
+    'agent.skills.col.description' => 'Description',
+    'agent.skills.col.source'     => 'Source',
+    'agent.skills.col.status'     => 'Status',
+    'agent.skills.col.actions'    => 'Actions',
+    'agent.skills.src.title'      => 'SKILL.md',
+    'agent.skills.src.note'       => 'Provenance only — review before you install.',
+    'agent.skills.close'          => 'Close',
+
+    // MCP connections (outbound) — messages
+    'agent.mcp.saved'     => 'Connection saved.',
+    'agent.mcp.removed'   => 'Connection removed.',
+    'agent.mcp.bad_url'   => 'Enter a valid http(s) URL for the MCP server.',
+    'agent.mcp.bad_label' => 'Give the connection a name.',
+    'agent.mcp.not_found' => 'That connection is not available.',
+
+    // MCP connections (outbound) — admin screen
+    'agent.mcp.title'         => 'MCP Connections',
+    'agent.mcp.subtitle'      => 'Connect external <strong>MCP servers</strong> so the AI agent can use their tools alongside its own. A tool call runs on the remote server and is approval-gated like any agent write. Admin only.',
+    'agent.mcp.add'           => 'Add a connection',
+    'agent.mcp.name'          => 'Name',
+    'agent.mcp.name.ph'       => 'e.g. GitHub, Linear, Weather',
+    'agent.mcp.url'           => 'Server URL (Streamable HTTP)',
+    'agent.mcp.token'         => 'Bearer token',
+    'agent.mcp.token.optional' => '(optional; stored encrypted)',
+    'agent.mcp.token.ph'      => 'leave blank to keep the current one',
+    'agent.mcp.enabled'       => 'Enabled',
+    'agent.mcp.save'          => 'Save',
+    'agent.mcp.cancel'        => 'Cancel',
+    'agent.mcp.connected'     => 'Connected servers',
+    'agent.mcp.empty'         => 'No connections yet — add one on the left.',
+    'agent.js.models_live' => 'Live from your account.',
+    'agent.js.models_static' => 'Common models — connect a key for the live list.',
+    'agent.js.settings_saved' => 'Settings saved.',
+    'agent.js.network_error' => 'Network error — please try again.',
+    'agent.js.connection_saved' => 'Connection saved.',
+    'agent.js.remove_connection_title' => 'Remove connection',
+    'agent.js.remove_connection_body' => 'The agent will lose access to its tools.',
+    'agent.js.remove_label' => 'Remove',
+    'agent.js.remove_skill_title' => 'Remove skill',
+    'agent.js.remove_skill_body' => 'Remove this skill and its files? (It stays in the catalog to reinstall.)',
+];

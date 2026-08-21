@@ -66,8 +66,8 @@ abstract class Tiger_Service_Service
             $this->_translate = Zend_Registry::get('Zend_Translate');
             // /api is never locale-prefixed, so response text takes its locale from
             // the payload (an explicit `locale`) or the request's current LANG.
-            $payloadLang = isset($params['locale'])
-                ? strtolower(substr((string) $params['locale'], 0, 2))
+            $payloadLang = isset($params['locale']) && preg_match('/^([a-zA-Z]{2,3})/', (string) $params['locale'], $lm)
+                ? strtolower($lm[1])   // primary subtag, 2-3 letters (en, es, tlh)
                 : null;
             if ($payloadLang && defined('SUPPORTED_LANGS') && in_array($payloadLang, SUPPORTED_LANGS, true)) {
                 try { $this->_translate->setLocale($payloadLang); } catch (Throwable $e) {}

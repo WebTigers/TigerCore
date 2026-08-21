@@ -65,9 +65,12 @@ class Tiger_Controller_Plugin_LocalePrefix extends Zend_Controller_Plugin_Abstra
 
         $lang = null;
 
-        // 1. URL prefix /xx/ (only a SUPPORTED language) — strip it so routes match.
+        // 1. URL prefix /xx/ or /xxx/ (only a SUPPORTED language) — strip it so routes match.
+        //    2-3 letters covers ISO 639-1 (en, es) AND 639-2/3 codes that have no 2-letter form
+        //    (e.g. tlh = Klingon). The in_array guard means a 3-letter slug is only ever treated as a
+        //    locale when it's actually in the supported set, so a content path like /cms is safe.
         $path = $request->getPathInfo();
-        if (preg_match('#^/([a-z]{2})(?=/|$)(.*)$#', $path, $m) && in_array($m[1], $this->_supported, true)) {
+        if (preg_match('#^/([a-z]{2,3})(?=/|$)(.*)$#', $path, $m) && in_array($m[1], $this->_supported, true)) {
             $lang = $m[1];
             $request->setPathInfo($m[2] !== '' ? $m[2] : '/');
         }
@@ -149,7 +152,9 @@ class Tiger_Controller_Plugin_LocalePrefix extends Zend_Controller_Plugin_Abstra
     {
         $header = $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '';
         foreach (explode(',', $header) as $part) {
-            $code = strtolower(substr(trim($part), 0, 2));
+            // Primary language subtag only (drop region/script/q-value), 2-3 letters:
+            // "es-ES" -> "es", "en;q=0.8" -> "en", "tlh" -> "tlh".
+            $code = preg_match('/^([a-zA-Z]{2,3})/', trim($part), $m) ? strtolower($m[1]) : '';
             if ($code !== '' && in_array($code, $this->_supported, true)) {
                 return $code;
             }

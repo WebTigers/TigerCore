@@ -95,6 +95,28 @@ final class LocalePrefixPluginTest extends IntegrationTestCase
     }
 
     #[Test]
+    public function a_three_letter_iso_639_2_locale_prefix_is_supported(): void
+    {
+        // Klingon (tlh) has no 2-letter ISO 639-1 code; a /xxx/ prefix must still resolve when supported.
+        $plugin = new Tiger_Controller_Plugin_LocalePrefix(['en', 'es', 'tlh'], 'en');
+        $req = $this->http('/tlh/pricing');
+        $plugin->routeStartup($req);
+
+        $this->assertSame('/pricing', $req->getPathInfo(), 'the /tlh prefix is stripped so routes match');
+        $this->assertSame('tlh', $_COOKIE['locale'], 'the 3-letter locale is resolved + persisted');
+    }
+
+    #[Test]
+    public function an_unsupported_three_letter_segment_is_not_treated_as_a_locale(): void
+    {
+        // "/cms" is a real controller path, 3 letters, NOT in the supported set — so it's left intact.
+        $req = $this->http('/cms/edit');
+        $this->plugin()->routeStartup($req);
+
+        $this->assertSame('/cms/edit', $req->getPathInfo(), 'a non-locale 3-letter head is preserved');
+    }
+
+    #[Test]
     public function the_cookie_resolves_the_language_when_there_is_no_prefix(): void
     {
         $_COOKIE['locale'] = 'es';
