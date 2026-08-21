@@ -1,0 +1,43 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+// STUB — tlh (Klingon): English placeholders; translate the values to Klingon (pIqaD).
+/** Register module — en strings. Owner-prefixed keys (register.*). /api messages translate automatically. */
+return [
+    // /api response messages
+    'register.registered'      => 'Your site is registered — check your email to finish verifying it.',
+    'register.domain_verified' => 'Your domain is verified.',
+    'register.domain_pending'  => 'Your domain isn’t verified yet — we’ll keep trying; you can also retry now.',
+    'register.email_sent'      => 'Verification email sent.',
+    'register.error.no_domain'            => 'Could not detect this site’s domain.',
+    'register.error.registry_unreachable' => 'The Tiger network is unreachable right now — please try again shortly.',
+    'register.error.not_registered'       => 'This site isn’t registered.',
+
+    // Settings → Registration screen
+    'register.title'        => 'Registration',
+    'register.subtitle'     => 'Optional. Register this site for a verified Site ID and to join the Tiger network — it turns nothing on or off.',
+    'register.status'       => 'Status',
+    'register.verified'     => 'Verified',
+    'register.not_registered' => 'Not registered',
+    'register.field.domain' => 'Domain',
+    'register.field.email'  => 'Email',
+    'register.field.tsid'   => 'Site ID (TSID)',
+    'register.intro_body'   => 'Registering verifies your <strong>domain</strong> (served automatically — nothing to upload) and your <strong>email</strong>. We only ever share your domain, this email, and your Tiger/PHP versions. Don’t want to? Leave it — or switch off the Registration widget / deactivate this module.',
+    'register.admin_email'  => 'Admin email',
+    'register.register_btn' => 'Register',
+    'register.badge.domain' => 'Domain',
+    'register.badge.email'  => 'Email',
+    'register.state.verified' => 'verified',
+    'register.state.pending'  => 'pending',
+    'register.verify_domain'  => 'Verify domain',
+    'register.resend_email'   => 'Resend verification email',
+    'register.net_error'      => 'Network error — please try again.',
+
+    // Public email-verify landing
+    'register.verify.ok_title'   => 'Your site is verified',
+    'register.verify.ok_body'    => 'Thanks — your email is confirmed.',
+    'register.verify.ok_cta'     => 'Go to your dashboard',
+    'register.verify.fail_title' => 'That link didn’t work',
+    'register.verify.fail_body'  => 'It may have expired or already been used. Resend it from the Registration widget or Settings.',
+    'register.verify.fail_cta'   => 'Go to Registration',
+];

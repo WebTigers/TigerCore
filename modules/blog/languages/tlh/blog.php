@@ -1,0 +1,121 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+// STUB — tlh (Klingon): English placeholders; translate the values to Klingon (pIqaD).
+/**
+ * Blog module — English strings. Semantic, owner-prefixed keys (blog.*). Loaded on top
+ * of core/app strings by the translate cascade; API response messages resolve these
+ * automatically in the caller's locale.
+ */
+return [
+    // API responses
+    'blog.post.saved'    => 'Article saved.',
+    'blog.post.deleted'  => 'Article deleted.',
+    'blog.post.restored' => 'Article restored to the selected version.',
+    'blog.error.slug'          => 'This article needs a title or slug.',
+    'blog.error.slug_reserved' => 'That slug is reserved (post, category, tag, feed). Pick another.',
+
+    // status + locale (form selects + list filter)
+    'blog.status.draft'     => 'Draft',
+    'blog.status.published' => 'Published',
+    'blog.status.archived'  => 'Archived',
+    'blog.locale.en' => 'English',
+    'blog.locale.es' => 'Español',
+
+    // public listings — card + archive + index
+    'blog.card.min_read'         => 'min read',
+    'blog.term.category'         => 'Category',
+    'blog.term.tag'              => 'Tag',
+    'blog.archive.all_articles'  => 'All articles',
+    'blog.archive.empty'         => 'No articles here yet.',
+    'blog.index.heading'         => 'Blog',
+    'blog.index.rss'             => 'RSS feed',
+    'blog.index.empty'           => 'No articles published yet.',
+
+    // editor labels
+    'blog.editor.kicker'       => 'Kicker',
+    'blog.editor.title'        => 'Title',
+    'blog.editor.subtitle'     => 'Subtitle',
+    'blog.editor.preamble'     => 'Preamble',
+    'blog.editor.body'         => 'Article',
+    'blog.editor.excerpt'      => 'Excerpt',
+    'blog.editor.feature'      => 'Feature image',
+    'blog.editor.author'       => 'Author',
+    'blog.editor.categories'   => 'Categories',
+    'blog.editor.tags'         => 'Tags',
+    'blog.editor.status'       => 'Status',
+    'blog.editor.publish_at'   => 'Publish date',
+    'blog.editor.seo'          => 'SEO & social',
+    'blog.editor.seo_title'    => 'Meta title',
+    'blog.editor.seo_desc'     => 'Meta description',
+    'blog.editor.canonical'    => 'Canonical URL',
+    'blog.editor.comments'     => 'Allow comments',
+    'blog.editor.language'     => 'Language',
+    'blog.editor.slug'         => 'Slug',
+
+    // editor — chrome, actions, hints
+    'blog.editor.back'            => 'Back to articles',
+    'blog.editor.edit_article'    => 'Edit article',
+    'blog.editor.new_article'     => 'New article',
+    'blog.editor.settings'        => 'Post settings',
+    'blog.editor.save'            => 'Save',
+    'blog.editor.close'           => 'Close',
+    'blog.editor.feature_set'     => 'Set feature image',
+    'blog.editor.feature_replace' => 'Replace',
+    'blog.editor.feature_remove'  => 'Remove',
+    'blog.editor.publish_hint'    => 'Blank = live now. A future time schedules it.',
+    'blog.editor.categories_hint' => 'Comma-separated. New ones are created on save.',
+    'blog.editor.tags_hint'       => 'Comma-separated.',
+    'blog.editor.excerpt_hint'    => 'Shown in listings and social cards. Falls back to the subtitle.',
+    'blog.editor.slug_hint'       => 'Auto from the title if blank. Changing it leaves a 301.',
+
+    // editor — formatting toolbar (title / aria-label)
+    'blog.editor.tool.formatting'    => 'Formatting',
+    'blog.editor.tool.heading'       => 'Heading',
+    'blog.editor.tool.subheading'    => 'Subheading',
+    'blog.editor.tool.body_text'     => 'Body text',
+    'blog.editor.tool.bold'          => 'Bold',
+    'blog.editor.tool.italic'        => 'Italic',
+    'blog.editor.tool.quote'         => 'Quote',
+    'blog.editor.tool.bullet_list'   => 'Bullet list',
+    'blog.editor.tool.numbered_list' => 'Numbered list',
+    'blog.editor.tool.link'          => 'Link',
+    'blog.editor.tool.image'         => 'Insert image',
+    'blog.editor.tool.source'        => 'Edit HTML source',
+
+    // editor — version history
+    'blog.editor.versions'    => 'Version history',
+    'blog.editor.col_version' => 'Version',
+    'blog.editor.col_saved'   => 'Saved',
+    'blog.editor.untitled'    => '(untitled)',
+    'blog.editor.restore'     => 'Restore',
+
+    // placeholders
+    'blog.ph.kicker'   => 'Kicker — a short label above the title',
+    'blog.ph.title'    => 'Title',
+    'blog.ph.subtitle' => 'Add a subtitle…',
+    'blog.ph.preamble' => 'A larger-font opening that draws the reader in…',
+    'blog.ph.body'     => 'Tell your story…',
+
+    // admin list
+    'blog.list.title'       => 'Articles',
+    'blog.list.subtitle'    => 'Posts and articles — stored in the CMS content store as',
+    'blog.list.new'         => 'New article',
+    'blog.list.empty'       => 'No articles yet — write your first.',
+    'blog.list.status_all'  => 'All statuses',
+    'blog.list.clear'       => 'Clear',
+    'blog.list.clear_title' => 'Clear filters',
+    'blog.list.col_title'   => 'Title',
+    'blog.list.col_slug'    => 'Slug',
+    'blog.list.col_lang'    => 'Lang',
+    'blog.list.col_status'  => 'Status',
+    'blog.list.col_read'    => 'Read',
+    'blog.list.col_updated' => 'Updated',
+    'blog.list.col_actions' => 'Actions',
+    'blog.js.confirm_delete_article' => 'Delete this article? It is soft-deleted and can be recovered.',
+    'blog.js.media_picker_unavailable' => 'Media picker unavailable.',
+    'blog.js.fix_fields' => 'Please fix the highlighted fields.',
+    'blog.js.network_error' => 'Network error — please try again.',
+    'blog.js.confirm_restore' => 'Restore version #%s? Current content is saved as a new version first.',
+    'blog.js.link_url' => 'Link URL:',
+];

@@ -318,6 +318,11 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
             : ['en'];
         $default   = !empty($i18n['default']) ? (string) $i18n['default'] : $supported[0];
 
+        // ZF1's Zend_Locale/Zend_Translate validate a locale against a fixed CLDR list, so a locale
+        // with no CLDR entry (e.g. tlh = Klingon) makes Zend_Translate::addTranslation throw and would
+        // brick the boot. Register the configured non-CLDR locales so ZF1 accepts them.
+        $this->_registerCustomLocales($supported);
+
         $translate = new Zend_Translate([
             'adapter'        => Zend_Translate::AN_ARRAY,
             'content'        => [],
@@ -345,6 +350,38 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
 
         Zend_Registry::set('Zend_Translate', $translate);
         return $translate;
+    }
+
+    /**
+     * Make ZF1 accept locales that aren't in its CLDR data (e.g. tlh = Klingon, ISO 639-2). Zend_Locale
+     * holds the master locale list in a PRIVATE static and Zend_Translate::addTranslation throws for
+     * anything not in it — so we reflect the configured, non-CLDR locales into that list once at boot.
+     * Best-effort + idempotent: a locale ZF1 already knows is skipped, and any failure just means that
+     * locale won't load — never a fatal.
+     *
+     * @param  string[] $locales the configured supported locales
+     * @return void
+     */
+    protected function _registerCustomLocales(array $locales)
+    {
+        $unknown = array_values(array_filter($locales, function ($l) {
+            return $l !== '' && !Zend_Locale::isLocale($l, true, false);
+        }));
+        if (!$unknown) {
+            return;
+        }
+        try {
+            $ref = new ReflectionProperty('Zend_Locale', '_localeData');
+            $ref->setAccessible(true);
+            $data  = $ref->getValue();
+            $added = false;
+            foreach ($unknown as $l) {
+                if (!isset($data[$l])) { $data[$l] = true; $added = true; }
+            }
+            if ($added) { $ref->setValue(null, $data); }
+        } catch (Throwable $e) {
+            // ZF1 internals differ — skip; the unknown locale just won't load, no fatal.
+        }
     }
 
     /**
