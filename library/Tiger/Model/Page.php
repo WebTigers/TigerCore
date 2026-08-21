@@ -50,10 +50,13 @@ class Tiger_Model_Page extends Tiger_Model_Table
      */
     public function resolveBySlug($slug, $locale, $orgId = '', $type = null)
     {
-        // Locale cascade: an exact-locale row wins, but a locale-neutral row (locale '') serves as a
-        // fallback for any request — so a language-agnostic page (e.g. a customized theme page, which
-        // has no locale) answers every locale instead of 404ing. Exact beats neutral via the ORDER.
-        $locales = array_values(array_unique([(string) $locale, '']));
+        // Locale cascade (priority: exact request -> default locale -> locale-neutral ''):
+        //  - an exact-locale row wins;
+        //  - else the DEFAULT-locale row (tiger.i18n.default) answers, so a page authored only in the
+        //    default language (an en-only /why-tiger) serves EVERY language instead of 404ing —
+        //    English content under a translated shell, which is the right fallback;
+        //  - else a locale-neutral row (locale '') — a language-agnostic page (a customized theme page).
+        $locales = array_values(array_unique([(string) $locale, $this->_defaultLocale(), '']));
         $select = $this->activeSelect()
             ->where('slug = ?', (string) $slug)
             ->where('locale IN (?)', $locales)
@@ -61,7 +64,9 @@ class Tiger_Model_Page extends Tiger_Model_Table
             ->where('status = ?', self::STATUS_PUBLISHED)
             ->where('published_at IS NULL OR published_at <= NOW()')
             ->order('org_id DESC')   // non-empty (tenant) sorts before '' (global)
-            ->order('locale DESC')   // exact locale sorts before the '' neutral fallback
+            // Priority by the cascade order above — FIELD(), not locale DESC, so an exact match that
+            // sorts alphabetically before the default (e.g. 'de' vs 'en') still wins.
+            ->order(new Zend_Db_Expr('FIELD(`locale`, ' . implode(', ', array_map([$this->getAdapter(), 'quote'], $locales)) . ')'))
             ->limit(1);
         // Root dispatch resolves only real pages; posts/articles are routed under /blog by
         // their module, so they don't answer at the site root even though they share the slug
@@ -70,6 +75,18 @@ class Tiger_Model_Page extends Tiger_Model_Table
             $select->where('type = ?', (string) $type);
         }
         return $this->fetchRow($select);
+    }
+
+    /** The configured default locale (tiger.i18n.default), or 'en'. Used for the slug locale cascade. */
+    protected function _defaultLocale()
+    {
+        if (Zend_Registry::isRegistered('Zend_Config')) {
+            $cfg  = Zend_Registry::get('Zend_Config');
+            $i18n = ($cfg->get('tiger') && $cfg->tiger->get('i18n')) ? $cfg->tiger->i18n : null;
+            $d    = $i18n ? (string) $i18n->get('default') : '';
+            if ($d !== '') { return $d; }
+        }
+        return 'en';
     }
 
     /**
