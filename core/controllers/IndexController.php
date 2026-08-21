@@ -138,6 +138,17 @@ class IndexController extends Zend_Controller_Action
         $this->view->localeView();
     }
 
+    /**
+     * `/tech-stack` — "The Technology Stack": why each layer was chosen (proven, portable, fast,
+     * secure, AI-native, owned). A shipped marketing page; the view owns its content.
+     *
+     * @return void
+     */
+    public function techStackAction()
+    {
+        $this->view->localeView();
+    }
+
     /** The configured home-page id (tiger.site.home_page), or '' for the built-in landing. */
     protected function _homePageId()
     {

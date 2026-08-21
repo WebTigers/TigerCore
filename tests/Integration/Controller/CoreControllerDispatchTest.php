@@ -129,6 +129,13 @@ final class CoreControllerDispatchTest extends ControllerTestCase
         $this->assertSame(200, $res->getHttpResponseCode(), 'the how-it-works action dispatches without error');
     }
 
+    #[Test]
+    public function the_tech_stack_marketing_action_dispatches_without_error(): void
+    {
+        $res = $this->dispatchAction(IndexController::class, 'techStack', [], 'GET');
+        $this->assertSame(200, $res->getHttpResponseCode(), 'the tech-stack action dispatches without error');
+    }
+
     private function headerValue($res, string $name): string
     {
         foreach ($res->getHeaders() as $h) {
