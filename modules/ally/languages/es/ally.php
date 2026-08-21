@@ -27,4 +27,5 @@ return [
     'ally.js.choose_page' => 'Elige una página para analizar.',
     'ally.js.network_error' => 'Error de red — inténtalo de nuevo.',
     'ally.js.paste_html' => 'Primero pega algo de HTML.',
+    'ally.nav.label' => 'Accesibilidad',
 ];

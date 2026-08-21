@@ -31,8 +31,28 @@ $_hasAside = !empty($this->rightAside);
 // screen when the agent is available to this viewer (feature on + provider connected + role
 // allowed). See TIGERAGENT.md §4.
 $_hasAgent = class_exists('Tiger_Agent') && Tiger_Agent::isAvailable();
+// Localized DataTables UI strings, handed to tiger.datatable.js as a data attribute (no inline
+// script per house rules). The client builds DT's `language` object from this so grids follow the
+// active locale (Showing/entries/search/pagination). Tokens (_START_/_END_/_TOTAL_/_MENU_) are DT's.
+$_dtLang = [
+    'info'           => $this->t('core.datatable.info'),
+    'infoEmpty'      => $this->t('core.datatable.info_empty'),
+    'infoFiltered'   => $this->t('core.datatable.info_filtered'),
+    'lengthMenu'     => $this->t('core.datatable.length_menu'),
+    'searchPlaceholder' => $this->t('core.datatable.search_placeholder'),
+    'zeroRecords'    => $this->t('core.datatable.zero_records'),
+    'emptyTable'     => $this->t('core.datatable.empty_table'),
+    'loadingRecords' => $this->t('core.datatable.loading'),
+    'processing'     => $this->t('core.datatable.processing'),
+    'paginate'       => [
+        'first'    => $this->t('core.datatable.paginate_first'),
+        'last'     => $this->t('core.datatable.paginate_last'),
+        'next'     => $this->t('core.datatable.paginate_next'),
+        'previous' => $this->t('core.datatable.paginate_prev'),
+    ],
+];
 ?><!doctype html>
-<html lang="<?= $this->escape($_lang) ?>" data-bs-theme="<?= $_mode ?>" class="tiger-admin<?= $_hasAside ? ' has-right-aside' : '' ?><?= $_hasAgent ? ' has-agent' : '' ?>">
+<html lang="<?= $this->escape($_lang) ?>" data-bs-theme="<?= $_mode ?>" data-dt-lang="<?= $this->escape(json_encode($_dtLang)) ?>" class="tiger-admin<?= $_hasAside ? ' has-right-aside' : '' ?><?= $_hasAgent ? ' has-agent' : '' ?>">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">

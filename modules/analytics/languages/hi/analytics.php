@@ -56,4 +56,6 @@ return [
     'analytics.widget.active_users_28d' => 'active users · 28d',
     'analytics.widget.page_views' => 'page views',
     'analytics.widget.view_dashboard' => 'View dashboard',
+    'analytics.nav.label' => 'एनालिटिक्स',
+    'analytics.widget.traffic' => 'ट्रैफ़िक',
 ];

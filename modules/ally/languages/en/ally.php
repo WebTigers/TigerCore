@@ -27,4 +27,5 @@ return [
     'ally.js.choose_page' => 'Choose a page to scan.',
     'ally.js.network_error' => 'Network error — please try again.',
     'ally.js.paste_html' => 'Paste some HTML first.',
+    'ally.nav.label' => 'Accessibility',
 ];

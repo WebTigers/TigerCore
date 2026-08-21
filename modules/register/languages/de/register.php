@@ -34,4 +34,13 @@ return [
     'register.verify.fail_title' => 'That link didn’t work',
     'register.verify.fail_body' => 'It may have expired or already been used. Resend it from the Registration widget or Settings.',
     'register.verify.fail_cta' => 'Go to Registration',
+    'register.nav.label' => 'Registrierung',
+    'register.widget.title' => 'Registrierung',
+    'register.widget.registered' => 'Ihre Website ist registriert',
+    'register.widget.site_id' => 'Site-ID',
+    'register.widget.intro' => 'Registrieren Sie diese Website für eine verifizierte Site-ID und um dem Tiger-Netzwerk beizutreten — optional, und es schaltet nichts ein oder aus. Wir teilen nur Ihre Domain, diese E-Mail und Ihre Tiger/PHP-Versionen.',
+    'register.widget.register' => 'Registrieren',
+    'register.widget.confirming' => 'Wir bestätigen, dass Sie %s kontrollieren.',
+    'register.widget.last_step' => 'Letzter Schritt: Klicken Sie auf den Link, den wir an %s gesendet haben.',
+    'register.widget.resend' => 'E-Mail erneut senden',
 ];

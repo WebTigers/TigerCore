@@ -117,4 +117,5 @@ return [
     'blog.js.network_error' => 'Network error — please try again.',
     'blog.js.confirm_restore' => 'Restore version #%s? Current content is saved as a new version first.',
     'blog.js.link_url' => 'Link URL:',
+    'blog.nav.label' => 'Articles',
 ];

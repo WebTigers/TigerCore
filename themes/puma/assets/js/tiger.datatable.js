@@ -43,7 +43,16 @@
             pageLength: 25,
             stateSave: true,
             stateDuration: 0,
-            language: { search: '', searchPlaceholder: 'Search…' }
+            // Localized DataTables strings from the admin layout's data-dt-lang attribute (built
+            // server-side from core.datatable.* keys). `search:''` keeps the label empty (placeholder
+            // only). Falls back to English if the attribute is absent (e.g. a non-admin page).
+            language: (function () {
+                try {
+                    var L = JSON.parse(document.documentElement.getAttribute('data-dt-lang') || 'null');
+                    if (L) { L.search = ''; return L; }
+                } catch (e) {}
+                return { search: '', searchPlaceholder: 'Search…' };
+            })()
         }, opts);
         delete config.service;
         delete config.extraData;

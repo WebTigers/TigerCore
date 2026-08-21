@@ -27,7 +27,7 @@ class Agent_Bootstrap extends Zend_Application_Module_Bootstrap
         }
         Tiger_Admin_Settings::register([
             'key'      => 'agent',
-            'label'    => 'AI Agent',
+            'label'    => 'agent.nav.label',
             'icon'     => 'fa-robot',
             'href'     => '/agent/admin',
             'resource' => 'Agent_AdminController',
@@ -36,7 +36,7 @@ class Agent_Bootstrap extends Zend_Application_Module_Bootstrap
         // The Skills manager (browse/install/toggle/remove agent skills) — TIGERSKILLS.md.
         Tiger_Admin_Settings::register([
             'key'      => 'agent-skills',
-            'label'    => 'Agent Skills',
+            'label'    => 'agent.nav.skills',
             'icon'     => 'fa-wand-magic-sparkles',
             'href'     => '/admin/settings/agent/skills',   // pretty alias (routes.ini); /agent/skills still works
             'resource' => 'Agent_SkillsController',
@@ -45,7 +45,7 @@ class Agent_Bootstrap extends Zend_Application_Module_Bootstrap
         // Outbound MCP: external servers whose tools the agent may call (TIGERMCP.md §9).
         Tiger_Admin_Settings::register([
             'key'      => 'agent-mcp',
-            'label'    => 'MCP Connections',
+            'label'    => 'agent.nav.mcp',
             'icon'     => 'fa-diagram-project',
             'href'     => '/agent/mcp',
             'resource' => 'Agent_McpController',

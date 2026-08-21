@@ -86,4 +86,5 @@ return [
     'backup.js.select_component'     => 'Select at least one component.',
     'backup.js.confirm_delete_named' => 'Delete %s? This removes the archive permanently.',
     'backup.js.choose_zip'           => 'Choose a .zip archive first.',
+    'backup.nav.label' => 'Backup',
 ];

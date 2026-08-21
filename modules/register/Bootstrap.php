@@ -20,7 +20,7 @@ class Register_Bootstrap extends Zend_Application_Module_Bootstrap
             Tiger_Dashboard::registerWidget([
                 'id'       => 'register.site',
                 'module'   => 'register',
-                'title'    => 'Registration',
+                'title'    => 'register.widget.title',
                 'icon'     => 'fa-globe',
                 'widget'   => 'Register_Widget_Registration',
                 'resource' => 'Register_AdminController',
@@ -36,7 +36,7 @@ class Register_Bootstrap extends Zend_Application_Module_Bootstrap
         if (class_exists('Tiger_Admin_Settings')) {
             Tiger_Admin_Settings::register([
                 'key'      => 'register',
-                'label'    => 'Registration',
+                'label'    => 'register.nav.label',
                 'icon'     => 'fa-globe',
                 'href'     => '/register/admin/registration',
                 'resource' => 'Register_AdminController',

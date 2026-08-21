@@ -9,8 +9,11 @@
  * so a form label and the surrounding view translate through the SAME contract:
  *
  *   - Resolves against the shared `Zend_Translate` built in `_initTranslate` (files cascade + DB overrides).
- *   - **Fail-soft:** an untranslated key returns the key verbatim (never a fatal, never a blank) — so a
- *     missing translation is visible and greppable, not an empty page.
+ *   - **Source-locale fallback:** a key missing in the ACTIVE locale falls back to the source/default
+ *     locale (`tiger.i18n.default`, `en`) before giving up — so a module that ships only some locales
+ *     (autonomous modules own their own translations, but may not have caught every locale yet) degrades
+ *     to English, **never a raw key on screen**. Only a key absent from *every* locale returns verbatim
+ *     (greppable — a genuinely undefined key, not a missing translation).
  *   - **Interpolation:** extra args are `vsprintf`'d into the resolved string, so a key can carry `%s`/`%d`
  *     placeholders — `$this->t('cms.page.deleted_n', $count)`.
  *
@@ -35,7 +38,16 @@ class Tiger_View_Helper_T extends Zend_View_Helper_Abstract
     {
         $key  = (string) $key;
         $tr   = $this->_translate();
-        $text = ($tr && $tr->isTranslated($key)) ? $tr->translate($key) : $key;
+
+        if (!$tr) {
+            $text = $key;
+        } elseif ($tr->isTranslated($key)) {
+            $text = $tr->translate($key);                                   // the active locale has it
+        } elseif (($fb = self::_fallbackLocale()) !== '' && $tr->isTranslated($key, false, $fb)) {
+            $text = $tr->translate($key, $fb);                              // degrade to the source locale (en)
+        } else {
+            $text = $key;                                                  // genuinely undefined key
+        }
 
         if ($args) {
             $out = @vsprintf($text, $args);
@@ -54,5 +66,25 @@ class Tiger_View_Helper_T extends Zend_View_Helper_Abstract
     protected function _translate()
     {
         return Zend_Registry::isRegistered('Zend_Translate') ? Zend_Registry::get('Zend_Translate') : null;
+    }
+
+    /**
+     * The source/default locale to fall back to when a key is absent from the active locale — the locale
+     * every base language file ships in, so it always has the key. Reads `tiger.i18n.default` (config),
+     * defaulting to `en`. Empty string only if config resolution fails hard (then no fallback is attempted).
+     *
+     * @return string
+     */
+    protected static function _fallbackLocale()
+    {
+        try {
+            if (Zend_Registry::isRegistered('Zend_Config')) {
+                $cfg  = Zend_Registry::get('Zend_Config');
+                $i18n = ($cfg->get('tiger') instanceof Zend_Config) ? $cfg->get('tiger')->get('i18n') : null;
+                $def  = ($i18n instanceof Zend_Config) ? (string) $i18n->get('default') : '';
+                if ($def !== '') { return $def; }
+            }
+        } catch (Throwable $e) { /* fall through to the hard default */ }
+        return 'en';
     }
 }

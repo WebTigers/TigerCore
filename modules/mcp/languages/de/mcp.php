@@ -37,4 +37,5 @@ return [
     'mcp.js.revoke_title' => 'Revoke token',
     'mcp.js.revoke_body' => 'Any client using this token will stop working.',
     'mcp.js.revoke_label' => 'Revoke',
+    'mcp.nav.label' => 'MCP-Server',
 ];

@@ -102,4 +102,6 @@ return [
     'profile.address.group.rest' => 'All countries',
     'profile.soon' => 'Coming in the next update.',
     'profile.js.cropper_failed' => 'Could not start the cropper: %s',
+    'profile.nav.label' => 'प्रोफ़ाइल',
+    'profile.nav.org' => 'मेरा संगठन',
 ];

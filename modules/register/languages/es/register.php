@@ -39,4 +39,13 @@ return [
     'register.verify.fail_title' => 'Ese enlace no funcionó',
     'register.verify.fail_body'  => 'Puede haber caducado o ya haberse usado. Reenvíalo desde el widget de Registro o desde Configuración.',
     'register.verify.fail_cta'   => 'Ir a Registro',
+    'register.nav.label' => 'Registro',
+    'register.widget.title' => 'Registro',
+    'register.widget.registered' => 'Tu sitio está registrado',
+    'register.widget.site_id' => 'ID del sitio',
+    'register.widget.intro' => 'Registra este sitio para obtener un ID de sitio verificado y unirte a la red Tiger — es opcional y no activa ni desactiva nada. Solo compartimos tu dominio, este correo y tus versiones de Tiger/PHP.',
+    'register.widget.register' => 'Registrar',
+    'register.widget.confirming' => 'Confirmando que controlas %s.',
+    'register.widget.last_step' => 'Último paso: haz clic en el enlace que enviamos a %s.',
+    'register.widget.resend' => 'Reenviar correo',
 ];

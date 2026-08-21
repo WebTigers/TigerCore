@@ -17,7 +17,7 @@ class Media_Bootstrap extends Zend_Application_Module_Bootstrap
         }
         Tiger_Search::register([
             'key'    => 'media',
-            'label'  => 'Media',
+            'label'  => 'media.nav.label',
             'icon'   => 'fa-photo-film',
             'weight' => 30,
             'search' => function ($term, $ctx) {
@@ -44,7 +44,7 @@ class Media_Bootstrap extends Zend_Application_Module_Bootstrap
     {
         Tiger_Admin_Settings::register([
             'key'      => 'media',
-            'label'    => 'Media',
+            'label'    => 'media.nav.label',
             'icon'     => 'fa-photo-film',
             'href'     => '/media/admin/settings',
             'resource' => 'Media_AdminController',

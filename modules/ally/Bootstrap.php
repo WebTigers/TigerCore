@@ -15,7 +15,7 @@ class Ally_Bootstrap extends Zend_Application_Module_Bootstrap
     {
         Tiger_Admin_Nav::register([
             'key'      => 'ally',
-            'label'    => 'Accessibility',
+            'label'    => 'ally.nav.label',
             'icon'     => 'fa-universal-access',
             'href'     => '/ally',
             'resource' => 'Ally_IndexController',

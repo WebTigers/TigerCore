@@ -22,7 +22,7 @@ class Mcp_Bootstrap extends Zend_Application_Module_Bootstrap
         }
         Tiger_Admin_Settings::register([
             'key'      => 'mcp',
-            'label'    => 'MCP Server',
+            'label'    => 'mcp.nav.label',
             'icon'     => 'fa-plug',
             'href'     => '/mcp/admin',
             'resource' => 'Mcp_AdminController',

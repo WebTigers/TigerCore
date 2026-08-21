@@ -53,4 +53,5 @@ return [
     'schedule.last.never'     => 'Never',
     'schedule.action.edit_title' => 'Edit schedule',
     'schedule.action.run_now'    => 'Run now',
+    'schedule.nav.label' => 'Scheduler',
 ];

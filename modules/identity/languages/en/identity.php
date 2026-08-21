@@ -41,4 +41,5 @@ return [
     'identity.js.saved'         => 'Site identity saved.',
     'identity.js.fix_fields'    => 'Please fix the highlighted fields.',
     'identity.js.network_error' => 'Network error — please try again.',
+    'identity.nav.label' => 'Site Identity',
 ];

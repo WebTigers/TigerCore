@@ -19,31 +19,39 @@ class Register_Widget_Registration
      */
     public function render(): string
     {
-        $s = Register_Service_Status::state();
+        // Widgets aren't views, so pull the registered translator directly (fail-soft: returns the key
+        // if none is registered). The domain/email are inserted into a %s placeholder so word order
+        // localizes correctly; they're html-escaped, the surrounding <strong> is intentional markup.
+        $tr = Zend_Registry::isRegistered('Zend_Translate') ? Zend_Registry::get('Zend_Translate') : null;
+        // Active locale → source (en) fallback → key, so a missing locale degrades to English, never a raw key.
+        $t  = function ($key) use ($tr) {
+            if (!$tr) { return $key; }
+            if ($tr->isTranslated($key)) { return $tr->translate($key); }
+            return $tr->isTranslated($key, false, 'en') ? $tr->translate($key, 'en') : $key;
+        };
+        $s  = Register_Service_Status::state();
 
         if (!empty($s['verified'])) {
             return '<div class="text-center py-2">'
                 . '<i class="fa-solid fa-circle-check text-success fs-3 d-block mb-2"></i>'
-                . '<div class="fw-semibold">Your site is registered</div>'
-                . '<div class="small text-body-secondary mt-1">Site ID <code>' . htmlspecialchars((string) $s['tsid']) . '</code></div>'
+                . '<div class="fw-semibold">' . htmlspecialchars($t('register.widget.registered')) . '</div>'
+                . '<div class="small text-body-secondary mt-1">' . htmlspecialchars($t('register.widget.site_id')) . ' <code>' . htmlspecialchars((string) $s['tsid']) . '</code></div>'
                 . '</div>';
         }
 
         if (empty($s['started'])) {
-            $body = '<p class="small text-body-secondary mb-2">Register this site for a verified Site ID and to join the '
-                . 'Tiger network — optional, and it turns nothing on or off. We share only your domain, this email, and '
-                . 'your Tiger/PHP versions.</p>'
+            $body = '<p class="small text-body-secondary mb-2">' . htmlspecialchars($t('register.widget.intro')) . '</p>'
                 . '<div class="input-group input-group-sm">'
                 . '<input type="email" data-reg="email" class="form-control" placeholder="you@yourdomain.com" autocomplete="email">'
-                . '<button type="button" data-reg="register" class="btn btn-primary">Register</button></div>';
+                . '<button type="button" data-reg="register" class="btn btn-primary">' . htmlspecialchars($t('register.widget.register')) . '</button></div>';
         } elseif (empty($s['domain_verified'])) {
-            $body = '<p class="small text-body-secondary mb-2">Confirming you control <strong>'
-                . htmlspecialchars((string) $s['domain']) . '</strong>.</p>'
-                . '<button type="button" data-reg="verifyDomain" class="btn btn-sm btn-outline-primary">Verify domain</button>';
+            $body = '<p class="small text-body-secondary mb-2">'
+                . sprintf($t('register.widget.confirming'), '<strong>' . htmlspecialchars((string) $s['domain']) . '</strong>') . '</p>'
+                . '<button type="button" data-reg="verifyDomain" class="btn btn-sm btn-outline-primary">' . htmlspecialchars($t('register.verify_domain')) . '</button>';
         } else {
-            $body = '<p class="small text-body-secondary mb-2">Last step: click the link we emailed to <strong>'
-                . htmlspecialchars((string) $s['email']) . '</strong>.</p>'
-                . '<button type="button" data-reg="resendEmail" class="btn btn-sm btn-outline-secondary">Resend email</button>';
+            $body = '<p class="small text-body-secondary mb-2">'
+                . sprintf($t('register.widget.last_step'), '<strong>' . htmlspecialchars((string) $s['email']) . '</strong>') . '</p>'
+                . '<button type="button" data-reg="resendEmail" class="btn btn-sm btn-outline-secondary">' . htmlspecialchars($t('register.widget.resend')) . '</button>';
         }
 
         return '<div id="reg-w" data-csrf="' . htmlspecialchars($this->_csrf(), ENT_QUOTES) . '">'

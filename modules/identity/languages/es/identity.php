@@ -39,4 +39,5 @@ return [
     'identity.js.saved'         => 'Identidad del sitio guardada.',
     'identity.js.fix_fields'    => 'Corrige los campos resaltados.',
     'identity.js.network_error' => 'Error de red: inténtalo de nuevo.',
+    'identity.nav.label' => 'Identidad del sitio',
 ];

@@ -223,4 +223,5 @@ return [
     'cms.js.item_saved' => 'Guardado: %s',
     'cms.js.item_removed' => 'Elemento quitado',
     'cms.js.item' => 'Elemento',
+    'cms.nav.settings' => 'CMS',
 ];
