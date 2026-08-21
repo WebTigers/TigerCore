@@ -12,9 +12,9 @@ $this->title = 'How Tiger Works — one framework, three paths, real SaaS | Tige
 // Pick your path — three ways in, one platform underneath.
 $paths = [
     [
-        'fa-wand-magic-sparkles', 'I want to build a website', 'Tiger replaces WordPress.',
+        'fa-wand-magic-sparkles', 'I want to build a website', 'Tiger replaces WordPress, Wix, or Squarespace.',
         'Install a theme, open the visual builder, drag blocks, edit text, publish. Unlike WordPress it sits on a real application framework — security, users, multi-tenancy already there. When you outgrow a website, everything is already built. No migration, no rebuild.',
-        ['Visual drag-and-drop page builder', 'Themes install fully populated — no empty shells', 'Built-in SSL, security, accounts, admin panel', 'A real framework underneath, ready when you are'],
+        ['Visual drag-and-drop page builder', 'Low to no div tag nesting hell like Elementor, Divi, and other visual editors produce', 'Themes install fully populated with images and placeholder content — no empty shells', 'Built-in SSL, security, accounts, admin panel', 'A real framework underneath, ready when you are'],
     ],
     [
         'fa-robot', 'I want to vibe-code my app', 'Tiger replaces Bolt, Lovable, Floot &amp; every SiaS platform.',
@@ -52,12 +52,32 @@ $included = [
     ['Page load time',                 '~10ms',                       '800ms–3s with plugins',      '2–3s with network hops'],
 ];
 
+// The backend tiers (bottom-up, as listed). Each tier talks only to its neighbour.
+$tiers = [
+    ['fa-database', 'Database',
+        'Database-agnostic — any engine with a PDO driver: MariaDB, PostgreSQL, MySQL, Oracle, or SQL Server. Your data, on your server, the single source of truth.'],
+    ['fa-table', 'DAL + Models',
+        'The data-access layer. <code>Tiger_Model_*</code> gateways wrap every table — a parameterized query builder, UUID keys, soft-deletes, and created/updated stamps — so raw SQL never leaks upward.'],
+    ['fa-gears', 'Services',
+        'The business logic (SOA). Fat, ACL-gated <code>/api</code> services that validate first, then run inside a transaction. Every rule lives here — never in a controller, never in a view.'],
+    ['fa-sitemap', 'MVC',
+        'The web layer. Thin controllers dispatch the request; views render the response. Request-handling and presentation only — nothing else.'],
+];
+
 // The composition model.
 $arch = [
-    ['fa-window-maximize', 'Layout',  'The page shell — header, footer, structure.'],
-    ['fa-file-lines',      'View',    'The page content.'],
-    ['fa-puzzle-piece',    'Partial', 'Immutable framework components (nav, sidebar).'],
-    ['fa-pen-to-square',   'Block',   'Editable content regions you control.'],
+    ['fa-window-maximize', 'Layout',  'The page shell — header, footer, and the structure every page sits inside. Swap the layout and the whole site restyles.'],
+    ['fa-file-lines',      'View',    'The content for one screen, rendered inside the layout. One view per action — nothing else to wire up.'],
+    ['fa-puzzle-piece',    'Partial', 'Reusable framework components — nav, sidebar, switchers — rendered wherever they\'re needed and controlled by the framework, not by content.'],
+    ['fa-pen-to-square',   'Block',   'The editable content regions you own, dropped in with the visual builder and stored as data — so editing content never touches the structure.'],
+];
+
+// The frontend stack — the web platform itself; the "frameworks" the modern era no longer needs.
+$frontend = [
+    ['fa-brands fa-html5',    'HTML',            'Semantic, server-rendered markup — the real page, delivered complete. The browser\'s native document, not a virtual copy of one.'],
+    ['fa-brands fa-css3-alt', 'CSS + Bootstrap', 'Bootstrap 5 and CSS variables — runtime theming and swappable skins, with no Sass build or PostCSS pipeline to maintain.'],
+    ['fa-brands fa-js',       'Vanilla JS',      'Plain, modern JavaScript for interactivity — fetch, modules, the DOM — loaded with a <code>&lt;script&gt;</code> tag. No transpiler, no bundler.'],
+    ['fa-solid fa-ban',       'Zero frontend frameworks', 'No React, no Vue, no Angular, no Next, no build step, no node_modules. The modern browser does what these were built to work around — so you skip the whole tax.'],
 ];
 
 $portSteps = ['Dump database', 'Zip directory', 'Upload', 'Unzip', 'Restore'];
@@ -186,11 +206,30 @@ $wpCompare = [
 <section class="py-5 bg-body-tertiary">
     <div class="container">
         <div class="text-primary text-uppercase fw-bold mb-2" style="letter-spacing:.12em;">The architecture in 30 seconds</div>
-        <h2 class="fw-bold mb-2">Everything is a partial</h2>
-        <p class="text-secondary mb-4" style="max-width: 680px;">Tiger uses one clean composition model —
-            just different roles in the hierarchy, all stored in one table, all rendered the same way, all
-            introspectable by AI. The builder edits blocks; the framework controls partials; you never break
-            the structure by editing content.</p>
+        <h2 class="fw-bold mb-1">N-Tier Architecture</h2>
+        <p class="lead text-primary fw-semibold mb-4">Not opinionated. Structured.</p>
+        <h3 class="h4 fw-bold mt-4 mb-2">The Backend's Separation of Concerns.</h3>
+        <p class="text-secondary mb-4" style="max-width: 720px;">Four clean tiers, each with one job and one
+            neighbour. A request flows down through them and the response flows back up — so there's exactly
+            one place for everything, and your AI always knows where to look.</p>
+
+        <div class="row g-3 mb-5">
+            <?php foreach ($tiers as $t): ?>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card h-100 border-0 bg-body"><div class="card-body">
+                        <i class="fa-solid <?= $t[0] ?> text-primary mb-2"></i>
+                        <div class="fw-semibold"><?= $t[1] ?></div>
+                        <div class="text-secondary"><?= $t[2] ?></div>
+                    </div></div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <h3 class="h4 fw-bold mb-2">And the view tier itself? Everything is a partial.</h3>
+        <p class="text-secondary mb-4" style="max-width: 720px;">The presentation layer uses one clean
+            composition model — just different roles in the hierarchy, all stored in one table, all rendered
+            the same way, all introspectable by AI. The builder edits blocks; the framework controls
+            partials; you never break the structure by editing content.</p>
         <div class="row g-3">
             <?php foreach ($arch as $a): ?>
                 <div class="col-md-6 col-lg-3">
@@ -202,6 +241,27 @@ $wpCompare = [
                 </div>
             <?php endforeach; ?>
         </div>
+
+        <h3 class="h4 fw-bold mt-5 mb-2">And the frontend? Just the web platform.</h3>
+        <p class="text-secondary mb-4" style="max-width: 720px;">The heavy frontend frameworks were invented
+            to assist human programmers manage the UI/UX and paper over what browsers couldn't do a decade
+            ago. But we don't live in that era anymore, so Tiger renders on the platform itself: semantic HTML,
+            Bootstrap for mobile-first, with CSS variables, and vanilla JavaScript. No build step, no bundler,
+            no <code>node_modules</code>. Bring a framework if you really want one; but in the modern era, you
+            don't need it.</p>
+        <div class="row g-3">
+            <?php foreach ($frontend as $fr): ?>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card h-100 border-0 bg-body"><div class="card-body">
+                        <i class="<?= $fr[0] ?> text-primary mb-2"></i>
+                        <div class="fw-semibold"><?= $fr[1] ?></div>
+                        <div class="text-secondary"><?= $fr[2] ?></div>
+                    </div></div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <h3 class="fw-semibold text-body-emphasis mt-5 mb-0">Everything you need for a world-class scalable app, and nothing you don't.</h3>
     </div>
 </section>
 
