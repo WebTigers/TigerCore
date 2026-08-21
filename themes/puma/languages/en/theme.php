@@ -13,6 +13,8 @@ return [
     // Header nav
     'theme.nav.why_tiger'      => 'Why Tiger',
     'theme.nav.why_tiger_desc' => 'The case for Tiger — own your whole stack, ship real SaaS, and skip the vendor lock-in.',
+    'theme.nav.how_it_works'      => 'How It Works',
+    'theme.nav.how_it_works_desc' => 'One framework, three paths — build a website, vibe-code an app, or ship enterprise software.',
     'theme.nav.saas_vs_sias'      => 'SaaS vs. SiaS',
     'theme.nav.saas_vs_sias_desc' => 'Do you actually own your app? The difference that costs you everything — and how to spot the trap.',
     'theme.nav.solutions' => 'Solutions',

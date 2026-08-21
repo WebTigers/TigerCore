@@ -1,0 +1,342 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * /how-it-works — "How Tiger Works": one framework, three paths (website / vibe-code / enterprise),
+ * what ships in the box, the composition model, portability, and the side-by-side comparisons.
+ * Rendered inside the PUMA public layout. Bootstrap + --bs-* tokens only (no bespoke CSS), so it
+ * restyles live with theme + skin. LEFT-aligned to match the other pages. Shipped marketing.
+ */
+$this->title = 'How Tiger Works — one framework, three paths, real SaaS | Tiger';
+
+// Pick your path — three ways in, one platform underneath.
+$paths = [
+    [
+        'fa-wand-magic-sparkles', 'I want to build a website', 'Tiger replaces WordPress.',
+        'Install a theme, open the visual builder, drag blocks, edit text, publish. Unlike WordPress it sits on a real application framework — security, users, multi-tenancy already there. When you outgrow a website, everything is already built. No migration, no rebuild.',
+        ['Visual drag-and-drop page builder', 'Themes install fully populated — no empty shells', 'Built-in SSL, security, accounts, admin panel', 'A real framework underneath, ready when you are'],
+    ],
+    [
+        'fa-robot', 'I want to vibe-code my app', 'Tiger replaces Bolt, Lovable, Floot &amp; every SiaS platform.',
+        'Launch a TigerDen instance, give Claude Code your SSH keys, start prompting. Purpose-built for AI: it sees every API endpoint (Swagger), every file (TigerVision), every page (DOM), and keeps context in server-side sessions. The difference is ownership — your app is built on your server, not trapped in a service.',
+        ['Full AI introspection — Swagger, TigerVision, DOM, persistent context', 'Bring your own Claude Code — no AI middleman, no markup', 'Auth, ACL, multi-tenancy, sessions already built — the AI assembles', 'Runs anywhere PHP + MariaDB run — not one vendor\'s cloud'],
+    ],
+    [
+        'fa-code', 'I want real enterprise software', 'Tiger replaces the React + Vercel + Supabase stack.',
+        'A modernized ZF1-based PHP framework for PHP 8.x — a fast, self-contained monolith deployable anywhere. No npm, no node_modules, no build step, no hydration, no four-vendor chain. One framework, one server, one process, ~10ms page loads.',
+        ['Auto-generated Swagger API map', 'Hierarchical ACL — users can never escalate past their level', 'Real multi-tenancy — N-level org hierarchy, not per-DB hacks', 'DB-backed sessions — not JWTs the browser can read'],
+    ],
+];
+
+// "Tell Tiger what to build" — example prompts.
+$prompts = [
+    'Build me a webpage for my company.',
+    'Build me an app that tracks customer orders.',
+    'Build me a dashboard for my stock portfolio.',
+    'Set up a page so I can accept credit card payments. → TigerStripe.',
+];
+
+// What's included — not bolted on.
+$included = [
+    ['User auth &amp; accounts',       'Built in',                    'Plugin (WP Members)',        'Supabase / Firebase / Auth0'],
+    ['Roles &amp; permissions (ACL)',  'Built in, hierarchical',      'Plugin (User Role Editor)',  'JWT claims or vendor SDK'],
+    ['Multi-tenancy',                  'Built in, N-level orgs',      'Not available',              'Bolt-on or nothing'],
+    ['Admin panel',                    'Built in',                    'wp-admin (a blog admin)',    'Build it yourself'],
+    ['Ecommerce / payments',           'TigerStripe, built in',       'WooCommerce (plugin)',       'Build it yourself'],
+    ['Security',                       'TigerShield, built in',       'Wordfence / Sucuri (plugins)','Platform-dependent'],
+    ['SSL certificates',               'TigerSSL, automatic',         'Plugin or host-dependent',   'Platform-dependent'],
+    ['Visual page builder',            'Built in (GrapesJS)',         'Elementor / Divi (plugins)', 'Platform-specific'],
+    ['API with documentation',         'Auto-generated Swagger',      'REST API (basic)',           'Scattered endpoints'],
+    ['AI integration',                 'MCP, TigerVision, TigerAgent','Not available',              'Platform-locked'],
+    ['Backup &amp; migration',         'TigerBackup — zip, move, done','Plugin (UpdraftPlus)',      '"Export" that won\'t run elsewhere'],
+    ['Page load time',                 '~10ms',                       '800ms–3s with plugins',      '2–3s with network hops'],
+];
+
+// The composition model.
+$arch = [
+    ['fa-window-maximize', 'Layout',  'The page shell — header, footer, structure.'],
+    ['fa-file-lines',      'View',    'The page content.'],
+    ['fa-puzzle-piece',    'Partial', 'Immutable framework components (nav, sidebar).'],
+    ['fa-pen-to-square',   'Block',   'Editable content regions you control.'],
+];
+
+$portSteps = ['Dump database', 'Zip directory', 'Upload', 'Unzip', 'Restore'];
+
+// Compared: the vibe-coding stack.
+$vibeCompare = [
+    ['Monthly cost',       '$80+ (Vercel + Supabase + Auth + more)',      '$5/mo TigerPASS or $19–29/mo TigerDen'],
+    ['Page load',          '2–3s (multiple network hops)',                '~10ms (single process)'],
+    ['Dependencies',       'npm, node_modules, 4+ vendor SDKs',           'Composer, a handful of known SDKs'],
+    ['Auth model',         'JWT with plain-text permission claims',       'Server-side ACL, opaque session token'],
+    ['Multi-tenancy',      'Per-DB or per-row manual filtering',          'Built-in, N-level org hierarchy'],
+    ['AI integration',     'Bolted on, limited introspection',            'Native — Swagger, TigerVision, MCP, DOM'],
+    ['Portability',        'Locked to vendors, migration = rewrite',      'Zip, move, unzip, run'],
+    ['Security',           'Scattered across vendor SDKs',                'TigerShield, framework-level, 50µs'],
+    ['Frontend',           'Vite/Webpack required, React mandatory',      'No-build, bring whatever JS you want'],
+];
+
+// Compared: WordPress.
+$wpCompare = [
+    ['What it is',         'Blog engine with plugins',                    'Application framework with CMS'],
+    ['Security model',     'Plugins (Wordfence, Sucuri)',                 'Built-in (TigerShield)'],
+    ['User management',    'Basic roles, plugin-extended',                'Full ACL, hierarchical permissions'],
+    ['Multi-tenancy',      'Multisite (fragile)',                         'Native, N-level org hierarchy'],
+    ['Ecommerce',          'WooCommerce (plugin, heavy)',                 'TigerStripe (built in, lightweight)'],
+    ['Page builder',       'Elementor / Divi (plugin, $$$)',              'Built in (GrapesJS)'],
+    ['Plugin dependency',  '47+ plugins for a production site',           'Zero plugins needed'],
+    ['Performance',        '800ms–3s typical',                            '~10ms'],
+    ['AI-ready',           'No',                                          'Native MCP, TigerVision, TigerAgent'],
+];
+?>
+
+<!-- Hero -->
+<section class="py-5">
+    <div class="container py-lg-3" style="max-width: 1080px;">
+        <div class="text-primary text-uppercase fw-bold small mb-3" style="letter-spacing:.14em;">How Tiger works</div>
+        <h1 class="display-3 fw-bold mb-4">One framework. Three paths.<br><span class="text-primary">Real SaaS.</span></h1>
+        <p class="lead text-secondary mb-4" style="max-width: 64ch;">
+            Tiger is a complete application platform — not a page builder, not a vibe-coding toy, not a
+            plugin maze. Whether you're designing a website, prompting an AI to build your app, or writing
+            enterprise code, it's the same real framework underneath.
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="/get-tiger" class="btn btn-primary btn-lg px-4">Get started &rarr;</a>
+            <a href="/saas-vs-sias" class="btn btn-outline-primary btn-lg px-4">SaaS vs. SiaS</a>
+        </div>
+    </div>
+</section>
+
+<!-- Pick your path -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container" style="max-width: 1080px;">
+        <div class="text-primary text-uppercase fw-bold small mb-2" style="letter-spacing:.12em;">Pick your path</div>
+        <h2 class="fw-bold mb-2">Three ways in. One platform underneath.</h2>
+        <p class="text-secondary mb-4" style="max-width: 640px;">Start wherever you are — the framework is
+            the same, so you never migrate or rebuild to grow.</p>
+        <div class="row g-4">
+            <?php foreach ($paths as $p): ?>
+                <div class="col-lg-4">
+                    <div class="card h-100 shadow-sm bg-body">
+                        <div class="card-body p-4 d-flex flex-column">
+                            <i class="fa-solid <?= $p[0] ?> fa-lg text-primary mb-3"></i>
+                            <h3 class="h5 fw-bold mb-1"><?= $p[1] ?></h3>
+                            <div class="text-primary fw-semibold small mb-3"><?= $p[2] ?></div>
+                            <p class="text-secondary small"><?= $p[3] ?></p>
+                            <ul class="small text-secondary mb-0 mt-auto ps-3">
+                                <?php foreach ($p[4] as $b): ?><li class="mb-1"><?= $b ?></li><?php endforeach; ?>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <!-- Tell Tiger what to build -->
+        <div class="card border-0 bg-body mt-4">
+            <div class="card-body p-4">
+                <div class="text-primary text-uppercase fw-bold small mb-3" style="letter-spacing:.12em;">Tell Tiger what to build</div>
+                <div class="row g-2">
+                    <?php foreach ($prompts as $q): ?>
+                        <div class="col-md-6">
+                            <div class="d-flex gap-2 align-items-start">
+                                <i class="fa-solid fa-terminal text-primary mt-1"></i>
+                                <span class="font-monospace small">"<?= $q ?>"</span>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- What's included -->
+<section class="py-5">
+    <div class="container" style="max-width: 1080px;">
+        <div class="text-primary text-uppercase fw-bold small mb-2" style="letter-spacing:.12em;">In the box</div>
+        <h2 class="fw-bold mb-2">Included — not bolted on</h2>
+        <p class="text-secondary mb-4" style="max-width: 640px;">Everything below ships with Tiger. No
+            plugins, no third-party services, no per-feature pricing.</p>
+        <div class="table-responsive">
+            <table class="table align-middle border rounded-3 overflow-hidden mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col" style="width:22%"></th>
+                        <th scope="col" class="table-primary text-primary-emphasis">Tiger</th>
+                        <th scope="col" class="text-secondary">WordPress</th>
+                        <th scope="col" class="text-secondary">Vibe platforms</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($included as $row): ?>
+                        <tr>
+                            <th scope="row" class="fw-semibold"><?= $row[0] ?></th>
+                            <td class="table-primary"><i class="fa-solid fa-check text-success me-2"></i><?= $row[1] ?></td>
+                            <td class="text-secondary"><?= $row[2] ?></td>
+                            <td class="text-secondary"><?= $row[3] ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- The architecture -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container" style="max-width: 1080px;">
+        <div class="text-primary text-uppercase fw-bold small mb-2" style="letter-spacing:.12em;">The architecture in 30 seconds</div>
+        <h2 class="fw-bold mb-2">Everything is a partial</h2>
+        <p class="text-secondary mb-4" style="max-width: 680px;">Tiger uses one clean composition model —
+            just different roles in the hierarchy, all stored in one table, all rendered the same way, all
+            introspectable by AI. The builder edits blocks; the framework controls partials; you never break
+            the structure by editing content.</p>
+        <div class="row g-3">
+            <?php foreach ($arch as $a): ?>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card h-100 border-0 bg-body"><div class="card-body">
+                        <i class="fa-solid <?= $a[0] ?> text-primary mb-2"></i>
+                        <div class="fw-semibold"><?= $a[1] ?></div>
+                        <div class="text-secondary small"><?= $a[2] ?></div>
+                    </div></div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- Portability -->
+<section class="py-5">
+    <div class="container" style="max-width: 1080px;">
+        <div class="text-primary text-uppercase fw-bold small mb-2" style="letter-spacing:.12em;">True portability</div>
+        <h2 class="fw-bold mb-3">Not a feature. The architecture.</h2>
+        <p class="text-secondary mb-3" style="max-width: 680px;">Your app is a directory and a database.
+            TigerBackup is the whole migration story:</p>
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+            <?php foreach ($portSteps as $i => $s): ?>
+                <span class="badge text-bg-light border fs-6 fw-semibold py-2 px-3"><?= $s ?></span>
+                <?php if ($i < count($portSteps) - 1): ?><i class="fa-solid fa-arrow-right text-primary"></i><?php endif; ?>
+            <?php endforeach; ?>
+        </div>
+        <p class="text-secondary mb-0" style="max-width: 680px;">Runs on any box with PHP and MariaDB — a $5
+            VPS, a TigerDen instance, a Raspberry Pi, a Docker container on your laptop. It doesn't phone
+            home. It doesn't need four vendors to agree to serve a page. <strong class="text-body-emphasis">That's
+            real portability — not "export to GitHub and pray."</strong></p>
+    </div>
+</section>
+
+<!-- Compared: vibe stack -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container" style="max-width: 1080px;">
+        <div class="text-primary text-uppercase fw-bold small mb-2" style="letter-spacing:.12em;">Side by side</div>
+        <h2 class="fw-bold mb-4">The vibe-coding stack vs. Tiger</h2>
+        <div class="table-responsive">
+            <table class="table align-middle bg-body border rounded-3 overflow-hidden mb-0">
+                <thead><tr>
+                    <th scope="col" style="width:22%"></th>
+                    <th scope="col" class="text-secondary">Vibe-coding stack</th>
+                    <th scope="col" class="table-primary text-primary-emphasis">Tiger</th>
+                </tr></thead>
+                <tbody>
+                    <?php foreach ($vibeCompare as $row): ?>
+                        <tr>
+                            <th scope="row" class="fw-semibold"><?= $row[0] ?></th>
+                            <td class="text-secondary"><?= $row[1] ?></td>
+                            <td class="table-primary"><i class="fa-solid fa-check text-success me-2"></i><?= $row[2] ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- Compared: WordPress -->
+<section class="py-5">
+    <div class="container" style="max-width: 1080px;">
+        <div class="text-primary text-uppercase fw-bold small mb-2" style="letter-spacing:.12em;">Side by side</div>
+        <h2 class="fw-bold mb-4">WordPress vs. Tiger</h2>
+        <div class="table-responsive">
+            <table class="table align-middle border rounded-3 overflow-hidden mb-0">
+                <thead><tr>
+                    <th scope="col" style="width:22%"></th>
+                    <th scope="col" class="text-secondary">WordPress</th>
+                    <th scope="col" class="table-primary text-primary-emphasis">Tiger</th>
+                </tr></thead>
+                <tbody>
+                    <?php foreach ($wpCompare as $row): ?>
+                        <tr>
+                            <th scope="row" class="fw-semibold"><?= $row[0] ?></th>
+                            <td class="text-secondary"><?= $row[1] ?></td>
+                            <td class="table-primary"><i class="fa-solid fa-check text-success me-2"></i><?= $row[2] ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- Four ways + open source -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container" style="max-width: 1080px;">
+        <div class="text-primary text-uppercase fw-bold small mb-2" style="letter-spacing:.12em;">Four ways to start building</div>
+        <h2 class="fw-bold mb-2">Every path gets you the same platform</h2>
+        <p class="text-secondary mb-4" style="max-width: 640px;">Same features, same architecture, same
+            portability — pick your on-ramp.</p>
+        <div class="row row-cols-1 row-cols-md-2 g-4 mb-4">
+            <div class="col">
+                <div class="card h-100 border-primary shadow-sm position-relative bg-body">
+                    <span class="badge text-bg-primary position-absolute top-0 end-0 m-3">Fastest</span>
+                    <div class="card-body">
+                        <div class="text-secondary small fw-bold font-monospace">01</div>
+                        <h3 class="h4 fw-bold mb-1">TigerDen</h3>
+                        <div class="text-primary fw-semibold mb-2">Live in minutes</div>
+                        <div class="h5 fw-bold mb-2">$19 <span class="fs-6 text-secondary fw-normal">/ mo</span></div>
+                        <p class="text-secondary mb-0">Your own instance on AWS, Tiger pre-installed — TigerSSL,
+                            TigerShield, TigerPASS included. No DevOps required.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card h-100 shadow-sm bg-body"><div class="card-body">
+                    <div class="text-secondary small fw-bold font-monospace">02</div>
+                    <h3 class="h4 fw-bold mb-1">TigerInstall</h3>
+                    <div class="text-primary fw-semibold mb-2">Shared hosting</div>
+                    <p class="text-secondary mb-0">Already have hosting? One-click setup on any standard LAMP host.</p>
+                </div></div>
+            </div>
+            <div class="col">
+                <div class="card h-100 shadow-sm bg-body"><div class="card-body">
+                    <div class="text-secondary small fw-bold font-monospace">03</div>
+                    <h3 class="h4 fw-bold mb-1">Tiger + Composer</h3>
+                    <div class="text-primary fw-semibold mb-2">For developers</div>
+                    <div class="bg-body-tertiary border rounded-3 p-3 font-monospace small mb-0">
+                        <span class="text-primary">$</span> composer create-project webtigers/tiger
+                    </div>
+                </div></div>
+            </div>
+            <div class="col">
+                <div class="card h-100 shadow-sm bg-body"><div class="card-body">
+                    <div class="text-secondary small fw-bold font-monospace">04</div>
+                    <h3 class="h4 fw-bold mb-1">Tiger + Docker</h3>
+                    <div class="text-primary fw-semibold mb-2">Local dev environment</div>
+                    <div class="bg-body-tertiary border rounded-3 p-3 font-monospace small mb-0">
+                        <span class="text-primary">$</span> docker run webtigers/tiger
+                    </div>
+                </div></div>
+            </div>
+        </div>
+
+        <div class="text-primary text-uppercase fw-bold small mb-2" style="letter-spacing:.12em;">Open source · BSD-3</div>
+        <h2 class="h4 fw-bold mb-2">No open-core bait-and-switch. No surprises.</h2>
+        <p class="text-secondary mb-3" style="max-width: 640px;">Tiger is free, open-source software under
+            BSD-3. No "community edition" missing half the features, no relicensing threats. Build what you
+            want, deploy where you want, keep everything you build.</p>
+        <div class="d-flex flex-wrap gap-3">
+            <a href="https://github.com/WebTigers/Tiger" class="link-primary text-decoration-none fw-semibold"><i class="fa-brands fa-github me-1"></i>GitHub — Tiger</a>
+            <a href="https://tiger.webtigers.com" class="link-primary text-decoration-none fw-semibold">tiger.webtigers.com</a>
+            <a href="https://webtigers.com" class="link-primary text-decoration-none fw-semibold">Marketplace</a>
+        </div>
+    </div>
+</section>

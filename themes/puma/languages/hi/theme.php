@@ -7,6 +7,8 @@
 return [
     'theme.nav.why_tiger'      => 'Tiger क्यों',
     'theme.nav.why_tiger_desc' => 'Tiger क्यों — अपने पूरे स्टैक के मालिक बनें, असली SaaS बनाएँ, और वेंडर लॉक-इन से बचें।',
+    'theme.nav.how_it_works'      => 'यह कैसे काम करता है',
+    'theme.nav.how_it_works_desc' => 'एक फ्रेमवर्क, तीन रास्ते — वेबसाइट बनाएँ, AI से ऐप बनाएँ, या एंटरप्राइज़ सॉफ़्टवेयर बनाएँ।',
     'theme.nav.saas_vs_sias'      => 'SaaS बनाम SiaS',
     'theme.nav.saas_vs_sias_desc' => 'क्या आप सचमुच अपने ऐप के मालिक हैं? वह अंतर जो आपको सब कुछ गँवा सकता है — और जाल को कैसे पहचानें।',
     'theme.nav.solutions' => 'समाधान',

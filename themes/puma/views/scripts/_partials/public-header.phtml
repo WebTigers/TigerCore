@@ -68,7 +68,7 @@ $mega = [
     /* Mini-mega (Why Tiger): hover-open like the big one, but a normal-width panel under the toggle. */
     .tiger-mini .dropdown-menu {
         margin-top: 0;
-        min-width: 32rem;
+        min-width: 46rem;
         display: block;
         opacity: 0;
         visibility: hidden;
@@ -106,14 +106,21 @@ $mega = [
                     <a class="nav-link dropdown-toggle" href="#" id="tigerWhy" role="button" data-bs-toggle="dropdown" aria-expanded="false"><?= $this->t('theme.nav.why_tiger') ?></a>
                     <div class="dropdown-menu border-0 shadow-lg p-3" aria-labelledby="tigerWhy">
                         <div class="row g-3">
-                            <div class="col-12 col-lg-6">
+                            <div class="col-12 col-lg-4">
                                 <a class="mega-card d-block h-100 text-decoration-none text-body rounded-3 p-3" href="/why-tiger">
                                     <i class="fa-solid fa-paw text-primary fs-4 mb-2 d-block"></i>
                                     <div class="fw-semibold mb-1"><?= $this->t('theme.nav.why_tiger') ?></div>
                                     <p class="small text-secondary mb-0"><?= $this->t('theme.nav.why_tiger_desc') ?></p>
                                 </a>
                             </div>
-                            <div class="col-12 col-lg-6">
+                            <div class="col-12 col-lg-4">
+                                <a class="mega-card d-block h-100 text-decoration-none text-body rounded-3 p-3" href="/how-it-works">
+                                    <i class="fa-solid fa-diagram-project text-primary fs-4 mb-2 d-block"></i>
+                                    <div class="fw-semibold mb-1"><?= $this->t('theme.nav.how_it_works') ?></div>
+                                    <p class="small text-secondary mb-0"><?= $this->t('theme.nav.how_it_works_desc') ?></p>
+                                </a>
+                            </div>
+                            <div class="col-12 col-lg-4">
                                 <a class="mega-card d-block h-100 text-decoration-none text-body rounded-3 p-3" href="/saas-vs-sias">
                                     <i class="fa-solid fa-scale-balanced text-primary fs-4 mb-2 d-block"></i>
                                     <div class="fw-semibold mb-1"><?= $this->t('theme.nav.saas_vs_sias') ?></div>

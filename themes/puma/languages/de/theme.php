@@ -7,6 +7,8 @@
 return [
     'theme.nav.why_tiger'      => 'Warum Tiger',
     'theme.nav.why_tiger_desc' => 'Das Argument für Tiger: Besitze deinen ganzen Stack, baue echtes SaaS, ohne Lock-in.',
+    'theme.nav.how_it_works'      => 'So funktioniert’s',
+    'theme.nav.how_it_works_desc' => 'Ein Framework, drei Wege: baue eine Website, vibe-code eine App oder liefere Enterprise-Software.',
     'theme.nav.saas_vs_sias'      => 'SaaS vs. SiaS',
     'theme.nav.saas_vs_sias_desc' => 'Besitzt du deine App wirklich? Der Unterschied, der dich alles kostet — und wie du die Falle erkennst.',
     'theme.nav.solutions' => 'Lösungen',
