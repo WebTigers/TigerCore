@@ -42,10 +42,10 @@ module-specific layer; match the surrounding style.
   (matched by slug, so "Web Dev" == "web-dev").
 - **Reserved slugs** `post|category|tag|feed|index` are rejected in `save` — they'd be shadowed by the
   routes.
-- **Routes are imperative `addRoute` in the Bootstrap — a deliberate exception** to the
-  `Tiger_Routing_Overrides` convention (it needs `:slug` shapes). **Order is load-bearing:** ZF1's
-  rewrite router is LIFO (newest-first), so `blog_admin` (`/blog/post`) is added LAST to shadow
-  `blog/:slug`. Touch `_initBlogRoutes()` carefully.
+- **Routes are declared in `configs/routes.ini`** (ingested by `Tiger_Routing_ModuleRoutes` — no Bootstrap
+  code), because the front-end needs `:slug` shapes the `Tiger_Routing_Overrides` prefix model can't express.
+  **Order is load-bearing:** ZF1's rewrite router is LIFO (newest-first), so `blogAdmin` (`/blog/post`) is
+  declared LAST in the file to shadow `blog/:slug`. Edit `routes.ini` carefully (see its header comment).
 - **The editor is a zero-dep Medium-style contentEditable** (`execCommand` toolbar) with a visual ↔
   HTML-source toggle backed by CodeMirror; `body` is stored as raw HTML. **No WAF base64 shim here** —
   unlike the CMS page editor, the body posts raw (add `*_b64` if article bodies ever trip the WAF).

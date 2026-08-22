@@ -24,12 +24,13 @@
  * ACL is deny-by-default (resource = target class, privilege = action). Nothing
  * throws to the caller — every failure becomes a clean result=0 ResponseObject.
  *
- * TIGER IMPROVEMENT over AskLevi: a RESERVED-MODULE guard. AskLevi's services are
- * `Core_Service_*`; Tiger's kernel services are `Tiger_Service_*` and must NEVER
- * be reachable through /api. Since the class name is built as
- * ucfirst(module)."_Service_"..., a `module=tiger` would resolve `Tiger_Service_*`
- * — so `tiger` (and the other framework namespaces) are reserved and refused
- * before any class is touched. Extend the list with reserve().
+ * RESERVED-MODULE guard — present but DISABLED by design (see _processRequest). The
+ * mechanism (reserve()/isReserved(), framework namespaces pre-listed) is kept as a
+ * re-enableable backstop, but the ACL is the sole gate today: deny-by-default refuses
+ * any kernel `Tiger_Service_*` without an explicit allow rule, while a first-party core
+ * service that has a rule (e.g. Tiger_Service_Token) can ride /api on purpose. Trade-off:
+ * the `developer` god-role can reach kernel services over /api — re-enable the guard
+ * block to restore defense-in-depth.
  *
  * @api
  */

@@ -8,7 +8,7 @@ contract read [WEBSERVICES.md](WEBSERVICES.md); for the admin shell read [ADMIN.
 sibling "runs community code in-process, stated honestly" design read [CODE.md](CODE.md).
 
 > **Status: Phase 1 + 1.5 BUILT (alphaware, on `feat/tiger-agent`).** The vertical slice runs end to
-> end: the persistent app-shell aside, one provider adapter (Anthropic), the multi-step ReAct turn Loop,
+> end: the persistent app-shell aside, eight provider adapters (Anthropic, OpenAI, Gemini, xAI Grok, Groq, Mistral, DeepSeek, OpenRouter — via a shared OpenAI-compatible base), the multi-step ReAct turn Loop,
 > the response contract + parser, the permission-gated Forge (all four write tiers), the **Scout read
 > surface** (§2b), **auto-mode** (§3a), the data model, and the settings screen. Where a section says
 > "roadmap" it isn't built yet; everything else describes code in this branch. **What shipped** —
@@ -18,7 +18,7 @@ sibling "runs community code in-process, stated honestly" design read [CODE.md](
 > module `modules/agent` (Agent + Settings services, Send/Approve/Settings forms, AdminController, acl,
 > i18n, settings view); theme — the `agent-aside` partial (+ mode selector) + `tiger.agent.js` +
 > admin.css rail, injected app-shell-wide by the PUMA admin layout on `Tiger_Agent::isAvailable()`. Not
-> yet wired: token streaming (turns are synchronous), and OpenAI/Ollama adapters. This doc records the
+> yet wired: token streaming (turns are synchronous); no Ollama adapter. This doc records the
 > decisions + rationale so we don't relitigate them.
 
 ---
@@ -390,7 +390,7 @@ broker, higher budgets, true background runs) is a later **paid** tier — never
    localStorage UI state) and is resizable + non-overlay. **Roadmap:** true streaming (SSE/poll) so a
    long turn streams tokens, and an auto-continue step so `done:false` + approved writes loop without a
    fresh human prompt.
-4. **Scale-out — ROADMAP.** More adapters (OpenAI/Gemini/Ollama — the Factory is ready for them), per-org
+4. **Scale-out — PARTIAL.** Eight provider adapters now ship (via a shared OpenAI-compatible base); still roadmap: per-org
    budgets + the cost view off the stored token counts, resumable/background runs, the optional
    hosted-key broker (the paid tier, §9).
 
