@@ -1,26 +1,31 @@
 <?php
 // SPDX-License-Identifier: BSD-3-Clause
-// Copyright (c) 2026 WebTigers. Tiger and WebTigers are trademarks of WebTigers.
-// STUB — fr: English placeholders; translate the values.
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * TigerAlly module — French strings (owner-prefixed `ally.*` keys).
+ */
 return [
-    'ally.scan.done' => 'Scan complete.',
-    'ally.scan.empty' => 'Nothing to scan — provide a page or some HTML.',
-    'ally.scan.page_not_found' => 'That page could not be found.',
-    'ally.scan.render_failed' => 'That page could not be rendered for scanning.',
-    'ally.scan.module_not_found' => 'No such app module (or it has no views to scan).',
-    'ally.title' => 'Accessibility',
-    'ally.subtitle' => 'Scan pages for nominal ADA / WCAG-A gaps. Inspector only — it reports, it never changes your content.',
-    'ally.scan_card' => 'Scan',
-    'ally.page_label' => 'A content page',
-    'ally.loading_pages' => 'Loading pages…',
-    'ally.scan_btn' => 'Scan',
-    'ally.scan_all' => 'Scan all pages',
-    'ally.paste_label' => '…or paste HTML',
-    'ally.scan_html' => 'Scan HTML',
-    'ally.report_card' => 'Report',
-    'ally.report_empty' => 'Pick a page (or paste HTML) and scan.',
-    'ally.js.choose_page' => 'Choose a page to scan.',
-    'ally.js.network_error' => 'Network error — please try again.',
-    'ally.js.paste_html' => 'Paste some HTML first.',
+    // /api response messages
+    'ally.scan.done'           => 'Analyse terminée.',
+    'ally.scan.empty'          => 'Rien à analyser — fournissez une page ou du HTML.',
+    'ally.scan.page_not_found' => 'Cette page est introuvable.',
+    'ally.scan.render_failed'  => 'Cette page n’a pas pu être rendue pour l’analyse.',
+    'ally.scan.module_not_found' => 'Aucun module d’application de ce nom (ou il n’a aucune vue à analyser).',
+
+    // Screen
+    'ally.title'           => 'Accessibilité',
+    'ally.subtitle'        => 'Analysez les pages à la recherche de lacunes nominales ADA / WCAG-A. Inspecteur uniquement — il signale, il ne modifie jamais votre contenu.',
+    'ally.scan_card'       => 'Analyser',
+    'ally.page_label'      => 'Une page de contenu',
+    'ally.loading_pages'   => 'Chargement des pages…',
+    'ally.scan_btn'        => 'Analyser',
+    'ally.scan_all'        => 'Analyser toutes les pages',
+    'ally.paste_label'     => '…ou collez du HTML',
+    'ally.scan_html'       => 'Analyser le HTML',
+    'ally.report_card'     => 'Rapport',
+    'ally.report_empty'    => 'Choisissez une page (ou collez du HTML) et analysez.',
+    'ally.js.choose_page' => 'Choisissez une page à analyser.',
+    'ally.js.network_error' => 'Erreur réseau — veuillez réessayer.',
+    'ally.js.paste_html' => 'Collez d’abord du HTML.',
     'ally.nav.label' => 'Accessibilité',
 ];

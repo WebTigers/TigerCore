@@ -1,26 +1,31 @@
 <?php
 // SPDX-License-Identifier: BSD-3-Clause
-// Copyright (c) 2026 WebTigers. Tiger and WebTigers are trademarks of WebTigers.
-// STUB — de: English placeholders; translate the values.
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * TigerAlly module — German strings (owner-prefixed `ally.*` keys).
+ */
 return [
-    'ally.scan.done' => 'Scan complete.',
-    'ally.scan.empty' => 'Nothing to scan — provide a page or some HTML.',
-    'ally.scan.page_not_found' => 'That page could not be found.',
-    'ally.scan.render_failed' => 'That page could not be rendered for scanning.',
-    'ally.scan.module_not_found' => 'No such app module (or it has no views to scan).',
-    'ally.title' => 'Accessibility',
-    'ally.subtitle' => 'Scan pages for nominal ADA / WCAG-A gaps. Inspector only — it reports, it never changes your content.',
-    'ally.scan_card' => 'Scan',
-    'ally.page_label' => 'A content page',
-    'ally.loading_pages' => 'Loading pages…',
-    'ally.scan_btn' => 'Scan',
-    'ally.scan_all' => 'Scan all pages',
-    'ally.paste_label' => '…or paste HTML',
-    'ally.scan_html' => 'Scan HTML',
-    'ally.report_card' => 'Report',
-    'ally.report_empty' => 'Pick a page (or paste HTML) and scan.',
-    'ally.js.choose_page' => 'Choose a page to scan.',
-    'ally.js.network_error' => 'Network error — please try again.',
-    'ally.js.paste_html' => 'Paste some HTML first.',
+    // /api response messages
+    'ally.scan.done'           => 'Prüfung abgeschlossen.',
+    'ally.scan.empty'          => 'Nichts zu prüfen — geben Sie eine Seite oder etwas HTML an.',
+    'ally.scan.page_not_found' => 'Diese Seite konnte nicht gefunden werden.',
+    'ally.scan.render_failed'  => 'Diese Seite konnte zum Prüfen nicht gerendert werden.',
+    'ally.scan.module_not_found' => 'Kein solches App-Modul (oder es hat keine Views zum Prüfen).',
+
+    // Screen
+    'ally.title'           => 'Barrierefreiheit',
+    'ally.subtitle'        => 'Seiten auf nominelle ADA-/WCAG-A-Lücken prüfen. Nur Inspektor — er meldet, er ändert Ihren Inhalt nie.',
+    'ally.scan_card'       => 'Prüfen',
+    'ally.page_label'      => 'Eine Inhaltsseite',
+    'ally.loading_pages'   => 'Seiten werden geladen…',
+    'ally.scan_btn'        => 'Prüfen',
+    'ally.scan_all'        => 'Alle Seiten prüfen',
+    'ally.paste_label'     => '…oder HTML einfügen',
+    'ally.scan_html'       => 'HTML prüfen',
+    'ally.report_card'     => 'Bericht',
+    'ally.report_empty'    => 'Wählen Sie eine Seite (oder fügen Sie HTML ein) und prüfen Sie.',
+    'ally.js.choose_page' => 'Wählen Sie eine zu prüfende Seite.',
+    'ally.js.network_error' => 'Netzwerkfehler — bitte versuchen Sie es erneut.',
+    'ally.js.paste_html' => 'Fügen Sie zuerst etwas HTML ein.',
     'ally.nav.label' => 'Barrierefreiheit',
 ];
