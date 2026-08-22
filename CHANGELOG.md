@@ -6,6 +6,17 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [0.68.0] — 2026-08-22
+
+### Added
+- **Full Hindi / German / French backend translation (#176).** Populated the `hi`, `de`, and
+  `fr` values across `core.php` and all 17 module language files (1,589 keys per locale),
+  completing the backend i18n that was paused after `es`/`pt`. Coverage: hi 97% / de 93% /
+  fr 92% (remainder = brand/technical tokens correctly left in English). Register: formal-*Sie*
+  German, pragmatic dev-French, natural Devanagari Hindi; placeholders, HTML, shortcodes, and
+  brand nouns preserved; key sets identical to `en`. Autonomous modules (TigerDocs,
+  TigerRoundtable) own their own i18n and are out of scope.
+
 ## [0.51.1-beta] — 2026-08-07
 
 ### Fixed
