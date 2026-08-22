@@ -1,171 +1,170 @@
 <?php
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
-// STUB — de: English placeholders; translate the values.
 /**
- * TigerCore — Deutsch (de) core strings. STUB — English placeholders; translate the values.
+ * TigerCore — Deutsch (de) core strings. Semantische Schlüssel mit Präfix (core.*).
  */
 return [
-    // --- API service responses (Tiger_Service_Service / ServiceFactory defaults) ---
-    'core.api.success'               => 'Done.',
-    'core.api.error.general'         => 'Something went wrong. Please try again.',
-    'core.api.error.form'            => 'Please correct the highlighted fields.',
-    'core.api.error.csrf'            => 'Oops — your security token expired. Please refresh the page to continue. (They time out on purpose; blame the security gremlins.)',
-    'core.api.error.invalid_action'  => 'That action is not available.',
-    'core.api.error.not_allowed'     => "You don't have permission to do that.",
-    'core.api.error.login_required'  => 'Please sign in to continue.',
-    'core.token.created'          => 'Token created — copy it now; it won\'t be shown again.',
-    'core.token.revoked'          => 'Token revoked.',
-    'core.api.error.login_failed'    => 'Invalid email or password.',
-    'core.api.error.missing_module'  => 'No module was specified.',
-    'core.api.error.missing_service' => 'No service was specified.',
-    'core.api.error.missing_action'  => 'No action was specified.',
+    // --- Antworten der /api-Dienste (Standardwerte) ---
+    'core.api.success'               => 'Fertig.',
+    'core.api.error.general'         => 'Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.',
+    'core.api.error.form'            => 'Bitte korrigieren Sie die markierten Felder.',
+    'core.api.error.csrf'            => 'Hoppla — Ihr Sicherheitstoken ist abgelaufen. Bitte laden Sie die Seite neu, um fortzufahren. (Sie laufen absichtlich ab; schieben Sie es auf die Sicherheitsgremlins.)',
+    'core.api.error.invalid_action'  => 'Diese Aktion ist nicht verfügbar.',
+    'core.api.error.not_allowed'     => 'Sie haben keine Berechtigung dafür.',
+    'core.api.error.login_required'  => 'Bitte melden Sie sich an, um fortzufahren.',
+    'core.token.created'          => 'Token erstellt — kopieren Sie es jetzt; es wird nicht erneut angezeigt.',
+    'core.token.revoked'          => 'Token widerrufen.',
+    'core.api.error.login_failed'    => 'Ungültige E-Mail oder ungültiges Passwort.',
+    'core.api.error.missing_module'  => 'Es wurde kein Modul angegeben.',
+    'core.api.error.missing_service' => 'Es wurde kein Dienst angegeben.',
+    'core.api.error.missing_action'  => 'Es wurde keine Aktion angegeben.',
 
-    // --- Forms: reCAPTCHA validation ---
-    'core.form.recaptcha.missing'    => 'Please confirm you are not a robot.',
-    'core.form.recaptcha.failed'     => "reCAPTCHA verification failed. Please try again.",
-    'core.form.recaptcha.error'      => "Couldn't verify reCAPTCHA right now. Please try again.",
+    // --- Formulare: reCAPTCHA-Validierung ---
+    'core.form.recaptcha.missing'    => 'Bitte bestätigen Sie, dass Sie kein Roboter sind.',
+    'core.form.recaptcha.failed'     => 'Die reCAPTCHA-Überprüfung ist fehlgeschlagen. Bitte versuchen Sie es erneut.',
+    'core.form.recaptcha.error'      => 'reCAPTCHA konnte im Moment nicht überprüft werden. Bitte versuchen Sie es erneut.',
 
-    // --- Two-factor auth (TOTP) ---
-    'core.auth.twofa.enabled'        => 'Two-factor authentication is now on.',
-    'core.auth.twofa.disabled'       => 'Two-factor authentication has been turned off.',
-    'core.auth.twofa.bad_code'       => 'That code is incorrect or has expired.',
-    'core.auth.twofa.unavailable'    => 'Two-factor authentication is not available on this install.',
+    // --- Zwei-Faktor-Authentifizierung (TOTP) ---
+    'core.auth.twofa.enabled'        => 'Die Zwei-Faktor-Authentifizierung ist jetzt aktiviert.',
+    'core.auth.twofa.disabled'       => 'Die Zwei-Faktor-Authentifizierung wurde deaktiviert.',
+    'core.auth.twofa.bad_code'       => 'Dieser Code ist falsch oder abgelaufen.',
+    'core.auth.twofa.unavailable'    => 'Die Zwei-Faktor-Authentifizierung ist auf dieser Installation nicht verfügbar.',
 
-    // --- Form validation (field-level; localized by Tiger_Service_Service::_formErrors) ---
-    'core.form.password_mismatch'    => 'Passwords do not match.',
+    // --- Formularvalidierung (auf Feldebene) ---
+    'core.form.password_mismatch'    => 'Die Passwörter stimmen nicht überein.',
 
-    // --- Password policy (Tiger_Policy_Password violation keys) ---
-    'password.too_short'             => 'Password is too short — please use at least 8 characters.',
-    'password.needs_complexity'      => 'Add upper- and lower-case letters, a number, and a symbol.',
-    'password.reused'                => "You've used this password before — please choose a new one.",
+    // --- Passwortrichtlinie (Schlüssel von Tiger_Policy_Password) ---
+    'password.too_short'             => 'Das Passwort ist zu kurz — bitte verwenden Sie mindestens 8 Zeichen.',
+    'password.needs_complexity'      => 'Fügen Sie Groß- und Kleinbuchstaben, eine Zahl und ein Symbol hinzu.',
+    'password.reused'                => 'Sie haben dieses Passwort bereits verwendet — bitte wählen Sie ein neues.',
 
-    // --- Common UI labels (shared across views) ---
-    'core.common.close'              => 'Close',
-    'core.common.done'               => 'Done',
-    'core.common.back_home'          => 'Back to home',
+    // --- Gemeinsame UI-Beschriftungen ---
+    'core.common.close'              => 'Schließen',
+    'core.common.done'               => 'Fertig',
+    'core.common.back_home'          => 'Zurück zur Startseite',
 
-    // --- Error pages (403 / 404 / 500) ---
-    'core.error.badge'               => 'Error',
-    'core.error.403.title'           => "You don't have access to that.",
-    'core.error.404.title'           => "That page doesn't exist.",
-    'core.error.500.title'           => 'Something went wrong.',
-    'core.error.403.sub'             => "You're signed in, but this area isn't available to your account.",
-    'core.error.404.sub'             => "The page may have moved, or never existed. Let's get you back on track.",
-    'core.error.500.sub'             => "Something broke on our end. We've been notified and are looking into it — please try again shortly.",
-    'core.error.switch_account'      => 'Switch account',
+    // --- Fehlerseiten (403 / 404 / 500) ---
+    'core.error.badge'               => 'Fehler',
+    'core.error.403.title'           => 'Sie haben keinen Zugriff darauf.',
+    'core.error.404.title'           => 'Diese Seite existiert nicht.',
+    'core.error.500.title'           => 'Etwas ist schiefgelaufen.',
+    'core.error.403.sub'             => 'Sie sind angemeldet, aber dieser Bereich ist für Ihr Konto nicht verfügbar.',
+    'core.error.404.sub'             => 'Die Seite wurde möglicherweise verschoben oder hat nie existiert. Bringen wir Sie wieder auf den richtigen Weg.',
+    'core.error.500.sub'             => 'Auf unserer Seite ist etwas kaputtgegangen. Wir wurden benachrichtigt und kümmern uns darum — bitte versuchen Sie es in Kürze erneut.',
+    'core.error.switch_account'      => 'Konto wechseln',
 
-    // --- Auth: shared labels ---
-    'core.auth.email'                => 'Email',
-    'core.auth.password'             => 'Password',
-    'core.auth.email_code'           => 'Email me a code',
-    'core.auth.back_to_login'        => 'Back to sign in',
-    'core.auth.return_to'            => 'Return to %s',
+    // --- Authentifizierung: gemeinsame Beschriftungen ---
+    'core.auth.email'                => 'E-Mail',
+    'core.auth.password'             => 'Passwort',
+    'core.auth.email_code'           => 'Mir einen Code per E-Mail senden',
+    'core.auth.back_to_login'        => 'Zurück zur Anmeldung',
+    'core.auth.return_to'            => 'Zurück zu %s',
 
-    // --- Auth: sign in ---
-    'core.auth.login.title'          => 'Sign in to Tiger',
-    'core.auth.login.subtitle'       => 'Welcome back.',
-    'core.auth.login.identifier'     => 'Email or username',
-    'core.auth.login.forgot'         => 'Forgot your password?',
-    'core.auth.login.submit'         => 'Sign in',
-    'core.auth.login.use_code'       => 'Sign in with a code instead',
+    // --- Authentifizierung: anmelden ---
+    'core.auth.login.title'          => 'Bei Tiger anmelden',
+    'core.auth.login.subtitle'       => 'Willkommen zurück.',
+    'core.auth.login.identifier'     => 'E-Mail oder Benutzername',
+    'core.auth.login.forgot'         => 'Passwort vergessen?',
+    'core.auth.login.submit'         => 'Anmelden',
+    'core.auth.login.use_code'       => 'Stattdessen mit einem Code anmelden',
 
-    // --- Auth: two-factor prompt (sign-in step) ---
-    'core.auth.twofa.prompt'         => 'Enter the 6-digit code from your authenticator app.',
-    'core.auth.twofa.code_label'     => 'Verification code',
-    'core.auth.twofa.verify'         => 'Verify',
-    'core.auth.twofa.use_recovery'   => 'Use a recovery code',
+    // --- Authentifizierung: Zwei-Faktor-Abfrage (Anmeldeschritt) ---
+    'core.auth.twofa.prompt'         => 'Geben Sie den 6-stelligen Code aus Ihrer Authentifizierungs-App ein.',
+    'core.auth.twofa.code_label'     => 'Bestätigungscode',
+    'core.auth.twofa.verify'         => 'Überprüfen',
+    'core.auth.twofa.use_recovery'   => 'Einen Wiederherstellungscode verwenden',
 
-    // --- Auth: lock screen ---
-    'core.auth.lock.title'           => 'Screen locked',
-    'core.auth.lock.subtitle'        => 'Re-verify to continue.',
-    'core.auth.lock.unlock'          => 'Unlock',
-    'core.auth.lock.use_code'        => 'Unlock with a code instead',
-    'core.auth.lock.email_send_to'   => "We'll email a one-time code to",
-    'core.auth.lock.use_password'    => 'Use password instead',
-    'core.auth.lock.not_you'         => 'Not %s? Sign out',
+    // --- Authentifizierung: Sperrbildschirm ---
+    'core.auth.lock.title'           => 'Bildschirm gesperrt',
+    'core.auth.lock.subtitle'        => 'Bestätigen Sie sich erneut, um fortzufahren.',
+    'core.auth.lock.unlock'          => 'Entsperren',
+    'core.auth.lock.use_code'        => 'Mit einem Code entsperren',
+    'core.auth.lock.email_send_to'   => 'Wir senden einen Einmalcode an',
+    'core.auth.lock.use_password'    => 'Stattdessen das Passwort verwenden',
+    'core.auth.lock.not_you'         => 'Nicht %s? Abmelden',
 
-    // --- Auth: reset password ---
-    'core.auth.reset.title'          => 'Set a new password',
-    'core.auth.reset.subtitle'       => "Choose a strong password you don't use elsewhere.",
-    'core.auth.reset.new_password'   => 'New password',
-    'core.auth.reset.confirm_password' => 'Confirm password',
-    'core.auth.reset.submit'         => 'Set new password',
+    // --- Authentifizierung: Passwort zurücksetzen ---
+    'core.auth.reset.title'          => 'Ein neues Passwort festlegen',
+    'core.auth.reset.subtitle'       => 'Wählen Sie ein sicheres Passwort, das Sie nirgendwo anders verwenden.',
+    'core.auth.reset.new_password'   => 'Neues Passwort',
+    'core.auth.reset.confirm_password' => 'Passwort bestätigen',
+    'core.auth.reset.submit'         => 'Neues Passwort festlegen',
 
-    // --- Auth: forgot password ---
-    'core.auth.forgot.title'         => 'Reset your password',
-    'core.auth.forgot.subtitle'      => "We'll email you a link to choose a new one.",
-    'core.auth.forgot.submit'        => 'Send reset link',
+    // --- Authentifizierung: Passwort vergessen ---
+    'core.auth.forgot.title'         => 'Passwort zurücksetzen',
+    'core.auth.forgot.subtitle'      => 'Wir senden Ihnen per E-Mail einen Link, um ein neues zu wählen.',
+    'core.auth.forgot.submit'        => 'Link zum Zurücksetzen senden',
 
-    // --- Auth: logged out ---
-    'core.auth.logout.title'         => 'You have been logged out.',
-    'core.auth.logout.subtitle'      => 'Thanks for stopping by.',
-    'core.auth.logout.login_again'   => 'Login again',
+    // --- Authentifizierung: abgemeldet ---
+    'core.auth.logout.title'         => 'Sie wurden abgemeldet.',
+    'core.auth.logout.subtitle'      => 'Danke für Ihren Besuch.',
+    'core.auth.logout.login_again'   => 'Erneut anmelden',
 
-    // --- Auth: passwordless code sign-in (OTP) ---
-    'core.auth.otp.title'            => 'Sign in with a code',
-    'core.auth.otp.subtitle'         => "We'll email you a one-time code — no password needed.",
-    'core.auth.otp.restart'          => 'Use a different email',
-    'core.auth.otp.use_password'     => 'Sign in with a password instead',
+    // --- Authentifizierung: Anmeldung mit Code (ohne Passwort) ---
+    'core.auth.otp.title'            => 'Mit einem Code anmelden',
+    'core.auth.otp.subtitle'         => 'Wir senden Ihnen per E-Mail einen Einmalcode — kein Passwort nötig.',
+    'core.auth.otp.restart'          => 'Eine andere E-Mail verwenden',
+    'core.auth.otp.use_password'     => 'Stattdessen mit einem Passwort anmelden',
 
-    // --- Auth: two-factor management (security screen) ---
-    'core.auth.twofa.heading'        => 'Two-Factor Authentication',
-    'core.auth.twofa.lead'           => 'Add a one-time code from an authenticator app to your sign-in.',
-    'core.auth.twofa.unavailable_detail' => "Two-factor authentication isn't available on this install yet — the app encryption key (%s) is not configured. Ask an administrator to set it.",
-    'core.auth.twofa.enabled_badge'  => 'Enabled',
-    'core.auth.twofa.protected'      => 'Your authenticator app is protecting this account.',
-    'core.auth.twofa.recovery_remaining' => 'Recovery codes remaining:',
-    'core.auth.twofa.recovery_help'  => 'Recovery codes let you sign in if you lose your device. Re-enable to generate a fresh set.',
-    'core.auth.twofa.disable_prompt' => 'To turn off two-factor auth, confirm with a current code from your app (or a recovery code):',
-    'core.auth.twofa.disable_btn'    => 'Disable 2FA',
-    'core.auth.twofa.intro'          => 'Protect your account with a time-based code from an app like Google Authenticator, 1Password, Authy, or Microsoft Authenticator.',
-    'core.auth.twofa.enable_btn'     => 'Enable two-factor authentication',
-    'core.auth.twofa.step_scan'      => 'Scan the QR code',
-    'core.auth.twofa.step_scan_detail' => 'with your authenticator app — or enter the key by hand.',
-    'core.auth.twofa.qr_preview'     => 'QR preview',
-    'core.auth.twofa.setup_key_label' => 'Setup key (manual entry)',
-    'core.auth.twofa.open_in_app'    => 'Open in app',
-    'core.auth.twofa.step_recovery'  => 'Save your recovery codes.',
-    'core.auth.twofa.step_recovery_detail' => 'Each can be used once if you lose your device. Store them somewhere safe.',
-    'core.auth.twofa.copy_codes'     => 'Copy codes',
-    'core.auth.twofa.step_confirm'   => 'Confirm.',
-    'core.auth.twofa.step_confirm_detail' => 'Enter the 6-digit code your app shows now:',
-    'core.auth.twofa.verify_turn_on' => 'Verify & turn on',
-    'core.auth.twofa.back_to_admin'  => 'Back to admin',
+    // --- Authentifizierung: Zwei-Faktor-Verwaltung (Sicherheitsbildschirm) ---
+    'core.auth.twofa.heading'        => 'Zwei-Faktor-Authentifizierung',
+    'core.auth.twofa.lead'           => 'Fügen Sie Ihrer Anmeldung einen Einmalcode aus einer Authentifizierungs-App hinzu.',
+    'core.auth.twofa.unavailable_detail' => 'Die Zwei-Faktor-Authentifizierung ist auf dieser Installation noch nicht verfügbar — der App-Verschlüsselungsschlüssel (%s) ist nicht konfiguriert. Bitten Sie einen Administrator, ihn einzurichten.',
+    'core.auth.twofa.enabled_badge'  => 'Aktiviert',
+    'core.auth.twofa.protected'      => 'Ihre Authentifizierungs-App schützt dieses Konto.',
+    'core.auth.twofa.recovery_remaining' => 'Verbleibende Wiederherstellungscodes:',
+    'core.auth.twofa.recovery_help'  => 'Mit Wiederherstellungscodes können Sie sich anmelden, wenn Sie Ihr Gerät verlieren. Aktivieren Sie sie erneut, um einen neuen Satz zu erzeugen.',
+    'core.auth.twofa.disable_prompt' => 'Um die Zwei-Faktor-Authentifizierung zu deaktivieren, bestätigen Sie mit einem aktuellen Code aus Ihrer App (oder einem Wiederherstellungscode):',
+    'core.auth.twofa.disable_btn'    => '2FA deaktivieren',
+    'core.auth.twofa.intro'          => 'Schützen Sie Ihr Konto mit einem zeitbasierten Code aus einer App wie Google Authenticator, 1Password, Authy oder Microsoft Authenticator.',
+    'core.auth.twofa.enable_btn'     => 'Zwei-Faktor-Authentifizierung aktivieren',
+    'core.auth.twofa.step_scan'      => 'Scannen Sie den QR-Code',
+    'core.auth.twofa.step_scan_detail' => 'mit Ihrer Authentifizierungs-App — oder geben Sie den Schlüssel von Hand ein.',
+    'core.auth.twofa.qr_preview'     => 'QR-Vorschau',
+    'core.auth.twofa.setup_key_label' => 'Einrichtungsschlüssel (manuelle Eingabe)',
+    'core.auth.twofa.open_in_app'    => 'In App öffnen',
+    'core.auth.twofa.step_recovery'  => 'Speichern Sie Ihre Wiederherstellungscodes.',
+    'core.auth.twofa.step_recovery_detail' => 'Jeder kann einmal verwendet werden, falls Sie Ihr Gerät verlieren. Bewahren Sie sie an einem sicheren Ort auf.',
+    'core.auth.twofa.copy_codes'     => 'Codes kopieren',
+    'core.auth.twofa.step_confirm'   => 'Bestätigen.',
+    'core.auth.twofa.step_confirm_detail' => 'Geben Sie den 6-stelligen Code ein, den Ihre App jetzt anzeigt:',
+    'core.auth.twofa.verify_turn_on' => 'Überprüfen & aktivieren',
+    'core.auth.twofa.back_to_admin'  => 'Zurück zur Verwaltung',
 
-    // --- Dashboard (admin home) ---
+    // --- Dashboard (Verwaltungsstartseite) ---
     'core.dashboard.title'           => 'Dashboard',
-    'core.dashboard.lead'            => 'Welcome to the Tiger admin.',
-    'core.dashboard.customize'       => 'Customize',
-    'core.dashboard.empty_title'     => 'No dashboard widgets yet',
-    'core.dashboard.empty_lead'      => "Modules that provide a dashboard widget will appear here automatically once they're active.",
-    'core.dashboard.drag_hint'       => 'Drag to rearrange',
-    'core.dashboard.collapse_aria'   => 'Collapse widget',
-    'core.dashboard.customize_title' => 'Customize dashboard',
-    'core.dashboard.customize_help'  => "Turn widgets on or off. A hidden widget isn't rendered — switch it back on anytime.",
+    'core.dashboard.lead'            => 'Willkommen in der Tiger-Verwaltung.',
+    'core.dashboard.customize'       => 'Anpassen',
+    'core.dashboard.empty_title'     => 'Noch keine Dashboard-Widgets',
+    'core.dashboard.empty_lead'      => 'Module, die ein Dashboard-Widget bereitstellen, erscheinen hier automatisch, sobald sie aktiv sind.',
+    'core.dashboard.drag_hint'       => 'Zum Umsortieren ziehen',
+    'core.dashboard.collapse_aria'   => 'Widget einklappen',
+    'core.dashboard.customize_title' => 'Dashboard anpassen',
+    'core.dashboard.customize_help'  => 'Widgets ein- oder ausschalten. Ein ausgeblendetes Widget wird nicht angezeigt — schalten Sie es jederzeit wieder ein.',
 
-    // --- Account home ---
-    'core.account.title'             => 'My Account',
-    'core.account.lead'              => 'Your subscription, licenses, and profile.',
-    'core.account.empty_lead'        => 'Your account details will appear here as you add subscriptions and services.',
-    'core.js.network_error' => 'Network error — please try again.',
-    'core.js.recaptcha' => 'Please complete the reCAPTCHA and try again.',
-    'core.js.incorrect_password' => 'Incorrect password.',
-    'core.js.code_sent' => 'We sent a 6-digit code to %s. Enter it below.',
-    'core.js.code_invalid' => 'That code is invalid or has expired.',
-    'core.js.code_incorrect' => 'That code is incorrect or has expired.',
-    'core.js.invalid_login' => 'Invalid login or password.',
-    'core.js.passwords_mismatch' => 'The passwords do not match.',
-    'core.js.reset_failed' => 'Could not reset your password — the link may have expired.',
-    'core.js.twofa_disabled' => 'Two-factor authentication disabled.',
-    'core.js.twofa_code_wrong_on' => 'That code is incorrect. Two-factor auth is still on.',
-    'core.js.setup_failed' => 'Could not start setup. Please try again.',
-    'core.js.twofa_on' => 'Two-factor authentication is on. 🎉',
-    'core.js.twofa_code_wrong' => 'That code didn\'t match. Check your app\'s clock and try the current code.',
-    'core.js.widget_load_error' => 'Couldn’t load this widget.',
-    'core.nav.dashboard' => 'Übersicht',
+    // --- Kontostartseite ---
+    'core.account.title'             => 'Mein Konto',
+    'core.account.lead'              => 'Ihr Abonnement, Ihre Lizenzen und Ihr Profil.',
+    'core.account.empty_lead'        => 'Ihre Kontodetails erscheinen hier, sobald Sie Abonnements und Dienste hinzufügen.',
+    'core.js.network_error' => 'Netzwerkfehler — bitte versuchen Sie es erneut.',
+    'core.js.recaptcha' => 'Bitte schließen Sie das reCAPTCHA ab und versuchen Sie es erneut.',
+    'core.js.incorrect_password' => 'Falsches Passwort.',
+    'core.js.code_sent' => 'Wir haben einen 6-stelligen Code an %s gesendet. Geben Sie ihn unten ein.',
+    'core.js.code_invalid' => 'Dieser Code ist ungültig oder abgelaufen.',
+    'core.js.code_incorrect' => 'Dieser Code ist falsch oder abgelaufen.',
+    'core.js.invalid_login' => 'Ungültiger Benutzername oder ungültiges Passwort.',
+    'core.js.passwords_mismatch' => 'Die Passwörter stimmen nicht überein.',
+    'core.js.reset_failed' => 'Ihr Passwort konnte nicht zurückgesetzt werden — der Link ist möglicherweise abgelaufen.',
+    'core.js.twofa_disabled' => 'Zwei-Faktor-Authentifizierung deaktiviert.',
+    'core.js.twofa_code_wrong_on' => 'Dieser Code ist falsch. Die Zwei-Faktor-Authentifizierung ist weiterhin aktiviert.',
+    'core.js.setup_failed' => 'Die Einrichtung konnte nicht gestartet werden. Bitte versuchen Sie es erneut.',
+    'core.js.twofa_on' => 'Die Zwei-Faktor-Authentifizierung ist aktiviert. 🎉',
+    'core.js.twofa_code_wrong' => 'Dieser Code stimmt nicht überein. Prüfen Sie die Uhr Ihrer App und versuchen Sie den aktuellen Code.',
+    'core.js.widget_load_error' => 'Dieses Widget konnte nicht geladen werden.',
+    'core.nav.dashboard' => 'Dashboard',
     'core.nav.account' => 'Mein Konto',
-    'core.nav.content' => 'Inhalte',
+    'core.nav.content' => 'Inhalt',
     'core.nav.articles' => 'Artikel',
     'core.nav.menus' => 'Menüs',
     'core.nav.media' => 'Medien',
@@ -176,7 +175,7 @@ return [
     'core.nav.settings' => 'Einstellungen',
     'core.datatable.info' => '_START_ bis _END_ von _TOTAL_ Einträgen',
     'core.datatable.info_empty' => '0 bis 0 von 0 Einträgen',
-    'core.datatable.info_filtered' => '(gefiltert von _MAX_ Einträgen)',
+    'core.datatable.info_filtered' => '(gefiltert aus _MAX_ Einträgen insgesamt)',
     'core.datatable.length_menu' => '_MENU_ pro Seite',
     'core.datatable.search_placeholder' => 'Suchen…',
     'core.datatable.zero_records' => 'Keine passenden Einträge gefunden',
@@ -185,7 +184,7 @@ return [
     'core.datatable.processing' => 'Wird verarbeitet…',
     'core.datatable.paginate_first' => 'Erste',
     'core.datatable.paginate_last' => 'Letzte',
-    'core.datatable.paginate_next' => 'Nächste',
-    'core.datatable.paginate_prev' => 'Vorherige',
+    'core.datatable.paginate_next' => 'Weiter',
+    'core.datatable.paginate_prev' => 'Zurück',
     'core.nav.modules_manage' => 'Verwalten',
 ];

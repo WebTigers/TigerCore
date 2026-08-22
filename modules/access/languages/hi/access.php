@@ -1,77 +1,95 @@
 <?php
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
-// STUB — hi: English placeholders; translate the values.
 /**
- * Access module — Hindi (hi) stub. Same keys as en/access.php; values are English placeholders.
+ * Access module — Hindi strings (language-only locale `hi`). Mirrors en/access.php.
  */
 return [
-    'access.label.name'                        => 'Name',
-    'access.label.slug'                        => 'Slug',
-    'access.label.status'                      => 'Status',
-    'access.label.created'                     => 'Created',
-    'access.label.email'                       => 'Email',
-    'access.label.username'                    => 'Username',
-    'access.label.parent'                      => 'Parent',
-    'access.label.members'                     => 'Members',
-    'access.label.roles'                       => 'Roles',
-    'access.label.orgs'                        => 'Orgs',
-    'access.label.actions'                     => 'Actions',
-    'access.action.save'                       => 'Save',
-    'access.action.cancel'                     => 'Cancel',
-    'access.form.none'                         => '—',
-    'access.filter.all_statuses'               => 'All statuses',
-    'access.filter.clear'                      => 'Clear',
-    'access.filter.clear_title'                => 'Clear filters',
-    'access.status.active'                     => 'Active',
-    'access.status.suspended'                  => 'Suspended',
-    'access.user.list.title'                   => 'Users',
-    'access.user.list.subtitle'                => 'Identities — email, username, status, and membership.',
-    'access.user.list.new'                     => 'New User',
-    'access.user.edit.title_new'               => 'New User',
-    'access.user.edit.title_edit'              => 'Edit User',
-    'access.user.edit.back'                    => 'Back to users',
-    'access.user.field.email_help'             => 'The canonical login identifier. Must be unique.',
-    'access.user.field.username_help'          => 'Optional. Unique if set.',
-    'access.user.field.language'               => 'Language',
-    'access.user.field.language_help'          => 'The user\'s preferred language.',
-    'access.user.field.timezone'               => 'Timezone',
-    'access.user.field.timezone_placeholder'   => 'Search by city, abbreviation (EST), or offset (-05:00)…',
-    'access.user.field.password'               => 'Set Password',
-    'access.user.field.password_help'          => 'Leave blank to keep the current password. Setting it here resets it immediately.',
-    'access.user.saved'                        => 'User saved.',
-    'access.user.deleted'                      => 'User deleted.',
-    'access.user.email_taken'                  => 'That email is already in use.',
-    'access.user.username_taken'               => 'That username is already in use.',
-    'access.user.no_self_delete'               => 'You cannot delete your own account.',
-    'access.org.list.title'                    => 'Organizations',
-    'access.org.list.subtitle'                 => 'Tenants — name, slug, hierarchy, and membership.',
-    'access.org.list.new'                      => 'New Organization',
-    'access.org.edit.title_new'                => 'New Organization',
-    'access.org.edit.title_edit'               => 'Edit Organization',
-    'access.org.edit.back'                     => 'Back to organizations',
-    'access.org.field.slug_help'               => 'URL-safe identifier. Auto-derived from the name if left blank; must be unique.',
-    'access.org.field.parent'                  => 'Parent organization',
-    'access.org.field.parent_help'             => 'For sub-tenants; leave as “none” for a root organization.',
-    'access.org.parent.none'                   => '— none (root organization) —',
-    'access.org.saved'                         => 'Organization saved.',
-    'access.org.deleted'                       => 'Organization deleted.',
-    'access.org.slug_taken'                    => 'That slug is already in use.',
-    'access.org.slug_required'                 => 'A slug is required (or provide a name to derive one from).',
-    'access.org.parent_self'                   => 'An organization cannot be its own parent.',
-    'access.org.no_self_delete'                => 'You cannot delete the organization you are currently acting in.',
+    // --- Shared labels (form fields + table columns) ---
+    'access.label.name'          => 'नाम',
+    'access.label.slug'          => 'स्लग',
+    'access.label.status'        => 'स्थिति',
+    'access.label.created'       => 'बनाया गया',
+    'access.label.email'         => 'ईमेल',
+    'access.label.username'      => 'उपयोगकर्ता नाम',
+    'access.label.parent'        => 'मूल',
+    'access.label.members'       => 'सदस्य',
+    'access.label.roles'         => 'भूमिकाएँ',
+    'access.label.orgs'          => 'संगठन',
+    'access.label.actions'       => 'क्रियाएँ',
+
+    // --- Common actions / UI bits ---
+    'access.action.save'         => 'सहेजें',
+    'access.action.cancel'       => 'रद्द करें',
+    'access.form.none'           => '—',
+
+    // --- Filter toolbar ---
+    'access.filter.all_statuses' => 'सभी स्थितियाँ',
+    'access.filter.clear'        => 'साफ़ करें',
+    'access.filter.clear_title'  => 'फ़िल्टर साफ़ करें',
+
+    // --- Status values ---
+    'access.status.active'       => 'सक्रिय',
+    'access.status.suspended'    => 'निलंबित',
+
+    // --- Users: list ---
+    'access.user.list.title'     => 'उपयोगकर्ता',
+    'access.user.list.subtitle'  => 'पहचान — ईमेल, उपयोगकर्ता नाम, स्थिति और सदस्यता।',
+    'access.user.list.new'       => 'नया उपयोगकर्ता',
+
+    // --- Users: editor ---
+    'access.user.edit.title_new'  => 'नया उपयोगकर्ता',
+    'access.user.edit.title_edit' => 'उपयोगकर्ता संपादित करें',
+    'access.user.edit.back'       => 'उपयोगकर्ताओं पर वापस जाएँ',
+    'access.user.field.email_help'          => 'कैननिकल लॉगिन पहचानकर्ता। यह अद्वितीय होना चाहिए।',
+    'access.user.field.username_help'       => 'वैकल्पिक। सेट करने पर अद्वितीय।',
+    'access.user.field.language'            => 'भाषा',
+    'access.user.field.language_help'       => 'उपयोगकर्ता की पसंदीदा भाषा।',
+    'access.user.field.timezone'            => 'समय क्षेत्र',
+    'access.user.field.timezone_placeholder'=> 'शहर, संक्षिप्त रूप (EST) या ऑफ़सेट (-05:00) से खोजें…',
+    'access.user.field.password'            => 'पासवर्ड सेट करें',
+    'access.user.field.password_help'       => 'वर्तमान पासवर्ड बनाए रखने के लिए खाली छोड़ें। इसे यहाँ सेट करने पर यह तुरंत रीसेट हो जाता है।',
+
+    // --- Users: /api service messages ---
+    'access.user.saved'          => 'उपयोगकर्ता सहेजा गया।',
+    'access.user.deleted'        => 'उपयोगकर्ता हटाया गया।',
+    'access.user.email_taken'    => 'यह ईमेल पहले से उपयोग में है।',
+    'access.user.username_taken' => 'यह उपयोगकर्ता नाम पहले से उपयोग में है।',
+    'access.user.no_self_delete' => 'आप अपना स्वयं का खाता नहीं हटा सकते।',
+
+    // --- Organizations: list ---
+    'access.org.list.title'      => 'संगठन',
+    'access.org.list.subtitle'   => 'टेनेंट — नाम, स्लग, पदानुक्रम और सदस्यता।',
+    'access.org.list.new'        => 'नया संगठन',
+
+    // --- Organizations: editor ---
+    'access.org.edit.title_new'  => 'नया संगठन',
+    'access.org.edit.title_edit' => 'संगठन संपादित करें',
+    'access.org.edit.back'       => 'संगठनों पर वापस जाएँ',
+    'access.org.field.slug_help'    => 'URL-सुरक्षित पहचानकर्ता। खाली छोड़ने पर नाम से स्वतः प्राप्त होता है; यह अद्वितीय होना चाहिए।',
+    'access.org.field.parent'       => 'मूल संगठन',
+    'access.org.field.parent_help'  => 'उप-टेनेंट के लिए; रूट संगठन के लिए “कोई नहीं” रहने दें।',
+    'access.org.parent.none'        => '— कोई नहीं (रूट संगठन) —',
+
+    // --- Organizations: /api service messages ---
+    'access.org.saved'           => 'संगठन सहेजा गया।',
+    'access.org.deleted'         => 'संगठन हटाया गया।',
+    'access.org.slug_taken'      => 'यह स्लग पहले से उपयोग में है।',
+    'access.org.slug_required'   => 'एक स्लग आवश्यक है (या इसे प्राप्त करने के लिए एक नाम दें)।',
+    'access.org.parent_self'     => 'कोई संगठन अपना स्वयं का मूल नहीं हो सकता।',
+    'access.org.no_self_delete'  => 'आप जिस संगठन में इस समय कार्य कर रहे हैं, उसे हटा नहीं सकते।',
 
     // --- JS-facing strings (registered via $this->i18n, resolved by Tiger.t) ---
-    'access.js.search_orgs'         => 'Search name / slug…',
-    'access.js.search_users'        => 'Search email / username…',
-    'access.js.edit'                => 'Edit',
-    'access.js.delete'              => 'Delete',
-    'access.js.org_no_delete'       => "Your active organization can't be deleted",
-    'access.js.delete_self'         => 'You cannot delete yourself',
-    'access.js.not_permitted'       => 'Not permitted',
-    'access.js.confirm_delete_org'  => 'Delete this organization? It is soft-deleted and can be recovered.',
-    'access.js.confirm_delete_user' => 'Delete this user? They are soft-deleted and can be recovered.',
-    'access.js.fix_fields'          => 'Please fix the highlighted fields and try again.',
-    'access.js.network_error'       => 'Network error — please try again.',
-    'access.js.parent_root'         => '— root —',
+    'access.js.search_orgs'         => 'नाम / स्लग खोजें…',
+    'access.js.search_users'        => 'ईमेल / उपयोगकर्ता नाम खोजें…',
+    'access.js.edit'                => 'संपादित करें',
+    'access.js.delete'              => 'हटाएँ',
+    'access.js.org_no_delete'       => 'आपके सक्रिय संगठन को हटाया नहीं जा सकता',
+    'access.js.delete_self'         => 'आप स्वयं को हटा नहीं सकते',
+    'access.js.not_permitted'       => 'अनुमति नहीं है',
+    'access.js.confirm_delete_org'  => 'इस संगठन को हटाएँ? यह सॉफ़्ट-डिलीट होता है और पुनर्प्राप्त किया जा सकता है।',
+    'access.js.confirm_delete_user' => 'इस उपयोगकर्ता को हटाएँ? यह सॉफ़्ट-डिलीट होता है और पुनर्प्राप्त किया जा सकता है।',
+    'access.js.fix_fields'          => 'कृपया हाइलाइट किए गए फ़ील्ड ठीक करें और पुनः प्रयास करें।',
+    'access.js.network_error'       => 'नेटवर्क त्रुटि — कृपया पुनः प्रयास करें।',
+    'access.js.parent_root'         => '— रूट —',
 ];

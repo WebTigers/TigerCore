@@ -1,41 +1,49 @@
 <?php
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
-// STUB — hi: English placeholders; translate the values.
 /**
- * TigerMCP — Hindi stub (locale `hi`). Same keys as en/mcp.php; values are English placeholders.
+ * TigerMCP — Hindi strings (locale `hi`). Mirrors en/mcp.php key-for-key.
  */
 return [
-    'mcp.settings.enabled' => 'MCP server enabled.',
-    'mcp.settings.disabled' => 'MCP server disabled.',
-    'mcp.token.created' => 'Token minted.',
-    'mcp.token.revoked' => 'Token revoked.',
-    'mcp.connect.title' => 'MCP Server',
-    'mcp.connect.subtitle' => 'Let an external AI client (Claude Desktop/Code, Cursor, ChatGPT) drive this site through Tiger’s <code>/api</code> — with the same permissions a signed-in user of the token’s role has. Off by default; every action is ACL-gated and audited.',
-    'mcp.connect.enable.title' => 'Enable the MCP endpoint',
-    'mcp.connect.serve' => 'Serve',
-    'mcp.connect.enable.help' => 'When on, <code>POST /mcp</code> accepts MCP (JSON-RPC) from any client presenting a valid token. When off, it returns 404. A caller with no token is a guest and can reach only guest-allowed read tools.',
-    'mcp.connect.save' => 'Save',
-    'mcp.tokens.title' => 'Access tokens',
-    'mcp.tokens.scope' => 'Scope a new token',
-    'mcp.tokens.readonly' => 'Read-only — no writes (reads only)',
-    'mcp.tokens.org' => 'Org token — acts as the org, not you (no bound user)',
-    'mcp.tokens.mint' => 'Mint token',
-    'mcp.tokens.once' => 'Copy this now — it’s shown only once.',
-    'mcp.copy' => 'Copy',
-    'mcp.tokens.empty' => 'No tokens yet — mint one to connect a client.',
-    'mcp.connect.client.title' => 'Connect a client',
-    'mcp.connect.token_field' => 'Token for the config below',
-    'mcp.connect.token_field.ph' => 'tgr_… (paste, or mint above)',
-    'mcp.connect.tab.npx' => 'npx (needs Node)',
-    'mcp.connect.tab.php' => 'Zero-Node (PHP)',
-    'mcp.connect.npx.help' => 'Add to your client’s <code>mcpServers</code> config (Claude Desktop, Cursor, …). Uses the community <code>mcp-remote</code> bridge — nothing to install.',
-    'mcp.connect.php.help' => 'No Node? <a href="/mcp/admin/download">Download <code>mcp-bridge.php</code></a>, save it on your machine, and set the path below. Needs only PHP.',
-    'mcp.connect.test' => 'Or test it directly:',
-    'mcp.js.copied' => 'Copied.',
-    'mcp.js.token_revoked' => 'Token revoked.',
-    'mcp.js.revoke_title' => 'Revoke token',
-    'mcp.js.revoke_body' => 'Any client using this token will stop working.',
-    'mcp.js.revoke_label' => 'Revoke',
+    // Messages
+    'mcp.settings.enabled'  => 'MCP सर्वर सक्षम किया गया।',
+    'mcp.settings.disabled' => 'MCP सर्वर अक्षम किया गया।',
+    'mcp.token.created'     => 'टोकन बनाया गया।',
+    'mcp.token.revoked'     => 'टोकन रद्द किया गया।',
+
+    // Connect screen — header
+    'mcp.connect.title'     => 'MCP सर्वर',
+    'mcp.connect.subtitle'  => 'किसी बाहरी AI क्लाइंट (Claude Desktop/Code, Cursor, ChatGPT) को Tiger की <code>/api</code> के माध्यम से इस साइट को चलाने दें — उन्हीं अनुमतियों के साथ जो टोकन की भूमिका वाले लॉग-इन उपयोगकर्ता के पास होती हैं। डिफ़ॉल्ट रूप से बंद; हर कार्रवाई ACL-नियंत्रित और ऑडिट की जाती है।',
+
+    // Connect screen — enable
+    'mcp.connect.enable.title' => 'MCP एंडपॉइंट सक्षम करें',
+    'mcp.connect.serve'        => 'सर्व करें',
+    'mcp.connect.enable.help'  => 'चालू होने पर, <code>POST /mcp</code> किसी भी क्लाइंट से MCP (JSON-RPC) स्वीकार करता है जो मान्य टोकन प्रस्तुत करता है। बंद होने पर, यह 404 लौटाता है। बिना टोकन वाला कॉलर एक अतिथि है और केवल अतिथियों के लिए अनुमत रीड टूल तक पहुँच सकता है।',
+    'mcp.connect.save'         => 'सहेजें',
+
+    // Connect screen — tokens
+    'mcp.tokens.title'    => 'एक्सेस टोकन',
+    'mcp.tokens.scope'    => 'नए टोकन का दायरा तय करें',
+    'mcp.tokens.readonly' => 'केवल-पढ़ने — कोई लेखन नहीं (केवल पढ़ना)',
+    'mcp.tokens.org'      => 'संगठन टोकन — संगठन के रूप में कार्य करता है, आपके रूप में नहीं (कोई संबद्ध उपयोगकर्ता नहीं)',
+    'mcp.tokens.mint'     => 'टोकन बनाएँ',
+    'mcp.tokens.once'     => 'इसे अभी कॉपी करें — यह केवल एक बार दिखाया जाता है।',
+    'mcp.copy'            => 'कॉपी करें',
+    'mcp.tokens.empty'    => 'अभी तक कोई टोकन नहीं — क्लाइंट कनेक्ट करने के लिए एक बनाएँ।',
+
+    // Connect screen — connect a client
+    'mcp.connect.client.title'   => 'एक क्लाइंट कनेक्ट करें',
+    'mcp.connect.token_field'    => 'नीचे दिए गए कॉन्फ़िग के लिए टोकन',
+    'mcp.connect.token_field.ph' => 'tgr_… (पेस्ट करें, या ऊपर बनाएँ)',
+    'mcp.connect.tab.npx'        => 'npx (Node आवश्यक)',
+    'mcp.connect.tab.php'        => 'बिना Node (PHP)',
+    'mcp.connect.npx.help'       => 'इसे अपने क्लाइंट के <code>mcpServers</code> कॉन्फ़िग में जोड़ें (Claude Desktop, Cursor, …)। कम्युनिटी <code>mcp-remote</code> ब्रिज का उपयोग करता है — कुछ भी इंस्टॉल नहीं करना।',
+    'mcp.connect.php.help'       => 'Node नहीं है? <a href="/mcp/admin/download"><code>mcp-bridge.php</code> डाउनलोड करें</a>, इसे अपनी मशीन पर सहेजें और नीचे पथ सेट करें। केवल PHP आवश्यक।',
+    'mcp.connect.test'           => 'या इसे सीधे टेस्ट करें:',
+    'mcp.js.copied' => 'कॉपी किया गया।',
+    'mcp.js.token_revoked' => 'टोकन रद्द किया गया।',
+    'mcp.js.revoke_title' => 'टोकन रद्द करें',
+    'mcp.js.revoke_body' => 'इस टोकन का उपयोग करने वाला कोई भी क्लाइंट काम करना बंद कर देगा।',
+    'mcp.js.revoke_label' => 'रद्द करें',
     'mcp.nav.label' => 'MCP सर्वर',
 ];

@@ -1,49 +1,51 @@
 <?php
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
-// STUB — fr: English placeholders; translate the values.
+/**
+ * Signup module — French strings (signup.*).
+ */
 return [
     // Service / API messages
-    'signup.disabled'        => 'Public signup is currently turned off.',
-    'signup.error.recaptcha' => "Couldn't verify you're human — please try again.",
-    'signup.check_email'     => 'Account created — check your email to verify it, then sign in.',
-    'signup.verified'        => 'Your email is verified and your account is active.',
-    'signup.invalid_link'    => 'This verification link is invalid or has expired.',
+    'signup.disabled'        => 'L’inscription publique est actuellement désactivée.',
+    'signup.error.recaptcha' => 'Impossible de vérifier que vous êtes humain — veuillez réessayer.',
+    'signup.check_email'     => 'Compte créé — consultez votre e-mail pour le vérifier, puis connectez-vous.',
+    'signup.verified'        => 'Votre e-mail est vérifié et votre compte est actif.',
+    'signup.invalid_link'    => 'Ce lien de vérification est invalide ou a expiré.',
 
     // Signup form view
-    'signup.form.heading'          => 'Create your account',
-    'signup.form.subheading'       => 'Start your Tiger workspace — it takes a minute.',
-    'signup.form.label.first_name' => 'First name',
-    'signup.form.label.last_name'  => 'Last name',
-    'signup.form.label.company'    => 'Company',
-    'signup.form.label.username'   => 'Username',
-    'signup.form.label.password'   => 'Password',
-    'signup.form.aria.show_password' => 'Show password',
-    'signup.form.label.email'      => 'Email',
-    'signup.form.label.street'     => 'Street address',
-    'signup.form.label.city'       => 'City',
-    'signup.form.label.region'     => 'State / Province',
-    'signup.form.label.postal'     => 'Postal',
-    'signup.form.label.country'    => 'Country',
-    'signup.form.option.select'    => '— Select —',
-    'signup.form.group.frequent'   => 'Frequent',
-    'signup.form.group.all'        => 'All countries',
-    'signup.form.label.phone_type' => 'Phone type',
-    'signup.form.label.phone'      => 'Phone',
-    'signup.form.submit'           => 'Create account',
-    'signup.form.have_account'     => 'Already have an account? Sign in',
+    'signup.form.heading'          => 'Créez votre compte',
+    'signup.form.subheading'       => 'Lancez votre espace de travail Tiger — cela prend une minute.',
+    'signup.form.label.first_name' => 'Prénom',
+    'signup.form.label.last_name'  => 'Nom',
+    'signup.form.label.company'    => 'Entreprise',
+    'signup.form.label.username'   => 'Nom d’utilisateur',
+    'signup.form.label.password'   => 'Mot de passe',
+    'signup.form.aria.show_password' => 'Afficher le mot de passe',
+    'signup.form.label.email'      => 'E-mail',
+    'signup.form.label.street'     => 'Adresse',
+    'signup.form.label.city'       => 'Ville',
+    'signup.form.label.region'     => 'État / Province',
+    'signup.form.label.postal'     => 'Code postal',
+    'signup.form.label.country'    => 'Pays',
+    'signup.form.option.select'    => '— Sélectionner —',
+    'signup.form.group.frequent'   => 'Fréquents',
+    'signup.form.group.all'        => 'Tous les pays',
+    'signup.form.label.phone_type' => 'Type de téléphone',
+    'signup.form.label.phone'      => 'Téléphone',
+    'signup.form.submit'           => 'Créer le compte',
+    'signup.form.have_account'     => 'Vous avez déjà un compte ? Connectez-vous',
 
     // Email-verification result view
-    'signup.verify.heading'        => 'Email verification',
-    'signup.verify.success.body'   => 'Your email is verified and your account is active. You can sign in now.',
-    'signup.verify.action.signin'  => 'Sign in',
-    'signup.verify.invalid.body'   => 'This verification link is invalid or has expired. You can sign up again, or contact support if you already registered.',
-    'signup.verify.action.back'    => 'Back to signup',
+    'signup.verify.heading'        => 'Vérification de l’e-mail',
+    'signup.verify.success.body'   => 'Votre e-mail est vérifié et votre compte est actif. Vous pouvez vous connecter maintenant.',
+    'signup.verify.action.signin'  => 'Connexion',
+    'signup.verify.invalid.body'   => 'Ce lien de vérification est invalide ou a expiré. Vous pouvez vous réinscrire, ou contacter le support si vous êtes déjà inscrit.',
+    'signup.verify.action.back'    => 'Retour à l’inscription',
 
     // JS-facing strings (registered via $this->i18n, resolved by Tiger.t)
-    'signup.js.verify_sent'   => '<strong>Almost there.</strong> We emailed a verification link to activate your account — click it, then sign in.',
-    'signup.js.fix_fields'    => 'Please fix the highlighted fields.',
-    'signup.js.check_field'   => 'Please check this field.',
-    'signup.js.went_wrong'    => 'Something went wrong. Please try again.',
-    'signup.js.network_error' => 'Network error — please try again.',
+    'signup.js.verify_sent'   => '<strong>Presque terminé.</strong> Nous vous avons envoyé un lien de vérification pour activer votre compte — cliquez dessus, puis connectez-vous.',
+    'signup.js.fix_fields'    => 'Veuillez corriger les champs en surbrillance.',
+    'signup.js.check_field'   => 'Veuillez vérifier ce champ.',
+    'signup.js.went_wrong'    => 'Une erreur s’est produite. Veuillez réessayer.',
+    'signup.js.network_error' => 'Erreur réseau — veuillez réessayer.',
 ];
