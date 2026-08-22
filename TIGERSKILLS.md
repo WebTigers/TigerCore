@@ -7,9 +7,10 @@ this before building the skill loader, the Skills admin, or the MCP surfaces. Fo
 install/update/registry machinery read [MARKETPLACE.md](MARKETPLACE.md); for the file-discovery + active-set
 pattern this mirrors read [CODE.md](CODE.md).
 
-> **Status: design-of-record (proposed, not built).** TigerAgent Phase 1 ships (the aside, the `/api`-tool
-> surface, the permission-gated Forge, the Scout). Skills + MCP are the next extension layer; this records
-> the decisions so we don't relitigate them or drift when the code lands.
+> **Status: BUILT.** TigerSkills ships — browse via the source adapters + index, install + the config
+> active-set, the `load_skill` progressive-disclosure loader, and the Skills admin grid (Admin → Settings →
+> Agent). MCP is the sibling extension layer (also built — see TIGERMCP.md). This doc records the decisions
+> so we don't relitigate them.
 
 ---
 

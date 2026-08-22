@@ -178,17 +178,22 @@ Both dispatch to the default-namespace `ApiController`, which hands the request 
 
 ## 7. Security — the gateway is paranoid on purpose
 
-Turning message text into class names and method calls is the sharp end. Four
-independent guards protect it:
+Turning message text into class names and method calls is the sharp end. Several
+guards protect it — note the reserved-module blocklist is currently a **dormant
+backstop** (disabled by design; the ACL covers it):
 
-1. **Reserved modules.** The framework namespaces — **`tiger`, `zend`, `core`,
-   `default`, `library`, `application`** — can **never** be a `module`. Because the
-   class name is `ucfirst(module)."_Service_"…`, a `module=tiger` would otherwise
-   resolve `Tiger_Service_*` **kernel** code. The gateway refuses it with a generic
-   error *before touching a class* — and it 's a generic failure, so the response
-   never even confirms the name is special. Extend the list via
-   `Tiger_Ajax_ServiceFactory::reserve('name')`. **Kernel services are not public,
-   ever.**
+1. **Reserved modules — a dormant backstop (disabled by design).** The mechanism is
+   still there (`Tiger_Ajax_ServiceFactory::reserve()` / `isReserved()`, with the
+   framework namespaces **`tiger`, `zend`, `core`, `default`, `library`,
+   `application`** pre-listed), but the guard block in `_processRequest()` is
+   **commented out** — the **ACL is the sole gate** instead. Deny-by-default (guard 4)
+   already refuses any kernel `Tiger_Service_*` that lacks an explicit `allow` rule, so
+   kernel code stays off the public surface *by authorization*, not by a name
+   blocklist — while a first-party core service that has a rule (e.g.
+   `Tiger_Service_Token`, `Tiger_Service_Validate`) can ride `/api` deliberately.
+   **Trade-off, stated honestly:** the god `developer` role (`allow * *`) can now reach
+   kernel services over `/api`, and there's no pre-ACL blocklist double-covering them.
+   Re-enable the commented block to restore the defense-in-depth.
 2. **Sanitization.** Routing segments are stripped to `[a-zA-Z]` (action allows
    digits/underscore) *before* becoming class names — no `\`, `_`-injection, or
    path traversal into another namespace.
@@ -217,9 +222,12 @@ and the details go to the log.
 | Routes | — | `Tiger_Application_Bootstrap::_initApiRoutes` |
 
 Kernel services (`Tiger_Service_Auth`, …) live in `library/Tiger/Service/` and are
-**reserved** — reachable in-process (e.g. a login controller calls them), never via
-`/api`. App/module services (`Account_Service_*`, `Billing_Service_*`) live in their
-module and *are* the public API surface.
+reached in-process (e.g. a login controller calls them). They aren't part of the
+public surface — but that's now enforced by the **ACL** (deny-by-default), not the
+dormant reserved-module blocklist (§7): a kernel service is reachable via `/api` only
+if it has an explicit `allow` rule (e.g. `Tiger_Service_Token`). App/module services
+(`Account_Service_*`, `Billing_Service_*`) live in their module and *are* the primary
+public API surface.
 
 ## 9. Discovery — OpenAPI without the bloat
 
