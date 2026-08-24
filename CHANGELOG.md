@@ -6,6 +6,15 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-08-24
+
+**Tiger 1.0.** The framework and the `webtigers/tiger` skeleton both ship as `1.0.0` on Packagist.
+
+### Changed
+- **No stability flag needed.** A new app is now `composer create-project webtigers/tiger my-app` —
+  the skeleton publishes a stable tag, so the old `--stability=beta` is gone. Status language in
+  `FEATURES.md`, `ARCHITECTURE.md` and `llms.txt` updated to match.
+
 ## [0.69.0] — 2026-08-24
 
 ### Fixed

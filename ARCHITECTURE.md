@@ -453,15 +453,15 @@ registered dirs; assets = symlink.**
 
 ## 13. Current state (as of 2026-07-16)
 
-**Public beta released.** `webtigers/tiger-core` (**v0.8.1-beta**) and the `webtigers/tiger`
-skeleton (**v0.1.3-beta**) are on **Packagist**, on top of `webtigers/tigerzf`. A new app is a
+**1.0 released.** `webtigers/tiger-core` and the `webtigers/tiger` skeleton are on **Packagist**
+as **1.0.0**, on top of `webtigers/tigerzf`. A new app is a
 one-liner (proven from a clean room — pure Packagist, no VCS repos):
 
 ```bash
-composer create-project webtigers/tiger my-app --stability=beta
+composer create-project webtigers/tiger my-app
 ```
 
-`--stability=beta` drops away at the stable 1.0. Tags self-publish (the Packagist GitHub App is on
+No stability flag is needed. Tags self-publish (the Packagist GitHub App is on
 the org).
 
 **Built & live** on `tiger-dev.webtigers.com` — a *real vendored install* behind the shared ALB;

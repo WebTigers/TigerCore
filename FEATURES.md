@@ -10,10 +10,9 @@ plus a skeleton (`webtigers/tiger`, created once with `composer create-project`)
 their own licenses). "Tiger" and "WebTigers" are trademarks — see [LICENSE](LICENSE) and
 [TRADEMARKS.md](TRADEMARKS.md).
 
-> **Status: public beta.** `webtigers/tiger-core` (**v0.8.1-beta**) and the `webtigers/tiger`
-> skeleton (**v0.1.3-beta**) are on **Packagist**. Create a new app with
-> `composer create-project webtigers/tiger my-app --stability=beta` (the `--stability` flag drops
-> at the stable 1.0). The `@api` surface may still shift between beta releases.
+> **Status: 1.0.** `webtigers/tiger-core` and the `webtigers/tiger` skeleton are on **Packagist**
+> as **1.0.0**. Create a new app with `composer create-project webtigers/tiger my-app` — no
+> stability flag needed.
 
 ## Foundation
 
@@ -347,7 +346,7 @@ framework.
 
 ## Deployment
 
-- **Install from Packagist.** `composer create-project webtigers/tiger my-app --stability=beta`
+- **Install from Packagist.** `composer create-project webtigers/tiger my-app`
   pulls the skeleton + framework (`tiger-core`, `tigerzf`) and their deps — no clone, no build
   step. A pre-built vendored ZIP + a browser web installer for no-shell / cPanel hosts is on the
   roadmap.
