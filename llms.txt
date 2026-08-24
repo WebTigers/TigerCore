@@ -8,7 +8,7 @@
 > Built FOR AI, not just with it; the docs live in the code. Not GPL.
 
 ## To build on Tiger, start at the skeleton
-- New app: `composer create-project webtigers/tiger my-app --stability=beta` (see https://github.com/WebTigers/Tiger)
+- New app: `composer create-project webtigers/tiger my-app` (see https://github.com/WebTigers/Tiger)
 - This repo (`webtigers/tiger-core`) is the framework the app pulls into `vendor/`; you extend it, never edit it.
 
 ## Read next (written agent-to-agent)
