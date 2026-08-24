@@ -56,7 +56,7 @@ $_dtLang = [
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= $this->escape($this->title ?? 'Tiger Admin') ?></title>
+    <title><?= $this->escape($this->title ?? $this->t('theme.admin.title')) ?></title>
 
     <!-- No-FOUC theme resolver: MUST run before the stylesheets below paint. -->
     <script src="<?= $this->asset($this->themeAssets . '/js/theme-init.js') ?>"></script>
@@ -91,7 +91,7 @@ $_dtLang = [
 <?= $this->pageHead ?? '' ?><?php /* per-page <link>/styles a view registered via $this->pageStyle() */ ?>
 </head>
 <body>
-<a href="#tiger-main" class="visually-hidden-focusable position-absolute top-0 start-0 m-2 btn btn-primary btn-sm" style="z-index:3000;">Skip to content</a>
+<a href="#tiger-main" class="visually-hidden-focusable position-absolute top-0 start-0 m-2 btn btn-primary btn-sm" style="z-index:3000;"><?= $this->escape($this->t('theme.a11y.skip_to_content')) ?></a>
 <div class="tiger-shell">
 
     <?= $this->render('_partials/admin-header.phtml') ?>

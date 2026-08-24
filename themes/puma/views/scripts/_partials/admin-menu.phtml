@@ -154,7 +154,7 @@ $render = function ($items, $depth = 0, $group = 'root') use (&$render, $allowed
     return $html;
 };
 ?>
-<nav class="tiger-nav-wrap" role="navigation" aria-label="Main">
+<nav class="tiger-nav-wrap" role="navigation" aria-label="<?= $this->escape($this->t('theme.a11y.main_nav')) ?>">
     <ul class="tiger-nav" data-nav-group="root">
         <?= $render($nav, 0, 'root') ?>
     </ul>

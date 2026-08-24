@@ -16,14 +16,16 @@ $skins  = $this->skins ?? array();
 $active = $this->skin  ?? '';
 if (!$skins) { return; }
 
-// name => [label, Bootswatch origin, primary swatch]. Unknown skins fall back to
-// a title-cased name with a neutral swatch.
+// name => [label, origin, primary swatch]. Unknown skins fall back to a title-cased
+// name with a neutral swatch. Skin names + Bootswatch origins are proper names and stay
+// verbatim; the one translatable origin ("Custom") carries a key, and $this->t() returns a
+// non-key (Zephyr/Flatly/United) unchanged — so the badge localizes with no special-casing.
 $catalog = array(
     'puma'    => array('Puma',    'Zephyr', '#3459e6'),
     'jaguar'  => array('Jaguar',  'Flatly', '#2c3e50'),
     'tabby'   => array('Tabby',   'United', '#e95420'),
-    'cheetah' => array('Cheetah', 'Custom', '#f59e0b'),
-    'bengal'  => array('Bengal',  'Custom', '#e8631a'),
+    'cheetah' => array('Cheetah', 'theme.switcher.custom', '#f59e0b'),
+    'bengal'  => array('Bengal',  'theme.switcher.custom', '#e8631a'),
 );
 $meta = function ($s) use ($catalog) {
     return $catalog[$s] ?? array(ucfirst($s), '', '#6c757d');
@@ -32,7 +34,7 @@ $activeLabel = $meta($active)[0];
 ?>
 <div class="dropdown tiger-skin-switcher">
     <a href="#" class="btn btn-link text-body text-decoration-none px-2 d-flex align-items-center gap-2"
-       data-bs-toggle="dropdown" aria-label="Skin" title="Skin (live preview)">
+       data-bs-toggle="dropdown" aria-label="<?= $this->escape($this->t('theme.switcher.skin')) ?>" title="<?= $this->escape($this->t('theme.switcher.skin_title')) ?>">
         <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="9" cy="9" r="5.5" fill="#3459e6"></circle>
             <circle cx="15" cy="15" r="5.5" fill="#e95420" opacity=".85"></circle>
@@ -40,7 +42,7 @@ $activeLabel = $meta($active)[0];
         <span id="tiger-skin-label" class="small d-none d-lg-inline"><?= $this->escape($activeLabel) ?></span>
     </a>
     <ul class="dropdown-menu dropdown-menu-end shadow">
-        <li><h6 class="dropdown-header">Skin — live preview</h6></li>
+        <li><h6 class="dropdown-header"><?= $this->escape($this->t('theme.switcher.skin_header')) ?></h6></li>
 <?php foreach ($skins as $s): $m = $meta($s); ?>
         <li>
             <a class="dropdown-item tiger-skin-switch d-flex align-items-center justify-content-between<?= $s === $active ? ' active' : '' ?>"
@@ -50,7 +52,7 @@ $activeLabel = $meta($active)[0];
                     <?= $this->escape($m[0]) ?>
                 </span>
 <?php if (!empty($m[1])): ?>
-                <span class="badge text-bg-secondary ms-3" style="font-size:.6rem;"><?= $this->escape($m[1]) ?></span>
+                <span class="badge text-bg-secondary ms-3" style="font-size:.6rem;"><?= $this->escape($this->t($m[1])) ?></span>
 <?php endif; ?>
             </a>
         </li>

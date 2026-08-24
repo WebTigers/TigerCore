@@ -28,20 +28,26 @@ $fb      = (string) ($this->feedbackId ?? '');
 $reload  = !empty($this->reload);
 $timed   = in_array($every, ['daily', 'weekly', 'monthly'], true);
 
+// Option text is localized; the VALUES posted to schedule/setSchedule stay the stable keys.
 $freqLabels = [
-    'every_minute' => 'Every minute',
-    'every_5_min'  => 'Every 5 minutes',
-    'every_15_min' => 'Every 15 minutes',
-    'hourly'       => 'Hourly',
-    'daily'        => 'Daily',
-    'weekly'       => 'Weekly',
-    'monthly'      => 'Monthly',
+    'every_minute' => $this->t('theme.schedule.freq.every_minute'),
+    'every_5_min'  => $this->t('theme.schedule.freq.every_5_min'),
+    'every_15_min' => $this->t('theme.schedule.freq.every_15_min'),
+    'hourly'       => $this->t('theme.schedule.freq.hourly'),
+    'daily'        => $this->t('theme.schedule.freq.daily'),
+    'weekly'       => $this->t('theme.schedule.freq.weekly'),
+    'monthly'      => $this->t('theme.schedule.freq.monthly'),
 ];
-$days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+$days = [
+    $this->t('theme.schedule.day.sunday'),    $this->t('theme.schedule.day.monday'),
+    $this->t('theme.schedule.day.tuesday'),   $this->t('theme.schedule.day.wednesday'),
+    $this->t('theme.schedule.day.thursday'),  $this->t('theme.schedule.day.friday'),
+    $this->t('theme.schedule.day.saturday'),
+];
 ?>
 <div class="row g-2 align-items-end" data-schedule-form data-job="<?= $e($key) ?>"<?= $fb ? ' data-feedback="' . $e($fb) . '"' : '' ?><?= $reload ? ' data-reload' : '' ?>>
     <div class="col-6 col-sm-4">
-        <label class="form-label small text-body-secondary mb-1">Frequency</label>
+        <label class="form-label small text-body-secondary mb-1"><?= $e($this->t('theme.schedule.frequency')) ?></label>
         <select class="form-select form-select-sm" data-sch="every">
             <?php foreach ($freqLabels as $val => $lbl): ?>
                 <option value="<?= $e($val) ?>"<?= $val === $every ? ' selected' : '' ?>><?= $e($lbl) ?></option>
@@ -49,11 +55,11 @@ $days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Satu
         </select>
     </div>
     <div class="col-6 col-sm-3<?= $timed ? '' : ' d-none' ?>" data-sch-time>
-        <label class="form-label small text-body-secondary mb-1">Time</label>
+        <label class="form-label small text-body-secondary mb-1"><?= $e($this->t('theme.schedule.time')) ?></label>
         <input type="time" class="form-control form-control-sm" data-sch="at" value="<?= $e($at) ?>">
     </div>
     <div class="col-6 col-sm-3<?= $every === 'weekly' ? '' : ' d-none' ?>" data-sch-dow>
-        <label class="form-label small text-body-secondary mb-1">Day of week</label>
+        <label class="form-label small text-body-secondary mb-1"><?= $e($this->t('theme.schedule.day_of_week')) ?></label>
         <select class="form-select form-select-sm" data-sch="dow">
             <?php foreach ($days as $i => $dn): ?>
                 <option value="<?= $i ?>"<?= $i === $dow ? ' selected' : '' ?>><?= $e($dn) ?></option>
@@ -61,18 +67,18 @@ $days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Satu
         </select>
     </div>
     <div class="col-6 col-sm-2<?= $every === 'monthly' ? '' : ' d-none' ?>" data-sch-dom>
-        <label class="form-label small text-body-secondary mb-1">Day of month</label>
+        <label class="form-label small text-body-secondary mb-1"><?= $e($this->t('theme.schedule.day_of_month')) ?></label>
         <input type="number" min="1" max="28" class="form-control form-control-sm" data-sch="dom" value="<?= $dom ?>">
     </div>
     <div class="col-6 col-sm-auto">
         <div class="form-check form-switch mt-2">
             <input class="form-check-input" type="checkbox" role="switch" data-sch="enabled" id="sch-en-<?= $e($key) ?>"<?= $enabled ? ' checked' : '' ?>>
-            <label class="form-check-label small" for="sch-en-<?= $e($key) ?>">Enabled</label>
+            <label class="form-check-label small" for="sch-en-<?= $e($key) ?>"><?= $e($this->t('theme.schedule.enabled')) ?></label>
         </div>
     </div>
     <div class="col-6 col-sm-auto ms-sm-auto">
         <button type="button" class="btn btn-primary btn-sm w-100" data-schedule-save<?= $fb ? ' data-feedback="' . $e($fb) . '"' : '' ?>>
-            <i class="fa-solid fa-floppy-disk me-1"></i>Save
+            <i class="fa-solid fa-floppy-disk me-1"></i><?= $e($this->t('theme.action.save')) ?>
         </button>
     </div>
 </div>

@@ -31,14 +31,14 @@ $mega = [
 ];
 ?>
 <!-- Mega-menu / mini-mega styles live in themes/puma/assets/default.css (.tiger-mega / .tiger-mini). -->
-<nav class="navbar navbar-expand-lg border-bottom sticky-top" style="background: var(--bs-body-bg);" aria-label="Primary">
+<nav class="navbar navbar-expand-lg border-bottom sticky-top" style="background: var(--bs-body-bg);" aria-label="<?= $this->escape($this->t('theme.a11y.primary_nav')) ?>">
     <div class="container">
         <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="/">
             <i class="fa-solid fa-paw text-primary"></i> <?= $this->escape($this->siteName ?? 'Tiger') ?>
         </a>
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#tigerNav"
-                aria-controls="tigerNav" aria-expanded="false" aria-label="Toggle navigation">
+                aria-controls="tigerNav" aria-expanded="false" aria-label="<?= $this->escape($this->t('theme.a11y.toggle_nav')) ?>">
             <span class="navbar-toggler-icon"></span>
         </button>
 

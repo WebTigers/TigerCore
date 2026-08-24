@@ -9,12 +9,12 @@
  * (toggled via the header's data-tiger-toggle="sidebar" button).
  */
 ?>
-<aside class="tiger-sidebar-left" aria-label="Sidebar navigation">
-    <div class="tiger-sidebar-title">Navigation</div>
+<aside class="tiger-sidebar-left" aria-label="<?= $this->escape($this->t('theme.a11y.sidebar_nav')) ?>">
+    <div class="tiger-sidebar-title"><?= $this->escape($this->t('theme.admin.navigation')) ?></div>
 
     <?= $this->render('_partials/admin-menu.phtml') ?>
 
     <div class="tiger-sidebar-footer tiger-nav-label">
-        <small class="text-secondary">Tiger Admin</small>
+        <small class="text-secondary"><?= $this->escape($this->t('theme.admin.title')) ?></small>
     </div>
 </aside>

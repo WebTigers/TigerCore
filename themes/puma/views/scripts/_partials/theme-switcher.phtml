@@ -12,12 +12,12 @@ if (!in_array($pref, ['browser', 'light', 'dark'], true)) { $pref = 'browser'; }
 $icons = ['browser' => 'fa-solid fa-display', 'light' => 'fa-solid fa-sun', 'dark' => 'fa-solid fa-moon'];
 ?>
 <div class="dropdown">
-    <a href="#" class="btn btn-link text-body px-2 text-decoration-none" data-bs-toggle="dropdown" aria-label="Theme" title="Theme">
+    <a href="#" class="btn btn-link text-body px-2 text-decoration-none" data-bs-toggle="dropdown" aria-label="<?= $this->escape($this->t('theme.switcher.theme')) ?>" title="<?= $this->escape($this->t('theme.switcher.theme')) ?>">
         <i id="tiger-theme-icon" class="<?= $this->escape($icons[$pref]) ?>"></i>
     </a>
     <ul class="dropdown-menu dropdown-menu-end shadow">
-        <li><a class="dropdown-item tiger-theme-switch<?= $pref === 'browser' ? ' active' : '' ?>" href="#" data-theme="browser"><i class="fa-solid fa-display me-2 fa-fw"></i>Browser</a></li>
-        <li><a class="dropdown-item tiger-theme-switch<?= $pref === 'light' ? ' active' : '' ?>" href="#" data-theme="light"><i class="fa-solid fa-sun me-2 fa-fw"></i>Light</a></li>
-        <li><a class="dropdown-item tiger-theme-switch<?= $pref === 'dark' ? ' active' : '' ?>" href="#" data-theme="dark"><i class="fa-solid fa-moon me-2 fa-fw"></i>Dark</a></li>
+        <li><a class="dropdown-item tiger-theme-switch<?= $pref === 'browser' ? ' active' : '' ?>" href="#" data-theme="browser"><i class="fa-solid fa-display me-2 fa-fw"></i><?= $this->escape($this->t('theme.switcher.browser')) ?></a></li>
+        <li><a class="dropdown-item tiger-theme-switch<?= $pref === 'light' ? ' active' : '' ?>" href="#" data-theme="light"><i class="fa-solid fa-sun me-2 fa-fw"></i><?= $this->escape($this->t('theme.switcher.light')) ?></a></li>
+        <li><a class="dropdown-item tiger-theme-switch<?= $pref === 'dark' ? ' active' : '' ?>" href="#" data-theme="dark"><i class="fa-solid fa-moon me-2 fa-fw"></i><?= $this->escape($this->t('theme.switcher.dark')) ?></a></li>
     </ul>
 </div>
