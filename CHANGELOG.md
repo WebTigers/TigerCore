@@ -6,6 +6,18 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.0.1] — 2026-08-24
+
+### Fixed
+- **`Tiger_View_Helper_MediaField` rendered hardcoded English (#183).** "Choose media" and "Clear"
+  stayed English in every locale — visible three times over, since the helper now backs Site
+  Identity, the CMS page editor and the SEO screen. Translated via a fail-soft lookup (the `t` view
+  helper → the registry translator → the English literal), because the helper is also instantiated
+  bare, with no view and no translator, in tests. 4 keys x 6 locales.
+- **Accessibility, in the same helper:** the preview `<img>` carried `alt=""` although it conveys
+  *which* media is selected; it now has real alt text, and the non-image tile gets a `title` plus a
+  `visually-hidden` label with an `aria-hidden` icon.
+
 ## [1.0.0] — 2026-08-24
 
 **Tiger 1.0.** The framework and the `webtigers/tiger` skeleton both ship as `1.0.0` on Packagist.
