@@ -105,7 +105,205 @@ class Seo_Service_Head
         $meta->setName('twitter:card', ($img && $img['url'] !== '') ? 'summary_large_image' : 'summary');
     }
 
+    /**
+     * Fill the SITE-level head baseline — the last-resort tier, so every public page has a usable social
+     * card even when it isn't a CMS row. Only ever fills BLANKS: whatever a page already set (via forRow,
+     * a blog article, or a view) always wins, so this can run late without clobbering anything.
+     *
+     * Why this exists: `forRow()` is reached only for CMS pages (Seo_Plugin_Head) and blog articles. The
+     * SHIPPED marketing pages (/vibe, /agency, …) are plain controller actions with no `page` row, so
+     * nothing emitted og:* for them at all — and a crawler with no og:image falls back to scraping the
+     * DOM, which on a Tiger page means the first `<img>` it finds (the language switcher's flag). Emitting
+     * the site defaults makes that impossible.
+     *
+     * Runs at postDispatch (the view has rendered, so the page title is known; the layout has NOT, so the
+     * head registry is still open).
+     *
+     * Two tiers feed it, both filling blanks only, page-level first:
+     *   1. PAGE — `tiger.seo.page.<key>.{title,description,image}` for a public VIEW page (a .phtml
+     *      action with no `page` row: /agency, /vibe, …). Base values ship in an `.ini`; the `config`
+     *      DB tier overrides them live per install/org — the standard live-override cascade, so this
+     *      needs no storage of its own. See pageKey().
+     *   2. SITE — `tiger.site.{name,description}` + `tiger.seo.og_image`, the last resort.
+     *
+     * @param  Zend_Controller_Request_Abstract|null $request the current request (canonical/absolute URLs)
+     * @return void
+     */
+    public static function site(?Zend_Controller_Request_Abstract $request = null)
+    {
+        $view = self::_view();
+        if (!$view) {
+            return;
+        }
+        $meta     = $view->headMeta();
+        $siteName = trim((string) self::_config('site.name', ''));
+        $page     = $request ? self::pageDefaults(self::pageKey($request)) : [];
+
+        // Title: whatever the page settled on (headTitle, else the controller's `$this->title`), else the
+        // site name. NOTE the `title` property lives on the RENDERED view (the ViewRenderer's instance) —
+        // only the placeholder containers are process-wide, so read that view, not the registry one.
+        $title = trim((string) ($page['title'] ?? ''));
+        if ($title === '') {
+            foreach ($view->headTitle() as $t) {
+                $t = trim((string) $t);
+                if ($t !== '') { $title = $t; }
+            }
+        }
+        if ($title === '') {
+            $rendered = self::_renderedView();
+            if ($rendered) { $title = trim((string) ($rendered->title ?? '')); }
+        }
+        if ($title === '') { $title = $siteName; }
+
+        // Description: the page's own meta description, else this page's configured one, else the site's.
+        $desc = self::_metaContent($meta, 'name', 'description');
+        if ($desc === '') {
+            $desc = trim((string) ($page['description'] ?? ''));
+            if ($desc === '') { $desc = trim((string) self::_config('site.description', '')); }
+            if ($desc !== '') { $meta->setName('description', $desc); }
+        }
+
+        if ($title !== '' && !self::_metaHas($meta, 'property', 'og:title')) {
+            $meta->setProperty('og:title', $title);
+        }
+        if ($desc !== '' && !self::_metaHas($meta, 'property', 'og:description')) {
+            $meta->setProperty('og:description', $desc);
+        }
+        if (!self::_metaHas($meta, 'property', 'og:type')) {
+            $meta->setProperty('og:type', 'website');
+        }
+        if ($siteName !== '' && !self::_metaHas($meta, 'property', 'og:site_name')) {
+            $meta->setProperty('og:site_name', $siteName);
+        }
+        if (!self::_metaHas($meta, 'property', 'og:url') && $request) {
+            $url = self::_currentUrl($request);
+            if ($url !== '') { $meta->setProperty('og:url', $url); }
+        }
+
+        // og:image — this page's configured image, else the site-wide default (tiger.seo.og_image).
+        // Either may be a media id (resolved to a real URL + true dimensions) or an absolute URL.
+        $hasImage = self::_metaHas($meta, 'property', 'og:image');
+        if (!$hasImage) {
+            $ref = trim((string) ($page['image'] ?? ''));
+            if ($ref === '') { $ref = (string) self::_config('seo.og_image', ''); }
+            $img = self::_image($ref, $request);
+            if ($img && $img['url'] !== '') {
+                $meta->setProperty('og:image', $img['url']);
+                if (!empty($img['width']))  { $meta->setProperty('og:image:width',  (string) $img['width']); }
+                if (!empty($img['height'])) { $meta->setProperty('og:image:height', (string) $img['height']); }
+                if (!empty($img['mime']))   { $meta->setProperty('og:image:type',   (string) $img['mime']); }
+                if (!empty($img['alt']))    { $meta->setProperty('og:image:alt',    (string) $img['alt']); }
+                $hasImage = true;
+            }
+        }
+        if (!self::_metaHas($meta, 'name', 'twitter:card')) {
+            $meta->setName('twitter:card', $hasImage ? 'summary_large_image' : 'summary');
+        }
+    }
+
+    /**
+     * The stable config key for a public VIEW page — the addressable identity of a page that has no
+     * `page` row (a shipped .phtml action like /agency or /vibe), so its OG can still be authored.
+     *
+     * Shape: the dispatch triple, collapsed for the common case so the key reads like the URL —
+     *   default/index/agency  ->  "agency"          (every shipped marketing page)
+     *   blog/index/view       ->  "blog-index-view"
+     * Segments are sanitised to [a-z0-9-] so the key is always a safe config segment.
+     *
+     * @param  Zend_Controller_Request_Abstract $request the dispatched request
+     * @return string                                   the key, or '' when it can't be derived
+     */
+    public static function pageKey(Zend_Controller_Request_Abstract $request)
+    {
+        if (!method_exists($request, 'getActionName')) {
+            return '';
+        }
+        $module     = self::_keySegment((string) $request->getModuleName());
+        $controller = self::_keySegment((string) $request->getControllerName());
+        $action     = self::_keySegment((string) $request->getActionName());
+        if ($action === '') {
+            return '';
+        }
+        if (($module === '' || $module === 'default') && ($controller === '' || $controller === 'index')) {
+            return $action;   // the shipped marketing pages — key reads like the URL
+        }
+        return trim(($module !== '' ? $module . '-' : '') . ($controller !== '' ? $controller . '-' : '') . $action, '-');
+    }
+
+    /**
+     * The authored OG defaults for a page key — `tiger.seo.page.<key>.{title,description,image}`.
+     *
+     * Storage is the ordinary config cascade, so there is nothing new to persist: an `.ini` supplies the
+     * shipped base and a `config` DB row overrides it live (per install or per org), no deploy. `image`
+     * is a media id or an absolute URL. Returns only the keys that are actually set.
+     *
+     * @param  string $key the page key (see pageKey())
+     * @return array<string,string> the authored values: title, description, image
+     */
+    public static function pageDefaults($key)
+    {
+        $key = self::_keySegment((string) $key);
+        if ($key === '') {
+            return [];
+        }
+        $out = [];
+        foreach (['title', 'description', 'image'] as $field) {
+            $v = trim((string) self::_config('seo.page.' . $key . '.' . $field, ''));
+            if ($v !== '') { $out[$field] = $v; }
+        }
+        return $out;
+    }
+
     // -- internals -----------------------------------------------------------------------------------
+
+    /** Normalise one config-key segment: lowercase, [a-z0-9-] only ('' when nothing survives). */
+    private static function _keySegment($seg)
+    {
+        $seg = strtolower(trim((string) $seg));
+        $seg = preg_replace('/[^a-z0-9-]+/', '-', $seg);
+        return trim((string) $seg, '-');
+    }
+
+    /**
+     * Is a head-meta entry of this type already present? ($type: 'name' | 'property' | 'http-equiv').
+     * The container holds stdClass items with ->type/->name/->content.
+     */
+    private static function _metaHas($meta, $type, $key)
+    {
+        return self::_metaContent($meta, $type, $key) !== '' || self::_metaFind($meta, $type, $key) !== null;
+    }
+
+    /** The content of an existing head-meta entry, or '' when absent. */
+    private static function _metaContent($meta, $type, $key)
+    {
+        $item = self::_metaFind($meta, $type, $key);
+        return $item ? trim((string) ($item->content ?? '')) : '';
+    }
+
+    /**
+     * Locate a head-meta item by type + key; null when absent. Fail-soft on any odd container.
+     *
+     * NOTE the container shape: Zend_View_Helper_HeadMeta::createData() stores the key under a property
+     * NAMED BY THE TYPE — a property meta is {type:'property', property:'og:title'}, a name meta is
+     * {type:'name', name:'description'}. So the lookup is `$item->{$item->type}`, never a fixed ->name.
+     */
+    private static function _metaFind($meta, $type, $key)
+    {
+        try {
+            foreach ($meta as $item) {
+                if (!isset($item->type) || (string) $item->type !== $type) {
+                    continue;
+                }
+                $prop = (string) $item->type;
+                if (isset($item->$prop) && (string) $item->$prop === $key) {
+                    return $item;
+                }
+            }
+        } catch (Throwable $e) {
+            // fail-open — never break a render over head introspection
+        }
+        return null;
+    }
 
     /** Decode a row's JSON `meta` to an array (tolerates an already-decoded array). */
     private static function _meta($page)
@@ -136,6 +334,27 @@ class Seo_Service_Head
         }
         $path = (string) parse_url((string) $request->getRequestUri(), PHP_URL_PATH);
         return $request->getScheme() . '://' . $request->getHttpHost() . ($path !== '' ? $path : '/');
+    }
+
+    /**
+     * The view the ACTION actually rendered into (the ViewRenderer's instance) — the only one carrying
+     * per-request view properties like `title`. Distinct from _view(), which is only good for the
+     * process-wide placeholder containers. Null when there's no ViewRenderer (CLI, tests).
+     */
+    private static function _renderedView()
+    {
+        try {
+            if (!class_exists('Zend_Controller_Action_HelperBroker')) {
+                return null;
+            }
+            if (!Zend_Controller_Action_HelperBroker::hasHelper('viewRenderer')) {
+                return null;
+            }
+            $vr = Zend_Controller_Action_HelperBroker::getExistingHelper('viewRenderer');
+            return ($vr && $vr->view instanceof Zend_View_Interface) ? $vr->view : null;
+        } catch (Throwable $e) {
+            return null;
+        }
     }
 
     /** A Zend_View to reach the head helpers. Any instance shares the process-wide placeholder registry. */

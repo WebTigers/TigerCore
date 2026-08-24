@@ -315,6 +315,15 @@ class Cms_Service_Page extends Tiger_Service_Service
         if (!isset($meta['seo']) || !is_array($meta['seo'])) { $meta['seo'] = []; }
         $meta['seo']['description'] = trim((string) ($v['meta_description'] ?? ''));
         unset($meta['description']);
+        // SEO title + share image (og:image) — MERGE, never replace: each is touched only when the
+        // caller actually submitted that field, so a partial save (or an /api caller that doesn't
+        // know about them) can't wipe an authored value. A submitted BLANK clears the override, and
+        // Seo_Service_Head then falls back (page title / the site-wide og image).
+        foreach (['seo_title' => 'title', 'og_image_id' => 'og_image_id'] as $field => $seoKey) {
+            if (!array_key_exists($field, $params)) { continue; }
+            $val = trim((string) ($v[$field] ?? ''));
+            if ($val !== '') { $meta['seo'][$seoKey] = $val; } else { unset($meta['seo'][$seoKey]); }
+        }
         $meta['head_html']    = (string) ($v['head_html'] ?? '');
         $meta['body_scripts'] = (string) ($v['body_scripts'] ?? '');
         // Custom field groups (Tiger_Fields): merge posted, declared-only values into meta.fields.

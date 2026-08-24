@@ -304,7 +304,9 @@ class Cms_PageController extends Tiger_Controller_Admin_Action
             'layout_key'       => $page->layout_key,
             'published_at'     => $page->published_at,
             'body'             => $page->body,
+            'seo_title'        => $meta['seo']['title'] ?? '',
             'meta_description' => $meta['seo']['description'] ?? ($meta['description'] ?? ''),
+            'og_image_id'      => $meta['seo']['og_image_id'] ?? '',
             'head_html'        => $meta['head_html']    ?? '',
             'body_scripts'     => $meta['body_scripts'] ?? '',
         ];

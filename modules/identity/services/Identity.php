@@ -4,8 +4,13 @@
 /**
  * Identity_Service_Identity — the /api service behind the Site Identity screen. Validates the
  * form, then writes the identity to the config tier (the live-override store, no deploy):
- * the site name/tagline, the logo + favicon media references, and the social profile URLs
- * that feed Organization.sameAs in the JSON-LD.
+ * the site name/tagline/description, the logo + favicon + share-image media references, and the
+ * social profile URLs that feed Organization.sameAs in the JSON-LD.
+ *
+ * Two of the values it writes are the site-wide social-card fallbacks Seo_Service_Head::site()
+ * reads last: `tiger.site.description` (the og:description fallback) and `tiger.seo.og_image`
+ * (the og:image fallback). The latter is a media id OR an absolute URL — Head resolves either,
+ * preferring an id because the media row yields a real absolute URL + true pixel dimensions.
  *
  * Scope: writes at GLOBAL scope for now — the single site's identity, visible to guests on
  * public pages (anonymous requests only receive GLOBAL config, by design; core stays
@@ -21,6 +26,7 @@ class Identity_Service_Identity extends Tiger_Service_Service
     const KEYS = [
         'site_name'        => 'tiger.site.name',
         'tagline'          => 'tiger.site.tagline',
+        'site_description' => 'tiger.site.description',
         'social_twitter'   => 'tiger.seo.social.twitter',
         'social_facebook'  => 'tiger.seo.social.facebook',
         'social_instagram' => 'tiger.seo.social.instagram',
@@ -32,7 +38,7 @@ class Identity_Service_Identity extends Tiger_Service_Service
     /**
      * Save the site identity: validate, then persist every field to the config store.
      *
-     * @param  array $params the posted form values (+ logo_media_id / favicon_media_id)
+     * @param  array $params the posted form values (+ logo_media_id / favicon_media_id / og_image_media_id)
      * @return void
      */
     public function save(array $params): void
@@ -54,8 +60,16 @@ class Identity_Service_Identity extends Tiger_Service_Service
         $logo    = self::_mediaId($params['logo_media_id']    ?? '');
         $favicon = self::_mediaId($params['favicon_media_id'] ?? '');
 
+        // The share image is EITHER a library pick or an absolute URL. A picked media id always
+        // wins (Head resolves it to a real URL + true dimensions, which makes a better card); the
+        // validated `og_image_url` is the fallback for an image that isn't in the library.
+        $ogImage = self::_mediaId($params['og_image_media_id'] ?? '');
+        if ($ogImage === '') {
+            $ogImage = trim((string) ($v['og_image_url'] ?? ''));
+        }
+
         try {
-            $this->_transaction(function () use ($v, $logo, $favicon) {
+            $this->_transaction(function () use ($v, $logo, $favicon, $ogImage) {
                 $cfg   = new Tiger_Model_Config();
                 [$scope, $scopeId] = $this->_scope();
                 foreach (self::KEYS as $field => $key) {
@@ -63,6 +77,7 @@ class Identity_Service_Identity extends Tiger_Service_Service
                 }
                 $cfg->set($scope, $scopeId, 'tiger.site.logo',    $logo);
                 $cfg->set($scope, $scopeId, 'tiger.site.favicon', $favicon);
+                $cfg->set($scope, $scopeId, 'tiger.seo.og_image', $ogImage);
             });
             $this->_success([], 'identity.saved');
         } catch (Throwable $e) {
