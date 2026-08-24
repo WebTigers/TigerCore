@@ -2,36 +2,55 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
- * /agency — the agency story: one client or a hundred, run from a single back office. Rendered
- * inside the PUMA public layout; Bootstrap + --bs-* tokens (restyles live with theme + skin).
- * Shipped marketing.
+ * /agency — एजेंसी की कहानी: एक क्लाइंट हो या सौ, सब एक ही बैक ऑफ़िस से चलाएँ; नींव बार-बार बनाना बंद करें,
+ * रेकरिंग रेवेन्यू अपने पास रखें, कस्टम काम को दोबारा इस्तेमाल होने वाली IP में बदलें। PUMA पब्लिक लेआउट के
+ * भीतर रेंडर होता है; सिर्फ़ Bootstrap + --bs-* टोकन (रीस्टाइल थीम + स्किन के साथ लाइव)। शिप्ड मार्केटिंग।
  */
-$this->title = 'एजेंसी के अनुकूल — सैकड़ों क्लाइंट साइट होस्ट करें | Tiger';
+$this->title = 'एजेंसियों और फ़्रीलांसरों के लिए — एक इंस्टॉल, हर क्लाइंट साइट | Tiger';
 
+// वे बुनियादी चीज़ें जो हर प्रोजेक्ट में दोबारा बनती हैं — chips के रूप में ("दोबारा बनाना बंद करें" सेक्शन)।
+$fundamentals = [
+    'ऑथेंटिकेशन', 'यूज़र प्रबंधन', 'अनुमतियाँ', 'एडमिन पैनल', 'डेटाबेस प्लंबिंग',
+    'CMS', 'बिलिंग', 'कॉन्फ़िगरेशन', 'ईमेल', 'API इन्फ़्रास्ट्रक्चर',
+];
+
+// पुराना प्रति-क्लाइंट ढेर (हर एक काटे हुए खर्च की pill बनता है)।
+$oldStack = ['होस्टिंग', 'डेटाबेस', 'ऑथ प्रोवाइडर', 'CMS सब्सक्रिप्शन', 'डिप्लॉयमेंट', 'प्लगइन', 'SaaS फ़ीस'];
+
+// यह एजेंसियों के काम करने के तरीके में क्यों फ़िट बैठता है (बेनिफ़िट ग्रिड)।
 $benefits = [
-    ['fa-diagram-project', 'एक इंस्टॉल, कई tenants',       'हर क्लाइंट उसी platform पर एक org है — अलग-अलग डेटा, अपने खुद के users और roles, अपनी खुद की theme और content। आप एक क्लाइंट जोड़ते हैं, एक server नहीं।'],
-    ['fa-gauge-high',      'हर project को तुरंत शुरू करें',   'सोमवार को नया क्लाइंट, उसी दिन एक चलता हुआ multi-tenant साइट। वह auth/roles/CMS का दोहराव वाला काम छोड़ें जो आप हर बार दोबारा बनाते हैं और सीधे उनके brief पर जाएँ।'],
-    ['fa-palette',         'हर क्लाइंट के लिए white-label',   'Theme और skin हर org के हिसाब से resolve होते हैं, इसलिए हर क्लाइंट को अपना brand दिखता है — आपका नहीं, और कोई template नहीं। बिना redeploy किए look को live बदलें।'],
-    ['fa-user-shield',     'सुरक्षित रूप से सीमित पहुँच',     'Deny-by-default ACL, membership पर roles के साथ। किसी क्लाइंट को सिर्फ़ उसके org तक पहुँच दें और कुछ नहीं; एक साथी को यहाँ manager, वहाँ viewer के रूप में जोड़ें।'],
-    ['fa-server',          'जहाँ आप host करें, वहाँ चले',    'cPanel, एक $5 का VPS, या load balancer के पीछे एक fleet — कोई build step नहीं, बहुत छोटा footprint। सैकड़ों साइट host करें बिना ऐसी hosting बिल के जो margin खा जाए।'],
-    ['fa-sliders',         'Live config, कोई deploy नहीं',   'किसी क्लाइंट की settings, copy या branding को admin से बदलें — config और translation tiers request के समय override करती हैं, इसलिए बदलाव बिना release के live हो जाते हैं।'],
+    ['fa-diagram-project', 'एक इंस्टॉल, कई टेनेंट',        'हर क्लाइंट उसी प्लेटफ़ॉर्म पर एक org है — अलग डेटा, अपने यूज़र और रोल, अपनी थीम और कॉन्टेंट। आप एक क्लाइंट जोड़ते हैं, एक सर्वर नहीं।'],
+    ['fa-gauge-high',      'हर प्रोजेक्ट को तुरंत रफ़्तार दें', 'सोमवार को नया क्लाइंट, उसी दिन एक चलती हुई multi-tenant साइट। auth/roles/CMS का वही boilerplate छोड़िए जो हर बार दोबारा बनाना पड़ता है और सीधे उनके brief पर जाइए।'],
+    ['fa-palette',         'हर क्लाइंट के लिए white-label',   'थीम और स्किन हर org के हिसाब से resolve होते हैं, इसलिए हर क्लाइंट को अपनी ही ब्रांडिंग दिखती है — न आपकी, न कोई टेम्पलेट। बिना redeploy किए लुक लाइव बदलें। आपके क्लाइंट को कभी पता चलने की ज़रूरत नहीं कि Tiger मौजूद है।'],
+    ['fa-user-shield',     'सुरक्षित, सीमित पहुँच',           'Deny-by-default एक्सेस कंट्रोल, रोल membership पर। किसी क्लाइंट को सिर्फ़ उसका org दीजिए और कुछ नहीं; एक साथी को यहाँ manager, वहाँ viewer बना दीजिए। आपका प्लेटफ़ॉर्म, आपके नियम।'],
+    ['fa-server',          'जहाँ आप होस्ट करें, वहीं चले',     'cPanel, $5 का VPS, या लोड बैलेंसर के पीछे पूरा fleet — कोई build step नहीं, बेहद छोटा footprint। होस्ट बदलिए, स्केल अप कीजिए, स्केल आउट कीजिए। आपके क्लाइंट किसी के बंधक नहीं रहेंगे।'],
+    ['fa-sliders',         'लाइव कॉन्फ़िग, कोई डिप्लॉय नहीं',  'किसी क्लाइंट की सेटिंग्स, कॉपी या ब्रांडिंग एडमिन से बदलिए — कॉन्फ़िग और ट्रांसलेशन tiers रिक्वेस्ट के समय override करती हैं, इसलिए बदलाव बिना रिलीज़ के लाइव हो जाते हैं।'],
+];
+
+// एक बार बनाइए, दोबारा-दोबारा बेचिए — वे verticals जिन्हें एजेंसी बार-बार शिप करती है।
+$verticals = [
+    ['fa-tooth',           'डेंटल क्लीनिक'],
+    ['fa-house-chimney',   'रियल-एस्टेट फ़र्म'],
+    ['fa-scale-balanced',  'लॉ फ़र्म'],
+    ['fa-id-card-clip',    'मेंबरशिप संगठन'],
+    ['fa-utensils',        'रेस्टोरेंट ग्रुप'],
 ];
 ?>
 <!-- Hero -->
 <section class="py-5">
     <div class="container text-center py-lg-5">
         <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
-            <i class="fa-solid fa-people-group me-1"></i> एजेंसियों और freelancers के लिए
+            <i class="fa-solid fa-people-group me-1"></i> एजेंसियों और फ़्रीलांसरों के लिए
         </span>
-        <h1 class="display-4 fw-bold mb-3">एक क्लाइंट, या सौ।</h1>
-        <p class="lead text-secondary mx-auto mb-4" style="max-width: 720px;">
-            Tiger अपने core तक multi-tenant है, इसलिए एक ही install आपके सभी क्लाइंट साइट चलाता है — हर एक अलग,
-            white-labeled, और एक ही back office से प्रबंधित। हर project को तुरंत शुरू करें और वह margin अपने पास
-            रखें जो पहले hosting बिल खा जाती थी।
+        <h1 class="display-4 fw-bold mb-3">एक क्लाइंट हो, या सौ।</h1>
+        <p class="lead text-secondary mx-auto mb-4" style="max-width: 760px;">
+            Tiger जड़ से multi-tenant है, इसलिए एक ही इंस्टॉल आपकी सारी क्लाइंट साइट चलाता है — हर एक अलग,
+            white-labeled, और एक ही बैक ऑफ़िस से मैनेज। हर प्रोजेक्ट को तुरंत रफ़्तार दीजिए और वह मार्जिन अपने
+            पास रखिए जो पहले होस्टिंग बिल खा जाता था।
         </p>
         <div class="d-flex flex-wrap gap-2 justify-content-center">
-            <a href="/signup" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-arrow-right-to-bracket me-2"></i>शुरू करें</a>
-            <a href="/docs" class="btn btn-outline-secondary btn-lg px-4">documentation पढ़ें</a>
+            <a href="#get" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-rocket me-2"></i>शुरू करें</a>
+            <a href="/docs" class="btn btn-outline-secondary btn-lg px-4">डॉक्स पढ़ें</a>
         </div>
     </div>
 </section>
@@ -44,10 +63,10 @@ $benefits = [
                 <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
                     <div class="card-body text-center p-4">
                         <i class="fa-solid fa-user text-primary fs-2 mb-3"></i>
-                        <h2 class="h5 fw-bold">अकेले और single-client</h2>
+                        <h2 class="h5 fw-bold">सोलो और सिंगल-क्लाइंट</h2>
                         <p class="text-secondary mb-0">
-                            एक क्लाइंट के लिए बिना auth, roles और CMS को शून्य से जोड़े एक परिष्कृत, सुरक्षित साइट
-                            खड़ा करें। सब कुछ शामिल है — आप उनके brief पर ध्यान देते हैं, boilerplate पर नहीं।
+                            एक क्लाइंट के लिए पॉलिश्ड, सुरक्षित साइट खड़ी कीजिए — auth, roles और CMS शून्य से
+                            जोड़े बिना। सब कुछ शामिल है, ताकि आपका ध्यान उनके brief पर रहे, boilerplate पर नहीं।
                         </p>
                     </div>
                 </div>
@@ -56,10 +75,10 @@ $benefits = [
                 <div class="card h-100 border-0 border-top border-primary border-3 shadow-sm">
                     <div class="card-body text-center p-4">
                         <i class="fa-solid fa-city text-primary fs-2 mb-3"></i>
-                        <h2 class="h5 fw-bold">बड़े पैमाने पर multi-client</h2>
+                        <h2 class="h5 fw-bold">बड़े पैमाने पर मल्टी-क्लाइंट</h2>
                         <p class="text-secondary mb-0">
-                            अपनी पूरी client-सूची एक ही platform पर चलाएँ — हर क्लाइंट एक अलग tenant, अपने खुद के
-                            users, roles, theme और content के साथ, सब एक ही admin से। अगला क्लाइंट मिनटों में जोड़ें।
+                            अपनी पूरी क्लाइंट-लिस्ट एक ही प्लेटफ़ॉर्म पर चलाइए — हर क्लाइंट एक अलग टेनेंट, अपने
+                            यूज़र, रोल, थीम और कॉन्टेंट के साथ, सब एक ही एडमिन से। अगला क्लाइंट मिनटों में जोड़िए।
                         </p>
                     </div>
                 </div>
@@ -68,12 +87,82 @@ $benefits = [
     </div>
 </section>
 
-<!-- Benefits grid -->
-<section id="features" class="py-5 mt-4" style="background: var(--bs-tertiary-bg);">
+<!-- Stop rebuilding the foundation -->
+<section class="py-5 mt-4" style="background: var(--bs-tertiary-bg);">
+    <div class="container">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-6">
+                <h2 class="fw-bold mb-3">वही नींव बार-बार बनाना बंद कीजिए।</h2>
+                <p class="text-secondary mb-3">
+                    एजेंसी का कितना वक़्त उन्हीं चीज़ों में चला जाता है जो आप बीस बार बना चुके हैं? Tiger आपके
+                    डेवलपर्स को — और उनके AI कोडिंग एजेंट्स को — एक व्यवस्थित एप्लिकेशन प्लेटफ़ॉर्म देता है जहाँ
+                    बुनियादी चीज़ें पहले से मौजूद हैं। शुरुआत क्लाइंट की ज़रूरतों से कीजिए, boilerplate से नहीं।
+                </p>
+                <p class="mb-0 fw-semibold">हर इंस्टॉल में पहले से बना हुआ:</p>
+            </div>
+            <div class="col-lg-6">
+                <div class="d-flex flex-wrap gap-2">
+<?php foreach ($fundamentals as $f): ?>
+                    <span class="badge rounded-pill text-bg-light border fw-normal fs-6 px-3 py-2">
+                        <i class="fa-solid fa-check text-success me-1"></i><?= $this->escape($f) ?>
+                    </span>
+<?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- The old way vs Tiger -->
+<section class="py-5">
     <div class="container">
         <div class="text-center mb-5">
-            <h2 class="fw-bold">एजेंसियाँ जिस तरह वास्तव में काम करती हैं, उसके लिए बनाया गया</h2>
-            <p class="text-secondary mb-0">अलग tenants, white-label branding, live config — हर क्लाइंट के लिए कुछ भी दोबारा बनाने की ज़रूरत नहीं।</p>
+            <h2 class="fw-bold">पुराना तरीक़ा बनाम Tiger।</h2>
+            <p class="text-secondary mb-0">हर नए क्लाइंट का मतलब अकाउंट, सर्विसेज़ और मासिक बिलों का एक और ढेर नहीं होना चाहिए।</p>
+        </div>
+        <div class="row g-4 align-items-stretch justify-content-center">
+            <div class="col-lg-6">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="text-uppercase small fw-semibold text-secondary mb-3">इसके बजाय</div>
+                        <div class="fw-semibold mb-3"><i class="fa-solid fa-user-tie text-secondary me-2"></i>क्लाइंट
+                            <i class="fa-solid fa-arrow-right-long text-secondary mx-2"></i>
+                            <span class="text-secondary">हर क्लाइंट के लिए अलग स्टैक</span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+<?php foreach ($oldStack as $s): ?>
+                            <span class="badge rounded-pill text-bg-danger-subtle text-danger-emphasis fw-normal fs-6 px-3 py-2 text-decoration-line-through">
+                                <?= $this->escape($s) ?>
+                            </span>
+<?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card h-100 border-0 shadow-sm border-start border-primary border-4">
+                    <div class="card-body p-4 d-flex flex-column">
+                        <div class="text-uppercase small fw-semibold text-primary-emphasis mb-3">आपको मिलता है</div>
+                        <div class="d-flex align-items-center flex-grow-1">
+                            <span class="fs-4 fw-bold"><i class="fa-solid fa-user-tie text-secondary me-2"></i>क्लाइंट
+                                <i class="fa-solid fa-arrow-right-long text-primary mx-2"></i>
+                                <span class="text-primary">Tiger</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p class="text-center fw-bold fs-5 mt-4 mb-0">नया क्लाइंट = नया टेनेंट। सब्सक्रिप्शन का एक और ढेर नहीं।</p>
+    </div>
+</section>
+
+<!-- Benefits grid -->
+<section id="features" class="py-5" style="background: var(--bs-tertiary-bg);">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">एजेंसियाँ असल में जैसे काम करती हैं, उसी के लिए बना</h2>
+            <p class="text-secondary mb-0">अलग-अलग टेनेंट, white-label ब्रांडिंग, लाइव कॉन्फ़िग — हर क्लाइंट के लिए दोबारा कुछ बनाना नहीं।</p>
         </div>
         <div class="row g-4">
 <?php foreach ($benefits as $b): ?>
@@ -93,21 +182,166 @@ $benefits = [
     </div>
 </section>
 
-<!-- CTA -->
+<!-- Keep the recurring revenue -->
 <section class="py-5">
     <div class="container">
-        <div class="card border-0 shadow-sm text-center">
-            <div class="card-body p-4 p-lg-5">
-                <h2 class="fw-bold mb-3">अपने अगले क्लाइंट को एक tenant में बदलें</h2>
-                <p class="text-secondary mb-4">एक command एक चलती हुई, themed, multi-tenant platform खड़ी कर देता है जिस पर आप आगे बढ़ सकते हैं।</p>
-                <div class="bg-body-tertiary border rounded-3 d-inline-block px-4 py-3 mb-4 text-start font-monospace">
-                    <span class="text-secondary">$</span> composer create-project webtigers/tiger my-agency<br>
-                    <span class="text-secondary">$</span> cd my-agency &amp;&amp; vendor/bin/tiger install:admin
-                </div>
-                <div>
-                    <a href="/signup" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-arrow-right-to-bracket me-2"></i>अपना account बनाएँ</a>
+        <div class="row align-items-center g-4">
+            <div class="col-lg-2 text-center d-none d-lg-block">
+                <i class="fa-solid fa-hand-holding-dollar text-primary" style="font-size:3.5rem;"></i>
+            </div>
+            <div class="col-lg-10">
+                <h2 class="fw-bold mb-3">रेकरिंग रेवेन्यू अपने पास रखिए।</h2>
+                <p class="text-secondary mb-3">
+                    एजेंसियाँ प्रोडक्ट बनाएँ और मार्जिन SaaS वेंडर्स को सौंप दें — यह ठीक नहीं। Tiger के साथ हर
+                    नए क्लाइंट पर आपकी इन्फ़्रास्ट्रक्चर लागत अपने आप कई गुना नहीं होती। होस्टिंग, मैनेजमेंट,
+                    मेंटेनेंस, डेवलपमेंट, मॉड्यूल, सपोर्ट — जो भी सेवाएँ आपकी एजेंसी के लिए सही हों, उनका चार्ज
+                    कीजिए।
+                </p>
+                <p class="text-secondary mb-3">आपके क्लाइंट क्या देंगे, यह आप तय करते हैं। Tiger कहाँ चलेगा, यह आप तय करते हैं। मार्जिन आपका रहता है।</p>
+                <p class="fw-bold fs-5 mb-0">ज़्यादा क्लाइंट से आपका मार्जिन बढ़ना चाहिए — आपका SaaS बिल नहीं।</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Build once, sell it again -->
+<section class="py-5" style="background: var(--bs-tertiary-bg);">
+    <div class="container">
+        <div class="text-center mb-4">
+            <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+                <i class="fa-solid fa-boxes-stacked me-1"></i> दोबारा इस्तेमाल होने वाली IP
+            </span>
+            <h2 class="fw-bold mb-2">एक बार बनाइए। बार-बार बेचिए।</h2>
+            <p class="text-secondary mx-auto mb-0" style="max-width: 720px;">
+                एक क्लाइंट के लिए मॉड्यूल बनाइए और अगले के लिए दोबारा इस्तेमाल कीजिए। अपने इन-हाउस मॉड्यूल
+                पैकेज कीजिए, या उन इंडस्ट्रीज़ के लिए पूरी स्टार्टर एप्लिकेशन जिन्हें आप बार-बार सर्व करते हैं —
+                यानी कस्टम डेवलपमेंट को अपनी बौद्धिक संपदा में बदलिए।
+            </p>
+        </div>
+        <div class="row g-3 justify-content-center mb-4">
+<?php foreach ($verticals as $v): ?>
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="card h-100 border-0 shadow-sm text-center">
+                    <div class="card-body py-4">
+                        <i class="fa-solid <?= $v[0] ?> text-primary fs-3 mb-2 d-block"></i>
+                        <span class="small fw-semibold"><?= $this->escape($v[1]) ?></span>
+                    </div>
                 </div>
             </div>
+<?php endforeach; ?>
+        </div>
+        <p class="text-center fw-bold fs-5 mb-0">अगला क्लाइंट वहीं से शुरू होता है जो आप पहले से जानते हैं।</p>
+    </div>
+</section>
+
+<!-- Built for AI development -->
+<section class="py-5">
+    <div class="container">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-7">
+                <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+                    <i class="fa-solid fa-robot me-1"></i> AI डेवलपमेंट के लिए बना
+                </span>
+                <h2 class="fw-bold mb-3">अपने कोडिंग एजेंट को खाली फ़ोल्डर नहीं, एक नींव दीजिए।</h2>
+                <p class="text-secondary mb-3">
+                    Claude Code, ChatGPT, Codex या अपने पसंदीदा एजेंट को खाली फ़ोल्डर और उम्मीद के बजाय एक
+                    व्यवस्थित Tiger एप्लिकेशन पर लगाइए। Tiger कंट्रोलर, सर्विस, मॉडल, मॉड्यूल, ऑथेंटिकेशन,
+                    अनुमतियाँ, multi-tenancy, कॉन्फ़िगरेशन, डेटाबेस एक्सेस और API के लिए तय पैटर्न देता है — ताकि
+                    आपका AI हर बार कोड जनरेट करते वक़्त आर्किटेक्चर दोबारा ईजाद न करे।
+                </p>
+                <p class="fw-bold fs-5 mb-0">आर्किटेक्चर आपके नियंत्रण में। काम AI का।</p>
+            </div>
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center gap-2 mb-3 text-secondary small">
+                            <span class="d-inline-block rounded-circle bg-danger" style="width:.6rem;height:.6rem;"></span>
+                            <span class="d-inline-block rounded-circle bg-warning" style="width:.6rem;height:.6rem;"></span>
+                            <span class="d-inline-block rounded-circle bg-success" style="width:.6rem;height:.6rem;"></span>
+                            <span class="ms-2 font-monospace">agent</span>
+                        </div>
+                        <ul class="list-unstyled mb-0 small">
+                            <li class="mb-2"><i class="fa-solid fa-folder-tree text-primary me-2"></i>तयशुदा कंट्रोलर, सर्विस और मॉडल</li>
+                            <li class="mb-2"><i class="fa-solid fa-shield-halved text-primary me-2"></i>Auth, ACL और multi-tenancy पहले से जुड़े</li>
+                            <li class="mb-2"><i class="fa-solid fa-plug text-primary me-2"></i>हर फ़ीचर के लिए एक ही <span class="font-monospace">/api</span> कॉन्ट्रैक्ट</li>
+                            <li><i class="fa-solid fa-book text-primary me-2"></i>डॉक्स और कन्वेंशन जो एजेंट ख़ुद पढ़ सके</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Four ways to install (the CTA — drive agencies to run it, not sign up) -->
+<section class="py-5" id="get" style="background: var(--bs-tertiary-bg);">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+                <i class="fa-solid fa-rocket me-1"></i> इंस्टॉल करने के चार तरीक़े
+            </span>
+            <h2 class="fw-bold mb-2">अपने अगले क्लाइंट को एक टेनेंट बनाइए</h2>
+            <p class="text-secondary mx-auto mb-0" style="max-width: 640px;">वन-क्लिक सर्वर से लेकर एक Composer
+                कमांड तक — Tiger वही है, रास्ता आपकी पसंद का। कोई SaaS साइनअप नहीं, कोई मासिक वेंडर बिल नहीं;
+                पहले commit से ही यह आपका है।</p>
+        </div>
+        <div class="row row-cols-1 row-cols-md-2 g-4">
+
+            <div class="col">
+                <div class="card h-100 border-primary shadow-sm position-relative">
+                    <span class="badge text-bg-primary position-absolute top-0 end-0 m-3">सबसे तेज़</span>
+                    <div class="card-body">
+                        <div class="text-secondary fw-bold font-monospace">01</div>
+                        <h3 class="h4 fw-bold mb-1">TigerDen</h3>
+                        <div class="text-primary fw-semibold mb-2">तुरंत होस्टिंग — बॉक्स आपका</div>
+                        <div class="h5 fw-bold mb-2">$19 <span class="fs-6 text-secondary fw-normal">/ माह</span></div>
+                        <p class="text-secondary mb-0">आपका अपना Tiger सर्वर, माँगते ही लॉन्च और मिनटों में
+                            लाइव — TigerSSL, TigerShield और TigerPASS शामिल, आपका AI एजेंट तैयार। हम इसे लॉन्च
+                            करके चाबियाँ आपको सौंप देते हैं; बॉक्स के मालिक और चालक आप हैं। लाइव होने के लिए
+                            कोई सेटअप नहीं, कोई build step नहीं, कोई सर्वर खड़ा करने का झंझट नहीं।</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-secondary fw-bold font-monospace">02</div>
+                        <h3 class="h4 fw-bold mb-1">TigerInstall</h3>
+                        <div class="text-primary fw-semibold mb-2">शेयर्ड होस्टिंग</div>
+                        <p class="text-secondary mb-0">पहले से शेयर्ड होस्टिंग है? TigerInstall किसी भी सामान्य
+                            LAMP होस्ट पर वन-क्लिक सेटअप से आपको चालू कर देता है — न shell, न Composer, न
+                            DevOps।</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-secondary fw-bold font-monospace">03</div>
+                        <h3 class="h4 fw-bold mb-1">Tiger + Composer</h3>
+                        <div class="text-primary fw-semibold mb-2">पूरा नियंत्रण, डेवलपर्स के लिए</div>
+                        <div class="bg-body-tertiary border rounded-3 p-3 font-monospace mb-2">
+                            <span class="text-primary">$</span> composer create-project webtigers/tiger
+                        </div>
+                        <p class="text-secondary mb-0">सेकंडों में एक चलता-फिरता SaaS ऐप। पहले commit से ही आपका।</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-secondary fw-bold font-monospace">04</div>
+                        <h3 class="h4 fw-bold mb-1">Tiger + Docker</h3>
+                        <div class="text-primary fw-semibold mb-2">लोकल डेव एनवायरनमेंट</div>
+                        <p class="text-secondary mb-0">सेकंडों में पूरा लोकल एनवायरनमेंट खड़ा कीजिए। लोकल पर
+                            बनाइए, और जहाँ भी PHP + MariaDB चले वहाँ डिप्लॉय कीजिए।</p>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </section>
