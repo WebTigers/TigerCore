@@ -1,0 +1,127 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * Social Cards — the Open Graph title, description, and share image for each public view page (the
+ * shipped marketing pages, which have no CMS row). The table's rows are fetched from /api
+ * (Seo_Service_Social::pages) and the editor modal saves through Seo_Service_Social::save; the
+ * behavior lives in tiger.seo-pages.js, registered via pageScript() — a view owns markup, never
+ * behavior. Semantic Bootstrap only, no bespoke CSS, per ADMIN.md.
+ */
+$form = $this->form;
+$el   = function ($name) use ($form) { return $form->getElement($name); };
+
+// Localized strings this page's JS references — delivered via the carrier + tiger.i18n.js.
+$this->i18n([
+    'saved'         => 'seo.js.saved',
+    'fixFields'     => 'seo.js.fix_fields',
+    'networkError'  => 'seo.js.network_error',
+    'loadError'     => 'seo.js.load_error',
+    'authored'      => 'seo.js.authored',
+    'usingDefault'  => 'seo.js.using_default',
+    'editTitle'     => 'seo.js.edit_title',
+    'empty'         => 'seo.js.empty',
+]);
+$this->pageScript($this->themeAssets . '/js/tiger.seo-pages.js');
+?>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1"><?= $this->escape($this->t('seo.page.title')) ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->escape($this->t('seo.page.subtitle')) ?></p>
+    </div>
+    <div class="text-nowrap">
+        <a href="/identity/admin" class="btn btn-outline-secondary"><i class="fa-solid fa-fingerprint me-2"></i><?= $this->escape($this->t('seo.action.site_defaults')) ?></a>
+    </div>
+</div>
+
+<div id="seo-pages-feedback"></div>
+
+<div class="row g-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header fw-semibold"><i class="fa-solid fa-arrow-down-wide-short me-2"></i><?= $this->escape($this->t('seo.card.defaults')) ?></div>
+            <div class="card-body">
+                <p class="text-body-secondary mb-3"><?= $this->escape($this->t('seo.help.defaults')) ?></p>
+                <dl class="row mb-0" id="seo-defaults">
+                    <dt class="col-sm-3"><?= $this->escape($this->t('seo.label.default_title')) ?></dt>
+                    <dd class="col-sm-9 mb-2" data-seo-default="site_name">&mdash;</dd>
+                    <dt class="col-sm-3"><?= $this->escape($this->t('seo.label.default_description')) ?></dt>
+                    <dd class="col-sm-9 mb-2" data-seo-default="site_description">&mdash;</dd>
+                    <dt class="col-sm-3"><?= $this->escape($this->t('seo.label.default_image')) ?></dt>
+                    <dd class="col-sm-9 mb-0" data-seo-default="og_image">&mdash;</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header fw-semibold"><i class="fa-solid fa-share-nodes me-2"></i><?= $this->escape($this->t('seo.card.pages')) ?></div>
+            <div class="card-body">
+                <p class="text-body-secondary mb-3"><?= $this->escape($this->t('seo.help.pages')) ?></p>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col"><?= $this->escape($this->t('seo.col.page')) ?></th>
+                                <th scope="col"><?= $this->escape($this->t('seo.col.url')) ?></th>
+                                <th scope="col"><?= $this->escape($this->t('seo.col.title')) ?></th>
+                                <th scope="col"><?= $this->escape($this->t('seo.col.description')) ?></th>
+                                <th scope="col"><?= $this->escape($this->t('seo.col.image')) ?></th>
+                                <th scope="col" class="text-end"><?= $this->escape($this->t('seo.col.actions')) ?></th>
+                            </tr>
+                        </thead>
+                        <tbody id="seo-pages-body" data-seo-edit-label="<?= $this->escape($this->t('seo.action.edit')) ?>">
+                            <tr><td colspan="6" class="text-body-secondary"><?= $this->escape($this->t('seo.state.loading')) ?></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="seo-page-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="seo-page-modal-title"><?= $this->escape($this->t('seo.modal.title')) ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= $this->escape($this->t('seo.action.close')) ?>"></button>
+            </div>
+            <div class="modal-body">
+                <div id="seo-page-feedback"></div>
+                <form id="seo-page-form" onsubmit="return false;" novalidate>
+                    <?= $el('_csrf') ?>
+                    <?= $el('page_key') ?>
+                    <div class="mb-3">
+                        <label class="form-label" for="<?= $this->escape($el('title')->getId()) ?>"><?= $this->escape($this->t('seo.label.title')) ?></label>
+                        <?= $el('title') ?>
+                        <div class="form-text"><?= $this->escape($this->t('seo.help.title')) ?> <span class="fst-italic" data-seo-fallback="title"></span></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="<?= $this->escape($el('description')->getId()) ?>"><?= $this->escape($this->t('seo.label.description')) ?></label>
+                        <?= $el('description') ?>
+                        <div class="form-text"><?= $this->escape($this->t('seo.help.description')) ?> <span class="fst-italic" data-seo-fallback="description"></span></div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label"><?= $this->escape($this->t('seo.label.image')) ?></label>
+                            <?= $this->mediaField('image_media_id', '', ['kind' => 'image', 'label' => $this->t('seo.action.choose_image')]) ?>
+                            <div class="form-text"><?= $this->escape($this->t('seo.help.image')) ?></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="<?= $this->escape($el('image_url')->getId()) ?>"><?= $this->escape($this->t('seo.label.image_url')) ?></label>
+                            <?= $el('image_url') ?>
+                            <div class="form-text"><?= $this->escape($this->t('seo.help.image_url')) ?> <span class="fst-italic" data-seo-fallback="image"></span></div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary me-auto" id="seo-page-clear"><i class="fa-solid fa-eraser me-2"></i><?= $this->escape($this->t('seo.action.clear')) ?></button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal"><?= $this->escape($this->t('seo.action.cancel')) ?></button>
+                <button type="button" class="btn btn-primary" id="seo-page-save"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->escape($this->t('seo.action.save')) ?></button>
+            </div>
+        </div>
+    </div>
+</div>

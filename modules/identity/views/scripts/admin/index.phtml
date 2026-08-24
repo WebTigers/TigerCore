@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
- * Site Identity — the site's name, tagline, logo, favicon, and social links. ViewHelper-only form
- * (the view owns markup); logo + favicon use the platform media picker (Choose from the Media
- * Library or upload). Saving is an /api call to Identity_Service_Identity; the JSON response drives
+ * Site Identity — the site's name, tagline, description, logo, favicon, share image, and social
+ * links. ViewHelper-only form (the view owns markup); logo, favicon + the share image use the
+ * platform media picker (Choose from the Media Library or upload), and the share image adds a
+ * URL element for an image that isn't in the library. Saving is an /api call to Identity_Service_Identity; the JSON response drives
  * the feedback. Semantic Bootstrap only — no bespoke CSS (keeps it reskinnable), per ADMIN.md.
  */
 $form = $this->form;
@@ -42,10 +43,15 @@ $this->i18n([
                         <?= $el('site_name') ?>
                         <div class="form-text"><?= $this->escape($this->t('identity.help.site_name')) ?></div>
                     </div>
-                    <div class="mb-0">
+                    <div class="mb-3">
                         <label class="form-label" for="<?= $this->escape($el('tagline')->getId()) ?>"><?= $this->escape($this->t('identity.label.tagline')) ?></label>
                         <?= $el('tagline') ?>
                         <div class="form-text"><?= $this->escape($this->t('identity.help.tagline')) ?></div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label" for="<?= $this->escape($el('site_description')->getId()) ?>"><?= $this->escape($this->t('identity.label.site_description')) ?></label>
+                        <?= $el('site_description') ?>
+                        <div class="form-text"><?= $this->escape($this->t('identity.help.site_description')) ?></div>
                     </div>
                 </div>
             </div>
@@ -62,6 +68,26 @@ $this->i18n([
                     <div class="mb-0">
                         <?= $this->mediaField('favicon_media_id', $this->faviconId, ['kind' => 'image', 'label' => $this->t('identity.label.favicon')]) ?>
                         <div class="form-text"><?= $this->t('identity.help.favicon') ?></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header fw-semibold"><i class="fa-solid fa-panorama me-2"></i><?= $this->escape($this->t('identity.card.share_image')) ?></div>
+                <div class="card-body">
+                    <p class="text-body-secondary mb-3"><?= $this->escape($this->t('identity.help.share_image')) ?></p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <?= $this->mediaField('og_image_media_id', $this->ogImageId, ['kind' => 'image', 'label' => $this->t('identity.label.og_image')]) ?>
+                            <div class="form-text"><?= $this->escape($this->t('identity.help.og_image')) ?></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="<?= $this->escape($el('og_image_url')->getId()) ?>"><?= $this->escape($this->t('identity.label.og_image_url')) ?></label>
+                            <?= $el('og_image_url') ?>
+                            <div class="form-text"><?= $this->escape($this->t('identity.help.og_image_url')) ?></div>
+                        </div>
                     </div>
                 </div>
             </div>

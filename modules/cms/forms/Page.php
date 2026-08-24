@@ -98,9 +98,25 @@ class Cms_Form_Page extends Tiger_Form
             ]],
 
             // --- SEO & head (stored in the page `meta`; rendered into the public page) ---
+            // The SEO title overrides <title>/og:title for this page (meta.seo.title); blank = the
+            // page title. Read back by Seo_Service_Head::forRow().
+            ['text', 'seo_title', [
+                'filters' => ['StringTrim'],
+                'attribs' => array_merge($control, ['id' => 'cms-seo-title', 'maxlength' => 255]),
+            ]],
             ['textarea', 'meta_description', [
                 'filters' => ['StringTrim'],
                 'attribs' => array_merge($control, ['id' => 'cms-meta-description', 'rows' => 2, 'maxlength' => 320]),
+            ]],
+            // The per-page share image (og:image) — a MEDIA REFERENCE (a media_id, or an absolute
+            // https URL when pasted), stored as meta.seo.og_image_id and resolved to a real URL +
+            // true dimensions by Seo_Service_Head. Declared here so it validates and round-trips
+            // with the form, but the VIEW renders it through the mediaField() picker helper (which
+            // emits the very same hidden input) — so this element is never echoed itself.
+            ['hidden', 'og_image_id', [
+                'filters'    => ['StringTrim'],
+                'validators' => [['Regex', false, ['pattern' => '#^(https?://\S+|[0-9a-fA-F-]{36})$#']]],
+                'attribs'    => ['id' => 'cms-og-image'],
             ]],
             // Raw <head> additions (link/meta/style/script src) + end-of-body scripts. Admin-authored
             // (trusted) — output verbatim. Emptied by default; a tenant-safe editor would sanitize.

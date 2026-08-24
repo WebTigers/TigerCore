@@ -23,6 +23,23 @@ class Seo_Bootstrap extends Zend_Application_Module_Bootstrap
         Tiger_Routing_Overrides::register('seo_llms',    ['pattern' => 'llms.txt',     'target' => 'seo/llms/txt',    'priority' => 150]);
     }
 
+    /**
+     * List the Social Cards screen under the admin Settings tree (ACL-gated to Seo_AdminController).
+     * It authors `tiger.seo.page.<key>.*` for the public VIEW pages — the tier Seo_Service_Head::site()
+     * reads for a page that has no CMS row.
+     */
+    protected function _initAdminSettings()
+    {
+        Tiger_Admin_Settings::register([
+            'key'      => 'seo',
+            'label'    => 'seo.nav.label',
+            'icon'     => 'fa-share-nodes',
+            'href'     => '/seo/admin',
+            'resource' => 'Seo_AdminController',
+            'order'    => 15,
+        ]);
+    }
+
     /** Contribute the CMS pages to the sitemap. Blog registers its articles; other modules their own URLs. */
     protected function _initSeoSitemap()
     {

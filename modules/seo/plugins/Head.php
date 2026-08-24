@@ -7,6 +7,12 @@
  * the head containers are filled before the view + layout render. Fail-open: SEO never breaks a request.
  *
  * Blog articles render via their own controller (no `cms_page_id`) and call Seo_Service_Head directly.
+ *
+ * At postDispatch it then fills the SITE-level baseline (Seo_Service_Head::site) for everything else —
+ * the shipped marketing pages (/vibe, /agency, …) are plain controller actions with no `page` row, so
+ * without this they emitted NO og:* at all and a crawler fell back to scraping the DOM for an image.
+ * postDispatch is the right seam: the view has rendered (the title is known) but the layout has not
+ * (this plugin sits at stack index 90, ahead of Zend_Layout's 99), so the head registry is still open.
  */
 class Seo_Plugin_Head extends Zend_Controller_Plugin_Abstract
 {
@@ -37,6 +43,30 @@ class Seo_Plugin_Head extends Zend_Controller_Plugin_Abstract
             }
         } catch (Throwable $e) {
             // fail-open — a broken SEO lookup must never take down a page render
+        }
+    }
+
+    /**
+     * Fill the site-level head baseline for any page that didn't set its own (fills BLANKS only, so a
+     * CMS page's or an article's tags always win). Skipped when there's no layout — that's how a
+     * non-HTML render (the /api JSON gateway, sitemap.xml, robots.txt, llms.txt) opts out.
+     *
+     * @param  Zend_Controller_Request_Abstract $request
+     * @return void
+     */
+    public function postDispatch(Zend_Controller_Request_Abstract $request)
+    {
+        try {
+            if (!class_exists('Seo_Service_Head')) {
+                return;
+            }
+            $layout = class_exists('Zend_Layout') ? Zend_Layout::getMvcInstance() : null;
+            if (!$layout || !$layout->isEnabled()) {
+                return;   // no layout = not an HTML page render (JSON, XML, plain text) — nothing to head
+            }
+            Seo_Service_Head::site($request);
+        } catch (Throwable $e) {
+            // fail-open — SEO never breaks a render
         }
     }
 }

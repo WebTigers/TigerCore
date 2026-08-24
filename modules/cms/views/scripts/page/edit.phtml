@@ -134,9 +134,26 @@ $this->i18n([
         <div class="card-header fw-semibold"><i class="fa-solid fa-code me-2"></i><?= $this->t('cms.page.card_seo') ?></div>
         <div class="card-body">
             <div class="mb-3">
+                <label class="form-label" for="<?= $this->escape($el('seo_title')->getId()) ?>"><?= $this->t('cms.page.label_seo_title') ?></label>
+                <?= $el('seo_title')->setAttrib('data-agent-target', 'seo_title')->setAttrib('data-agent-label', 'SEO title')->setAttrib('data-agent-kind', 'text') ?>
+                <div class="form-text"><?= $this->t('cms.page.help_seo_title', '<code>&lt;title&gt;</code>', '<code>og:title</code>') ?></div>
+            </div>
+            <div class="mb-3">
                 <label class="form-label" for="<?= $this->escape($el('meta_description')->getId()) ?>"><?= $this->t('cms.page.label_meta_description') ?></label>
                 <?= $el('meta_description')->setAttrib('data-agent-target', 'meta_description')->setAttrib('data-agent-label', 'Meta description')->setAttrib('data-agent-kind', 'text') ?>
                 <div class="form-text"><?= $this->t('cms.page.help_meta_description', '<code>&lt;meta name="description"&gt;</code>') ?></div>
+            </div>
+            <?php /* Share image: the shared TigerMediaPicker field — it emits the og_image_id hidden
+                     input itself (auto-wired by tiger.media-picker.js), so the form element declared
+                     for og_image_id is deliberately NOT echoed here. */ ?>
+            <div class="mb-3">
+                <label class="form-label" for="<?= $this->escape($el('og_image_id')->getId()) ?>"><?= $this->t('cms.page.label_og_image') ?></label>
+                <?= $this->mediaField('og_image_id', $el('og_image_id')->getValue(), [
+                    'kind'  => 'image',
+                    'id'    => $el('og_image_id')->getId(),
+                    'label' => $this->t('cms.page.choose_image'),
+                ]) ?>
+                <div class="form-text"><?= $this->t('cms.page.help_og_image', '<code>og:image</code>') ?></div>
             </div>
             <div class="mb-3">
                 <label class="form-label" for="<?= $this->escape($el('head_html')->getId()) ?>"><?= $this->t('cms.page.label_head_html') ?> <span class="text-body-secondary"><?= $this->t('cms.page.head_html_hint', '<code>&lt;head&gt;</code>') ?></span></label>

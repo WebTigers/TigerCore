@@ -39,7 +39,7 @@ Rule applied: **public repos only, `Tiger*`-family only, private repos excluded.
 | **WebTigers/TigerCodeSnippets** | `TigerCodeSnippets` | PHP (6) | ✅ | 6 pure helper *functions* — ideal easy units; 0 tests |
 | **WebTigers/TigerVendors** | `Vendors` | PHP (3) | ✅ (partial) | registry review/compile scripts; 0 tests |
 | **WebTigers/Tiger** | `Tiger` | PHP (5) | ✅ (thin) | app skeleton — Bootstrap/index/custom; mostly glue |
-| **WebTigers/tiger-install** | `tiger-install` | PHP (1) | ✅ (thin) | installer; 0 tests |
+| **WebTigers/TigerInstall** | `tiger-install` | PHP (1) | ✅ (thin) | installer; 0 tests |
 | **WebTigers/TigerUpload** | `TigerUpload` | JS | ✅ (JS suite) | headless upload engine; separate JS tooling |
 | **WebTigers/TigerLightbox** | `TigerLightbox` | JS | ✅ (JS suite) | lightbox/gallery; separate JS tooling |
 | **WebTigers/TigerZF** | `TigerZF` | PHP (8957) | ⚠️ **special case** | see §2 — already has 1,210 test files / upstream ZF1 baseline |
