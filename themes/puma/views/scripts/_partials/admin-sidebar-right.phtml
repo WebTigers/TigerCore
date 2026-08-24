@@ -9,15 +9,15 @@
  * reserves the space). Fill with page-contextual widgets — activity, help, filters.
  */
 ?>
-<aside class="tiger-sidebar-right" aria-label="Assistant panel">
+<aside class="tiger-sidebar-right" aria-label="<?= $this->escape($this->t('theme.aside.label')) ?>">
     <div class="d-flex align-items-center justify-content-between mb-3">
-        <h6 class="text-secondary text-uppercase small mb-0">Activity</h6>
-        <button type="button" class="btn btn-sm btn-link text-secondary p-0 d-md-none" data-tiger-toggle="aside" aria-label="Close">
+        <h6 class="text-secondary text-uppercase small mb-0"><?= $this->escape($this->t('theme.aside.activity')) ?></h6>
+        <button type="button" class="btn btn-sm btn-link text-secondary p-0 d-md-none" data-tiger-toggle="aside" aria-label="<?= $this->escape($this->t('core.common.close')) ?>">
             <i class="fa-solid fa-xmark"></i>
         </button>
     </div>
     <p class="small text-secondary">
-        This optional rail appears when a view sets <code>$this-&gt;rightAside = true</code>.
-        Drop contextual widgets here — recent activity, inline help, filters.
+        <?php /* The %s carries the literal code sample, so translators never edit markup. */ ?>
+        <?= $this->t('theme.aside.placeholder', '<code>$this-&gt;rightAside = true</code>') ?>
     </p>
 </aside>

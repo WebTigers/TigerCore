@@ -11,7 +11,7 @@
  */
 $auth     = Zend_Auth::getInstance();
 $identity = $auth->hasIdentity() ? $auth->getIdentity() : null;
-$userName = $identity->email    ?? 'Guest';
+$userName = $identity->email    ?? $this->t('theme.admin.guest');
 $userRole = $identity->role     ?? 'guest';
 $orgName  = $identity->org_name ?? '';
 
@@ -44,7 +44,7 @@ $allowed = function ($resource) use ($acl, $userRole) {
 ?>
 <header class="tiger-header">
 
-    <button type="button" class="btn btn-link text-body p-1" data-tiger-toggle="sidebar" aria-label="Toggle navigation">
+    <button type="button" class="btn btn-link text-body p-1" data-tiger-toggle="sidebar" aria-label="<?= $this->escape($this->t('theme.a11y.toggle_nav')) ?>">
         <i class="fa-solid fa-bars fa-lg"></i>
     </button>
 
@@ -55,7 +55,7 @@ $allowed = function ($resource) use ($acl, $userRole) {
     <form class="tiger-search ms-3" action="/admin/search" role="search">
         <div class="input-group input-group-sm">
             <span class="input-group-text bg-transparent border-end-0"><i class="fa-solid fa-magnifying-glass text-secondary"></i></span>
-            <input type="search" name="q" class="form-control border-start-0" placeholder="Search…" aria-label="Search">
+            <input type="search" name="q" class="form-control border-start-0" placeholder="<?= $this->escape($this->t('theme.search.placeholder')) ?>" aria-label="<?= $this->escape($this->t('theme.search.label')) ?>">
         </div>
     </form>
 
@@ -71,16 +71,16 @@ $allowed = function ($resource) use ($acl, $userRole) {
 
     <!-- Notifications (demo content; wire to real feeds later) -->
     <div class="dropdown">
-        <a href="#" class="btn btn-link text-body position-relative px-2" data-bs-toggle="dropdown" aria-label="Alerts">
+        <a href="#" class="btn btn-link text-body position-relative px-2" data-bs-toggle="dropdown" aria-label="<?= $this->escape($this->t('theme.admin.alerts')) ?>">
             <i class="fa-solid fa-bell fa-lg"></i>
             <span class="position-absolute translate-middle badge rounded-pill bg-danger" style="top:.35rem;left:calc(100% - .35rem);font-size:.6rem;">3</span>
         </a>
         <div class="dropdown-menu dropdown-menu-end shadow p-0" style="min-width:290px;">
-            <div class="dropdown-header d-flex justify-content-between"><span>Alerts</span><span class="badge text-bg-secondary">3</span></div>
-            <a class="dropdown-item d-flex gap-2 py-2" href="#"><i class="fa-solid fa-triangle-exclamation text-warning mt-1"></i><span><strong>User locked</strong><br><small class="text-secondary">15 minutes ago</small></span></a>
-            <a class="dropdown-item d-flex gap-2 py-2" href="#"><i class="fa-solid fa-signal text-success mt-1"></i><span><strong>Connection restored</strong><br><small class="text-secondary">1 hour ago</small></span></a>
+            <div class="dropdown-header d-flex justify-content-between"><span><?= $this->escape($this->t('theme.admin.alerts')) ?></span><span class="badge text-bg-secondary">3</span></div>
+            <a class="dropdown-item d-flex gap-2 py-2" href="#"><i class="fa-solid fa-triangle-exclamation text-warning mt-1"></i><span><strong><?= $this->escape($this->t('theme.admin.alert.user_locked')) ?></strong><br><small class="text-secondary"><?= $this->escape($this->t('theme.admin.time.minutes_ago', 15)) ?></small></span></a>
+            <a class="dropdown-item d-flex gap-2 py-2" href="#"><i class="fa-solid fa-signal text-success mt-1"></i><span><strong><?= $this->escape($this->t('theme.admin.alert.connection_restored')) ?></strong><br><small class="text-secondary"><?= $this->escape($this->t('theme.admin.time.hour_ago', 1)) ?></small></span></a>
             <div class="dropdown-divider"></div>
-            <a class="dropdown-item text-center small py-2" href="#">View all</a>
+            <a class="dropdown-item text-center small py-2" href="#"><?= $this->escape($this->t('theme.admin.view_all')) ?></a>
         </div>
     </div>
 
@@ -100,20 +100,20 @@ $allowed = function ($resource) use ($acl, $userRole) {
                 <i id="header-avatar-icon" class="fa-solid fa-user text-secondary <?= $userAvatar === '' ? '' : 'd-none' ?>"></i>
             </span>
             <span class="d-none d-md-block text-start lh-sm">
-                <span id="header-user-name" data-email="<?= $this->escape($identity->email ?? '') ?>" class="d-block small fw-semibold"><?= $this->escape($userName) ?></span>
+                <span id="header-user-name" data-email="<?= $this->escape($identity->email ?? '') ?>" data-fallback="<?= $this->escape($this->t('theme.admin.user_fallback')) ?>" class="d-block small fw-semibold"><?= $this->escape($userName) ?></span>
                 <span class="d-block text-secondary" style="font-size:.72rem;"><?= $this->escape($orgName ?: ucfirst($userRole)) ?></span>
             </span>
             <i class="fa-solid fa-chevron-down small text-secondary d-none d-md-inline"></i>
         </a>
         <ul class="dropdown-menu dropdown-menu-end shadow">
-            <li><a class="dropdown-item" href="/user/profile"><i class="fa-solid fa-id-badge me-2 fa-fw"></i>My Profile</a></li>
-            <li><a class="dropdown-item" href="/auth/security"><i class="fa-solid fa-shield-halved me-2 fa-fw"></i>Two-Factor Auth</a></li>
+            <li><a class="dropdown-item" href="/user/profile"><i class="fa-solid fa-id-badge me-2 fa-fw"></i><?= $this->escape($this->t('theme.admin.menu.profile')) ?></a></li>
+            <li><a class="dropdown-item" href="/auth/security"><i class="fa-solid fa-shield-halved me-2 fa-fw"></i><?= $this->escape($this->t('theme.admin.menu.two_factor')) ?></a></li>
             <?php foreach (Tiger_Admin_UserMenu::items() as $mi): if (!$allowed($mi['resource'])) { continue; } ?>
                 <li><a class="dropdown-item" href="<?= $this->escape($mi['href']) ?>"><i class="fa-solid <?= $this->escape($mi['icon']) ?> me-2 fa-fw"></i><?= $this->escape($mi['label']) ?></a></li>
             <?php endforeach; ?>
             <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="/auth/lock"><i class="fa-solid fa-lock me-2 fa-fw"></i>Lock Screen</a></li>
-            <li><a class="dropdown-item" href="/logout"><i class="fa-solid fa-power-off me-2 fa-fw"></i>Sign Out</a></li>
+            <li><a class="dropdown-item" href="/auth/lock"><i class="fa-solid fa-lock me-2 fa-fw"></i><?= $this->escape($this->t('theme.admin.menu.lock_screen')) ?></a></li>
+            <li><a class="dropdown-item" href="/logout"><i class="fa-solid fa-power-off me-2 fa-fw"></i><?= $this->escape($this->t('theme.admin.menu.sign_out')) ?></a></li>
         </ul>
     </div>
 
@@ -135,6 +135,6 @@ window.addEventListener('tiger:display-name-changed', function (e) {
     var el = document.getElementById('header-user-name');
     if (!el) { return; }
     var name = e.detail && e.detail.name;
-    el.textContent = name || el.getAttribute('data-email') || 'User';
+    el.textContent = name || el.getAttribute('data-email') || el.getAttribute('data-fallback') || '';
 });
 </script>

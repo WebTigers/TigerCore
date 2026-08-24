@@ -6,6 +6,23 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.0.2] — 2026-08-24
+
+### Fixed
+- **The admin chrome was still hardcoded English.** The platform ships six locales, but the shared
+  PUMA chrome rendered its own labels as literals — so **My Profile**, **Lock Screen**, **Sign Out**,
+  **Alerts**, **View all**, **Activity**, the agent aside, the theme/skin/language switchers, the
+  consent banner, and the cron + schedule setup screens all stayed English no matter the locale.
+  Even `Skip to content` — an accessibility affordance — was untranslated. 93 keys added to
+  `themes/puma/languages/*/theme.php`, all six locales at 133 with identical key sets.
+- Time-ago strings ("15 minutes ago") became `sprintf` keys rather than baked-in English, and the
+  inline-JS `'User'` fallback now reads a translated `data-fallback` attribute.
+
+### Note
+Third-party UI labels are deliberately NOT translated: the cron setup walks you through **cPanel's
+and Plesk's own English screens**, so control names like *Add New Cron Job* stay verbatim in every
+locale — translating them would send people hunting for a button that doesn't exist.
+
 ## [1.0.1] — 2026-08-24
 
 ### Fixed
