@@ -2,19 +2,39 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
- * /agency — the agency story: one client or a hundred, run from a single back office. Rendered
- * inside the PUMA public layout; Bootstrap + --bs-* tokens (restyles live with theme + skin).
- * Shipped marketing.
+ * /agency — l'histoire des agences : un client ou cent, pilotés depuis un seul back office ; arrêtez de
+ * refaire les fondations, gardez le revenu récurrent, transformez le sur-mesure en IP réutilisable. Rendu
+ * dans le layout public PUMA ; Bootstrap + tokens --bs-* uniquement (les restyles suivent theme + skin).
+ * Marketing livré avec le produit.
  */
-$this->title = 'Idéal pour les agences — hébergez des centaines de sites clients | Tiger';
+$this->title = 'Pour les agences et les freelances — une installation, tous les sites clients | Tiger';
 
+// Les fondamentaux que chaque mission refait — affichés en chips (la section « arrêtez de refaire »).
+$fundamentals = [
+    'Authentification', 'Gestion des utilisateurs', 'Permissions', 'Panneaux d\'administration', 'Plomberie base de données',
+    'CMS', 'Facturation', 'Configuration', 'E-mail', 'Infrastructure API',
+];
+
+// L'ancien empilement par client (chaque élément devient une pastille de coût barrée).
+$oldStack = ['Hébergement', 'Base de données', 'Fournisseur d\'auth', 'Abonnement CMS', 'Déploiement', 'Plugins', 'Frais SaaS'];
+
+// Pourquoi ça colle à la façon dont les agences travaillent (la grille de bénéfices).
 $benefits = [
     ['fa-diagram-project', 'Une installation, plusieurs locataires', 'Chaque client est une organisation sur la même plateforme — données isolées, ses propres utilisateurs et rôles, son propre thème et son propre contenu. Vous ajoutez un client, pas un serveur.'],
-    ['fa-gauge-high',      'Lancez chaque projet en un instant', 'Nouveau client le lundi, un site multi-locataire opérationnel le jour même. Sautez tout l\'échafaudage d\'authentification, de rôles et de CMS que vous refaites à chaque mission et allez droit à son brief.'],
-    ['fa-palette',         'Marque blanche par client',    'Le thème et le skin se résolvent par organisation, de sorte que chaque client voit sa marque — pas la vôtre, ni un modèle générique. Changez de look en direct, sans redéploiement.'],
-    ['fa-user-shield',     'Accès délimité, en toute sécurité', 'ACL avec refus par défaut et rôles portés par l\'adhésion. Donnez à un client l\'accès à son organisation et à rien d\'autre ; ajoutez un collègue comme manager ici, comme viewer là.'],
-    ['fa-server',          'Tourne là où vous hébergez',    'cPanel, un VPS à 5 $ ou une flotte derrière un répartiteur de charge — aucune étape de build, empreinte minimale. Hébergez des centaines de sites sans une facture d\'hébergement qui dévore la marge.'],
-    ['fa-sliders',         'Configuration en direct, sans déploiement', 'Modifiez les réglages, les textes ou la marque d\'un client depuis l\'admin — les couches de configuration et de traduction sont surchargées au moment de la requête, si bien que les modifications passent en production sans release.'],
+    ['fa-gauge-high',      'Lancez chaque projet en un instant',     'Nouveau client le lundi, un site multi-locataire opérationnel le jour même. Sautez l\'échafaudage auth/rôles/CMS que vous refaites à chaque mission et allez droit à son brief.'],
+    ['fa-palette',         'Marque blanche par client',              'Le thème et le skin se résolvent par organisation : chaque client voit sa marque — pas la vôtre, ni un template. Changez de look en direct, sans redéploiement. Votre client n\'a jamais besoin de savoir que Tiger existe.'],
+    ['fa-user-shield',     'Un accès délimité, en toute sécurité',   'Contrôle d\'accès avec refus par défaut et rôles portés par l\'adhésion. Donnez à un client son organisation et rien d\'autre ; ajoutez un collègue comme manager ici, comme viewer là. Votre plateforme, vos règles.'],
+    ['fa-server',          'Tourne là où vous hébergez',             'cPanel, un VPS à $5 ou une flotte derrière un répartiteur de charge — aucune étape de build, empreinte minimale. Changez d\'hébergeur, montez en charge, répartissez. Personne ne peut prendre vos clients en otage.'],
+    ['fa-sliders',         'Config en direct, sans déploiement',     'Modifiez les réglages, les textes ou le branding d\'un client depuis l\'admin — les couches de configuration et de traduction sont surchargées au moment de la requête : vos changements passent en prod sans release.'],
+];
+
+// Transformez un build en IP réutilisable — les verticales qu'une agence livre en série.
+$verticals = [
+    ['fa-tooth',           'Cabinets dentaires'],
+    ['fa-house-chimney',   'Agences immobilières'],
+    ['fa-scale-balanced',  'Cabinets d\'avocats'],
+    ['fa-id-card-clip',    'Associations & adhésions'],
+    ['fa-utensils',        'Groupes de restauration'],
 ];
 ?>
 <!-- Hero -->
@@ -24,13 +44,13 @@ $benefits = [
             <i class="fa-solid fa-people-group me-1"></i> Pour les agences &amp; les freelances
         </span>
         <h1 class="display-4 fw-bold mb-3">Un client, ou cent.</h1>
-        <p class="lead text-secondary mx-auto mb-4" style="max-width: 720px;">
-            Tiger est multi-locataire jusqu'au cœur, si bien qu'une seule installation fait tourner tous les
-            sites de vos clients — chacun isolé, en marque blanche et géré depuis un seul back office. Lancez
-            chaque projet en un instant et gardez la marge que la facture d'hébergement dévorait autrefois.
+        <p class="lead text-secondary mx-auto mb-4" style="max-width: 760px;">
+            Tiger est multi-locataire jusqu’au cœur : une seule installation fait tourner tous les sites de
+            vos clients — chacun isolé, en marque blanche, et géré depuis un seul back office. Lancez chaque
+            projet en un instant et gardez la marge que la facture d’hébergement dévorait.
         </p>
         <div class="d-flex flex-wrap gap-2 justify-content-center">
-            <a href="/signup" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-arrow-right-to-bracket me-2"></i>Commencer</a>
+            <a href="#get" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-rocket me-2"></i>Commencer</a>
             <a href="/docs" class="btn btn-outline-secondary btn-lg px-4">Lire la documentation</a>
         </div>
     </div>
@@ -46,8 +66,8 @@ $benefits = [
                         <i class="fa-solid fa-user text-primary fs-2 mb-3"></i>
                         <h2 class="h5 fw-bold">Solo &amp; client unique</h2>
                         <p class="text-secondary mb-0">
-                            Montez un site soigné et sécurisé pour un client sans câbler l'authentification, les rôles
-                            et un CMS de zéro. Tout est inclus — vous vous concentrez sur son brief, pas sur l'échafaudage.
+                            Montez un site soigné et sécurisé pour un client sans câbler l’authentification,
+                            les rôles et un CMS de zéro. Tout est inclus — vous vous concentrez sur son brief, pas sur l’échafaudage.
                         </p>
                     </div>
                 </div>
@@ -59,8 +79,7 @@ $benefits = [
                         <h2 class="h5 fw-bold">Multi-clients à grande échelle</h2>
                         <p class="text-secondary mb-0">
                             Faites tourner tout votre portefeuille sur une seule plateforme — chaque client un locataire isolé
-                            avec ses propres utilisateurs, rôles, thème et contenu, le tout depuis un même admin. Ajoutez le
-                            client suivant en quelques minutes.
+                            avec ses propres utilisateurs, rôles, thème et contenu, le tout depuis un seul admin. Ajoutez le client suivant en quelques minutes.
                         </p>
                     </div>
                 </div>
@@ -69,12 +88,82 @@ $benefits = [
     </div>
 </section>
 
+<!-- Stop rebuilding the foundation -->
+<section class="py-5 mt-4" style="background: var(--bs-tertiary-bg);">
+    <div class="container">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-6">
+                <h2 class="fw-bold mb-3">Arrêtez de refaire les mêmes fondations.</h2>
+                <p class="text-secondary mb-3">
+                    Combien de temps d’agence part dans des choses que vous avez déjà construites vingt fois ? Tiger donne
+                    à vos développeurs — et à leurs agents IA de code — une plateforme applicative structurée où les
+                    fondamentaux existent déjà. Commencez par les besoins du client, pas par l’échafaudage.
+                </p>
+                <p class="mb-0 fw-semibold">Déjà construit, sur chaque installation :</p>
+            </div>
+            <div class="col-lg-6">
+                <div class="d-flex flex-wrap gap-2">
+<?php foreach ($fundamentals as $f): ?>
+                    <span class="badge rounded-pill text-bg-light border fw-normal fs-6 px-3 py-2">
+                        <i class="fa-solid fa-check text-success me-1"></i><?= $this->escape($f) ?>
+                    </span>
+<?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- The old way vs Tiger -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">L’ancienne méthode vs. Tiger.</h2>
+            <p class="text-secondary mb-0">Chaque nouveau client ne devrait pas signifier un empilement de comptes, de services et de factures mensuelles.</p>
+        </div>
+        <div class="row g-4 align-items-stretch justify-content-center">
+            <div class="col-lg-6">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="text-uppercase small fw-semibold text-secondary mb-3">Au lieu de</div>
+                        <div class="fw-semibold mb-3"><i class="fa-solid fa-user-tie text-secondary me-2"></i>Client
+                            <i class="fa-solid fa-arrow-right-long text-secondary mx-2"></i>
+                            <span class="text-secondary">une stack par client</span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+<?php foreach ($oldStack as $s): ?>
+                            <span class="badge rounded-pill text-bg-danger-subtle text-danger-emphasis fw-normal fs-6 px-3 py-2 text-decoration-line-through">
+                                <?= $this->escape($s) ?>
+                            </span>
+<?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card h-100 border-0 shadow-sm border-start border-primary border-4">
+                    <div class="card-body p-4 d-flex flex-column">
+                        <div class="text-uppercase small fw-semibold text-primary-emphasis mb-3">Vous obtenez</div>
+                        <div class="d-flex align-items-center flex-grow-1">
+                            <span class="fs-4 fw-bold"><i class="fa-solid fa-user-tie text-secondary me-2"></i>Client
+                                <i class="fa-solid fa-arrow-right-long text-primary mx-2"></i>
+                                <span class="text-primary">Tiger</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p class="text-center fw-bold fs-5 mt-4 mb-0">Nouveau client = nouveau locataire. Pas un empilement d’abonnements de plus.</p>
+    </div>
+</section>
+
 <!-- Benefits grid -->
-<section id="features" class="py-5 mt-4" style="background: var(--bs-tertiary-bg);">
+<section id="features" class="py-5" style="background: var(--bs-tertiary-bg);">
     <div class="container">
         <div class="text-center mb-5">
             <h2 class="fw-bold">Conçu pour la façon dont les agences travaillent vraiment</h2>
-            <p class="text-secondary mb-0">Locataires isolés, branding en marque blanche, configuration en direct — sans tout refaire pour chaque client.</p>
+            <p class="text-secondary mb-0">Locataires isolés, branding en marque blanche, config en direct — sans tout refaire pour chaque client.</p>
         </div>
         <div class="row g-4">
 <?php foreach ($benefits as $b): ?>
@@ -94,21 +183,167 @@ $benefits = [
     </div>
 </section>
 
-<!-- CTA -->
+<!-- Keep the recurring revenue -->
 <section class="py-5">
     <div class="container">
-        <div class="card border-0 shadow-sm text-center">
-            <div class="card-body p-4 p-lg-5">
-                <h2 class="fw-bold mb-3">Transformez votre prochain client en locataire</h2>
-                <p class="text-secondary mb-4">Une seule commande échafaude une plateforme multi-locataire opérationnelle et thémée, sur laquelle vous pouvez grandir.</p>
-                <div class="bg-body-tertiary border rounded-3 d-inline-block px-4 py-3 mb-4 text-start font-monospace">
-                    <span class="text-secondary">$</span> composer create-project webtigers/tiger my-agency<br>
-                    <span class="text-secondary">$</span> cd my-agency &amp;&amp; vendor/bin/tiger install:admin
-                </div>
-                <div>
-                    <a href="/signup" class="btn btn-primary btn-lg px-4"><i class="fa-solid fa-arrow-right-to-bracket me-2"></i>Créez votre compte</a>
+        <div class="row align-items-center g-4">
+            <div class="col-lg-2 text-center d-none d-lg-block">
+                <i class="fa-solid fa-hand-holding-dollar text-primary" style="font-size:3.5rem;"></i>
+            </div>
+            <div class="col-lg-10">
+                <h2 class="fw-bold mb-3">Gardez le revenu récurrent.</h2>
+                <p class="text-secondary mb-3">
+                    Une agence ne devrait pas construire le produit puis offrir la marge à des éditeurs SaaS. Avec Tiger,
+                    votre coût d’infrastructure ne se multiplie pas automatiquement à chaque nouveau client signé.
+                    Facturez l’hébergement, la gestion, la maintenance, le développement, les modules, le support — tous
+                    les services qui ont du sens pour votre agence.
+                </p>
+                <p class="text-secondary mb-3">Vous décidez de ce que paient vos clients. Vous décidez où Tiger tourne. Vous gardez la marge.</p>
+                <p class="fw-bold fs-5 mb-0">Plus de clients devrait augmenter votre marge — pas votre facture SaaS.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Build once, sell it again -->
+<section class="py-5" style="background: var(--bs-tertiary-bg);">
+    <div class="container">
+        <div class="text-center mb-4">
+            <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+                <i class="fa-solid fa-boxes-stacked me-1"></i> IP réutilisable
+            </span>
+            <h2 class="fw-bold mb-2">Construisez une fois. Revendez-le.</h2>
+            <p class="text-secondary mx-auto mb-0" style="max-width: 720px;">
+                Construisez un module pour un client et réutilisez-le pour le suivant. Packagez vos propres modules
+                internes, ou des applications de démarrage entières pour les secteurs que vous servez en série —
+                et transformez le développement sur-mesure en propriété intellectuelle qui vous appartient.
+            </p>
+        </div>
+        <div class="row g-3 justify-content-center mb-4">
+<?php foreach ($verticals as $v): ?>
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="card h-100 border-0 shadow-sm text-center">
+                    <div class="card-body py-4">
+                        <i class="fa-solid <?= $v[0] ?> text-primary fs-3 mb-2 d-block"></i>
+                        <span class="small fw-semibold"><?= $this->escape($v[1]) ?></span>
+                    </div>
                 </div>
             </div>
+<?php endforeach; ?>
+        </div>
+        <p class="text-center fw-bold fs-5 mb-0">Le client suivant démarre de ce que vous savez déjà.</p>
+    </div>
+</section>
+
+<!-- Built for AI development -->
+<section class="py-5">
+    <div class="container">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-7">
+                <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+                    <i class="fa-solid fa-robot me-1"></i> Conçu pour le développement avec l’IA
+                </span>
+                <h2 class="fw-bold mb-3">Donnez à votre agent de code des fondations, pas un dossier vide.</h2>
+                <p class="text-secondary mb-3">
+                    Pointez Claude Code, ChatGPT, Codex ou votre agent préféré sur une application Tiger structurée
+                    plutôt que sur un dossier vide et une prière. Tiger fournit des patterns établis pour les
+                    contrôleurs, les services, les modèles, les modules, l’authentification, les permissions, le
+                    multi-locataire, la configuration, l’accès à la base et les API — pour que votre IA ne réinvente
+                    pas l’architecture à chaque fois qu’elle génère du code.
+                </p>
+                <p class="fw-bold fs-5 mb-0">Vous contrôlez l’architecture. L’IA fait le travail.</p>
+            </div>
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center gap-2 mb-3 text-secondary small">
+                            <span class="d-inline-block rounded-circle bg-danger" style="width:.6rem;height:.6rem;"></span>
+                            <span class="d-inline-block rounded-circle bg-warning" style="width:.6rem;height:.6rem;"></span>
+                            <span class="d-inline-block rounded-circle bg-success" style="width:.6rem;height:.6rem;"></span>
+                            <span class="ms-2 font-monospace">agent</span>
+                        </div>
+                        <ul class="list-unstyled mb-0 small">
+                            <li class="mb-2"><i class="fa-solid fa-folder-tree text-primary me-2"></i>Contrôleurs, services &amp; modèles établis</li>
+                            <li class="mb-2"><i class="fa-solid fa-shield-halved text-primary me-2"></i>Auth, ACL &amp; multi-locataire déjà câblés</li>
+                            <li class="mb-2"><i class="fa-solid fa-plug text-primary me-2"></i>Un seul contrat <span class="font-monospace">/api</span> pour chaque fonctionnalité</li>
+                            <li><i class="fa-solid fa-book text-primary me-2"></i>Docs &amp; conventions que l’agent peut lire</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Four ways to install (the CTA — drive agencies to run it, not sign up) -->
+<section class="py-5" id="get" style="background: var(--bs-tertiary-bg);">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+                <i class="fa-solid fa-rocket me-1"></i> Quatre façons d’installer
+            </span>
+            <h2 class="fw-bold mb-2">Transformez votre prochain client en locataire</h2>
+            <p class="text-secondary mx-auto mb-0" style="max-width: 640px;">D’un serveur en un clic à une commande
+                Composer — le même Tiger, la rampe d’accès de votre choix. Pas d’inscription SaaS, pas de facture
+                mensuelle d’éditeur ; c’est à vous dès le premier commit.</p>
+        </div>
+        <div class="row row-cols-1 row-cols-md-2 g-4">
+
+            <div class="col">
+                <div class="card h-100 border-primary shadow-sm position-relative">
+                    <span class="badge text-bg-primary position-absolute top-0 end-0 m-3">Le plus rapide</span>
+                    <div class="card-body">
+                        <div class="text-secondary fw-bold font-monospace">01</div>
+                        <h3 class="h4 fw-bold mb-1">TigerDen</h3>
+                        <div class="text-primary fw-semibold mb-2">Hosting instantané — la machine est à vous</div>
+                        <div class="h5 fw-bold mb-2">$19 <span class="fs-6 text-secondary fw-normal">/ mois</span></div>
+                        <p class="text-secondary mb-0">Votre propre serveur Tiger, lancé à la demande et en ligne en
+                            quelques minutes — TigerSSL, TigerShield et TigerPASS inclus, votre agent IA prêt à
+                            l’emploi. On le lance et on vous remet les clés ; la machine vous appartient et vous la
+                            pilotez. Zéro configuration pour être en ligne, aucune étape de build, aucun serveur à monter.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-secondary fw-bold font-monospace">02</div>
+                        <h3 class="h4 fw-bold mb-1">TigerInstall</h3>
+                        <div class="text-primary fw-semibold mb-2">Hébergement mutualisé</div>
+                        <p class="text-secondary mb-0">Vous avez déjà un hébergement mutualisé ? TigerInstall vous met
+                            en route avec une installation en un clic sur n’importe quel hôte LAMP standard — sans
+                            shell, sans Composer, sans DevOps.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-secondary fw-bold font-monospace">03</div>
+                        <h3 class="h4 fw-bold mb-1">Tiger + Composer</h3>
+                        <div class="text-primary fw-semibold mb-2">Contrôle total, pour les développeurs</div>
+                        <div class="bg-body-tertiary border rounded-3 p-3 font-monospace mb-2">
+                            <span class="text-primary">$</span> composer create-project webtigers/tiger
+                        </div>
+                        <p class="text-secondary mb-0">Une app SaaS fonctionnelle en quelques secondes. Elle est à vous dès le premier commit.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-secondary fw-bold font-monospace">04</div>
+                        <h3 class="h4 fw-bold mb-1">Tiger + Docker</h3>
+                        <div class="text-primary fw-semibold mb-2">Environnement de dev local</div>
+                        <p class="text-secondary mb-0">Montez un environnement local complet en quelques secondes.
+                            Développez en local, déployez partout où PHP + MariaDB tournent.</p>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </section>
