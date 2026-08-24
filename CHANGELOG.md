@@ -6,6 +6,37 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [0.69.0] — 2026-08-24
+
+### Fixed
+- **Sharing any non-CMS page showed the wrong image (#180).** The head emitted no `og:*` at
+  all for pages without a `page` row, so crawlers scraped the DOM and picked the only `<img>`
+  present — the language switcher's Klingon flag. `Seo_Service_Head::forRow()` only ever ran
+  for a CMS page or a blog article, leaving the shipped marketing pages (`/agency`, `/vibe`, …)
+  and the forwarded homepage with no card.
+
+### Added
+- **Page-level Open Graph, editable.** Two new tiers, each filling blanks only so a page's own
+  tags always win: `tiger.seo.page.<key>.{title,description,image}` for public view pages, and
+  `tiger.site.description` + `tiger.seo.og_image` site-wide. Storage is the existing config
+  cascade (`.ini` base + live DB override, per install/org, no deploy) — no new table. An image
+  may be a media id (resolved to a real URL + true dimensions) or an absolute URL.
+- **Admin → Settings → SEO** — per-page title/description/share image for the shipped marketing
+  pages, discovered from the view dir. Blanking a field calls `Config::forget()` so the fallback
+  applies again rather than being masked by an empty value.
+- **Site Identity** — site description + site-wide share image.
+- **CMS page editor** — per-page SEO title + share image (merge keyed on `array_key_exists`, so a
+  partial `/api` message can't wipe an authored value).
+- All of it is reachable by the in-platform AI agent and over MCP with no extra work:
+  `Seo_Service_Social` is an ordinary ACL-gated `/api` service (`seo/social/pages`,
+  `seo/social/save`), typed via `@apiRequest`.
+
+### Changed
+- OG emission moved to `postDispatch` (page title known, head registry still open), guarded to
+  HTML renders so `/api`, `robots.txt`, `sitemap.xml` and `llms.txt` stay clean.
+- Repo-path references updated for the `tiger-install` → `TigerInstall` rename. The downloadable
+  file stays `tiger-install.php`; old GitHub URLs still resolve.
+
 ## [0.68.0] — 2026-08-22
 
 ### Added
