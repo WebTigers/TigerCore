@@ -187,4 +187,10 @@ return [
     'core.datatable.paginate_next' => 'Weiter',
     'core.datatable.paginate_prev' => 'Zurück',
     'core.nav.modules_manage' => 'Verwalten',
+
+    // Media picker field (Tiger_View_Helper_MediaField) — shared by the Identity, CMS and SEO screens.
+    'core.media.field.choose'          => 'Medium auswählen',
+    'core.media.field.clear'           => 'Entfernen',
+    'core.media.field.preview_alt'     => 'Vorschau des ausgewählten Mediums',
+    'core.media.field.file'            => 'Ausgewählte Datei',
 ];
