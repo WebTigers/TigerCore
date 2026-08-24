@@ -4,7 +4,7 @@
 # Output: dist/tiger-<version>.zip  (+ .sha256)
 #   The COMPLETE Tiger app — the webtigers/tiger skeleton (application/, public/, bin/, composer.json)
 #   with vendor/ fully resolved and bundled — that unzips and runs with NO composer on the target. This
-#   is the artifact WebTigers/tiger-install (tiger-install.php) fetches + checksum-verifies for a fresh
+#   is the artifact WebTigers/TigerInstall (tiger-install.php) fetches + checksum-verifies for a fresh
 #   no-shell / cPanel install. See INSTALLER.md (§6, §12) and INSTALL.md.
 #
 #   DISTINCT from bin/build-release-zip.sh, which builds a vendor/-ONLY zip (tiger-core-vendored-*.zip)

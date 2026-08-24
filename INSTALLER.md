@@ -12,7 +12,7 @@ source of truth for §5 here); for the deploy surface read [FEATURES.md](FEATURE
 > Today install is the `bin/tiger` CLI (`install:secrets` / `migrate` / `install:admin`) plus the
 > composer path (`composer create-project`, done). This spec covers the **no-shell / cPanel** channel
 > ([[install-distribution-model]]): a single `tiger-install.php`, shipped from its **own one-file repo**
-> (`WebTigers/tiger-install`), **evergreen** (§12). Where it says "the installer does X," that's the
+> (`WebTigers/TigerInstall`), **evergreen** (§12). Where it says "the installer does X," that's the
 > target behavior.
 
 ---
@@ -287,7 +287,7 @@ Every external step has a fallback, surfaced as a clear next action (never a whi
 
 ## 12. Its own repo — one file, nothing more
 
-`tiger-install.php` lives in a **dedicated repository** (`WebTigers/tiger-install`) whose payload is
+`tiger-install.php` lives in a **dedicated repository** (`WebTigers/TigerInstall`) whose payload is
 that single file — **not** inside `tiger-core`. Two reasons make this the right home, not just a tidier
 one:
 
@@ -300,7 +300,7 @@ one:
 Consequences:
 
 - **Evergreen** (§6) — one stable raw URL the install page + docs point at forever
-  (`raw.githubusercontent.com/WebTigers/tiger-install/main/tiger-install.php`, plus a release-asset
+  (`raw.githubusercontent.com/WebTigers/TigerInstall/main/tiger-install.php`, plus a release-asset
   mirror), **never regenerated** per Tiger release. It carries no Tiger version of its own; it resolves
   the latest release at run time.
 - **Integrity** now rests on **TLS + the asset's `.sha256` sidecar** rather than a SHA baked into the
@@ -322,7 +322,7 @@ Consequences:
 | Reimplement migrations/secrets in the installer | drift from `bin/tiger`; a second crypto path | **bootstrap Tiger** and call `Tiger_Install` (§9) |
 | Leave the installer in place (WP does) | a live attack/re-run surface | **self-delete** + a re-run guard (§10) |
 | Assume docroot is directly under `$HOME` | breaks on addon domains/subdomains | **detect + confirm** the paths (§7) |
-| Ship the installer **inside** `tiger-core` | chicken-and-egg (it fetches the ZIP it'd be in); buries a security-critical file in the framework tree | its **own one-file repo** (`WebTigers/tiger-install`), evergreen (§12) |
+| Ship the installer **inside** `tiger-core` | chicken-and-egg (it fetches the ZIP it'd be in); buries a security-critical file in the framework tree | its **own one-file repo** (`WebTigers/TigerInstall`), evergreen (§12) |
 | Regenerate a **version-pinned** installer every release | breaks "one file, never touched"; a moving artifact to publish each time | **evergreen** file that resolves latest + verifies the published checksum (§6) |
 
 ---
