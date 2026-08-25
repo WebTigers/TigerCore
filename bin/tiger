@@ -317,6 +317,50 @@ switch ($cmd) {
         }
         break;
 
+    case 'user:password':
+        // Reset a user's password from the console — the recovery path when email can't be
+        // delivered (a fresh/dev install with no MTA) or the only admin is locked out. It goes
+        // through the SAME model the app uses (Tiger_Model_UserCredential::setPassword), so the
+        // pepper, the history archive, and reuse-prevention all apply exactly as they do on the
+        // web reset. Usage: user:password [--user=<email|username>] [--password=] [--force]
+        tiger_db();
+        $flags      = tiger_flags($argv);
+        $identifier = isset($flags['user']) ? $flags['user'] : tiger_prompt('User (email or username)');
+        try {
+            $user = (new Tiger_Model_User())->findByIdentifier($identifier);
+            if (!$user) {
+                fwrite(STDERR, "  user:password failed: no active user matches '{$identifier}'\n");
+                exit(1);
+            }
+            $userId = (string) $user->user_id;
+            $plain  = isset($flags['password']) ? $flags['password'] : tiger_prompt_secret('New password');
+            if ($plain === '') {
+                fwrite(STDERR, "  user:password failed: password may not be empty\n");
+                exit(1);
+            }
+
+            // Enforce the install's live policy (length / complexity / reuse). --force skips the
+            // policy ONLY — never the hashing — so a locked-out admin can always get back in.
+            $errors = (new Tiger_Policy_Password())->validate($plain, $userId);
+            if ($errors && empty($flags['force']) && !in_array('--force', $argv, true)) {
+                fwrite(STDERR, "  user:password refused — the password fails this install's policy:\n");
+                foreach ($errors as $key) { fwrite(STDERR, "    - {$key}\n"); }
+                fwrite(STDERR, "  Re-run with --force to set it anyway.\n");
+                exit(1);
+            }
+
+            (new Tiger_Model_UserCredential())->setPassword($userId, $plain);
+            echo "  \xE2\x9C\x93 Password reset.\n";
+            echo "    user    : " . (string) $user->username . " <" . (string) $user->email . ">\n";
+            echo "    user_id : {$userId}\n";
+            if ($errors) { echo "    note    : policy overridden (" . implode(', ', $errors) . ")\n"; }
+            echo "\n  Sign in at /auth/login — then change it from the profile screen.\n\n";
+        } catch (Throwable $e) {
+            fwrite(STDERR, "  user:password failed: " . $e->getMessage() . "\n");
+            exit(1);
+        }
+        break;
+
     case 'secrets:drop-retired':
         // Remove retired secret(s) after a rotation has fully migrated (crypto|pepper|all).
         $which = (isset($argv[2]) && in_array($argv[2], ['crypto', 'pepper', 'all'], true)) ? $argv[2] : 'all';
@@ -374,6 +418,8 @@ switch ($cmd) {
         echo "  crypto:rekey           Re-encrypt stored secrets under the current key (lossless)\n";
         echo "  security:rotate-pepper Rotate the password/code pepper (re-peppers on next login)\n";
         echo "  secrets:drop-retired [crypto|pepper|all]  Remove retired secrets after migration\n";
+        echo "  user:password          Reset a user's password (console recovery when email can't\n";
+        echo "                         be delivered) — [--user=<email|username>] [--password=] [--force]\n";
         echo "  make:module <name>     Scaffold a new application module (controller + /api service + acl)\n";
         echo "  version                Show the Tiger Core version\n";
         break;
