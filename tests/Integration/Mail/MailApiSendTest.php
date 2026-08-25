@@ -64,16 +64,16 @@ final class MailApiSendTest extends IntegrationTestCase
         foreach ($cases as $name => [$probe, $host, $isJson]) {
             $probe->send($this->mail());
 
-            $this->assertStringContainsString($host, (string) $probe->url, "$name posts to its own endpoint");
-            $this->assertNotSame('', (string) $probe->body, "$name sends a non-empty body");
-            $this->assertNotEmpty($probe->headers, "$name sends headers");
+            $this->assertStringContainsString($host, (string) $probe->probeUrl, "$name posts to its own endpoint");
+            $this->assertNotSame('', (string) $probe->probeBody, "$name sends a non-empty body");
+            $this->assertNotEmpty($probe->probeHeaders, "$name sends headers");
 
             if ($isJson) {
-                $decoded = json_decode((string) $probe->body, true);
+                $decoded = json_decode((string) $probe->probeBody, true);
                 $this->assertIsArray($decoded, "$name sends valid JSON");
-                $this->assertStringContainsString('Hello', (string) $probe->body, "$name carries the subject");
+                $this->assertStringContainsString('Hello', (string) $probe->probeBody, "$name carries the subject");
             } else {
-                parse_str((string) $probe->body, $form);
+                parse_str((string) $probe->probeBody, $form);
                 $this->assertSame('Hello', $form['subject'] ?? null, "$name form-encodes the subject");
             }
         }
@@ -110,15 +110,18 @@ final class MailApiSendTest extends IntegrationTestCase
 /** Capture the request instead of performing it. */
 trait ProbesTheRequest
 {
-    public $url;
-    public $body;
-    public $headers = [];
+    // Deliberately NOT $body/$header: Zend_Mail_Transport_Abstract already declares public
+    // $body and $header for the rendered message, and a trait redeclaring them is a fatal
+    // "same property ... definition differs" at class-composition time.
+    public $probeUrl;
+    public $probeBody;
+    public $probeHeaders = [];
 
     protected function _post($url, $body, array $headers)
     {
-        $this->url     = $url;
-        $this->body    = $body;
-        $this->headers = $headers;
+        $this->probeUrl     = $url;
+        $this->probeBody    = $body;
+        $this->probeHeaders = $headers;
         return '{"ok":true}';
     }
 }
