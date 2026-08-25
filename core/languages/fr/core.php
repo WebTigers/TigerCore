@@ -193,4 +193,17 @@ return [
     'core.media.field.clear'           => 'Retirer',
     'core.media.field.preview_alt'     => 'Aperçu du média sélectionné',
     'core.media.field.file'            => 'Fichier sélectionné',
+
+    // --- Mail providers (Tiger_Mail_Provider) ---
+    'core.mail.provider.help.ses_smtp'         => 'Les identifiants SMTP SES se génèrent dans la console SES — ce ne sont PAS vos clés d\'accès AWS. Saisissez-les ci-dessous comme nom d\'utilisateur et mot de passe.',
+    'core.mail.provider.help.ses_api'          => 'Envoie via l\'API SES v2 à l\'aide du SDK AWS fourni.',
+    'core.mail.provider.help.ses_api_iam'      => 'Laissez la clé et le secret vides pour utiliser le rôle IAM de l\'instance — aucun identifiant n\'est alors stocké.',
+    'core.mail.provider.help.sendgrid_smtp'    => 'Utilisez le nom d\'utilisateur littéral « apikey » et votre clé d\'API comme mot de passe.',
+    'core.mail.provider.help.postmark_smtp'    => 'Utilisez votre jeton Server API À LA FOIS comme nom d\'utilisateur et comme mot de passe.',
+    'core.mail.provider.help.resend_smtp'      => 'Utilisez le nom d\'utilisateur littéral « resend » et votre clé d\'API comme mot de passe.',
+    'core.mail.provider.help.mailgun_region'   => 'Mailgun exploite des régions US et UE distinctes ; une clé ne fonctionne que dans la région où elle a été créée.',
+    'core.mail.provider.help.google_smtp'      => 'Nécessite un mot de passe d\'application avec la validation en deux étapes activée — le mot de passe habituel du compte ne fonctionnera pas.',
+    'core.mail.provider.help.microsoft_smtp'   => 'Microsoft désactive SMTP AUTH par défaut et retire l\'authentification de base ; vous devrez peut-être l\'activer pour cette boîte aux lettres.',
+    'core.mail.provider.requires.aws_sdk'      => 'Ce pilote nécessite le module SDK AWS (tiger-sdk-aws). Installez-le et activez-le, ou utilisez Amazon SES (SMTP).',
+    'core.mail.provider.requires.generic'      => 'Le pilote de ce fournisseur n\'est pas disponible sur cette installation.',
 ];

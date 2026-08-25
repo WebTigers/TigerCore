@@ -47,10 +47,20 @@ class System_SettingsController extends Tiger_Controller_Admin_Action
 
         $al = (new Tiger_Service_Authentication())->autologoutConfig();
 
-        $rc = Tiger_Recaptcha::settings();
+        $rc   = Tiger_Recaptcha::settings();
+        $mail = Tiger_Mail::settings();
 
         $form = new System_Form_Settings();
         $form->populate([
+            'mail_provider'       => $mail['provider'] !== '' ? $mail['provider'] : ($mail['transport'] === 'smtp' ? 'custom' : 'sendmail'),
+            'mail_smtp_host'      => $mail['host'],
+            'mail_smtp_port'      => $mail['port'] !== '' ? $mail['port'] : '587',
+            'mail_smtp_ssl'       => $mail['ssl'],
+            'mail_smtp_auth'      => $mail['auth'],
+            'mail_smtp_username'  => $mail['username'],
+            'mail_from_email'     => $mail['from_email'],
+            'mail_from_name'      => $mail['from_name'],
+            // mail password is never prefilled — blank on save keeps the stored value
             'session_ttl_privileged' => $ttlPriv,
             'session_ttl'          => $ttlAuthed,
             'session_ttl_guest'    => $ttlGuest,
@@ -69,6 +79,14 @@ class System_SettingsController extends Tiger_Controller_Admin_Action
         $this->view->title     = 'System Settings — Tiger Admin';
         $this->view->form      = $form;
         $this->view->hasSecret = $rc['has_secret'];
+        // Email SMTP: drives the initial fieldset visibility + the "password already set" hint.
+        $this->view->mailTransport   = $mail['transport'] === 'smtp' ? 'smtp' : 'mail';
+        $this->view->mailHasPassword = $mail['has_password'];
+        // Provider catalog + the selected provider's stored credentials (secrets as has_* flags only).
+        $this->view->mailProviders   = Tiger_Mail_Provider::all();
+        $this->view->mailProvider    = $mail['provider'] !== '' ? $mail['provider'] : ($mail['transport'] === 'smtp' ? 'custom' : 'sendmail');
+        $this->view->mailFields      = $mail['fields'];
+        $this->view->mailHasField    = $mail['has_field'];
         $this->view->location  = (class_exists('Tiger_Location') && method_exists('Tiger_Location', 'settings'))
             ? Tiger_Location::settings() : null;
         $this->view->consent   = class_exists('Tiger_Consent') ? Tiger_Consent::settings() : null;

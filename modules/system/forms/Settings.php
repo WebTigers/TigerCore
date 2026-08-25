@@ -53,6 +53,81 @@ class System_Form_Settings extends Tiger_Form
                 'attribs'      => ['class' => 'form-check-input'],
             ]],
 
+            // Email SMTP tab — transport + the SMTP connection + the From identity. Everything is
+            // optional: `mail` (PHP sendmail) needs none of it. The password is a password field —
+            // blank = keep the stored one (Tiger_Mail::saveSettings), which is also why the current
+            // secret is never rendered back into the form.
+            // The provider drives everything: it picks the transport kind, supplies the SMTP
+            // defaults, and declares which credential fields the screen renders.
+            ['select', 'mail_provider', [
+                'multiOptions' => Tiger_Mail_Provider::options(),
+                'value'        => 'sendmail',
+                'attribs'      => ['id' => 'set-mail-provider', 'class' => 'form-select'],
+            ]],
+            ['text', 'mail_smtp_host', [
+                'required' => false,
+                'filters'  => ['StringTrim'],
+                'attribs'  => array_merge($control, ['id' => 'set-mail-host', 'autocomplete' => 'off',
+                                                     'placeholder' => 'email-smtp.us-east-1.amazonaws.com']),
+            ]],
+            ['text', 'mail_smtp_port', [
+                'required'   => false,
+                'filters'    => ['StringTrim'],
+                'validators' => [['Digits'], ['Between', false, ['min' => 1, 'max' => 65535, 'inclusive' => true]]],
+                'attribs'    => array_merge($control, ['id' => 'set-mail-port', 'inputmode' => 'numeric', 'placeholder' => '587']),
+            ]],
+            ['select', 'mail_smtp_ssl', [
+                'multiOptions' => [
+                    'tls' => $this->_t('system.settings.smtp.ssl_tls'),
+                    'ssl' => $this->_t('system.settings.smtp.ssl_ssl'),
+                    ''    => $this->_t('system.settings.smtp.ssl_none'),
+                ],
+                'value'   => 'tls',
+                'attribs' => ['id' => 'set-mail-ssl', 'class' => 'form-select'],
+            ]],
+            ['select', 'mail_smtp_auth', [
+                'multiOptions' => [
+                    'login'   => $this->_t('system.settings.smtp.auth_login'),
+                    'plain'   => $this->_t('system.settings.smtp.auth_plain'),
+                    'crammd5' => $this->_t('system.settings.smtp.auth_crammd5'),
+                    ''        => $this->_t('system.settings.smtp.auth_none'),
+                ],
+                'value'   => 'login',
+                'attribs' => ['id' => 'set-mail-auth', 'class' => 'form-select'],
+            ]],
+            ['text', 'mail_smtp_username', [
+                'required' => false,
+                'filters'  => ['StringTrim'],
+                'attribs'  => array_merge($control, ['id' => 'set-mail-username', 'autocomplete' => 'off']),
+            ]],
+            ['password', 'mail_smtp_password', [
+                'required' => false,
+                'filters'  => ['StringTrim'],
+                'attribs'  => array_merge($control, ['id' => 'set-mail-password', 'autocomplete' => 'new-password']),
+            ]],
+            // ALLOW_LOCAL alongside ALLOW_DNS on purpose: the shipped default From address is
+            // `no-reply@localhost`, and an intranet install legitimately sends from a local
+            // hostname. DNS-only validation would refuse core's own default value.
+            ['text', 'mail_from_email', [
+                'required'   => false,
+                'filters'    => ['StringTrim'],
+                'validators' => [['EmailAddress', false, [
+                    'allow' => Zend_Validate_Hostname::ALLOW_DNS | Zend_Validate_Hostname::ALLOW_LOCAL,
+                ]]],
+                'attribs'    => array_merge($control, ['id' => 'set-mail-from-email', 'placeholder' => 'no-reply@example.com']),
+            ]],
+            ['text', 'mail_from_name', [
+                'required' => false,
+                'filters'  => ['StringTrim'],
+                'attribs'  => array_merge($control, ['id' => 'set-mail-from-name', 'placeholder' => 'Tiger']),
+            ]],
+            ['text', 'mail_test_to', [
+                'required'   => false,
+                'filters'    => ['StringTrim'],
+                'validators' => [['EmailAddress']],
+                'attribs'    => array_merge($control, ['id' => 'set-mail-test-to', 'placeholder' => 'you@example.com']),
+            ]],
+
             // reCAPTCHA tab — keys are optional (a keyless install just leaves the widget off). The
             // secret is a password field: blank = keep the current one (Tiger_Recaptcha::saveSettings).
             ['checkbox', 'recaptcha_enabled', [

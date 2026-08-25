@@ -197,4 +197,17 @@ return [
     'core.media.field.clear'           => 'Clear',
     'core.media.field.preview_alt'     => 'Selected media preview',
     'core.media.field.file'            => 'Selected file',
+
+    // --- Mail providers (Tiger_Mail_Provider) ---
+    'core.mail.provider.help.ses_smtp'         => 'SES SMTP credentials are generated in the SES console — they are NOT your AWS access keys. Enter them as the username and password below.',
+    'core.mail.provider.help.ses_api'          => 'Sends through the SES v2 API using the vendored AWS SDK.',
+    'core.mail.provider.help.ses_api_iam'      => 'Leave the key and secret blank to use the instance IAM role — then no credentials are stored at all.',
+    'core.mail.provider.help.sendgrid_smtp'    => 'Use the literal username "apikey" and your API key as the password.',
+    'core.mail.provider.help.postmark_smtp'    => 'Use your Server API token as BOTH the username and the password.',
+    'core.mail.provider.help.resend_smtp'      => 'Use the literal username "resend" and your API key as the password.',
+    'core.mail.provider.help.mailgun_region'   => 'Mailgun runs separate US and EU regions, and a key only works in the region it was created in.',
+    'core.mail.provider.help.google_smtp'      => 'Requires an App Password with 2-Step Verification enabled — a normal account password will not work.',
+    'core.mail.provider.help.microsoft_smtp'   => 'Microsoft disables SMTP AUTH by default and is retiring basic authentication; you may need to enable it for this mailbox.',
+    'core.mail.provider.requires.aws_sdk'      => 'This driver needs the AWS SDK module (tiger-sdk-aws). Install and activate it, or use Amazon SES (SMTP) instead.',
+    'core.mail.provider.requires.generic'      => 'This provider\'s driver is not available on this install.',
 ];

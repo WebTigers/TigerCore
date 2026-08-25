@@ -193,4 +193,17 @@ return [
     'core.media.field.clear'           => 'हटाएँ',
     'core.media.field.preview_alt'     => 'चयनित मीडिया का प्रीव्यू',
     'core.media.field.file'            => 'चयनित फ़ाइल',
+
+    // --- Mail providers (Tiger_Mail_Provider) ---
+    'core.mail.provider.help.ses_smtp'         => 'SES SMTP क्रेडेंशियल SES कंसोल में बनाए जाते हैं — ये आपकी AWS एक्सेस कुंजियाँ नहीं हैं। इन्हें नीचे उपयोगकर्ता नाम और पासवर्ड के रूप में डालें।',
+    'core.mail.provider.help.ses_api'          => 'साथ में शामिल AWS SDK का उपयोग करके SES v2 API से भेजता है।',
+    'core.mail.provider.help.ses_api_iam'      => 'इंस्टेंस की IAM भूमिका उपयोग करने के लिए कुंजी और सीक्रेट खाली छोड़ें — तब कोई क्रेडेंशियल संग्रहीत नहीं होता।',
+    'core.mail.provider.help.sendgrid_smtp'    => 'उपयोगकर्ता नाम के रूप में शब्दशः "apikey" और पासवर्ड के रूप में अपनी API कुंजी उपयोग करें।',
+    'core.mail.provider.help.postmark_smtp'    => 'अपने Server API token को उपयोगकर्ता नाम और पासवर्ड दोनों के रूप में उपयोग करें।',
+    'core.mail.provider.help.resend_smtp'      => 'उपयोगकर्ता नाम के रूप में शब्दशः "resend" और पासवर्ड के रूप में अपनी API कुंजी उपयोग करें।',
+    'core.mail.provider.help.mailgun_region'   => 'Mailgun अलग-अलग US और EU क्षेत्र चलाता है, और कुंजी केवल उसी क्षेत्र में काम करती है जहाँ बनाई गई थी।',
+    'core.mail.provider.help.google_smtp'      => 'इसके लिए 2-स्टेप वेरिफिकेशन चालू होने के साथ ऐप पासवर्ड आवश्यक है — सामान्य खाता पासवर्ड काम नहीं करेगा।',
+    'core.mail.provider.help.microsoft_smtp'   => 'Microsoft डिफ़ॉल्ट रूप से SMTP AUTH बंद रखता है और बेसिक प्रमाणीकरण हटा रहा है; आपको इस मेलबॉक्स के लिए इसे सक्षम करना पड़ सकता है।',
+    'core.mail.provider.requires.aws_sdk'      => 'इस ड्राइवर के लिए AWS SDK मॉड्यूल (tiger-sdk-aws) चाहिए। इसे इंस्टॉल और सक्रिय करें, या Amazon SES (SMTP) उपयोग करें।',
+    'core.mail.provider.requires.generic'      => 'इस प्रदाता का ड्राइवर इस इंस्टॉल पर उपलब्ध नहीं है।',
 ];

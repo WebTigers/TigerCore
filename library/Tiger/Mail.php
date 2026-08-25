@@ -164,13 +164,23 @@ class Tiger_Mail
         $m    = $this->_config ? $this->_config->get('mail') : null;
         $type = ($m && $m->get('transport')) ? strtolower((string) $m->transport) : 'mail';
 
+        // A provider API driver (SendGrid, SES, …) is just another transport — see
+        // Tiger_Mail_Transport_Api. Resolved from the stored provider + its credentials.
+        if ($type === 'api') {
+            $provider = $m ? (string) $m->get('provider') : '';
+            $api      = self::apiTransport($provider, self::apiCredentials($provider));
+            if ($api) { return $api; }
+            // An unusable API provider (driver missing, e.g. the AWS SDK was deactivated) must not
+            // fatal the request — fall through to sendmail, the same way an unset provider does.
+        }
+
         if ($type === 'smtp' && $m && $m->get('smtp') && (string) $m->smtp->get('host') !== '') {
             $s    = $m->smtp;
             $opts = [];
             if ((string) $s->get('auth') !== '') {
                 $opts['auth']     = (string) $s->auth;
                 $opts['username'] = (string) $s->get('username');
-                $opts['password'] = (string) $s->get('password');
+                $opts['password'] = self::_smtpPassword($s);
             }
             if ((string) $s->get('port') !== '') { $opts['port'] = (int) $s->port; }
             if ((string) $s->get('ssl') !== '')  { $opts['ssl']  = (string) $s->ssl; }
@@ -178,6 +188,290 @@ class Tiger_Mail
         }
 
         return new Zend_Mail_Transport_Sendmail();   // boring, reliable PHP mail()
+    }
+
+    /**
+     * The SMTP password from the `mail.smtp` node — `password_enc` (encrypted at rest, written by
+     * the admin screen) wins, else the legacy plaintext `password`.
+     *
+     * Both are supported on purpose: an install configured before the admin screen existed has a
+     * plaintext `mail.smtp.password` in its `local.ini` or `config` tier, and must keep working
+     * untouched. Saving from the admin screen upgrades it to the encrypted key.
+     *
+     * @param  Zend_Config $smtp the resolved `mail.smtp` config node
+     * @return string             the plaintext password ('' when none is set)
+     */
+    protected static function _smtpPassword($smtp)
+    {
+        $enc = (string) $smtp->get('password_enc');
+        if ($enc !== '') {
+            try {
+                if (class_exists('Tiger_Crypto') && Tiger_Crypto::isConfigured()) {
+                    return (string) Tiger_Crypto::decrypt($enc);
+                }
+            } catch (Throwable $e) {
+                // Fall through to the plaintext key — a mail send must never fatal on a bad secret.
+            }
+        }
+        return (string) $smtp->get('password');
+    }
+
+    /**
+     * Build a transport from EXPLICIT values rather than the resolved config.
+     *
+     * This is what lets the admin screen "Send test" against the values currently in the form,
+     * before they're saved — so a wrong host or port is caught without first writing bad config
+     * over a working setup.
+     *
+     * @param  array $v transport, host, port, ssl, auth, username, password
+     * @return Zend_Mail_Transport_Abstract
+     */
+    public static function transportFor(array $v)
+    {
+        $type = strtolower((string) ($v['transport'] ?? 'mail'));
+
+        // API provider — build the driver from the values given (the "Send test" path passes the
+        // form's current provider + credentials so a setup is testable before it's saved).
+        if ($type === 'api') {
+            $api = self::apiTransport((string) ($v['provider'] ?? ''), (array) ($v['fields'] ?? []));
+            if ($api) { return $api; }
+            return new Zend_Mail_Transport_Sendmail();
+        }
+
+        $host = trim((string) ($v['host'] ?? ''));
+        if ($type !== 'smtp' || $host === '') {
+            return new Zend_Mail_Transport_Sendmail();
+        }
+
+        $opts = [];
+        $auth = strtolower(trim((string) ($v['auth'] ?? '')));
+        if ($auth !== '') {
+            $opts['auth']     = $auth;
+            $opts['username'] = (string) ($v['username'] ?? '');
+            $opts['password'] = (string) ($v['password'] ?? '');
+        }
+        $port = (int) ($v['port'] ?? 0);
+        if ($port > 0) { $opts['port'] = $port; }
+        $ssl = strtolower(trim((string) ($v['ssl'] ?? '')));
+        if ($ssl !== '') { $opts['ssl'] = $ssl; }
+
+        return new Zend_Mail_Transport_Smtp($host, $opts);
+    }
+
+    /**
+     * Instantiate a provider's API driver.
+     *
+     * @param  string $provider the provider slug (must be an API-kind entry in Tiger_Mail_Provider)
+     * @param  array  $fields   its credential values
+     * @return Zend_Mail_Transport_Abstract|null the driver, or null when the provider is unknown,
+     *                                           isn't an API provider, or its driver isn't available
+     */
+    public static function apiTransport($provider, array $fields)
+    {
+        $def = Tiger_Mail_Provider::get($provider);
+        if (!$def || ($def['kind'] ?? '') !== Tiger_Mail_Provider::KIND_API) { return null; }
+        if (!Tiger_Mail_Provider::isAvailable($provider)) { return null; }
+
+        $class = (string) ($def['transport'] ?? '');
+        if ($class === '' || !class_exists($class)) { return null; }
+
+        return new $class($fields);
+    }
+
+    /**
+     * A provider's stored credentials, decrypted. Read from `mail.api.<provider>.<field>`, with a
+     * secret living at `<field>_enc`.
+     *
+     * @param  string $provider the provider slug
+     * @return array<string,string> field name => plaintext value
+     */
+    public static function apiCredentials($provider)
+    {
+        $out = [];
+        if ((string) $provider === '') { return $out; }
+
+        $cfg  = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
+        $node = ($cfg && $cfg->get('mail') && $cfg->mail->get('api')) ? $cfg->mail->api->get($provider) : null;
+        if (!$node) { return $out; }
+
+        foreach (array_keys(Tiger_Mail_Provider::fields($provider)) as $field) {
+            if (Tiger_Mail_Provider::isSecret($provider, $field)) {
+                $enc = (string) $node->get($field . '_enc');
+                if ($enc !== '') {
+                    try {
+                        if (class_exists('Tiger_Crypto') && Tiger_Crypto::isConfigured()) {
+                            $out[$field] = (string) Tiger_Crypto::decrypt($enc);
+                            continue;
+                        }
+                    } catch (Throwable $e) {
+                        // fall through to the plaintext key — a send must never fatal on a bad secret
+                    }
+                }
+            }
+            $out[$field] = (string) $node->get($field);
+        }
+        return $out;
+    }
+
+    /**
+     * Persist a provider's credentials to the `config` tier. Secrets are encrypted at rest and a
+     * BLANK secret keeps the stored one (same rule as the SMTP password).
+     *
+     * @param  string $provider the provider slug
+     * @param  array  $fields   submitted field values
+     * @return void
+     */
+    public static function saveApiCredentials($provider, array $fields)
+    {
+        $defs = Tiger_Mail_Provider::fields($provider);
+        if (!$defs) { return; }
+
+        $cfg  = new Tiger_Model_Config();
+        $g    = Tiger_Model_Config::SCOPE_GLOBAL;
+        $base = 'mail.api.' . $provider . '.';
+
+        foreach ($defs as $field => $def) {
+            $value = trim((string) ($fields[$field] ?? ''));
+
+            if (!empty($def['secret'])) {
+                if ($value === '') { continue; }   // blank = keep the stored secret
+                if (class_exists('Tiger_Crypto') && Tiger_Crypto::isConfigured()) {
+                    $cfg->set($g, '', $base . $field . '_enc', Tiger_Crypto::encrypt($value));
+                    $cfg->set($g, '', $base . $field, '');
+                } else {
+                    $cfg->set($g, '', $base . $field, $value);
+                }
+                continue;
+            }
+            $cfg->set($g, '', $base . $field, $value);
+        }
+    }
+
+    /**
+     * The stored SMTP password in plaintext — for the admin "Send test" path ONLY, so a test can
+     * run against the saved secret when the admin left the password field blank (blank = keep).
+     * Never surfaced through `settings()`.
+     *
+     * @return string the stored password, or '' when none is set
+     */
+    public static function storedSmtpPassword()
+    {
+        $cfg  = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
+        $mail = ($cfg && $cfg->get('mail')) ? $cfg->mail : null;
+        $smtp = ($mail && $mail->get('smtp')) ? $mail->smtp : null;
+        return $smtp ? self::_smtpPassword($smtp) : '';
+    }
+
+    /**
+     * The current mail settings, for an admin screen. The password is NEVER returned — only
+     * `has_password`, so the secret can't be read back out through the UI.
+     *
+     * @return array{transport:string,host:string,port:string,ssl:string,auth:string,username:string,has_password:bool,from_email:string,from_name:string}
+     */
+    public static function settings()
+    {
+        $cfg  = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
+        $mail = ($cfg && $cfg->get('mail')) ? $cfg->mail : null;
+        $smtp = ($mail && $mail->get('smtp')) ? $mail->smtp : null;
+        $from = ($mail && $mail->get('from')) ? $mail->from : null;
+
+        $has = $smtp && ((string) $smtp->get('password_enc') !== '' || (string) $smtp->get('password') !== '');
+
+        // Provider credentials, with every secret reduced to a has_* flag — the screen learns that
+        // a key EXISTS without the value ever crossing back out of the server.
+        $provider = $mail ? (string) $mail->get('provider') : '';
+        $creds    = [];
+        $hasCred  = [];
+        foreach (Tiger_Mail_Provider::fields($provider) as $field => $def) {
+            $stored = self::apiCredentials($provider);
+            if (!empty($def['secret'])) {
+                $hasCred[$field] = isset($stored[$field]) && $stored[$field] !== '';
+                continue;
+            }
+            $creds[$field] = (string) ($stored[$field] ?? '');
+        }
+
+        return [
+            'provider'      => $provider,
+            'fields'        => $creds,
+            'has_field'     => $hasCred,
+            'transport'    => $mail ? strtolower((string) $mail->get('transport')) : 'mail',
+            'host'         => $smtp ? (string) $smtp->get('host') : '',
+            'port'         => $smtp ? (string) $smtp->get('port') : '',
+            'ssl'          => $smtp ? (string) $smtp->get('ssl') : '',
+            'auth'         => $smtp ? (string) $smtp->get('auth') : '',
+            'username'     => $smtp ? (string) $smtp->get('username') : '',
+            'has_password' => (bool) $has,
+            'from_email'   => $from ? (string) $from->get('email') : '',
+            'from_name'    => $from ? (string) $from->get('name') : '',
+        ];
+    }
+
+    /**
+     * Persist mail settings to the `config` DB tier (the live-override pattern — effective next
+     * request, no deploy). Mirrors `Tiger_Recaptcha::saveSettings`.
+     *
+     * A BLANK password keeps the stored one, so an admin can edit the host or the From identity
+     * without re-typing the secret (and without the UI ever having to hold it).
+     *
+     * @param  array $values transport, host, port, ssl, auth, username, password, from_email, from_name
+     * @return void
+     */
+    public static function saveSettings(array $values)
+    {
+        $cfg = new Tiger_Model_Config();
+        $g   = Tiger_Model_Config::SCOPE_GLOBAL;
+
+        // The provider drives the transport KIND: an API provider switches mail.transport to 'api'
+        // and stores its credentials; every other provider keeps the smtp/mail path below.
+        if (array_key_exists('provider', $values)) {
+            $provider = (string) $values['provider'];
+            if (Tiger_Mail_Provider::get($provider)) {
+                $cfg->set($g, '', 'mail.provider', $provider);
+                self::saveApiCredentials($provider, (array) ($values['fields'] ?? []));
+
+                if (Tiger_Mail_Provider::get($provider)['kind'] === Tiger_Mail_Provider::KIND_API) {
+                    $cfg->set($g, '', 'mail.transport', 'api');
+                    // The From identity still applies to an API send.
+                    if (array_key_exists('from_email', $values)) { $cfg->set($g, '', 'mail.from.email', trim((string) $values['from_email'])); }
+                    if (array_key_exists('from_name', $values))  { $cfg->set($g, '', 'mail.from.name',  trim((string) $values['from_name'])); }
+                    return;
+                }
+            }
+        }
+
+        if (array_key_exists('transport', $values)) {
+            $cfg->set($g, '', 'mail.transport', ((string) $values['transport'] === 'smtp') ? 'smtp' : 'mail');
+        }
+        foreach (['host' => 'mail.smtp.host', 'username' => 'mail.smtp.username'] as $k => $key) {
+            if (array_key_exists($k, $values)) { $cfg->set($g, '', $key, trim((string) $values[$k])); }
+        }
+        if (array_key_exists('port', $values)) {
+            $port = (int) $values['port'];
+            $cfg->set($g, '', 'mail.smtp.port', (string) (($port > 0 && $port <= 65535) ? $port : 587));
+        }
+        if (array_key_exists('ssl', $values)) {
+            $ssl = strtolower(trim((string) $values['ssl']));
+            $cfg->set($g, '', 'mail.smtp.ssl', in_array($ssl, ['tls', 'ssl'], true) ? $ssl : '');
+        }
+        if (array_key_exists('auth', $values)) {
+            $auth = strtolower(trim((string) $values['auth']));
+            $cfg->set($g, '', 'mail.smtp.auth', in_array($auth, ['login', 'plain', 'crammd5'], true) ? $auth : '');
+        }
+        if (array_key_exists('from_email', $values)) { $cfg->set($g, '', 'mail.from.email', trim((string) $values['from_email'])); }
+        if (array_key_exists('from_name', $values))  { $cfg->set($g, '', 'mail.from.name',  trim((string) $values['from_name'])); }
+
+        // Secret — only when a new value is given (blank keeps the current). Encrypt at rest, and
+        // clear any legacy plaintext row so the secret doesn't linger in two places.
+        if (!empty($values['password'])) {
+            $secret = (string) $values['password'];
+            if (class_exists('Tiger_Crypto') && Tiger_Crypto::isConfigured()) {
+                $cfg->set($g, '', 'mail.smtp.password_enc', Tiger_Crypto::encrypt($secret));
+                $cfg->set($g, '', 'mail.smtp.password', '');
+            } else {
+                $cfg->set($g, '', 'mail.smtp.password', $secret);   // no crypto available → plaintext fallback
+            }
+        }
     }
 
     /** The configured default sender ([email, name]). */

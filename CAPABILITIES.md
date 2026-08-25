@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**185 classes** across **32 capabilities** · **19 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**194 classes** across **32 capabilities** · **19 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -149,6 +149,15 @@
 ### Mail
 
 - **Tiger_Mail** `@api` — a thin, fluent wrapper over Zend_Mail.  ·  `library/Tiger/Mail.php`
+- **Tiger_Mail_Provider** `@api` — the catalog of mail providers the admin can choose from.  ·  `library/Tiger/Mail/Provider.php`
+- **Tiger_Mail_Transport_Api** `@api` — base for the HTTPS mail-API drivers (SendGrid, Mailgun, Postmark, Resend, Brevo, Mailjet, SES).  ·  `library/Tiger/Mail/Transport/Api.php`
+- **Tiger_Mail_Transport_Brevo** `@api` — send over the Brevo (formerly Sendinblue) transactional API.  ·  `library/Tiger/Mail/Transport/Brevo.php`
+- **Tiger_Mail_Transport_Mailgun** `@api` — send over the Mailgun Messages API.  ·  `library/Tiger/Mail/Transport/Mailgun.php`
+- **Tiger_Mail_Transport_Mailjet** `@api` — send over the Mailjet Send API v3.1.  ·  `library/Tiger/Mail/Transport/Mailjet.php`
+- **Tiger_Mail_Transport_Postmark** `@api` — send over the Postmark Email API.  ·  `library/Tiger/Mail/Transport/Postmark.php`
+- **Tiger_Mail_Transport_Resend** `@api` — send over the Resend API.  ·  `library/Tiger/Mail/Transport/Resend.php`
+- **Tiger_Mail_Transport_SendGrid** `@api` — send over the SendGrid v3 Mail Send API.  ·  `library/Tiger/Mail/Transport/SendGrid.php`
+- **Tiger_Mail_Transport_Ses** `@api` — send over the Amazon SES v2 API using the vendored AWS SDK.  ·  `library/Tiger/Mail/Transport/Ses.php`
 
 ### Location
 
