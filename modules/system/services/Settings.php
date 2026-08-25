@@ -203,20 +203,26 @@ class System_Service_Settings extends Tiger_Service_Service
             $from = trim((string) ($params['mail_from_email'] ?? ''));
             if ($from !== '') { $mail->from($from, trim((string) ($params['mail_from_name'] ?? ''))); }
 
+            $via = $isApi
+                ? (string) $pDef['label']
+                : (($values['transport'] === 'smtp' && $values['host'] !== '')
+                    ? $values['host'] . ':' . ($values['port'] !== '' ? $values['port'] : '25')
+                    : 'PHP mail() / sendmail');
+
             $mail->to($to)
                  ->subject($this->_translate('system.settings.smtp.test_subject'))
-                 ->html('<p>' . htmlspecialchars($this->_translate('system.settings.smtp.test_body'), ENT_QUOTES) . '</p>')
+                 ->template('test', [
+                     'via'       => $via,
+                     'sentAt'    => gmdate('Y-m-d H:i') . ' UTC',
+                     'preheader' => $this->_translate('system.settings.smtp.test_body'),
+                 ])
                  ->send(Tiger_Mail::transportFor($values));
 
             $this->_success([
                 'ok'      => true,
                 'to'      => $to,
                 'ms'      => (int) round((microtime(true) - $started) * 1000),
-                'via'     => $isApi
-                    ? (string) $pDef['label']
-                    : (($values['transport'] === 'smtp' && $values['host'] !== '')
-                        ? $values['host'] . ':' . ($values['port'] !== '' ? $values['port'] : '25')
-                        : 'sendmail'),
+                'via'     => $via,
             ], 'system.settings.smtp.test_sent');
         } catch (Throwable $e) {
             $this->_success([

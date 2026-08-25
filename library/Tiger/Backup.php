@@ -447,14 +447,17 @@ class Tiger_Backup
         try {
             $host = $_SERVER['HTTP_HOST'] ?? gethostname();
             $subject = ($ok ? '✅ Backup succeeded' : '⚠️ Backup FAILED') . ' — ' . $host;
-            $body = $ok
-                ? '<p>Backup <strong>' . htmlspecialchars($filename) . '</strong> completed.</p><p>Size: '
-                    . self::hsize((int) ($data['size'] ?? 0)) . '<br>Components: ' . htmlspecialchars(implode(', ', $data['components'] ?? [])) . '</p>'
-                : '<p>Backup <strong>' . htmlspecialchars($filename) . '</strong> <span style="color:#c00">failed</span>.</p><p>Reason: '
-                    . htmlspecialchars((string) ($data['error'] ?? 'unknown')) . '</p>';
             $mail = new Tiger_Mail();
             foreach ($to as $addr) { $mail->to($addr); }
-            $mail->subject($subject)->html($body)->send();
+            $mail->subject($subject)
+                 ->template('backup', [
+                     'ok'         => $ok,
+                     'filename'   => $filename,
+                     'size'       => self::hsize((int) ($data['size'] ?? 0)),
+                     'components' => implode(', ', $data['components'] ?? []),
+                     'error'      => (string) ($data['error'] ?? ''),
+                 ])
+                 ->send();
         } catch (Throwable $e) {
             Tiger_Log::warn('backup.notify.failed', ['error' => $e->getMessage()]);
         }

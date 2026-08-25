@@ -502,6 +502,14 @@ document.addEventListener('DOMContentLoaded', function () {
     var form = document.getElementById('sys-settings-form');
     var fb   = document.getElementById('sys-settings-feedback');
 
+    // TigerDOM.notify takes HTML, so any value interpolated into a message is escaped first —
+    // a provider's error text and a submitted address are both attacker-influenceable.
+    var esc = function (s) {
+        var d = document.createElement('div');
+        d.textContent = (s == null ? '' : String(s));
+        return d.innerHTML;
+    };
+
     document.getElementById('sys-settings-save').addEventListener('click', function () {
         var btn = this;
         fb.innerHTML = '';
@@ -675,12 +683,13 @@ document.addEventListener('DOMContentLoaded', function () {
             var out = document.getElementById('mail-test-result');
             var to  = document.getElementById('set-mail-test-to').value.trim();
             if (to === '') {
-                out.className = 'small text-danger'; out.textContent = '✗ ' + Tiger.t('mailTestNeedsAddress');
+                TigerDOM.notify(out, Tiger.t('mailTestNeedsAddress'), { type: 'error', dismissOnClick: true });
                 return;
             }
             var fd = new URLSearchParams();
             fd.set('module', 'system'); fd.set('service', 'settings'); fd.set('method', 'mailTest');
             fd.set('to', to);
+            out.innerHTML = '';
             ['mail_provider', 'mail_smtp_host', 'mail_smtp_port', 'mail_smtp_ssl', 'mail_smtp_auth',
              'mail_smtp_username', 'mail_smtp_password', 'mail_from_email', 'mail_from_name'].forEach(function (k) {
                 var input = form.querySelector('[name="' + k + '"]');
@@ -693,20 +702,28 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (inp.value !== '') { fd.set(inp.name, inp.value); }
                 });
             }
-            out.className = 'small text-body-secondary'; out.textContent = Tiger.t('mailTestSending');
+            // The button carries the in-flight state (TigerButton spinner) and TigerDOM.notify owns
+            // the message envelope — themed alert, icon, reveal animation, dismiss. Never hand-rolled.
             TigerButton.run(this, function () {
                 return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd }).then(function (r) { return r.json().catch(function () { return {}; }); });
             }).then(function (res) {
                 var d = (res && res.data) || {};
                 if (d.ok) {
-                    out.className = 'small text-success';
-                    out.textContent = '✓ ' + Tiger.t('mailTestSent') + ' ' + d.to + ' — ' + (d.via || '') + ' (' + (d.ms || 0) + 'ms)';
+                    var detail = [d.via, (d.ms || 0) + 'ms'].filter(Boolean).join(' · ');
+                    TigerDOM.notify(out,
+                        '<strong>' + Tiger.t('mailTestSent') + ' ' + esc(d.to) + '</strong>' +
+                        (detail ? '<div class="text-body-secondary mt-1">' + esc(detail) + '</div>' : ''),
+                        { type: 'success', dismissOnClick: true });
                 } else {
-                    // The transport's own message is the diagnostic — show it verbatim, wrapped.
-                    out.className = 'small text-danger text-break';
-                    out.textContent = '✗ ' + (d.error || ((res && res.messages && res.messages[0]) ? res.messages[0].message : Tiger.t('mailTestFailed')));
+                    // The transport's own message is the diagnostic — verbatim, and it STICKS
+                    // (notify keeps errors until dismissed) so it can actually be read and acted on.
+                    var msg = d.error || ((res && res.messages && res.messages[0]) ? res.messages[0].message : Tiger.t('mailTestFailed'));
+                    TigerDOM.notify(out, '<span class="text-break">' + esc(msg) + '</span>',
+                        { type: 'error', dismissOnClick: true });
                 }
-            }).catch(function () { out.className = 'small text-danger'; out.textContent = Tiger.t('networkErrorShort'); });
+            }).catch(function () {
+                TigerDOM.notify(out, Tiger.t('networkErrorShort'), { type: 'error', dismissOnClick: true });
+            });
         });
     }
 });

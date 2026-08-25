@@ -259,6 +259,102 @@ class Tiger_Mail
     }
 
     /**
+     * Extra template directories, newest first (a module registers its own).
+     *
+     * @var array<int,string>
+     */
+    protected static $_templatePaths = [];
+
+    /**
+     * Register a directory of email templates — how a module ships its own transactional emails
+     * while still rendering inside the shared layout.
+     *
+     * @param  string $path an absolute directory containing `<name>.phtml`
+     * @return void
+     */
+    public static function addTemplatePath($path)
+    {
+        $path = rtrim((string) $path, '/');
+        if ($path !== '' && !in_array($path, self::$_templatePaths, true)) {
+            array_unshift(self::$_templatePaths, $path);
+        }
+    }
+
+    /**
+     * The template search path, in LOWEST-to-highest precedence order (Zend_View::addScriptPath
+     * prepends, so the last one added wins): core → app → registered modules → active theme.
+     *
+     * A theme sitting at the top is the point — an operator rebrands every transactional email by
+     * dropping `emails/*.phtml` into their theme, with no code change and nothing to keep in sync.
+     *
+     * @return array<int,string> existing directories only
+     */
+    protected static function _templatePaths()
+    {
+        $paths = [__DIR__ . '/../../core/views/emails'];
+
+        if (defined('APPLICATION_PATH')) { $paths[] = APPLICATION_PATH . '/views/emails'; }
+
+        foreach (array_reverse(self::$_templatePaths) as $p) { $paths[] = $p; }
+
+        try {
+            if (class_exists('Tiger_Theme') && ($dir = Tiger_Theme::dir())) { $paths[] = $dir . '/emails'; }
+        } catch (Throwable $e) {
+            // no active theme resolved — the core template is still there
+        }
+
+        return array_values(array_filter($paths, 'is_dir'));
+    }
+
+    /**
+     * Render a template into the shared email layout and use it as this message's HTML body.
+     *
+     * The content script produces the message body; `layout.phtml` wraps it in the branded shell
+     * (header, card, footer) so every email Tiger sends looks like one product. A plain-text
+     * alternative is still auto-derived from the result by `send()`, so deliverability is unchanged.
+     *
+     *   (new Tiger_Mail())->to($email)->subject('Reset your password')
+     *       ->template('reset', ['url' => $url])->send();
+     *
+     * @param  string $name the template name, without `.phtml`
+     * @param  array  $vars variables exposed to the template
+     * @return self         this instance, for chaining
+     * @throws Zend_View_Exception when neither the template nor the layout can be found
+     */
+    public function template($name, array $vars = [])
+    {
+        $view = new Zend_View();
+        $view->setEncoding('UTF-8');
+        foreach (self::_templatePaths() as $path) { $view->addScriptPath($path); }
+
+        $vars += ['siteName' => $this->_siteName(), 'siteUrl' => $this->_siteUrl()];
+        $view->assign($vars);
+
+        $content = $view->render($name . '.phtml');
+
+        $view->assign('content', $content);
+        $this->_html = $view->render('layout.phtml');
+
+        return $this;
+    }
+
+    /** The install's site name, for the email header/footer. */
+    protected function _siteName()
+    {
+        $cfg = $this->_config ?: (Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null);
+        $name = ($cfg && $cfg->get('tiger') && $cfg->tiger->get('site')) ? (string) $cfg->tiger->site->get('name') : '';
+        if ($name !== '') { return $name; }
+        return $this->_configFrom()[1] ?: 'Tiger';
+    }
+
+    /** The install's public base URL, or '' when it isn't configured (the footer then omits the link). */
+    protected function _siteUrl()
+    {
+        $cfg = $this->_config ?: (Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null);
+        return ($cfg && $cfg->get('tiger') && $cfg->tiger->get('site')) ? rtrim((string) $cfg->tiger->site->get('url'), '/') : '';
+    }
+
+    /**
      * Instantiate a provider's API driver.
      *
      * @param  string $provider the provider slug (must be an API-kind entry in Tiger_Mail_Provider)
