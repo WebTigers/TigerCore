@@ -1,0 +1,132 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * The shared transactional email layout.
+ *
+ * Every email Tiger sends renders inside this shell, so password resets, sign-in codes, signup
+ * verifications and backup reports all look like one product.
+ *
+ * Written to EMAIL rules, not web rules — they are not the same medium:
+ *   - Table-based layout with role="presentation". Flex/grid and modern CSS are unusable in Outlook.
+ *   - Styles are INLINE. Gmail strips <head><style> in several contexts, so anything load-bearing
+ *     must survive without it; the <style> block only carries progressive extras (dark mode,
+ *     small-screen tweaks) that are safe to lose.
+ *   - 600px is the conventional safe width; below that, mobile clients scale instead of pan.
+ *   - No external images. A remote logo is blocked by default in most clients and would render as a
+ *     broken box on first open, so the wordmark is live text.
+ *
+ * Variables: $content (rendered body HTML), $siteName, $siteUrl, optional $preheader.
+ */
+$siteName  = (string) ($this->siteName ?: 'Tiger');
+$siteUrl   = (string) ($this->siteUrl ?: '');
+$preheader = (string) ($this->preheader ?: '');
+$e         = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); };
+$year      = date('Y');
+?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="x-apple-disable-message-reformatting" />
+<meta name="color-scheme" content="light dark" />
+<meta name="supported-color-schemes" content="light dark" />
+<title><?= $e($siteName) ?></title>
+<style type="text/css">
+    /* Progressive only — everything load-bearing is inlined below. */
+    body { margin:0 !important; padding:0 !important; width:100% !important; }
+    table { border-collapse:collapse !important; }
+    img { border:0; line-height:100%; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic; }
+    a { color:#3459e6; }
+    /* Outlook renders in Word: force a sane font instead of Times New Roman. */
+    #outlook a { padding:0; }
+    .ExternalClass { width:100%; }
+    .ExternalClass, .ExternalClass p, .ExternalClass td, .ExternalClass div { line-height:100%; }
+
+    @media only screen and (max-width:620px) {
+        .tg-wrap  { width:100% !important; }
+        .tg-pad   { padding-left:24px !important; padding-right:24px !important; }
+        .tg-h1    { font-size:22px !important; }
+        .tg-btn a { display:block !important; }
+    }
+
+    /* Dark mode: honored by Apple Mail and Outlook.com; others simply keep the light palette. */
+    @media (prefers-color-scheme: dark) {
+        .tg-body   { background:#0f1115 !important; }
+        .tg-card   { background:#171a21 !important; border-color:#2a2f3a !important; }
+        .tg-text   { color:#e5e7eb !important; }
+        .tg-muted  { color:#9aa1ac !important; }
+        .tg-h1     { color:#f3f4f6 !important; }
+        .tg-rule   { border-color:#2a2f3a !important; }
+        .tg-panel  { background:#1e222b !important; border-color:#2a2f3a !important; }
+        .tg-footer { color:#8b929c !important; }
+    }
+</style>
+</head>
+<body class="tg-body" style="margin:0; padding:0; background:#f4f5f7; -webkit-font-smoothing:antialiased;">
+
+<?php if ($preheader !== ''): ?>
+<?php /* The inbox preview line. Hidden in the body, then padded so the client doesn't pull the
+         first paragraph in after it. */ ?>
+<div style="display:none; font-size:1px; color:#f4f5f7; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;">
+    <?= $e($preheader) ?>
+    <?= str_repeat('&#847;&zwnj;&nbsp;', 60) ?>
+</div>
+<?php endif; ?>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="tg-body" style="background:#f4f5f7;">
+<tr>
+<td align="center" style="padding:32px 12px;">
+
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="tg-wrap" style="width:600px; max-width:600px;">
+
+        <!-- Wordmark -->
+        <tr>
+            <td align="left" style="padding:0 0 16px 4px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:17px; font-weight:700; letter-spacing:-0.2px; color:#111827;">
+                <?php if ($siteUrl !== ''): ?>
+                    <a href="<?= $e($siteUrl) ?>" style="color:#111827; text-decoration:none;" class="tg-h1"><?= $e($siteName) ?></a>
+                <?php else: ?>
+                    <span class="tg-h1"><?= $e($siteName) ?></span>
+                <?php endif; ?>
+            </td>
+        </tr>
+
+        <!-- Card -->
+        <tr>
+            <td class="tg-card" style="background:#ffffff; border:1px solid #e5e7eb; border-radius:12px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td class="tg-pad tg-text" style="padding:36px 40px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; color:#1f2937;">
+                            <?php // Already-rendered HTML from the content template — intentionally raw.
+                                  // Zend_View does NOT extract assigned vars into local scope, so this
+                                  // must be $this->content; a bare $content silently renders an empty shell. ?>
+                            <?= $this->content ?>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+            <td class="tg-pad" style="padding:20px 8px 0;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td class="tg-footer" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; line-height:1.6; color:#6b7280;">
+                            <?php if ($siteUrl !== ''): ?>
+                                <a href="<?= $e($siteUrl) ?>" style="color:#6b7280; text-decoration:underline;"><?= $e(preg_replace('~^https?://~', '', $siteUrl)) ?></a><br />
+                            <?php endif; ?>
+                            &copy; <?= $e($year) ?> <?= $e($siteName) ?>. This is an automated message — please don&rsquo;t reply to it.
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+
+    </table>
+
+</td>
+</tr>
+</table>
+</body>
+</html>

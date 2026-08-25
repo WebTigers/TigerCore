@@ -144,9 +144,7 @@ class Register_Service_Registration extends Tiger_Service_Service
             (new Tiger_Mail())
                 ->to($email)
                 ->subject('Verify your Tiger install')
-                ->html('<p>Click to verify your site:</p>'
-                    . '<p><a href="' . htmlspecialchars($url, ENT_QUOTES) . '">Verify my site &rarr;</a></p>'
-                    . '<p>Domain: <strong>' . htmlspecialchars($domain, ENT_QUOTES) . '</strong></p>')
+                ->template('register-verify', ['url' => $url, 'domain' => $domain])
                 ->send();
         } catch (Throwable $e) {
             // no MTA on a fresh install — the token is stored; the admin can resend.

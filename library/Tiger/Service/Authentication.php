@@ -214,7 +214,7 @@ class Tiger_Service_Authentication
             (new Tiger_Mail())
                 ->to($user->email)
                 ->subject('Reset your password')
-                ->html($this->_resetEmailHtml($url))
+                ->template('reset', ['url' => $url])
                 ->send();
         } catch (Throwable $e) {
             error_log('Tiger password-reset mail failed: ' . $e->getMessage());
@@ -329,7 +329,7 @@ class Tiger_Service_Authentication
             (new Tiger_Mail())
                 ->to($user->email)
                 ->subject('Your sign-in code: ' . $code)
-                ->html($this->_otpEmailHtml($code))
+                ->template('otp', ['code' => $code])
                 ->send();
         } catch (Throwable $e) {
             error_log('Tiger OTP mail failed: ' . $e->getMessage());
@@ -650,37 +650,7 @@ class Tiger_Service_Authentication
         return new Zend_Session_Namespace('Tiger_TotpEnroll');
     }
 
-    /** The one-time-code email body (the code shown large + monospace). */
-    protected function _otpEmailHtml($code)
-    {
-        $c = htmlspecialchars((string) $code, ENT_QUOTES);
-        return '<div style="font-family:Inter,Arial,sans-serif;max-width:480px;margin:0 auto;color:#1f2937;line-height:1.5;">'
-            . '<h2 style="color:#111827;margin:0 0 12px;">Your sign-in code</h2>'
-            . '<p>Use this code to finish signing in. It expires in 10 minutes.</p>'
-            . '<p style="font-size:34px;font-weight:700;letter-spacing:8px;font-family:monospace;'
-            . 'background:#f3f4f6;border-radius:10px;padding:16px 0;text-align:center;margin:20px 0;color:#111827;">' . $c . '</p>'
-            . '<p style="font-size:13px;color:#6b7280;">If you didn\'t request this, you can ignore this email — '
-            . 'no one can sign in without the code.</p>'
-            . '</div>';
-    }
 
-    /** The reset email body (inline styles for mail-client compatibility). */
-    protected function _resetEmailHtml($url)
-    {
-        $u = htmlspecialchars((string) $url, ENT_QUOTES);
-        return '<div style="font-family:Inter,Arial,sans-serif;max-width:480px;margin:0 auto;color:#1f2937;line-height:1.5;">'
-            . '<h2 style="color:#111827;margin:0 0 12px;">Reset your password</h2>'
-            . '<p>We received a request to reset your password. Choose a new one with the button below. '
-            . 'This link expires in 1 hour.</p>'
-            . '<p style="margin:24px 0;"><a href="' . $u . '" style="background:#3459e6;color:#ffffff;'
-            . 'padding:12px 22px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:600;">'
-            . 'Reset password</a></p>'
-            . '<p style="font-size:13px;color:#6b7280;">Or paste this link into your browser:<br>'
-            . '<a href="' . $u . '" style="color:#3459e6;word-break:break-all;">' . $u . '</a></p>'
-            . '<p style="font-size:13px;color:#6b7280;">If you didn\'t request this, you can safely ignore this '
-            . 'email — your password won\'t change.</p>'
-            . '</div>';
-    }
 
     /**
      * Switch the active org for the already-authenticated user, re-resolving the

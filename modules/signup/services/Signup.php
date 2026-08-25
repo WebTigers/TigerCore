@@ -150,11 +150,7 @@ class Signup_Service_Signup extends Tiger_Service_Service
             (new Tiger_Mail())
                 ->to($email)
                 ->subject('Verify your email')
-                ->html(
-                    '<p>Welcome to Tiger! Please confirm your email address to activate your account:</p>'
-                    . '<p><a href="' . htmlspecialchars($url) . '">Verify my email</a></p>'
-                    . '<p>Or paste this link into your browser:<br>' . htmlspecialchars($url) . '</p>'
-                )
+                ->template('verify', ['url' => $url])
                 ->send();
         } catch (Throwable $e) {
             error_log('Tiger signup verification mail failed: ' . $e->getMessage());
