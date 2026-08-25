@@ -6,6 +6,53 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-08-25
+
+Outgoing mail becomes configurable, testable, and provider-aware — and the console gains a
+password reset. Both came out of the same discovery: an install can be completely unable to send
+mail and give no sign of it, because the password-reset flow deliberately reveals nothing.
+
+### Added
+- **The Email SMTP settings screen is real** (System → Email SMTP was an "Under construction"
+  placeholder). Transport, SMTP host/port/encryption/auth/credentials, and the From identity, saved
+  to the `config` tier via `Tiger_Mail::saveSettings()`. Port is range-checked and encryption is
+  restricted to STARTTLS/SSL/none, so an unusable value is normalized server-side rather than handed
+  to the transport.
+- **"Send test" — a live send from the admin screen**, using the values *currently in the form*, so a
+  setup is verifiable **without first saving bad config over a working one**. A blank password falls
+  back to the stored secret. The transport's own error text is returned verbatim: on a connection
+  test, "Could not open socket" or an auth rejection *is* the diagnostic.
+- **A provider catalog with API drivers** (`Tiger_Mail_Provider`) — SES, SendGrid, Mailgun, Postmark,
+  Resend, Brevo, Mailjet, Google Workspace and Microsoft 365, each listed as an explicit SMTP and/or
+  API entry. Choosing one prefills host/port/encryption and reveals only that provider's credential
+  fields. The API drivers matter where SMTP simply cannot work: **hosts that firewall outbound
+  587/465**, common on shared/cPanel.
+- **Amazon SES over the vendored AWS SDK** (`tiger-sdk-aws`, capability-detected). Leave the key and
+  secret blank and it uses the instance **IAM role** — mail with *no stored secret at all*, which SES
+  SMTP cannot offer.
+- **`tiger user:password`** — console password reset, for the two dead ends this release exposed: an
+  install that can't deliver mail, and a lone locked-out admin. It writes through the same
+  `Tiger_Model_UserCredential::setPassword()` the web reset uses, so the pepper, the history archive
+  and reuse-prevention all still apply; `--force` overrides the policy only, never the hashing.
+
+### Changed
+- SMTP and provider secrets are **encrypted at rest**; `Tiger_Mail::settings()` returns `has_*` flags
+  and never the value, and a blank secret keeps the stored one (editing a host can't wipe credentials).
+- An unresolvable API provider (its SDK deactivated) **degrades to sendmail** rather than fataling
+  every request that sends mail.
+
+### Fixed
+- `mail.from.email` rejected **core's own shipped default**, `no-reply@localhost` — the address
+  validator required a DNS-resolvable TLD, so no intranet install could set a local sender.
+- Dropped a `curl_close()` call that is deprecated in PHP 8.5, which would have emitted a deprecation
+  on every API send.
+
+### Compatibility
+A **legacy plaintext `mail.smtp.password` keeps working untouched.** Installs configured before this
+screen existed have one, and breaking their outgoing mail on upgrade would be the worst kind of
+regression — precisely because it fails silently. Saving from the screen upgrades it to the
+encrypted key.
+
 ## [1.0.2] — 2026-08-24
 
 ### Fixed
