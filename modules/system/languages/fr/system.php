@@ -201,6 +201,9 @@ return [
     // ---- Settings: Email SMTP --------------------------------------------------------------
     'system.settings.smtp.header'             => 'E-mail &amp; SMTP',
     'system.settings.smtp.intro'                     => 'Comment cette installation envoie ses e-mails — réinitialisations de mot de passe, liens de vérification et notifications. Envoyez un test après l\'enregistrement pour confirmer que la distribution fonctionne.',
+    'system.settings.smtp.provider'                  => 'Fournisseur',
+    'system.settings.smtp.provider_help'             => 'Choisissez votre service de messagerie. SMTP fonctionne presque partout ; les pilotes d\'API fonctionnent aussi là où les ports SMTP sortants sont bloqués.',
+    'system.settings.smtp.optional'                  => '(facultatif)',
     'system.settings.smtp.transport'                 => 'Transport',
     'system.settings.smtp.transport_help'            => 'PHP mail() nécessite un MTA local fonctionnel. SMTP est le choix fiable sur la plupart des hébergements.',
     'system.settings.smtp.transport_mail'            => 'PHP mail() (sendmail)',

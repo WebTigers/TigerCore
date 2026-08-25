@@ -41,8 +41,17 @@ class System_Service_Settings extends Tiger_Service_Service
             $cfg->set($g, '', 'tiger.session.autologout.action', $v['autologout_action'] === 'lock' ? 'lock' : 'logout');
 
             // Email SMTP tab — shared writer (encrypts the password; a blank one keeps the current).
+            // The provider decides the transport kind: an API provider stores its credentials and
+            // returns early; sendmail means PHP mail(); everything else is SMTP.
+            $provider = (string) $v['mail_provider'];
+            $pDef     = Tiger_Mail_Provider::get($provider);
+            $fields   = (isset($params['mail_field'][$provider]) && is_array($params['mail_field'][$provider]))
+                ? $params['mail_field'][$provider] : [];
+
             Tiger_Mail::saveSettings([
-                'transport'  => $v['mail_transport'],
+                'provider'   => $provider,
+                'fields'     => $fields,
+                'transport'  => ($pDef && $pDef['kind'] === Tiger_Mail_Provider::KIND_SMTP && $provider !== 'sendmail') ? 'smtp' : 'mail',
                 'host'       => $v['mail_smtp_host'],
                 'port'       => $v['mail_smtp_port'],
                 'ssl'        => $v['mail_smtp_ssl'],
@@ -154,8 +163,32 @@ class System_Service_Settings extends Tiger_Service_Service
         $password = (string) ($params['mail_smtp_password'] ?? '');
         if ($password === '') { $password = Tiger_Mail::storedSmtpPassword(); }
 
+        $provider = (string) ($params['mail_provider'] ?? '');
+        $pDef     = Tiger_Mail_Provider::get($provider);
+        $isApi    = $pDef && $pDef['kind'] === Tiger_Mail_Provider::KIND_API;
+
+        if ($isApi && !Tiger_Mail_Provider::isAvailable($provider)) {
+            $this->_success(['ok' => false, 'to' => $to,
+                'error' => $this->_translate($pDef['requires_hint'] ?? 'core.mail.provider.requires.generic')]);
+            return;
+        }
+
+        // API credentials from the form, with each blank secret falling back to the stored one.
+        $fields = [];
+        if ($isApi) {
+            $submitted = (isset($params['mail_field'][$provider]) && is_array($params['mail_field'][$provider]))
+                ? $params['mail_field'][$provider] : [];
+            $stored = Tiger_Mail::apiCredentials($provider);
+            foreach (array_keys(Tiger_Mail_Provider::fields($provider)) as $f) {
+                $val = trim((string) ($submitted[$f] ?? ''));
+                $fields[$f] = $val !== '' ? $val : (string) ($stored[$f] ?? '');
+            }
+        }
+
         $values = [
-            'transport' => (string) ($params['mail_transport'] ?? 'mail'),
+            'transport' => $isApi ? 'api' : (($pDef && $provider !== 'sendmail') ? 'smtp' : 'mail'),
+            'provider'  => $provider,
+            'fields'    => $fields,
             'host'      => (string) ($params['mail_smtp_host'] ?? ''),
             'port'      => (string) ($params['mail_smtp_port'] ?? ''),
             'ssl'       => (string) ($params['mail_smtp_ssl'] ?? ''),
@@ -179,9 +212,11 @@ class System_Service_Settings extends Tiger_Service_Service
                 'ok'      => true,
                 'to'      => $to,
                 'ms'      => (int) round((microtime(true) - $started) * 1000),
-                'via'     => ($values['transport'] === 'smtp' && $values['host'] !== '')
-                    ? $values['host'] . ':' . ($values['port'] !== '' ? $values['port'] : '25')
-                    : 'sendmail',
+                'via'     => $isApi
+                    ? (string) $pDef['label']
+                    : (($values['transport'] === 'smtp' && $values['host'] !== '')
+                        ? $values['host'] . ':' . ($values['port'] !== '' ? $values['port'] : '25')
+                        : 'sendmail'),
             ], 'system.settings.smtp.test_sent');
         } catch (Throwable $e) {
             $this->_success([

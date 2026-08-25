@@ -52,7 +52,7 @@ class System_SettingsController extends Tiger_Controller_Admin_Action
 
         $form = new System_Form_Settings();
         $form->populate([
-            'mail_transport'      => $mail['transport'] === 'smtp' ? 'smtp' : 'mail',
+            'mail_provider'       => $mail['provider'] !== '' ? $mail['provider'] : ($mail['transport'] === 'smtp' ? 'custom' : 'sendmail'),
             'mail_smtp_host'      => $mail['host'],
             'mail_smtp_port'      => $mail['port'] !== '' ? $mail['port'] : '587',
             'mail_smtp_ssl'       => $mail['ssl'],
@@ -82,6 +82,11 @@ class System_SettingsController extends Tiger_Controller_Admin_Action
         // Email SMTP: drives the initial fieldset visibility + the "password already set" hint.
         $this->view->mailTransport   = $mail['transport'] === 'smtp' ? 'smtp' : 'mail';
         $this->view->mailHasPassword = $mail['has_password'];
+        // Provider catalog + the selected provider's stored credentials (secrets as has_* flags only).
+        $this->view->mailProviders   = Tiger_Mail_Provider::all();
+        $this->view->mailProvider    = $mail['provider'] !== '' ? $mail['provider'] : ($mail['transport'] === 'smtp' ? 'custom' : 'sendmail');
+        $this->view->mailFields      = $mail['fields'];
+        $this->view->mailHasField    = $mail['has_field'];
         $this->view->location  = (class_exists('Tiger_Location') && method_exists('Tiger_Location', 'settings'))
             ? Tiger_Location::settings() : null;
         $this->view->consent   = class_exists('Tiger_Consent') ? Tiger_Consent::settings() : null;

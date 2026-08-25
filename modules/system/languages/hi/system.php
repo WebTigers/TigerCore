@@ -201,6 +201,9 @@ return [
     // ---- Settings: Email SMTP --------------------------------------------------------------
     'system.settings.smtp.header'             => 'ईमेल &amp; SMTP',
     'system.settings.smtp.intro'                     => 'यह इंस्टॉल मेल कैसे भेजता है — पासवर्ड रीसेट, सत्यापन लिंक और सूचनाएँ। सहेजने के बाद एक परीक्षण भेजें ताकि पुष्टि हो सके कि डिलीवरी वाकई हो रही है।',
+    'system.settings.smtp.provider'                  => 'प्रदाता',
+    'system.settings.smtp.provider_help'             => 'अपनी मेल सेवा चुनें। SMTP लगभग हर जगह काम करता है; API ड्राइवर वहाँ भी काम करते हैं जहाँ आउटगोइंग SMTP पोर्ट अवरुद्ध हैं।',
+    'system.settings.smtp.optional'                  => '(वैकल्पिक)',
     'system.settings.smtp.transport'                 => 'ट्रांसपोर्ट',
     'system.settings.smtp.transport_help'            => 'PHP mail() के लिए चालू स्थानीय MTA चाहिए। अधिकांश होस्ट पर SMTP भरोसेमंद विकल्प है।',
     'system.settings.smtp.transport_mail'            => 'PHP mail() (sendmail)',

@@ -201,6 +201,9 @@ return [
     // ---- Settings: Email SMTP --------------------------------------------------------------
     'system.settings.smtp.header'             => 'Correo &amp; SMTP',
     'system.settings.smtp.intro'                     => 'Cómo envía correo esta instalación: restablecimientos de contraseña, enlaces de verificación y notificaciones. Envía una prueba después de guardar para confirmar que realmente se entrega.',
+    'system.settings.smtp.provider'                  => 'Proveedor',
+    'system.settings.smtp.provider_help'             => 'Elige tu servicio de correo. SMTP funciona casi en todas partes; los controladores de API también funcionan donde los puertos SMTP salientes están bloqueados.',
+    'system.settings.smtp.optional'                  => '(opcional)',
     'system.settings.smtp.transport'                 => 'Transporte',
     'system.settings.smtp.transport_help'            => 'PHP mail() necesita un MTA local funcionando. SMTP es la opción fiable en la mayoría de los alojamientos.',
     'system.settings.smtp.transport_mail'            => 'PHP mail() (sendmail)',

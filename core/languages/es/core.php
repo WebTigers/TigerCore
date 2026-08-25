@@ -193,4 +193,17 @@ return [
     'core.media.field.clear'           => 'Quitar',
     'core.media.field.preview_alt'     => 'Vista previa del medio seleccionado',
     'core.media.field.file'            => 'Archivo seleccionado',
+
+    // --- Mail providers (Tiger_Mail_Provider) ---
+    'core.mail.provider.help.ses_smtp'         => 'Las credenciales SMTP de SES se generan en la consola de SES; NO son tus claves de acceso de AWS. Introdúcelas como usuario y contraseña más abajo.',
+    'core.mail.provider.help.ses_api'          => 'Envía mediante la API SES v2 usando el SDK de AWS incluido.',
+    'core.mail.provider.help.ses_api_iam'      => 'Deja la clave y el secreto en blanco para usar el rol IAM de la instancia: así no se almacena ninguna credencial.',
+    'core.mail.provider.help.sendgrid_smtp'    => 'Usa el usuario literal «apikey» y tu clave de API como contraseña.',
+    'core.mail.provider.help.postmark_smtp'    => 'Usa tu Server API token TANTO como usuario como contraseña.',
+    'core.mail.provider.help.resend_smtp'      => 'Usa el usuario literal «resend» y tu clave de API como contraseña.',
+    'core.mail.provider.help.mailgun_region'   => 'Mailgun opera regiones separadas de EE. UU. y UE, y una clave solo funciona en la región donde se creó.',
+    'core.mail.provider.help.google_smtp'      => 'Requiere una contraseña de aplicación con la verificación en dos pasos activada; la contraseña normal de la cuenta no funciona.',
+    'core.mail.provider.help.microsoft_smtp'   => 'Microsoft desactiva SMTP AUTH de forma predeterminada y está retirando la autenticación básica; puede que tengas que habilitarla para este buzón.',
+    'core.mail.provider.requires.aws_sdk'      => 'Este controlador necesita el módulo del SDK de AWS (tiger-sdk-aws). Instálalo y actívalo, o usa Amazon SES (SMTP).',
+    'core.mail.provider.requires.generic'      => 'El controlador de este proveedor no está disponible en esta instalación.',
 ];

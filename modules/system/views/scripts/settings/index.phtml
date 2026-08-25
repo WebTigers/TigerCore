@@ -16,6 +16,14 @@ $rcEnabled = !empty($el('recaptcha_enabled')->getValue());
 $hasSecret = !empty($this->hasSecret);
 $mailTransport   = (string) $this->mailTransport === 'smtp' ? 'smtp' : 'mail';
 $mailHasPassword = !empty($this->mailHasPassword);
+$mailProviders   = (array) $this->mailProviders;
+$mailProvider    = (string) $this->mailProvider;
+$mailFields      = (array) $this->mailFields;
+$mailHasField    = (array) $this->mailHasField;
+// The SMTP connection block applies to every provider EXCEPT the API drivers and bare sendmail.
+$mailIsSmtp      = isset($mailProviders[$mailProvider])
+    && $mailProviders[$mailProvider]['kind'] === Tiger_Mail_Provider::KIND_SMTP
+    && $mailProvider !== 'sendmail';
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
@@ -146,13 +154,50 @@ $mailHasPassword = !empty($this->mailHasPassword);
                         <div class="card-body">
                             <p class="text-body-secondary mb-3"><?= $this->t('system.settings.smtp.intro') ?></p>
 
-                            <div class="mb-3" style="max-width:20rem;">
-                                <label class="form-label" for="set-mail-transport"><?= $this->t('system.settings.smtp.transport') ?></label>
-                                <?= $el('mail_transport') ?>
-                                <div class="form-text"><?= $this->t('system.settings.smtp.transport_help') ?></div>
+                            <div class="mb-3" style="max-width:24rem;">
+                                <label class="form-label" for="set-mail-provider"><?= $this->t('system.settings.smtp.provider') ?></label>
+                                <?= $el('mail_provider') ?>
+                                <div class="form-text"><?= $this->t('system.settings.smtp.provider_help') ?></div>
                             </div>
 
-                            <fieldset id="set-mail-smtp" class="border rounded p-3 mb-3 <?= $mailTransport === 'smtp' ? '' : 'd-none' ?>">
+                            <?php // Per-provider credentials (API keys, region, sending domain). One block per
+                                  // provider, revealed by the dropdown — same pattern as the Location adapters. ?>
+                            <?php foreach ($mailProviders as $pKey => $pDef): if (empty($pDef['fields'])) { continue; } ?>
+                            <div class="mail-provider-fields border rounded p-3 mb-3" data-provider="<?= $this->escape($pKey) ?>" <?= $mailProvider === $pKey ? '' : 'style="display:none"' ?>>
+                                <?php if (!empty($pDef['help'])): ?>
+                                    <p class="text-body-secondary small mb-3"><?= $this->t($pDef['help']) ?></p>
+                                <?php endif; ?>
+                                <?php if (!Tiger_Mail_Provider::isAvailable($pKey)): ?>
+                                    <div class="alert alert-warning py-2 small mb-3"><i class="fa-solid fa-triangle-exclamation me-2"></i><?= $this->t($pDef['requires_hint'] ?? 'core.mail.provider.requires.generic') ?></div>
+                                <?php endif; ?>
+                                <div class="row g-3">
+                                    <?php foreach ($pDef['fields'] as $fName => $fDef):
+                                        $id     = 'mail-f-' . $pKey . '-' . $fName;
+                                        $isSec  = !empty($fDef['secret']);
+                                        $hasVal = !empty($mailHasField[$fName]);
+                                        $val    = $isSec ? '' : (string) ($mailFields[$fName] ?? '');
+                                        $ph     = $isSec && $hasVal
+                                            ? $this->t('system.settings.smtp.password_placeholder_set')
+                                            : (string) ($fDef['placeholder'] ?? '');
+                                    ?>
+                                    <div class="col-sm-6">
+                                        <label class="form-label" for="<?= $this->escape($id) ?>"><?= $this->escape($fDef['label']) ?><?php if (empty($fDef['required'])): ?> <span class="text-body-secondary fw-normal"><?= $this->t('system.settings.smtp.optional') ?></span><?php endif; ?></label>
+                                        <input type="<?= $isSec ? 'password' : 'text' ?>"
+                                               class="form-control"
+                                               id="<?= $this->escape($id) ?>"
+                                               name="mail_field[<?= $this->escape($pKey) ?>][<?= $this->escape($fName) ?>]"
+                                               value="<?= $this->escape($val) ?>"
+                                               placeholder="<?= $this->escape($ph) ?>"
+                                               autocomplete="<?= $isSec ? 'new-password' : 'off' ?>">
+                                        <?php if (!empty($fDef['help'])): ?><div class="form-text"><?= $this->t($fDef['help']) ?></div><?php endif; ?>
+                                        <?php if ($isSec && $hasVal): ?><div class="form-text"><?= $this->t('system.settings.smtp.password_help_set') ?></div><?php endif; ?>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+
+                            <fieldset id="set-mail-smtp" class="border rounded p-3 mb-3 <?= $mailIsSmtp ? '' : 'd-none' ?>">
                                 <legend class="float-none fs-6 fw-semibold px-1 w-auto"><?= $this->t('system.settings.smtp.connection') ?></legend>
 
                                 <div class="row g-3">
@@ -585,13 +630,42 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // --- Email SMTP: the connection block only applies to the smtp transport ---
-    var mailTransport = document.getElementById('set-mail-transport');
-    var mailSmtpBox   = document.getElementById('set-mail-smtp');
-    if (mailTransport && mailSmtpBox) {
-        mailTransport.addEventListener('change', function () {
-            mailSmtpBox.classList.toggle('d-none', this.value !== 'smtp');
-        });
+    // --- Email SMTP: the provider drives which blocks are relevant ---
+    var mailProvider = document.getElementById('set-mail-provider');
+    var mailSmtpBox  = document.getElementById('set-mail-smtp');
+    if (mailProvider) {
+        // Which providers use the SMTP connection block, and each one's host/port defaults —
+        // emitted from the PHP catalog so the two can't drift apart.
+        var mailKinds = <?= json_encode(array_map(static function ($d) {
+            return ['kind' => $d['kind'], 'smtp' => $d['smtp'] ?? null];
+        }, $mailProviders), JSON_UNESCAPED_SLASHES) ?>;
+
+        var syncProvider = function (prefill) {
+            var key  = mailProvider.value;
+            var def  = mailKinds[key] || {};
+            var smtp = def.kind === 'smtp' && key !== 'sendmail';
+
+            if (mailSmtpBox) { mailSmtpBox.classList.toggle('d-none', !smtp); }
+            document.querySelectorAll('.mail-provider-fields').forEach(function (box) {
+                box.style.display = (box.getAttribute('data-provider') === key) ? '' : 'none';
+            });
+
+            // Prefill the connection defaults on a real change, so picking "SendGrid (SMTP)" fills
+            // in host/port/encryption instead of leaving the operator to look them up. Never on
+            // first paint — that would clobber a saved custom host.
+            if (prefill && smtp && def.smtp) {
+                var set = function (id, val) {
+                    var elx = document.getElementById(id);
+                    if (elx && val !== null && val !== undefined && String(val) !== '') { elx.value = String(val); }
+                };
+                if (String(def.smtp.host || '').indexOf('{') === -1) { set('set-mail-host', def.smtp.host); }
+                set('set-mail-port', def.smtp.port);
+                set('set-mail-ssl', def.smtp.ssl);
+                set('set-mail-auth', def.smtp.auth);
+            }
+        };
+        mailProvider.addEventListener('change', function () { syncProvider(true); });
+        syncProvider(false);
     }
 
     // --- Email SMTP: send a test with the values CURRENTLY in the form (no save required) ---
@@ -607,11 +681,18 @@ document.addEventListener('DOMContentLoaded', function () {
             var fd = new URLSearchParams();
             fd.set('module', 'system'); fd.set('service', 'settings'); fd.set('method', 'mailTest');
             fd.set('to', to);
-            ['mail_transport', 'mail_smtp_host', 'mail_smtp_port', 'mail_smtp_ssl', 'mail_smtp_auth',
+            ['mail_provider', 'mail_smtp_host', 'mail_smtp_port', 'mail_smtp_ssl', 'mail_smtp_auth',
              'mail_smtp_username', 'mail_smtp_password', 'mail_from_email', 'mail_from_name'].forEach(function (k) {
                 var input = form.querySelector('[name="' + k + '"]');
                 fd.set(k, input ? input.value : '');
             });
+            // The selected provider's credential fields, so an API key can be tested before saving.
+            var credBox = document.querySelector('.mail-provider-fields[data-provider="' + (document.getElementById('set-mail-provider') || {}).value + '"]');
+            if (credBox) {
+                credBox.querySelectorAll('input[name^="mail_field"]').forEach(function (inp) {
+                    if (inp.value !== '') { fd.set(inp.name, inp.value); }
+                });
+            }
             out.className = 'small text-body-secondary'; out.textContent = Tiger.t('mailTestSending');
             TigerButton.run(this, function () {
                 return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd }).then(function (r) { return r.json().catch(function () { return {}; }); });

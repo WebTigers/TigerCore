@@ -193,4 +193,17 @@ return [
     'core.media.field.clear'           => 'Entfernen',
     'core.media.field.preview_alt'     => 'Vorschau des ausgewählten Mediums',
     'core.media.field.file'            => 'Ausgewählte Datei',
+
+    // --- Mail providers (Tiger_Mail_Provider) ---
+    'core.mail.provider.help.ses_smtp'         => 'SES-SMTP-Zugangsdaten werden in der SES-Konsole erzeugt — sie sind NICHT Ihre AWS-Zugriffsschlüssel. Tragen Sie sie unten als Benutzername und Passwort ein.',
+    'core.mail.provider.help.ses_api'          => 'Versendet über die SES-v2-API mit dem mitgelieferten AWS-SDK.',
+    'core.mail.provider.help.ses_api_iam'      => 'Lassen Sie Schlüssel und Secret leer, um die IAM-Rolle der Instanz zu verwenden — dann wird gar kein Zugangsdatum gespeichert.',
+    'core.mail.provider.help.sendgrid_smtp'    => 'Verwenden Sie den wörtlichen Benutzernamen „apikey“ und Ihren API-Schlüssel als Passwort.',
+    'core.mail.provider.help.postmark_smtp'    => 'Verwenden Sie Ihr Server-API-Token SOWOHL als Benutzernamen ALS AUCH als Passwort.',
+    'core.mail.provider.help.resend_smtp'      => 'Verwenden Sie den wörtlichen Benutzernamen „resend“ und Ihren API-Schlüssel als Passwort.',
+    'core.mail.provider.help.mailgun_region'   => 'Mailgun betreibt getrennte US- und EU-Regionen; ein Schlüssel funktioniert nur in der Region, in der er erstellt wurde.',
+    'core.mail.provider.help.google_smtp'      => 'Erfordert ein App-Passwort bei aktivierter Bestätigung in zwei Schritten — das normale Kontopasswort funktioniert nicht.',
+    'core.mail.provider.help.microsoft_smtp'   => 'Microsoft deaktiviert SMTP AUTH standardmäßig und stellt die Basisauthentifizierung ein; möglicherweise müssen Sie sie für dieses Postfach aktivieren.',
+    'core.mail.provider.requires.aws_sdk'      => 'Dieser Treiber benötigt das AWS-SDK-Modul (tiger-sdk-aws). Installieren und aktivieren Sie es, oder verwenden Sie Amazon SES (SMTP).',
+    'core.mail.provider.requires.generic'      => 'Der Treiber dieses Anbieters ist auf dieser Installation nicht verfügbar.',
 ];

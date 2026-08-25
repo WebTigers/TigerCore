@@ -57,13 +57,12 @@ class System_Form_Settings extends Tiger_Form
             // optional: `mail` (PHP sendmail) needs none of it. The password is a password field —
             // blank = keep the stored one (Tiger_Mail::saveSettings), which is also why the current
             // secret is never rendered back into the form.
-            ['select', 'mail_transport', [
-                'multiOptions' => [
-                    'mail' => $this->_t('system.settings.smtp.transport_mail'),
-                    'smtp' => $this->_t('system.settings.smtp.transport_smtp'),
-                ],
-                'value'   => 'mail',
-                'attribs' => ['id' => 'set-mail-transport', 'class' => 'form-select'],
+            // The provider drives everything: it picks the transport kind, supplies the SMTP
+            // defaults, and declares which credential fields the screen renders.
+            ['select', 'mail_provider', [
+                'multiOptions' => Tiger_Mail_Provider::options(),
+                'value'        => 'sendmail',
+                'attribs'      => ['id' => 'set-mail-provider', 'class' => 'form-select'],
             ]],
             ['text', 'mail_smtp_host', [
                 'required' => false,

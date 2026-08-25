@@ -164,6 +164,16 @@ class Tiger_Mail
         $m    = $this->_config ? $this->_config->get('mail') : null;
         $type = ($m && $m->get('transport')) ? strtolower((string) $m->transport) : 'mail';
 
+        // A provider API driver (SendGrid, SES, …) is just another transport — see
+        // Tiger_Mail_Transport_Api. Resolved from the stored provider + its credentials.
+        if ($type === 'api') {
+            $provider = $m ? (string) $m->get('provider') : '';
+            $api      = self::apiTransport($provider, self::apiCredentials($provider));
+            if ($api) { return $api; }
+            // An unusable API provider (driver missing, e.g. the AWS SDK was deactivated) must not
+            // fatal the request — fall through to sendmail, the same way an unset provider does.
+        }
+
         if ($type === 'smtp' && $m && $m->get('smtp') && (string) $m->smtp->get('host') !== '') {
             $s    = $m->smtp;
             $opts = [];
@@ -218,8 +228,18 @@ class Tiger_Mail
      */
     public static function transportFor(array $v)
     {
+        $type = strtolower((string) ($v['transport'] ?? 'mail'));
+
+        // API provider — build the driver from the values given (the "Send test" path passes the
+        // form's current provider + credentials so a setup is testable before it's saved).
+        if ($type === 'api') {
+            $api = self::apiTransport((string) ($v['provider'] ?? ''), (array) ($v['fields'] ?? []));
+            if ($api) { return $api; }
+            return new Zend_Mail_Transport_Sendmail();
+        }
+
         $host = trim((string) ($v['host'] ?? ''));
-        if (strtolower((string) ($v['transport'] ?? 'mail')) !== 'smtp' || $host === '') {
+        if ($type !== 'smtp' || $host === '') {
             return new Zend_Mail_Transport_Sendmail();
         }
 
@@ -236,6 +256,95 @@ class Tiger_Mail
         if ($ssl !== '') { $opts['ssl'] = $ssl; }
 
         return new Zend_Mail_Transport_Smtp($host, $opts);
+    }
+
+    /**
+     * Instantiate a provider's API driver.
+     *
+     * @param  string $provider the provider slug (must be an API-kind entry in Tiger_Mail_Provider)
+     * @param  array  $fields   its credential values
+     * @return Zend_Mail_Transport_Abstract|null the driver, or null when the provider is unknown,
+     *                                           isn't an API provider, or its driver isn't available
+     */
+    public static function apiTransport($provider, array $fields)
+    {
+        $def = Tiger_Mail_Provider::get($provider);
+        if (!$def || ($def['kind'] ?? '') !== Tiger_Mail_Provider::KIND_API) { return null; }
+        if (!Tiger_Mail_Provider::isAvailable($provider)) { return null; }
+
+        $class = (string) ($def['transport'] ?? '');
+        if ($class === '' || !class_exists($class)) { return null; }
+
+        return new $class($fields);
+    }
+
+    /**
+     * A provider's stored credentials, decrypted. Read from `mail.api.<provider>.<field>`, with a
+     * secret living at `<field>_enc`.
+     *
+     * @param  string $provider the provider slug
+     * @return array<string,string> field name => plaintext value
+     */
+    public static function apiCredentials($provider)
+    {
+        $out = [];
+        if ((string) $provider === '') { return $out; }
+
+        $cfg  = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
+        $node = ($cfg && $cfg->get('mail') && $cfg->mail->get('api')) ? $cfg->mail->api->get($provider) : null;
+        if (!$node) { return $out; }
+
+        foreach (array_keys(Tiger_Mail_Provider::fields($provider)) as $field) {
+            if (Tiger_Mail_Provider::isSecret($provider, $field)) {
+                $enc = (string) $node->get($field . '_enc');
+                if ($enc !== '') {
+                    try {
+                        if (class_exists('Tiger_Crypto') && Tiger_Crypto::isConfigured()) {
+                            $out[$field] = (string) Tiger_Crypto::decrypt($enc);
+                            continue;
+                        }
+                    } catch (Throwable $e) {
+                        // fall through to the plaintext key — a send must never fatal on a bad secret
+                    }
+                }
+            }
+            $out[$field] = (string) $node->get($field);
+        }
+        return $out;
+    }
+
+    /**
+     * Persist a provider's credentials to the `config` tier. Secrets are encrypted at rest and a
+     * BLANK secret keeps the stored one (same rule as the SMTP password).
+     *
+     * @param  string $provider the provider slug
+     * @param  array  $fields   submitted field values
+     * @return void
+     */
+    public static function saveApiCredentials($provider, array $fields)
+    {
+        $defs = Tiger_Mail_Provider::fields($provider);
+        if (!$defs) { return; }
+
+        $cfg  = new Tiger_Model_Config();
+        $g    = Tiger_Model_Config::SCOPE_GLOBAL;
+        $base = 'mail.api.' . $provider . '.';
+
+        foreach ($defs as $field => $def) {
+            $value = trim((string) ($fields[$field] ?? ''));
+
+            if (!empty($def['secret'])) {
+                if ($value === '') { continue; }   // blank = keep the stored secret
+                if (class_exists('Tiger_Crypto') && Tiger_Crypto::isConfigured()) {
+                    $cfg->set($g, '', $base . $field . '_enc', Tiger_Crypto::encrypt($value));
+                    $cfg->set($g, '', $base . $field, '');
+                } else {
+                    $cfg->set($g, '', $base . $field, $value);
+                }
+                continue;
+            }
+            $cfg->set($g, '', $base . $field, $value);
+        }
     }
 
     /**
@@ -268,7 +377,24 @@ class Tiger_Mail
 
         $has = $smtp && ((string) $smtp->get('password_enc') !== '' || (string) $smtp->get('password') !== '');
 
+        // Provider credentials, with every secret reduced to a has_* flag — the screen learns that
+        // a key EXISTS without the value ever crossing back out of the server.
+        $provider = $mail ? (string) $mail->get('provider') : '';
+        $creds    = [];
+        $hasCred  = [];
+        foreach (Tiger_Mail_Provider::fields($provider) as $field => $def) {
+            $stored = self::apiCredentials($provider);
+            if (!empty($def['secret'])) {
+                $hasCred[$field] = isset($stored[$field]) && $stored[$field] !== '';
+                continue;
+            }
+            $creds[$field] = (string) ($stored[$field] ?? '');
+        }
+
         return [
+            'provider'      => $provider,
+            'fields'        => $creds,
+            'has_field'     => $hasCred,
             'transport'    => $mail ? strtolower((string) $mail->get('transport')) : 'mail',
             'host'         => $smtp ? (string) $smtp->get('host') : '',
             'port'         => $smtp ? (string) $smtp->get('port') : '',
@@ -295,6 +421,24 @@ class Tiger_Mail
     {
         $cfg = new Tiger_Model_Config();
         $g   = Tiger_Model_Config::SCOPE_GLOBAL;
+
+        // The provider drives the transport KIND: an API provider switches mail.transport to 'api'
+        // and stores its credentials; every other provider keeps the smtp/mail path below.
+        if (array_key_exists('provider', $values)) {
+            $provider = (string) $values['provider'];
+            if (Tiger_Mail_Provider::get($provider)) {
+                $cfg->set($g, '', 'mail.provider', $provider);
+                self::saveApiCredentials($provider, (array) ($values['fields'] ?? []));
+
+                if (Tiger_Mail_Provider::get($provider)['kind'] === Tiger_Mail_Provider::KIND_API) {
+                    $cfg->set($g, '', 'mail.transport', 'api');
+                    // The From identity still applies to an API send.
+                    if (array_key_exists('from_email', $values)) { $cfg->set($g, '', 'mail.from.email', trim((string) $values['from_email'])); }
+                    if (array_key_exists('from_name', $values))  { $cfg->set($g, '', 'mail.from.name',  trim((string) $values['from_name'])); }
+                    return;
+                }
+            }
+        }
 
         if (array_key_exists('transport', $values)) {
             $cfg->set($g, '', 'mail.transport', ((string) $values['transport'] === 'smtp') ? 'smtp' : 'mail');

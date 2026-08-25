@@ -203,6 +203,9 @@ return [
     // ---- Settings: Email SMTP --------------------------------------------------------------
     'system.settings.smtp.header'             => 'Email &amp; SMTP',
     'system.settings.smtp.intro'                     => 'How this install sends mail — password resets, verification links, and notifications. Send a test after saving to confirm it actually delivers.',
+    'system.settings.smtp.provider'                  => 'Provider',
+    'system.settings.smtp.provider_help'             => 'Pick your mail service. SMTP works almost everywhere; the API drivers also work where outbound SMTP ports are blocked.',
+    'system.settings.smtp.optional'                  => '(optional)',
     'system.settings.smtp.transport'                 => 'Transport',
     'system.settings.smtp.transport_help'            => 'PHP mail() needs a working local MTA. SMTP is the reliable choice on most hosts.',
     'system.settings.smtp.transport_mail'            => 'PHP mail() (sendmail)',
