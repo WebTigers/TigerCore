@@ -40,6 +40,19 @@ class System_Service_Settings extends Tiger_Service_Service
             $cfg->set($g, '', 'tiger.session.autologout.seconds', (string) max(30, (int) $v['autologout_seconds']));
             $cfg->set($g, '', 'tiger.session.autologout.action', $v['autologout_action'] === 'lock' ? 'lock' : 'logout');
 
+            // Email SMTP tab — shared writer (encrypts the password; a blank one keeps the current).
+            Tiger_Mail::saveSettings([
+                'transport'  => $v['mail_transport'],
+                'host'       => $v['mail_smtp_host'],
+                'port'       => $v['mail_smtp_port'],
+                'ssl'        => $v['mail_smtp_ssl'],
+                'auth'       => $v['mail_smtp_auth'],
+                'username'   => $v['mail_smtp_username'],
+                'password'   => $v['mail_smtp_password'],
+                'from_email' => $v['mail_from_email'],
+                'from_name'  => $v['mail_from_name'],
+            ]);
+
             // reCAPTCHA tab — shared writer (encrypts the secret; blank secret keeps the current one).
             Tiger_Recaptcha::saveSettings([
                 'enabled'    => !empty($v['recaptcha_enabled']) ? 1 : 0,
@@ -111,5 +124,85 @@ class System_Service_Settings extends Tiger_Service_Service
         $config   = (isset($params['config']) && is_array($params['config'])) ? $params['config'] : [];
 
         $this->_success(Tiger_Location::test($ip, $provider, $config));
+    }
+
+    /**
+     * Live send test for the Email SMTP tab's "Send test" button — the answer to "is my mail
+     * actually configured?", which is otherwise unanswerable: the password-reset flow deliberately
+     * reveals nothing (no account enumeration), so a broken MTA looks identical to a working one.
+     *
+     * Like `locationTest`, it uses the form's CURRENT values, so a just-typed host/port/password is
+     * testable WITHOUT saving — a wrong setting never has to overwrite a working one to be tried. A
+     * blank password falls back to the stored secret (blank = keep, same rule as save).
+     *
+     * The transport's error text is returned verbatim: on a connection test the message ("Could not
+     * open socket", an auth rejection, a TLS failure) IS the diagnostic, and this action is admin-only.
+     *
+     * @param  array $params to, mail_transport, mail_smtp_{host,port,ssl,auth,username,password}, mail_from_{email,name}
+     * @return void
+     */
+    public function mailTest(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+
+        $to = trim((string) ($params['to'] ?? ''));
+        if ($to === '' || !Zend_Validate::is($to, 'EmailAddress')) {
+            $this->_error('system.settings.smtp.test_bad_address'); return;
+        }
+
+        // Blank password → the stored one, so testing an existing setup needs no re-typing.
+        $password = (string) ($params['mail_smtp_password'] ?? '');
+        if ($password === '') { $password = Tiger_Mail::storedSmtpPassword(); }
+
+        $values = [
+            'transport' => (string) ($params['mail_transport'] ?? 'mail'),
+            'host'      => (string) ($params['mail_smtp_host'] ?? ''),
+            'port'      => (string) ($params['mail_smtp_port'] ?? ''),
+            'ssl'       => (string) ($params['mail_smtp_ssl'] ?? ''),
+            'auth'      => (string) ($params['mail_smtp_auth'] ?? ''),
+            'username'  => (string) ($params['mail_smtp_username'] ?? ''),
+            'password'  => $password,
+        ];
+
+        $started = microtime(true);
+        try {
+            $mail = new Tiger_Mail();
+            $from = trim((string) ($params['mail_from_email'] ?? ''));
+            if ($from !== '') { $mail->from($from, trim((string) ($params['mail_from_name'] ?? ''))); }
+
+            $mail->to($to)
+                 ->subject($this->_translate('system.settings.smtp.test_subject'))
+                 ->html('<p>' . htmlspecialchars($this->_translate('system.settings.smtp.test_body'), ENT_QUOTES) . '</p>')
+                 ->send(Tiger_Mail::transportFor($values));
+
+            $this->_success([
+                'ok'      => true,
+                'to'      => $to,
+                'ms'      => (int) round((microtime(true) - $started) * 1000),
+                'via'     => ($values['transport'] === 'smtp' && $values['host'] !== '')
+                    ? $values['host'] . ':' . ($values['port'] !== '' ? $values['port'] : '25')
+                    : 'sendmail',
+            ], 'system.settings.smtp.test_sent');
+        } catch (Throwable $e) {
+            $this->_success([
+                'ok'    => false,
+                'to'    => $to,
+                'ms'    => (int) round((microtime(true) - $started) * 1000),
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /** Translate a key through the registered translator, falling back to the key itself. */
+    protected function _translate(string $key): string
+    {
+        try {
+            if (Zend_Registry::isRegistered('Zend_Translate')) {
+                return (string) Zend_Registry::get('Zend_Translate')->translate($key);
+            }
+        } catch (Throwable $e) {
+            // fall through — a test send must never fail on a missing translator
+        }
+        return $key;
     }
 }

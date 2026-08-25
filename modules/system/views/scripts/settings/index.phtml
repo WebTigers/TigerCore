@@ -14,6 +14,8 @@ $alAction  = (string) $el('autologout_action')->getValue() ?: 'logout';
 $rcVersion = (string) $el('recaptcha_version')->getValue() ?: 'v2';
 $rcEnabled = !empty($el('recaptcha_enabled')->getValue());
 $hasSecret = !empty($this->hasSecret);
+$mailTransport   = (string) $this->mailTransport === 'smtp' ? 'smtp' : 'mail';
+$mailHasPassword = !empty($this->mailHasPassword);
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
@@ -135,18 +137,82 @@ $hasSecret = !empty($this->hasSecret);
             </div>
         </div>
 
-        <!-- Email SMTP (stub) -->
+        <!-- Email SMTP -->
         <div class="tab-pane fade" id="tab-smtp" role="tabpanel">
             <div class="row g-4">
                 <div class="col-lg-7">
                     <div class="card">
                         <div class="card-header fw-semibold"><i class="fa-solid fa-envelope me-2"></i><?= $this->t('system.settings.smtp.header') ?></div>
                         <div class="card-body">
-                            <div class="text-center text-body-secondary py-4">
-                                <i class="fa-solid fa-screwdriver-wrench fa-2x mb-3 d-block"></i>
-                                <p class="mb-1 fw-semibold text-body"><?= $this->t('system.settings.smtp.under_construction') ?></p>
-                                <p class="mb-0"><?= $this->t('system.settings.smtp.body') ?></p>
+                            <p class="text-body-secondary mb-3"><?= $this->t('system.settings.smtp.intro') ?></p>
+
+                            <div class="mb-3" style="max-width:20rem;">
+                                <label class="form-label" for="set-mail-transport"><?= $this->t('system.settings.smtp.transport') ?></label>
+                                <?= $el('mail_transport') ?>
+                                <div class="form-text"><?= $this->t('system.settings.smtp.transport_help') ?></div>
                             </div>
+
+                            <fieldset id="set-mail-smtp" class="border rounded p-3 mb-3 <?= $mailTransport === 'smtp' ? '' : 'd-none' ?>">
+                                <legend class="float-none fs-6 fw-semibold px-1 w-auto"><?= $this->t('system.settings.smtp.connection') ?></legend>
+
+                                <div class="row g-3">
+                                    <div class="col-sm-7">
+                                        <label class="form-label" for="set-mail-host"><?= $this->t('system.settings.smtp.host') ?></label>
+                                        <?= $el('mail_smtp_host') ?>
+                                    </div>
+                                    <div class="col-sm-5">
+                                        <label class="form-label" for="set-mail-port"><?= $this->t('system.settings.smtp.port') ?></label>
+                                        <?= $el('mail_smtp_port') ?>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label" for="set-mail-ssl"><?= $this->t('system.settings.smtp.encryption') ?></label>
+                                        <?= $el('mail_smtp_ssl') ?>
+                                        <div class="form-text"><?= $this->t('system.settings.smtp.encryption_help') ?></div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label" for="set-mail-auth"><?= $this->t('system.settings.smtp.auth') ?></label>
+                                        <?= $el('mail_smtp_auth') ?>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label" for="set-mail-username"><?= $this->t('system.settings.smtp.username') ?></label>
+                                        <?= $el('mail_smtp_username') ?>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label" for="set-mail-password"><?= $this->t('system.settings.smtp.password') ?></label>
+                                        <?php $mp = $el('mail_smtp_password'); $mp->setAttrib('placeholder', $mailHasPassword ? $this->t('system.settings.smtp.password_placeholder_set') : $this->t('system.settings.smtp.password_placeholder_new')); ?>
+                                        <?= $mp ?>
+                                        <div class="form-text"><?= $mailHasPassword ? $this->t('system.settings.smtp.password_help_set') : $this->t('system.settings.smtp.password_help_new') ?></div>
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            <div class="row g-3">
+                                <div class="col-sm-6">
+                                    <label class="form-label" for="set-mail-from-email"><?= $this->t('system.settings.smtp.from_email') ?></label>
+                                    <?= $el('mail_from_email') ?>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label" for="set-mail-from-name"><?= $this->t('system.settings.smtp.from_name') ?></label>
+                                    <?= $el('mail_from_name') ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-5">
+                    <div class="card">
+                        <div class="card-header fw-semibold"><i class="fa-solid fa-paper-plane me-2"></i><?= $this->t('system.settings.smtp.test_header') ?></div>
+                        <div class="card-body">
+                            <p class="text-body-secondary mb-3"><?= $this->t('system.settings.smtp.test_intro') ?></p>
+                            <div class="mb-3">
+                                <label class="form-label" for="set-mail-test-to"><?= $this->t('system.settings.smtp.test_to') ?></label>
+                                <?= $el('mail_test_to') ?>
+                            </div>
+                            <button type="button" id="mail-test-btn" class="btn btn-outline-primary">
+                                <i class="fa-solid fa-paper-plane me-2"></i><?= $this->t('system.settings.smtp.test_send') ?>
+                            </button>
+                            <div id="mail-test-result" class="mt-3"></div>
                         </div>
                     </div>
                 </div>
@@ -377,6 +443,10 @@ $hasSecret = !empty($this->hasSecret);
 $this->i18n([
     'fixFields' => 'system.js.fix_fields',
     'lookupFailed' => 'system.js.lookup_failed',
+    'mailTestFailed' => 'system.js.mail_test_failed',
+    'mailTestNeedsAddress' => 'system.js.mail_test_needs_address',
+    'mailTestSending' => 'system.js.mail_test_sending',
+    'mailTestSent' => 'system.js.mail_test_sent',
     'networkError' => 'system.js.network_error',
     'networkErrorShort' => 'system.js.network_error_short',
     'settingsSaved' => 'system.js.settings_saved',
@@ -512,6 +582,50 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (d.ok) { out.className = 'small mt-2 text-success'; out.textContent = '✓ ' + (d.label || (d.city ? d.city + ', ' : '') + (d.country || '?')); }
                 else { out.className = 'small mt-2 text-danger'; out.textContent = '✗ ' + (d.error || Tiger.t('lookupFailed')); }
             }).catch(function () { out.className = 'small mt-2 text-danger'; out.textContent = Tiger.t('networkErrorShort'); });
+        });
+    }
+
+    // --- Email SMTP: the connection block only applies to the smtp transport ---
+    var mailTransport = document.getElementById('set-mail-transport');
+    var mailSmtpBox   = document.getElementById('set-mail-smtp');
+    if (mailTransport && mailSmtpBox) {
+        mailTransport.addEventListener('change', function () {
+            mailSmtpBox.classList.toggle('d-none', this.value !== 'smtp');
+        });
+    }
+
+    // --- Email SMTP: send a test with the values CURRENTLY in the form (no save required) ---
+    var mailTestBtn = document.getElementById('mail-test-btn');
+    if (mailTestBtn) {
+        mailTestBtn.addEventListener('click', function () {
+            var out = document.getElementById('mail-test-result');
+            var to  = document.getElementById('set-mail-test-to').value.trim();
+            if (to === '') {
+                out.className = 'small text-danger'; out.textContent = '✗ ' + Tiger.t('mailTestNeedsAddress');
+                return;
+            }
+            var fd = new URLSearchParams();
+            fd.set('module', 'system'); fd.set('service', 'settings'); fd.set('method', 'mailTest');
+            fd.set('to', to);
+            ['mail_transport', 'mail_smtp_host', 'mail_smtp_port', 'mail_smtp_ssl', 'mail_smtp_auth',
+             'mail_smtp_username', 'mail_smtp_password', 'mail_from_email', 'mail_from_name'].forEach(function (k) {
+                var input = form.querySelector('[name="' + k + '"]');
+                fd.set(k, input ? input.value : '');
+            });
+            out.className = 'small text-body-secondary'; out.textContent = Tiger.t('mailTestSending');
+            TigerButton.run(this, function () {
+                return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd }).then(function (r) { return r.json().catch(function () { return {}; }); });
+            }).then(function (res) {
+                var d = (res && res.data) || {};
+                if (d.ok) {
+                    out.className = 'small text-success';
+                    out.textContent = '✓ ' + Tiger.t('mailTestSent') + ' ' + d.to + ' — ' + (d.via || '') + ' (' + (d.ms || 0) + 'ms)';
+                } else {
+                    // The transport's own message is the diagnostic — show it verbatim, wrapped.
+                    out.className = 'small text-danger text-break';
+                    out.textContent = '✗ ' + (d.error || ((res && res.messages && res.messages[0]) ? res.messages[0].message : Tiger.t('mailTestFailed')));
+                }
+            }).catch(function () { out.className = 'small text-danger'; out.textContent = Tiger.t('networkErrorShort'); });
         });
     }
 });

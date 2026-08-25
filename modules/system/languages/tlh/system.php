@@ -203,8 +203,6 @@ return [
 
     // ---- Settings: Email SMTP --------------------------------------------------------------
     'system.settings.smtp.header'             => 'Email &amp; SMTP',
-    'system.settings.smtp.under_construction' => 'Under construction',
-    'system.settings.smtp.body'               => 'Mail transport, SMTP host/port/TLS, auth, and the From identity are driven by config today (<code>mail.*</code>) and read live by <code>Tiger_Mail</code> — config, not code, so an admin screen slots in cleanly here. Coming soon.',
 
     // ---- Settings: reCAPTCHA ---------------------------------------------------------------
     'system.settings.recaptcha.header'                 => 'Google reCAPTCHA',
