@@ -164,7 +164,8 @@ abstract class Tiger_Mail_Transport_Api extends Zend_Mail_Transport_Abstract
         $response = curl_exec($ch);
         $status   = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error    = curl_error($ch);
-        curl_close($ch);
+        // No curl_close(): it has been a no-op since PHP 8.0 (the handle is freed when it goes out
+        // of scope) and is deprecated as of 8.5 — calling it would emit a deprecation on every send.
 
         if ($response === false || $error !== '') {
             throw new Zend_Mail_Transport_Exception('Mail API request failed: ' . $error);

@@ -105,10 +105,15 @@ class System_Form_Settings extends Tiger_Form
                 'filters'  => ['StringTrim'],
                 'attribs'  => array_merge($control, ['id' => 'set-mail-password', 'autocomplete' => 'new-password']),
             ]],
+            // ALLOW_LOCAL alongside ALLOW_DNS on purpose: the shipped default From address is
+            // `no-reply@localhost`, and an intranet install legitimately sends from a local
+            // hostname. DNS-only validation would refuse core's own default value.
             ['text', 'mail_from_email', [
                 'required'   => false,
                 'filters'    => ['StringTrim'],
-                'validators' => [['EmailAddress']],
+                'validators' => [['EmailAddress', false, [
+                    'allow' => Zend_Validate_Hostname::ALLOW_DNS | Zend_Validate_Hostname::ALLOW_LOCAL,
+                ]]],
                 'attribs'    => array_merge($control, ['id' => 'set-mail-from-email', 'placeholder' => 'no-reply@example.com']),
             ]],
             ['text', 'mail_from_name', [

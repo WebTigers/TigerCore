@@ -32,6 +32,12 @@ use Zend_Mail;
  * email, which is exactly why it gets a test.
  */
 #[CoversClass(Tiger_Mail_Transport_Api::class)]
+#[CoversClass(Tiger_Mail_Transport_Brevo::class)]
+#[CoversClass(Tiger_Mail_Transport_Mailgun::class)]
+#[CoversClass(Tiger_Mail_Transport_Mailjet::class)]
+#[CoversClass(Tiger_Mail_Transport_Postmark::class)]
+#[CoversClass(Tiger_Mail_Transport_Resend::class)]
+#[CoversClass(Tiger_Mail_Transport_SendGrid::class)]
 final class MailApiTransportTest extends IntegrationTestCase
 {
     /** An HTML body with characters quoted-printable WOULD mangle (= and a long line). */
