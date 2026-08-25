@@ -6,6 +6,39 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-08-25
+
+Every transactional email now renders through one shared, branded layout.
+
+### Added
+- **A shared email layout** — `Tiger_Mail::template($name, $vars)` renders a content template into
+  `layout.phtml`. Tiger had **no** email templates before this: six bodies were hand-concatenated PHP
+  strings, and they had drifted badly — password reset and the sign-in code were styled inline, the
+  backup report barely, and **signup verification, site registration and the SMTP test were bare
+  `<p>` tags**. The signup verification is the first email a new customer ever receives.
+- **Template path cascade** — core → app → registered modules → **active theme**. An operator
+  rebrands every transactional email by dropping `emails/*.phtml` into their theme, with no code
+  change; `Tiger_Mail::addTemplatePath()` lets a third-party module ship its own.
+- Templates for all six: `reset`, `otp`, `verify`, `register-verify`, `backup`, `test`.
+
+### Changed
+- The layout is built to **email** constraints, deliberately: presentational tables (flex/grid are
+  unusable in Outlook's Word renderer), **inline** styles (Gmail strips `<head><style>` in several
+  contexts, so the `<style>` block carries only dark mode and small-screen tweaks), 600px, a
+  `mso-padding-alt` bulletproof button, and **no remote images** — they're blocked by default and
+  would render as a broken box on first open, so the wordmark is live text.
+- **The Send-test result is a real message envelope.** It was hand-rolled as styled text, against
+  the house rule; it now goes through `TigerDOM.notify` — success outline, check icon, reveal
+  animation, click-to-dismiss, and errors that stick until read.
+- Email copy is unchanged — this restyles, it does not reword.
+
+### Removed
+- The dead `_resetEmailHtml()` / `_otpEmailHtml()` string builders.
+
+### Note
+Email copy remains **hardcoded English** across all six, as it was before. Now that the bodies are
+templates rather than concatenated strings, keying them for the six locales is a clean follow-up.
+
 ## [1.1.0] — 2026-08-25
 
 Outgoing mail becomes configurable, testable, and provider-aware — and the console gains a
