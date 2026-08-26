@@ -79,6 +79,11 @@ return [
     'cms.settings.label_home_page'     => 'Página inicial',
     'cms.settings.help_home_page'      => 'Qual página servir em %s. “Página inicial integrada” mantém a página de marketing padrão.',
     'cms.settings.opt_builtin_landing' => '— Página inicial integrada —',
+    'cms.settings.optgroup_pages'        => 'Páginas de conteúdo',
+    'cms.settings.optgroup_modules'      => 'Páginas de módulos',
+    'cms.settings.opt_custom_path'       => '— Caminho personalizado… —',
+    'cms.settings.label_home_page_custom' => 'Caminho personalizado',
+    'cms.settings.help_home_page_custom' => 'Qualquer rota deste site, começando com uma barra — por exemplo /marketplace. É servida em / em vez de redirecionar.',
 
     // ---- Content list ----
     'cms.page.list_heading'        => 'Conteúdo',

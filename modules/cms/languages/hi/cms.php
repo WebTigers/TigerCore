@@ -79,6 +79,11 @@ return [
     'cms.settings.label_home_page'     => 'होम पेज',
     'cms.settings.help_home_page'      => '%s पर कौन सा पेज परोसना है। “बिल्ट-इन लैंडिंग पेज” डिफ़ॉल्ट मार्केटिंग पेज बनाए रखता है।',
     'cms.settings.opt_builtin_landing' => '— बिल्ट-इन लैंडिंग पेज —',
+    'cms.settings.optgroup_pages'        => 'सामग्री पृष्ठ',
+    'cms.settings.optgroup_modules'      => 'मॉड्यूल पृष्ठ',
+    'cms.settings.opt_custom_path'       => '— कस्टम पथ… —',
+    'cms.settings.label_home_page_custom' => 'कस्टम पथ',
+    'cms.settings.help_home_page_custom' => 'इस साइट का कोई भी रूट, स्लैश से शुरू — उदाहरण के लिए /marketplace। इसे रीडायरेक्ट किए बिना / पर ही परोसा जाता है।',
 
     // ---- Content list ----
     'cms.page.list_heading'        => 'सामग्री',

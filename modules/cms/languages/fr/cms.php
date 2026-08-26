@@ -79,6 +79,11 @@ return [
     'cms.settings.label_home_page'     => 'Page d\'accueil',
     'cms.settings.help_home_page'      => 'Quelle page servir sur %s. « Page d\'accueil intégrée » conserve la page marketing par défaut.',
     'cms.settings.opt_builtin_landing' => '— Page d\'accueil intégrée —',
+    'cms.settings.optgroup_pages'        => 'Pages de contenu',
+    'cms.settings.optgroup_modules'      => 'Pages de modules',
+    'cms.settings.opt_custom_path'       => '— Chemin personnalisé… —',
+    'cms.settings.label_home_page_custom' => 'Chemin personnalisé',
+    'cms.settings.help_home_page_custom' => 'N\'importe quelle route de ce site, commençant par une barre oblique — par exemple /marketplace. Elle est servie sur / et non redirigée.',
 
     // ---- Content list ----
     'cms.page.list_heading'        => 'Contenu',

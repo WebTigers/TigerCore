@@ -37,6 +37,13 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
                         <label class="form-label" for="<?= $this->escape($el('home_page')->getId()) ?>"><?= $this->t('cms.settings.label_home_page') ?></label>
                         <?= $el('home_page') ?>
                         <div class="form-text"><?= $this->t('cms.settings.help_home_page', '<code>/</code>') ?></div>
+
+                        <?php // Revealed only for "custom path"; its value replaces home_page on save. ?>
+                        <div id="home-page-custom-wrap" class="mt-3<?= $el('home_page')->getValue() === Cms_Form_Settings::CUSTOM ? '' : ' d-none' ?>">
+                            <label class="form-label" for="<?= $this->escape($el('home_page_custom')->getId()) ?>"><?= $this->t('cms.settings.label_home_page_custom') ?></label>
+                            <?= $el('home_page_custom') ?>
+                            <div class="form-text"><?= $this->t('cms.settings.help_home_page_custom') ?></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -55,6 +62,18 @@ $this->i18n([
 document.addEventListener('DOMContentLoaded', function () {
     var form = document.getElementById('cms-settings-form');
     var fb   = document.getElementById('cms-settings-feedback');
+
+    // Home page: reveal the free-text path field only when "custom path" is chosen.
+    var homeSel  = document.getElementById('set-home-page');
+    var homeWrap = document.getElementById('home-page-custom-wrap');
+    if (homeSel && homeWrap) {
+        var syncHome = function () {
+            var custom = homeSel.value === <?= json_encode(Cms_Form_Settings::CUSTOM) ?>;
+            homeWrap.classList.toggle('d-none', !custom);
+            if (custom) { document.getElementById('set-home-page-custom').focus(); }
+        };
+        homeSel.addEventListener('change', syncHome);
+    }
 
     document.getElementById('cms-settings-save').addEventListener('click', function () {
         var btn = this;
