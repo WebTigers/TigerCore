@@ -6,6 +6,34 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-08-27
+
+### Added
+- **The home page can be a module page, or any path.** The selector listed published CMS pages and
+  nothing else, so an install whose front door should be `/marketplace`, `/docs` or a storefront had
+  no way to say so — the only workaround was rebuilding that page as a CMS page and keeping the two
+  in sync forever. `tiger.site.home_page` now holds a CMS `page_id` (unchanged), a **path** beginning
+  with `/`, or `''` for the built-in landing. Existing values are page_ids, so this is backward
+  compatible by construction.
+- The path is **forwarded, never redirected** — the content has to be served *at* `/` or it isn't the
+  home page, it's a signpost pointing away from it. Resolution mirrors
+  `Tiger_Controller_Plugin_RouteOverride`: a module's public page is usually a registered pretty
+  prefix, so the override table is matched first (which is what makes `/marketplace` work rather than
+  only the long canonical path), falling back to a `module/controller/action` parse.
+- The dropdown's module list is generated from **`Tiger_Routing_Overrides`** — the registry where a
+  module declares its public alias — so it cannot drift from what is actually routable, and a newly
+  activated module appears without a code change. A **"custom path"** option takes anything else,
+  validated.
+
+### Changed
+- The home-page options are now **grouped** (content pages / module pages / custom path).
+
+### Fixed
+- An **unresolvable** home-page path falls through to the theme home / built-in landing rather than
+  404ing the site's front door — deactivating a module can no longer take the home page down with it.
+- A stored path that isn't one of the offered module pages still **round-trips** through the settings
+  form, instead of silently resetting the site's home page on the next save.
+
 ## [1.2.0] — 2026-08-25
 
 Every transactional email now renders through one shared, branded layout.
