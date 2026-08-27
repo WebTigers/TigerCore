@@ -118,7 +118,12 @@ final class FormsTest extends IntegrationTestCase
         $this->assertTrue($form->getElement('site_name')->isRequired());
         $home = $form->getElement('home_page')->getMultiOptions();
         $this->assertArrayHasKey('', $home, 'the built-in landing is the empty option');
-        $this->assertContains('Home (en)', $home, 'a published page is a home-page choice');
+
+        // The list is now GROUPED (content pages / module pages / custom path), so a page label sits
+        // one level down inside its optgroup rather than at the top level. Flatten before asserting.
+        $labels = [];
+        array_walk_recursive($home, static function ($v) use (&$labels) { $labels[] = $v; });
+        $this->assertContains('Home (en)', $labels, 'a published page is a home-page choice');
 
         $this->assertTrue($form->isValid(['site_name' => 'My Site', 'home_page' => '']));
         $bad = new Cms_Form_Settings();

@@ -79,6 +79,11 @@ return [
     'cms.settings.label_home_page'     => 'Startseite',
     'cms.settings.help_home_page'      => 'Welche Seite unter %s ausgeliefert wird. „Integrierte Landingpage“ behält die Standard-Marketingseite bei.',
     'cms.settings.opt_builtin_landing' => '— Integrierte Landingpage —',
+    'cms.settings.optgroup_pages'        => 'Inhaltsseiten',
+    'cms.settings.optgroup_modules'      => 'Modulseiten',
+    'cms.settings.opt_custom_path'       => '— Eigener Pfad… —',
+    'cms.settings.label_home_page_custom' => 'Eigener Pfad',
+    'cms.settings.help_home_page_custom' => 'Eine beliebige Route dieser Website, beginnend mit einem Schrägstrich — zum Beispiel /marketplace. Sie wird unter / ausgeliefert, nicht per Weiterleitung.',
 
     // ---- Content list ----
     'cms.page.list_heading'        => 'Inhalt',

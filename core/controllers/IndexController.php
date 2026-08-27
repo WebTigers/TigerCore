@@ -33,12 +33,22 @@ class IndexController extends Zend_Controller_Action
      */
     public function indexAction()
     {
-        // 1) An admin picked a CMS page as the home page (tiger.site.home_page)? Serve it.
-        $homeId = $this->_homePageId();
-        if ($homeId !== '') {
-            $page = (new Tiger_Model_Page())->findById($homeId);
+        $home = $this->_homePageId();
+
+        // 1a) An admin picked a PATH — a public module page (`/marketplace`, `/docs`) or any ad-hoc
+        //     route. Forwarded, not redirected: the content has to be served AT "/" or it isn't the
+        //     home page, it's a signpost pointing away from it.
+        if ($home !== '' && $home[0] === '/') {
+            if ($this->_forwardToPath($home)) { return; }
+            // Unresolvable (the module was deactivated, the route retired) — fall through to the
+            // theme home / built-in landing rather than 404ing the site's front door.
+        }
+
+        // 1b) An admin picked a CMS page as the home page (tiger.site.home_page)? Serve it.
+        if ($home !== '' && $home[0] !== '/') {
+            $page = (new Tiger_Model_Page())->findById($home);
             if ($page && $page->status === Tiger_Model_Page::STATUS_PUBLISHED) {
-                $this->_forward('view', 'page', null, ['cms_page_id' => $homeId]);
+                $this->_forward('view', 'page', null, ['cms_page_id' => $home]);
                 return;
             }
         }
@@ -164,7 +174,62 @@ class IndexController extends Zend_Controller_Action
         $this->view->localeView();
     }
 
-    /** The configured home-page id (tiger.site.home_page), or '' for the built-in landing. */
+    /**
+     * Forward "/" to an internal path — a public module page (`/marketplace`, `/docs`) or any
+     * `module/controller/action`.
+     *
+     * Resolution mirrors `Tiger_Controller_Plugin_RouteOverride` on purpose: a module's PUBLIC page
+     * is usually a registered override (a pretty prefix → a canonical MVC target), so matching the
+     * override table first is what makes `/marketplace` work rather than only the long canonical
+     * path. Anything not in that table falls back to a plain `module/controller/action` parse.
+     *
+     * Segments are sanitized to the same `[a-zA-Z0-9_-]` shape the dispatcher accepts, so a stored
+     * value can't be used to reach outside normal dispatch.
+     *
+     * @param  string $path the configured path, leading slash included
+     * @return bool         true when the request was forwarded
+     */
+    protected function _forwardToPath($path)
+    {
+        $clean = trim(parse_url($path, PHP_URL_PATH) ?: '', '/');
+        if ($clean === '') { return false; }
+
+        // A registered module override (the pretty public prefix).
+        if (class_exists('Tiger_Routing_Overrides')) {
+            foreach (Tiger_Routing_Overrides::all() as $o) {
+                $prefix = (string) $o['prefix'];
+                if ($clean !== $prefix && strpos($clean, $prefix . '/') !== 0) { continue; }
+                [$module, $controller, $action] = $o['mca'];
+                $slug = trim(substr($clean, strlen($prefix)), '/');
+                $this->_forward($action, $controller, $module, $slug !== '' ? ['slug' => $slug] : []);
+                return true;
+            }
+        }
+
+        // Else a canonical module/controller/action path.
+        $seg = array_values(array_filter(explode('/', $clean), 'strlen'));
+        $ok  = static function ($s) { return (string) preg_replace('/[^a-zA-Z0-9_-]/', '', (string) $s); };
+        $module     = $ok($seg[0] ?? '');
+        $controller = $ok($seg[1] ?? 'index');
+        $action     = $ok($seg[2] ?? 'index');
+        if ($module === '') { return false; }
+
+        $front = Zend_Controller_Front::getInstance();
+        $dirs  = (array) $front->getControllerDirectory();
+        if (!isset($dirs[$module])) {
+            // Not a module — treat the first segment as a default-namespace controller (/vibe).
+            $this->_forward($ok($seg[1] ?? 'index'), $module, null);
+            return true;
+        }
+
+        $this->_forward($action, $controller, $module);
+        return true;
+    }
+
+    /**
+     * The configured home page (`tiger.site.home_page`): a CMS `page_id`, a PATH beginning with "/",
+     * or '' for the built-in landing.
+     */
     protected function _homePageId()
     {
         if (!Zend_Registry::isRegistered('Zend_Config')) {

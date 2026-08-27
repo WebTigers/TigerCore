@@ -30,10 +30,22 @@ class Cms_SettingsController extends Tiger_Controller_Admin_Action
         $tiger = $cfg->get('tiger');
         $site  = $tiger ? $tiger->get('site') : null;
 
+        $home = $site ? (string) $site->get('home_page') : '';
+
+        // A stored PATH that isn't one of the offered module pages (an ad-hoc route, or a module
+        // since deactivated) must still round-trip: show it in the custom field with "custom path"
+        // selected, rather than silently resetting the site's home page to the built-in landing.
+        $custom = '';
+        if ($home !== '' && $home[0] === '/' && !array_key_exists($home, Cms_Form_Settings::modulePaths())) {
+            $custom = $home;
+            $home   = Cms_Form_Settings::CUSTOM;
+        }
+
         $form = new Cms_Form_Settings();
         $form->populate([
-            'site_name' => ($site && (string) $site->get('name') !== '') ? (string) $site->name : 'Tiger',
-            'home_page' => $site ? (string) $site->get('home_page') : '',
+            'site_name'        => ($site && (string) $site->get('name') !== '') ? (string) $site->name : 'Tiger',
+            'home_page'        => $home,
+            'home_page_custom' => $custom,
         ]);
 
         $this->view->title = 'Settings — Tiger Admin';
