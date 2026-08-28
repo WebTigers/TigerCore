@@ -31,12 +31,6 @@ html[lang="tlh"] body {
  * language switcher, shown in its own script on every page (the @font-face above is global). */
 .tiger-lang-piqad { font-family: "pIqaD", system-ui, sans-serif; }
 
-/* Outline-primary buttons track the ACTIVE SKIN's primary color. Bootstrap 5.3 bakes the stock
- * blue (#0d6efd) straight into .btn-outline-primary's component vars, so a skin that only swaps
- * --bs-primary (bengal orange, cheetah teal, jaguar navy, tabby orange) would still render a blue
- * outline. Rebinding the button vars to var(--bs-primary) makes the border, label, hover-fill,
- * active state, and focus ring all follow the skin — no per-skin rule needed. Lives in the theme
- * base so every skin inherits it; a skin may still override for a bespoke outline. */
 /* Emphasized comparison-table column (the "our product" column on the marketing pages). A soft,
  * theme-aware primary wash that reads well in BOTH light and dark mode and follows the active skin —
  * unlike Bootstrap's .table-primary, whose fixed powder-blue background + forced black text clash in
@@ -49,6 +43,36 @@ html[lang="tlh"] body {
 :root[data-bs-theme="dark"] .cell-emphasis,
 [data-bs-theme="dark"] .cell-emphasis {
     --bs-table-bg: rgba(var(--bs-primary-rgb), .16);
+}
+
+/* Primary buttons — SOLID AND OUTLINE — track the ACTIVE SKIN's primary color.
+ *
+ * Bootstrap 5.3 bakes the stock blue (#0d6efd) straight into both variants' component vars, so a
+ * skin that only swaps --bs-primary (bengal orange, cheetah teal, jaguar navy, tabby orange) still
+ * renders blue buttons. Rebinding the button vars to var(--bs-primary) makes the fill, border,
+ * label, hover, active state and focus ring all follow the skin — no per-skin rule needed.
+ *
+ * BOTH variants must be here or they disagree: for a while only the outline was rebound, so a card
+ * offering `btn-primary` beside `btn-outline-primary` drew one orange and one Bootstrap blue.
+ *
+ * Hover/active darken via color-mix; the plain var() line before each is the fallback a browser
+ * without color-mix keeps (an unsupported declaration is dropped, so the earlier one stands).
+ *
+ * Lives in the theme base so every skin inherits it; a skin may still override for a bespoke look. */
+.btn-primary {
+    --bs-btn-bg: var(--bs-primary);
+    --bs-btn-border-color: var(--bs-primary);
+    --bs-btn-hover-bg: var(--bs-primary);
+    --bs-btn-hover-bg: color-mix(in srgb, var(--bs-primary) 85%, #000);
+    --bs-btn-hover-border-color: var(--bs-primary);
+    --bs-btn-hover-border-color: color-mix(in srgb, var(--bs-primary) 80%, #000);
+    --bs-btn-active-bg: var(--bs-primary);
+    --bs-btn-active-bg: color-mix(in srgb, var(--bs-primary) 78%, #000);
+    --bs-btn-active-border-color: var(--bs-primary);
+    --bs-btn-active-border-color: color-mix(in srgb, var(--bs-primary) 72%, #000);
+    --bs-btn-disabled-bg: var(--bs-primary);
+    --bs-btn-disabled-border-color: var(--bs-primary);
+    --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
 }
 
 .btn-outline-primary {
