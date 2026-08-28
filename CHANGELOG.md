@@ -6,6 +6,22 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.3.1] — 2026-08-28
+
+### Fixed
+- **Solid primary buttons ignored the active skin.** Bootstrap 5.3 bakes the stock blue (`#0d6efd`)
+  into *both* primary button variants' component vars, so a skin swapping `--bs-primary` restyled
+  neither. `default.css` already rebound `.btn-outline-primary` to `var(--bs-primary)` — with a
+  comment describing exactly this trap — but `.btn-primary` never got the same treatment. Any screen
+  showing the two side by side drew one skin-coloured and one Bootstrap blue: orange-vs-blue under
+  bengal and tabby, navy-vs-blue under jaguar. It survived because two skins hid it — puma's primary
+  is already blue-ish, and cheetah carries its own hardcoded solid rule.
+- Both variants now follow the token. Hover/active darken via `color-mix`, each preceded by a plain
+  `var()` fallback, so a browser without `color-mix` degrades to a flat skin-coloured hover rather
+  than back to blue.
+- The explanatory comment sits with the rules it documents again — a later `.cell-emphasis` addition
+  had been inserted between them, leaving it above the wrong block.
+
 ## [1.3.0] — 2026-08-27
 
 ### Added
