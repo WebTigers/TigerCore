@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**194 classes** across **32 capabilities** · **19 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**195 classes** across **32 capabilities** · **19 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -124,6 +124,7 @@
 - **Tiger_Module_Discovery** `@api` — find the modules present on disk (active or not).  ·  `library/Tiger/Module/Discovery.php`
 - **Tiger_Module_Github** `@api` — read public GitHub repos over cURL (no auth, public only).  ·  `library/Tiger/Module/Github.php`
 - **Tiger_Module_Installer** `@api` — install / update / remove modules from public GitHub repos.  ·  `library/Tiger/Module/Installer.php`
+- **Tiger_Module_Longform** `@api` — resolves a module listing's LONG-FORM copy and renders it safely.  ·  `library/Tiger/Module/Longform.php`
 - **Tiger_Module_Pricing** `@api` — the manifest `pricing` block, normalized.  ·  `library/Tiger/Module/Pricing.php`
 - **Tiger_Module_Registry** `@api` — the client for the module catalog, now **multi-source**.  ·  `library/Tiger/Module/Registry.php`
 - **Tiger_Module_Source** `@api` — one catalog feed the Module Manager reads.  ·  `library/Tiger/Module/Source.php`
