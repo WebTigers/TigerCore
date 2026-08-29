@@ -493,7 +493,8 @@ class Tiger_Google_Analytics
         ]);
         $body = curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        // No curl_close(): since PHP 8.0 the handle is an object freed by refcount, so the call has
+        // been a no-op, and 8.5 deprecates it. Letting $ch fall out of scope is the close.
         return ($body !== false && $code >= 200 && $code < 300) ? $body : null;
     }
 
@@ -511,7 +512,6 @@ class Tiger_Google_Analytics
         ]);
         $body = curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
         return [$code, $body === false ? '' : (string) $body];
     }
 

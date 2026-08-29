@@ -14,7 +14,7 @@
     "require": {
         "php": ">=8.1",
         "paragonie/sodium_compat": "^1.21 || ^2.0",
-        "webtigers/tigerzf": "^1.30"
+        "webtigers/tigerzf": "^1.32.2"
     },
     "suggest": {
         "aws/aws-sdk-php": "S3 media storage (Tiger_Media_Storage_S3) + Rekognition moderation + CloudWatch logging",

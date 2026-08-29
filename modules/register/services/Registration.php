@@ -169,7 +169,6 @@ class Register_Service_Registration extends Tiger_Service_Service
         ]);
         $body = curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
         if ($body === false || $code !== 200) { return null; }
         $j = json_decode((string) $body, true);
         if (!is_array($j) || (int) ($j['result'] ?? 0) !== 1) { return null; }

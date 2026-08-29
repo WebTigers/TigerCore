@@ -371,8 +371,9 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
             return;
         }
         try {
-            $ref = new ReflectionProperty('Zend_Locale', '_localeData');
-            $ref->setAccessible(true);
+            // No setAccessible(): PHP 8.1+ reflection reaches a private static directly, and the call
+            // is deprecated in 8.5.
+            $ref   = new ReflectionProperty('Zend_Locale', '_localeData');
             $data  = $ref->getValue();
             $added = false;
             foreach ($unknown as $l) {

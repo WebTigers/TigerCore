@@ -102,7 +102,6 @@ function mcp_bridge_post($url, array $headers, $payload)
         $body   = curl_exec($ch);
         $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $err    = (string) curl_error($ch);
-        curl_close($ch);
         return $body === false ? [false, 0, '', ($err ?: 'curl failed')] : [true, $status, (string) $body, ''];
     }
 
