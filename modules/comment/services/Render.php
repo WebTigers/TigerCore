@@ -104,10 +104,22 @@ class Comment_Service_Render
         return [$type, $id];
     }
 
-    /** The themed view (helpers + escaping), or a bare one outside a request. */
+    /**
+     * The themed view (helpers + escaping), or a bare one outside a request.
+     *
+     * A bare `Zend_View` does NOT know Tiger's helpers, so `stars()` would throw "Plugin by name
+     * 'Stars' was not found" anywhere this runs without a booted front controller — a CLI render, a
+     * queued job, a test. Register the path explicitly rather than assuming the bootstrap ran.
+     */
     protected function _view()
     {
-        return Zend_Registry::isRegistered('Tiger_View') ? Zend_Registry::get('Tiger_View') : new Zend_View();
+        if (Zend_Registry::isRegistered('Tiger_View')) { return Zend_Registry::get('Tiger_View'); }
+
+        $view = new Zend_View();
+        if (defined('TIGER_CORE_PATH')) {
+            $view->addHelperPath(TIGER_CORE_PATH . '/library/Tiger/View/Helper', 'Tiger_View_Helper');
+        }
+        return $view;
     }
 
     /** Translate a key, falling back to the key itself. */
