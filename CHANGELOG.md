@@ -6,6 +6,43 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.4.0] — 2026-08-29
+
+### Added
+
+- **`Tiger_Module_Longform`** (`@api`) — the one component that resolves a module listing's
+  long-form "plugin page" copy and renders it safely. Two surfaces show that copy — the Module
+  Manager's **View more** and a marketplace's own listing page — and until now they rendered it
+  two different ways with two different safety policies, so a listing could look safe in one and
+  not the other.
+
+  Resolution order is `readme` inline (a paid/PASS module's repo is **private**, so its
+  marketplace serves the review copy in its feed), then `body` as an alias, then a public repo's
+  `tiger_md` URL — https-only, 256 KB capped, cached on disk for an hour.
+
+### Changed
+
+- **The untrusted-markdown path is materially safer.** `System_Service_Modules::inspect()` and
+  `_inspectMarketplace()` previously ran `Tiger_Cms_Renderer::renderBody($md, 'markdown')` and
+  then regex-stripped active content from the *result*. That path renders through the shared
+  `Parsedown::instance()` with markup **allowed** and then runs the `[shortcode]` pass — correct
+  for a trusted CMS author, wrong for a file written by whoever published the module, since it
+  emits their markup *and* lets them invoke this install's shortcodes. Both call sites now use
+  `Tiger_Module_Longform`, which escapes inline HTML **at parse time** (safe-mode Parsedown, on
+  its own instance so the CMS singleton is untouched) and filters dangerous URL schemes. Escaping
+  at parse time is strictly stronger than stripping tags afterwards.
+
+### Fixed
+
+- **A paid listing's "View more" showed only its one-line description.**
+  `_inspectMarketplace()` reads `$listing['readme']`, but no producer ever emitted that field, so
+  the contract had never fired. With a marketplace now declaring it, the Module Manager renders
+  the seller's real copy.
+
+### Removed
+
+- `System_Service_Modules::_scrub()` — the post-hoc HTML scrubber, removed with its last caller.
+
 ## [1.3.1] — 2026-08-28
 
 ### Fixed
