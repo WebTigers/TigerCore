@@ -6,6 +6,57 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.0] — 2026-08-29
+
+### Added
+
+- **Comments, ratings & reviews** — the last WordPress-parity platform gap, as a core module that is
+  **off by default** (`tiger.comment.enabled`). Design of record: [COMMENTS.md](COMMENTS.md).
+
+  The organising decision is that **a review IS a comment with a rating**: one `comment` table with a
+  nullable `rating`, so a blog comment, a product review, a star with no words and a vendor's reply
+  are one primitive with one moderation queue, one spam path and one admin screen.
+
+  - **Attaches to anything** through a subject-provider registry (`Tiger_Comment::registerSubject`,
+    modeled on the `Tiger_Search` / `Tiger_Audience` seams). A provider supplies the title/link, the
+    **subject's own ACL resource** — so a thread can never expose content the caller can't see —
+    whether stars apply at all, the reply depth, and optionally an entitlement gate. Core ships
+    providers for `page` and `blog.post`; everything else opts in.
+  - **`Tiger_Model_CommentAggregate`** — a denormalized per-subject rollup, recomputed inside the
+    same transaction as the write, so a card can never quote a number the thread doesn't support. A
+    grid of 60 cards reads 60 rows, not 60 `AVG()` queries.
+  - **`Tiger_View_Helper_Stars`** — 5 stars with **half-star display** of averages (input is whole
+    stars; halves come from averaging, not a picker), `role="img"` with a real `aria-label` and the
+    numeric value as text, because a row of glyphs is not an accessible rating.
+  - **Verified reviewers** — a provider may declare an entitlement check, so a review from someone
+    who actually bought the thing is badged. The licence authority, an order or a membership grant
+    answers it.
+  - **Moderation** — hold-then-approve by default, an admin queue, per-user and per-IP rate limits, a
+    honeypot and a time-trap, one rating per person per subject, and no reviewing your own listing.
+    Pending and spam rows never move a public average.
+  - **Nested replies**, three levels by default (`tiger.comment.threading`, per-subject override).
+    The depth limit is published to the client, so the Reply affordance disappears at the limit
+    rather than failing on submit.
+  - **Shortcodes + helpers** — `[comments]` / `[reviews]`, `[stars]`, `[rating_summary]`, plus
+    `$this->stars()` for a theme that would rather not go through a shortcode.
+
+- **AI spam checking** (`Tiger_Comment_Spam`) — a checker registry with the in-platform agent as its
+  first implementation; an Akismet-style module registers into the same seam. Offered in the admin
+  **only when an agent is actually connected**, and the settings service refuses to store an enabled
+  flag without one — a stored flag with no agent looks like a working filter and silently isn't.
+  With no agent it is a silent no-op plus a `Tiger_Log` line.
+
+  A verdict may only ever **tighten**: `spam` routes a comment to the spam bin, while ham, unknown, a
+  timeout, a missing agent and a broken checker all leave the install's moderation posture untouched.
+  Nothing a checker says can publish something that wasn't going to be published — which is what
+  makes it safe to hand attacker-controlled text to a language model. Prompt injection is mitigated
+  (the body is delimited and framed as data; only the two literal answers are accepted; anything else
+  fails open) but not eliminated, and the poster is never told they were classified.
+
+### Migrations
+
+- `0045_create_comment` and `0046_create_comment_aggregate`. Both additive; run `tiger migrate`.
+
 ## [1.4.1] — 2026-08-29
 
 ### Fixed
