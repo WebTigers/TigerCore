@@ -6,6 +6,33 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.4.1] — 2026-08-29
+
+### Fixed
+
+- **Every PHP 8.5 deprecation is gone, fixed at the source rather than suppressed.** The suite had
+  been reporting 15 and tolerating them, so new ones could accumulate unnoticed — and one class is
+  not cosmetic: **implicitly nullable parameters become a fatal in PHP 9**.
+  - *Implicit nullable params* — `array $Block = null` → `?array $Block = null` in the vendored
+    Parsedown (2 signatures; `?array` is exactly what the implicit form meant, so behaviour is
+    identical). Recorded in a `LOCAL MODIFICATIONS` header so a re-vendor can't silently drop it.
+    The matching `Zend_View::renderString()` fix shipped as **TigerZF v1.32.2**, and this release
+    raises the floor to `^1.32.2` so consumers get it.
+  - *`curl_close()`* — a no-op since PHP 8.0, deprecated in 8.5. Removed at **all 12** call sites,
+    not just the one the tests reached; each read `curl_getinfo`/`curl_error` before the call, so
+    removal is behaviour-preserving.
+  - *`imagedestroy()`* — same, removed from `Tiger_Media_Image`; memory is released at exactly the
+    points it always was.
+  - *`ReflectionProperty/Method::setAccessible()`* — a no-op since PHP 8.1. Removed from 9 test
+    sites **and** from `Tiger_Application_Bootstrap`, production code the suite never exercised.
+
+### Changed
+
+- **`failOnDeprecation` is now on** in `phpunit.xml`: a new deprecation fails the build by exit
+  code instead of being printed and ignored. Verified in both directions — reintroducing a fixed
+  signature exits 1, restoring it exits 0.
+- Minimum `webtigers/tigerzf` raised to `^1.32.2`.
+
 ## [1.4.0] — 2026-08-29
 
 ### Added
