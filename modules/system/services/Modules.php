@@ -671,10 +671,7 @@ class System_Service_Modules extends Tiger_Service_Service
         }
 
         $tigerMd  = Tiger_Module_Github::fetchRaw($r['org'], $r['repo'], $ref, 'TIGER.md');
-        $descHtml = '';
-        if ($tigerMd !== null) {
-            try { $descHtml = $this->_scrub((new Tiger_Cms_Renderer())->renderBody($tigerMd, 'markdown')); } catch (Throwable $e) {}
-        }
+        $descHtml = $tigerMd !== null ? Tiger_Module_Longform::render($tigerMd) : '';
 
         // "Installed" = recorded by the installer OR simply present on disk (discovered) — the
         // latter covers a theme/module placed manually or activated without an installer row.
@@ -721,11 +718,10 @@ class System_Service_Modules extends Tiger_Service_Service
         $listing = Tiger_Module_Registry::listing($slug, $source);
         if (!$listing) { $this->_error('system.error.listing_gone'); return; }
 
-        $descHtml = '';
-        $readme   = (string) ($listing['readme'] ?? '');
-        if ($readme !== '') {
-            try { $descHtml = $this->_scrub((new Tiger_Cms_Renderer())->renderBody($readme, 'markdown')); } catch (Throwable $e) {}
-        }
+        // Resolved through the shared component: `readme` inline (a paid module's repo is private, so
+        // its marketplace serves the copy) or a `tiger_md` URL — the SAME resolution and the SAME safe
+        // render a marketplace's own listing page uses, so one listing can never look different here.
+        $descHtml = Tiger_Module_Longform::html($listing);
 
         $row        = (new Tiger_Model_Module())->bySlug($slug);
         $discovered = Tiger_Module_Discovery::all();
@@ -751,17 +747,6 @@ class System_Service_Modules extends Tiger_Service_Service
             'installed'        => (bool) $present,
             'installed_version'=> $instVer,
         ]);
-    }
-
-    /** Strip active content from untrusted vendor markdown (the TIGER.md preview). */
-    protected function _scrub($html)
-    {
-        $html = (string) $html;
-        $html = preg_replace('#<(script|style|iframe|object|embed)\b[^>]*>.*?</\1>#is', '', $html);
-        $html = preg_replace('#<(script|style|iframe|object|embed|link|meta|base)\b[^>]*>#is', '', $html);
-        $html = preg_replace('#\son\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)#i', '', $html);
-        $html = preg_replace('#(href|src)\s*=\s*(["\']?)\s*javascript:[^"\'>]*\2#i', '$1=$2#$2', $html);
-        return $html;
     }
 
     /**

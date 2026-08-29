@@ -162,6 +162,7 @@ The whole client half is core, free, and **vendor-neutral** — it works against
 | `Tiger_Crypto_Signature` | Ed25519 keypair / sign / verify / `verifyFile` / `fingerprint` |
 | `Tiger_License_Checker` | hold the install's license keys, **verify** against a module's declared authority (cached, signed), **`gate()`** auto-update, `remember()` a bought license. Persists in the lazy `option` tier (`Tiger_License_Store`). |
 | `Tiger_License_Authority` (client) | the client for an authority's `/download` endpoint — get a signed download descriptor `{url, signature, sha256, version}` |
+| `Tiger_Module_Longform` | resolve a listing's long-form "plugin page" copy — inline `readme` (a paid module's repo is private, so its marketplace serves the review copy) or a public repo's `tiger_md` URL — and render it through a **safe-mode** markdown parser. The ONE renderer behind both the Module Manager's "View more" and a marketplace's own listing page. |
 | `Tiger_Module_Installer::installFromAuthority` | fetch the signed download → **verify the signature before extract** → install → `remember()` the license |
 | `Tiger_Update_Checker` + `System_Service_Updates` | annotate a licensed module's update with its license state, and **refuse applying an update** to a definitively lapsed one |
 
