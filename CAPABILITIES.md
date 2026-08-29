@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**195 classes** across **32 capabilities** · **19 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**199 classes** across **33 capabilities** · **20 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -275,6 +275,7 @@
 - **Tiger_View_Helper_PageField** `@api` — read a custom field value (Tiger_Fields) from a page on the front end.  ·  `library/Tiger/View/Helper/PageField.php`
 - **Tiger_View_Helper_PageScript** `@api` — register a page-specific JS file from a view WITHOUT a `<script>` tag.  ·  `library/Tiger/View/Helper/PageScript.php`
 - **Tiger_View_Helper_PageStyle** `@api` — register a page-specific stylesheet from a view WITHOUT a `<style>` tag.  ·  `library/Tiger/View/Helper/PageStyle.php`
+- **Tiger_View_Helper_Stars** `@api` — render a 1-5 star rating with HALF-STAR precision.  ·  `library/Tiger/View/Helper/Stars.php`
 - **Tiger_View_Helper_T** `@api` — translate a semantic key inside a view: `$this->t('cms.page.title')`.  ·  `library/Tiger/View/Helper/T.php`
 
 ### Routing & controllers
@@ -295,10 +296,16 @@
 - **Tiger_Model_AgentConversation** `@api` — a TigerAgent chat thread (see migration 0034).  ·  `library/Tiger/Model/AgentConversation.php`
 - **Tiger_Model_AgentMessage** `@api` — one message in an agent conversation (see migration 0035).  ·  `library/Tiger/Model/AgentMessage.php`
 - **Tiger_Model_AgentRun** `@api` — one turn's execution + control record (see migration 0036).  ·  `library/Tiger/Model/AgentRun.php`
+- **Tiger_Model_Comment** `@api` — the one comment/review store (migration 0045).  ·  `library/Tiger/Model/Comment.php`
+- **Tiger_Model_CommentAggregate** `@api` — the denormalized per-subject rollup (migration 0046).  ·  `library/Tiger/Model/CommentAggregate.php`
 - **Tiger_Model_Menu** `@api` — Menu — custom navigation menus (see migration 0017).  ·  `library/Tiger/Model/Menu.php`
 - **Tiger_Model_Session** `@api` — Session — gateway for the DB session store (see migration 0010).  ·  `library/Tiger/Model/Session.php`
 - **Tiger_Model_Table** `@api` — Base table-gateway for Tiger models.  ·  `library/Tiger/Model/Table.php`
 - **Tiger_Uuid** `@api` — UUID generation for Tiger primary keys.  ·  `library/Tiger/Uuid.php`
+
+### Other (unmapped — add to $CAPS)
+
+- **Tiger_Comment** `@api` — the subject registry and policy gate for comments, ratings and reviews.  ·  `library/Tiger/Comment.php`
 
 ## Modules (`modules/*` — activatable features)
 
@@ -310,6 +317,7 @@
 - **Blog** (`blog`, app)  ·  services: Post, Taxonomy  ·  `modules/blog`
 - **CMS** (`cms`, app)  ·  services: Menu, Page, Settings  ·  `modules/cms`
 - **Code** (`code`, developer)  ·  services: Code  ·  `modules/code`
+- **Comments** (`comment`, app)  ·  services: Comment, Render, Subjects  ·  `modules/comment`
 - **Identity** (`identity`, plugin)  ·  services: Identity  ·  `modules/identity`
 - **Mcp** (`mcp`, module)  ·  services: Settings  ·  `modules/mcp`
 - **Media** (`media`, plugin)  ·  services: Media, Settings  ·  `modules/media`

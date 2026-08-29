@@ -1,0 +1,44 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * The moderation queue. Rows load from Comment_Service_Comment::datatable over /api; every action
+ * is an /api call. A row whose subject was deleted is flagged rather than hidden — that is exactly
+ * when an operator needs to see it.
+ */
+$t = fn($k) => $this->t($k);
+?>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1"><?= $this->escape($t('comment.nav.label')) ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->escape($t('comment.admin.intro')) ?></p>
+    </div>
+    <div class="text-nowrap">
+        <select id="comment-status" class="form-select form-select-sm d-inline-block w-auto">
+            <?php foreach ($this->statuses as $s): ?>
+                <option value="<?= $this->escape($s) ?>"><?= $this->escape($t('comment.status.' . $s)) ?></option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+</div>
+
+<div id="comment-feedback"></div>
+
+<div class="card">
+    <div class="card-body">
+        <table id="comment-grid" class="table table-hover w-100">
+            <thead>
+            <tr>
+                <th><?= $this->escape($t('comment.col.comment')) ?></th>
+                <th><?= $this->escape($t('comment.col.author')) ?></th>
+                <th><?= $this->escape($t('comment.col.subject')) ?></th>
+                <th><?= $this->escape($t('comment.col.date')) ?></th>
+                <th class="text-end"><?= $this->escape($t('comment.col.actions')) ?></th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="<?= $this->escape($this->asset('/_modules/comment/js/comment.admin.js')) ?>" defer></script>
