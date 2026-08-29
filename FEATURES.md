@@ -253,6 +253,31 @@ framework.
   from order + depth). Each chip opens a scrollable properties modal; everything persists over
   `/api` (insert on drop, reorder on move, update on save, with a success toast).
 
+## Comments, ratings & reviews
+
+- **One primitive for both.** A review *is* a comment with a rating — one `comment` store with a
+  nullable `rating`, so there is one moderation queue, one spam path and one admin screen rather
+  than a parallel "reviews" feature.
+- **Attaches to anything.** A module registers a subject provider (`Tiger_Comment::registerSubject`)
+  and a thread can hang off a CMS page, a blog article, a shop product, a marketplace listing — core
+  never learns what those are. The provider supplies the title/link, the ACL resource that gates who
+  may read the thread, whether stars apply at all, and the reply depth.
+- **5 stars, half-star display.** Input is whole stars; averages render to the nearest half
+  (`$this->stars(4.3)`), with the numeric value as text and a real `aria-label` — a row of glyphs
+  alone is not an accessible rating.
+- **Verified reviewers.** A provider can declare an entitlement check, so a review from someone who
+  actually bought the thing is badged — the licence authority, an order, or a membership grant
+  answers it.
+- **Moderation built in.** Hold-then-approve by default, a queue in the admin, per-user and per-IP
+  rate limits, a honeypot and a time-trap, one rating per person per subject, and no reviewing your
+  own listing. Pending comments never move a public average.
+- **Denormalized rollups** (`comment_aggregate`) so a grid of cards reads one row each instead of
+  averaging N comments per card.
+- **Off by default** (`tiger.comment.enabled`). An open comment endpoint is the most-attacked
+  surface a CMS has; turning it on is a deliberate act.
+- **Shortcodes + helpers** — `[comments]` / `[reviews]`, `[stars]`, `[rating_summary]`, plus
+  `$this->stars()` for a theme that would rather not go through a shortcode.
+
 ## Mail
 
 - **`Tiger_Mail`** — a fluent `Zend_Mail` wrapper. The transport is config-driven: boring PHP

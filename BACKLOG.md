@@ -80,17 +80,6 @@ launch gate is the no-shell web installer; these ship continuously, whenever a u
   actions (password set/reset, lock/unlock); a general **options registry** (declared keys → `config` UI,
   per config-discipline) that **masks secrets** (`mail.smtp.password` et al. never rendered — consider a
   `secret` flag on the `config` table and/or at-rest encryption). *(Membership/invite UX stays app-side.)*
-- **Comments, ratings & reviews — the last WP-parity gap** *(design of record:
-  [COMMENTS.md](COMMENTS.md)).* One core module, **off by default**, where **a review IS a comment
-  with a rating** — one `comment` table with a nullable `rating`, never a separate review store.
-  Attaches to **anything** through a subject-provider registry (`Tiger_Comment::registerSubject`,
-  modeled on `Tiger_Search`/`Tiger_Audience`): a CMS page, a blog article, a marketplace listing, a
-  shop product. 5 stars with **half-star display** of averages (whole-star input). Denormalized
-  `comment_aggregate` because a 60-card grid cannot average N rows per card. The differentiator is
-  the **verified reviewer** — Tiger has an entitlement oracle, so "every review is from someone who
-  bought it" is a claim WordPress structurally cannot make. Fills the rating/download overlay a
-  marketplace already publishes (`TigerMarketplace/docs/design/reputation.md` §8).
-
 - **SMS OTP channel** — email OTP ships; add a `Tiger_Sms` transport (a `Tiger_Mail` sibling; SNS/Twilio,
   creds in DB config) + `requestLoginCodeSms`/`verifyLoginCodeSms` reusing the channel-agnostic
   `_completeCodeLogin` (`sms_otp`). Substrate built (`auth_challenge` + the `sms` credential factor).

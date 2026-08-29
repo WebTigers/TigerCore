@@ -7,8 +7,12 @@ the platform *why* read [ARCHITECTURE.md](ARCHITECTURE.md); for the admin-screen
 [ADMIN.md](ADMIN.md); for the `/api` contract read [WEBSERVICES.md](WEBSERVICES.md); for how a
 marketplace consumes the aggregate read `TigerMarketplace/docs/design/reputation.md`.
 
-> **Status: design of record — NOT built.** This records the decisions and their rationale so we
-> don't relitigate them or drift when the code lands. Everything below is target behaviour.
+> **Status: BUILT (2026-08-29), off by default.** Ships `Tiger_Comment` (the subject registry),
+> `Tiger_Model_Comment` + `Tiger_Model_CommentAggregate` (migrations 0045/0046), the
+> `Tiger_View_Helper_Stars` half-star renderer, and `modules/comment` (the `/api` service, the
+> moderation queue, the four shortcodes, the reader JS, six locales). Not yet built: the spam-check
+> registry's first real implementation, reply notifications, and the marketplace subject provider
+> (§8) — all §10 step 6.
 
 ---
 
@@ -222,17 +226,26 @@ Nothing about that contract changes. This module fills numbers that are currentl
 
 ---
 
-## 11. Open questions
+## 11. Settled during the build
 
-- **Editing window.** Let an author edit their own comment forever, or for N minutes? (Forever is
-  friendlier; it also lets a 1-star review be quietly rewritten after a refund — a real pattern.)
-- **Does an edited review re-enter moderation?** Leaning yes for the body, no for the rating.
-- **Threading depth** for plain comments — flat, one level, or N? (Registry field exists; the
-  default is the question.)
-- **Do we surface `comment_count` separately from `rating_count`?** They differ whenever ratings are
-  optional, and conflating them overstates engagement.
-- **Guest ratings.** Sign-in-required is the default; is a guest *rating* (no body) ever acceptable,
-  or is that just an open ballot box?
+- **Editing window: bounded, not forever** — `tiger.comment.edit_window`, default 15 minutes. The
+  deciding case was the one named in the original question: an unbounded window lets a 1-star review
+  be quietly rewritten after a refund, which turns the rating into a negotiation.
+- **An edited BODY re-enters moderation** when the install holds comments; a changed **rating does
+  not**. Otherwise "post something innocuous, get approved, rewrite it" is an open door — while a
+  number bounded 1–5 has nothing to moderate.
+- **Threading defaults to 1** (one reply level), per subject via the registry's `threading`. A reply
+  must belong to the same subject as its parent, so a thread can't be grafted onto another.
+- **`comment_count` and `rating_count` stay separate**, in the table and in the payload.
+- **No guest ratings.** Guest *commenting* is a config opt-in (`tiger.comment.allow_guests`, off);
+  ratings still require an identity, because an anonymous score is just an open ballot box.
+
+Still open:
+
+- **A pending rating is excluded from the average** (so posting alone can't move a score) — which
+  means a busy subject's public average lags moderation. Acceptable, but worth revisiting if a queue
+  ever backs up.
+- The **spam-check registry** exists as a design; nothing registers into it yet.
 
 ---
 
