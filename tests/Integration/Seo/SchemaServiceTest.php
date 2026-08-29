@@ -65,7 +65,6 @@ final class SchemaServiceTest extends IntegrationTestCase
     private function resetLatch(): void
     {
         $p = new ReflectionProperty(Seo_Service_Schema::class, '_emitted');
-        $p->setAccessible(true);
         $p->setValue(null, false);
     }
 

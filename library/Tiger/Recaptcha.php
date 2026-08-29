@@ -141,7 +141,6 @@ class Tiger_Recaptcha
             ]);
             $body = curl_exec($ch);
             $ok   = ($body !== false && curl_getinfo($ch, CURLINFO_HTTP_CODE) >= 200 && curl_getinfo($ch, CURLINFO_HTTP_CODE) < 300);
-            curl_close($ch);
             return $ok ? $body : null;
         }
 

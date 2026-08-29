@@ -11,6 +11,20 @@
 # For the full license information, view the LICENSE file that was distributed
 # with this source code.
 #
+# ---------------------------------------------------------------------------
+# LOCAL MODIFICATIONS (WebTigers) — keep these when re-vendoring.
+#
+# Upstream 1.7.4 is from 2019 and predates PHP 8.4's deprecation of implicitly
+# nullable parameters. Two signatures declared `array $Block = null`, which PHP
+# 8.4+ reports as deprecated on every markdown render:
+#
+#   blockSetextHeader()  ~line 715   array $Block = null  ->  ?array $Block = null
+#   blockTable()         ~line 853   array $Block = null  ->  ?array $Block = null
+#
+# The types are otherwise unchanged and the behaviour is identical — `?array` is
+# what the implicit form already meant. If you pull a newer Parsedown, re-apply
+# these (or drop them if upstream has fixed it).
+# ---------------------------------------------------------------------------
 #
 
 class Parsedown
@@ -712,7 +726,7 @@ class Parsedown
     #
     # Setext
 
-    protected function blockSetextHeader($Line, array $Block = null)
+    protected function blockSetextHeader($Line, ?array $Block = null)
     {
         if ( ! isset($Block) or isset($Block['type']) or isset($Block['interrupted']))
         {
@@ -850,7 +864,7 @@ class Parsedown
     #
     # Table
 
-    protected function blockTable($Line, array $Block = null)
+    protected function blockTable($Line, ?array $Block = null)
     {
         if ( ! isset($Block) or isset($Block['type']) or isset($Block['interrupted']))
         {

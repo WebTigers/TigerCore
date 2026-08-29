@@ -44,14 +44,12 @@ final class BootstrapTest extends IntegrationTestCase
     private function invoke(string $method): void
     {
         $m = new ReflectionMethod(Seo_Bootstrap::class, $method);
-        $m->setAccessible(true);
         $m->invoke($this->bootstrap());
     }
 
     private function resetProviders(): void
     {
         $p = new ReflectionProperty(Tiger_Sitemap::class, '_providers');
-        $p->setAccessible(true);
         $p->setValue(null, []);
     }
 

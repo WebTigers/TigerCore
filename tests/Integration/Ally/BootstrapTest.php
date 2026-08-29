@@ -39,7 +39,6 @@ final class BootstrapTest extends IntegrationTestCase
     private function registered(): array
     {
         $p = new ReflectionProperty(Tiger_Admin_Nav::class, '_items');
-        $p->setAccessible(true);
         $items = [];
         foreach ((array) $p->getValue() as $item) {
             $items[$item['key'] ?? ''] = $item;
@@ -54,7 +53,6 @@ final class BootstrapTest extends IntegrationTestCase
 
         $bootstrap = (new \ReflectionClass(Ally_Bootstrap::class))->newInstanceWithoutConstructor();
         $m = new ReflectionMethod(Ally_Bootstrap::class, '_initAdminNav');
-        $m->setAccessible(true);
         $m->invoke($bootstrap);
 
         $items = $this->registered();

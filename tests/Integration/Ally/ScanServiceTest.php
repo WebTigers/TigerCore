@@ -209,7 +209,6 @@ final class ScanServiceTest extends IntegrationTestCase
         // buffering) — swap Tiger_Log's logger for a null writer so the diagnostic line doesn't count as
         // unexpected test output under strict mode. Restored after.
         $logProp = new \ReflectionProperty(\Tiger_Log::class, '_log');
-        $logProp->setAccessible(true);
         $prior = $logProp->getValue();
         $logProp->setValue(null, (new \Zend_Log())->addWriter(new \Zend_Log_Writer_Null()));
         try {

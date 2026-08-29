@@ -89,9 +89,10 @@ class Tiger_Media_Image
             if ($tmp !== false && self::_save($dst, $mime, $tmp, $quality)) {
                 $out[$name] = ['path' => $tmp, 'width' => $nw, 'height' => $nh, 'mime' => (string) $mime];
             }
-            imagedestroy($dst);
+            // No imagedestroy(): since PHP 8.0 a GD handle is a GdImage OBJECT freed by refcount, so
+            // the call has been a no-op (8.5 deprecates it). The memory is released at the same points
+            // it always was — $dst when the next iteration reassigns it, $src when this scope ends.
         }
-        imagedestroy($src);
         return $out;
     }
 

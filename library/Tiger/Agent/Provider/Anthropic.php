@@ -101,7 +101,6 @@ class Tiger_Agent_Provider_Anthropic implements Tiger_Agent_Provider_Adapter
                 ]);
                 $raw  = curl_exec($ch);
                 $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-                curl_close($ch);
                 $body = json_decode((string) $raw, true);
                 if ($code === 200 && !empty($body['data'])) {
                     $out = [];
@@ -192,7 +191,6 @@ class Tiger_Agent_Provider_Anthropic implements Tiger_Agent_Provider_Adapter
         $raw  = curl_exec($ch);
         $err  = curl_error($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        curl_close($ch);
 
         if ($raw === false) {
             throw new RuntimeException('Could not reach the AI provider: ' . $err);

@@ -77,14 +77,12 @@ final class ControllersTest extends IntegrationTestCase
     private function resetProviders(): void
     {
         $p = new ReflectionProperty(Tiger_Sitemap::class, '_providers');
-        $p->setAccessible(true);
         $p->setValue(null, []);
     }
 
     private function resetSiteOrg(): void
     {
         $p = new ReflectionProperty(\Tiger_Model_Org::class, '_siteOrgId');
-        $p->setAccessible(true);
         $p->setValue(null, null);
     }
 

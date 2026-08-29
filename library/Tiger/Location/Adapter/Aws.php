@@ -210,7 +210,6 @@ class Tiger_Location_Adapter_Aws extends Tiger_Location_Adapter_Abstract
         ]);
         $respBody = curl_exec($ch);
         $code     = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
 
         if ($code < 200 || $code >= 300 || $respBody === false) {
             return null;
