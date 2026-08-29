@@ -41,10 +41,15 @@ class Comment_Service_Comment extends Tiger_Service_Service
 
         $rows = (new Tiger_Model_Comment())->thread($type, $id);
 
+        $subject = Tiger_Comment::subject($type);
+
         $this->_success([
             'comments'  => array_map([$this, '_public'], $rows),
             'aggregate' => (new Tiger_Model_CommentAggregate())->forSubject($type, $id),
             'ratings'   => Tiger_Comment::acceptsRatings($type),
+            // The client offers a Reply only where one can actually be posted — the depth rule is the
+            // server's, so the button disappears at the limit rather than failing on submit.
+            'threading' => $subject ? (int) $subject['threading'] : 0,
         ]);
     }
 
@@ -93,13 +98,29 @@ class Comment_Service_Comment extends Tiger_Service_Service
         $parent = $this->_parent($params, $type, $id);
         if ($parent === false) { $this->_error('comment.error.bad_parent'); return; }
 
+        // Spam checkers are ADVISORY and only ever TIGHTEN. A `spam` verdict routes the comment to the
+        // spam bucket instead of the queue; anything else — ham, unknown, no checker at all, a model
+        // that timed out — leaves the install's normal moderation posture untouched. Nothing a checker
+        // says can publish a comment that wasn't going to be published, which is what makes it safe to
+        // hand an attacker-controlled string to a language model.
+        $status  = Tiger_Comment::initialStatus();
+        $verdict = Tiger_Comment_Spam::check([
+            'body'         => $body,
+            'author_name'  => (string) ($values['author_name'] ?? ''),
+            'subject_type' => $type,
+            'subject_id'   => $id,
+        ]);
+        if ($verdict === Tiger_Comment_Spam::VERDICT_SPAM) {
+            $status = Tiger_Model_Comment::STATUS_SPAM;
+        }
+
         try {
             $model = new Tiger_Model_Comment();
 
             // One rating per user per subject: a second one EDITS the first rather than stacking.
             $existing = $rating !== null && $userId !== '' ? $model->ratingBy($type, $id, $userId) : null;
 
-            $id_ = $this->_transaction(function () use ($model, $type, $id, $body, $rating, $parent, $values, $userId, $existing) {
+            $id_ = $this->_transaction(function () use ($model, $type, $id, $body, $rating, $parent, $values, $userId, $existing, $status) {
                 $data = [
                     'subject_type' => $type,
                     'subject_id'   => $id,
@@ -113,7 +134,7 @@ class Comment_Service_Comment extends Tiger_Service_Service
                     'verified'     => Tiger_Comment::isVerifiedReviewer($type, $id, $userId) ? 1 : 0,
                     'ip'           => substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45),
                     'user_agent'   => substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255),
-                    'status'       => Tiger_Comment::initialStatus(),
+                    'status'       => $status,
                 ];
 
                 if ($existing) {
@@ -127,10 +148,11 @@ class Comment_Service_Comment extends Tiger_Service_Service
                 return $commentId;
             });
 
+            // A comment binned as spam is told the same thing a held one is: never confirm to a
+            // spammer that their message was classified, or they simply iterate until it isn't.
             $this->_success(
-                ['comment_id' => $id_, 'status' => Tiger_Comment::initialStatus()],
-                Tiger_Comment::initialStatus() === Tiger_Model_Comment::STATUS_APPROVED
-                    ? 'comment.posted' : 'comment.posted_pending'
+                ['comment_id' => $id_, 'status' => $status],
+                $status === Tiger_Model_Comment::STATUS_APPROVED ? 'comment.posted' : 'comment.posted_pending'
             );
         } catch (Throwable $e) {
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');

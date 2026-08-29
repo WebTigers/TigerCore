@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**199 classes** across **33 capabilities** · **20 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**200 classes** across **33 capabilities** · **20 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -306,6 +306,7 @@
 ### Other (unmapped — add to $CAPS)
 
 - **Tiger_Comment** `@api` — the subject registry and policy gate for comments, ratings and reviews.  ·  `library/Tiger/Comment.php`
+- **Tiger_Comment_Spam** `@api` — the spam-check registry, and the first checker: the in-platform AI agent.  ·  `library/Tiger/Comment/Spam.php`
 
 ## Modules (`modules/*` — activatable features)
 
@@ -317,7 +318,7 @@
 - **Blog** (`blog`, app)  ·  services: Post, Taxonomy  ·  `modules/blog`
 - **CMS** (`cms`, app)  ·  services: Menu, Page, Settings  ·  `modules/cms`
 - **Code** (`code`, developer)  ·  services: Code  ·  `modules/code`
-- **Comments** (`comment`, app)  ·  services: Comment, Render, Subjects  ·  `modules/comment`
+- **Comments** (`comment`, app)  ·  services: Comment, Render, Settings, Subjects  ·  `modules/comment`
 - **Identity** (`identity`, plugin)  ·  services: Identity  ·  `modules/identity`
 - **Mcp** (`mcp`, module)  ·  services: Settings  ·  `modules/mcp`
 - **Media** (`media`, plugin)  ·  services: Media, Settings  ·  `modules/media`

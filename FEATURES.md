@@ -271,6 +271,13 @@ framework.
 - **Moderation built in.** Hold-then-approve by default, a queue in the admin, per-user and per-IP
   rate limits, a honeypot and a time-trap, one rating per person per subject, and no reviewing your
   own listing. Pending comments never move a public average.
+- **AI spam checking, when you have an agent.** If an AI agent is connected, the module offers a
+  toggle to have it classify each new comment; a spam verdict routes the comment to the spam bin and
+  anything else is left alone. With no agent the control isn't shown, the check is a silent no-op,
+  and the comment passes through unchecked. A verdict can only ever *tighten* — no classifier can
+  publish something that wasn't going to be published.
+- **Nested replies.** Three levels by default, configurable per install and per subject; the Reply
+  affordance disappears at the limit because the client is told the server's rule.
 - **Denormalized rollups** (`comment_aggregate`) so a grid of cards reads one row each instead of
   averaging N comments per card.
 - **Off by default** (`tiger.comment.enabled`). An open comment endpoint is the most-attacked

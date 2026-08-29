@@ -163,7 +163,36 @@ An open comment endpoint is the most-attacked surface a CMS has. Non-negotiables
 - **No self-review** — the subject's provider decides ownership; a vendor cannot review their own
   listing.
 - **A pluggable spam check** (`Tiger_Comment_Spam` registry) so an Akismet-style module can slot in.
-  Core ships the cheap heuristics, not a service integration.
+  Core ships the honeypot/time-trap/rate-limit heuristics **and the AI checker** (§6a), not a paid
+  service integration.
+
+### 6a. The AI spam checker
+
+The first registered checker asks the in-platform agent to classify a new comment as spam or ham.
+
+- **Only when there's an agent to ask.** The toggle appears in the module's admin *only* when
+  `Tiger_Comment_Spam::agentAvailable()` — a control for a check that can't run is a lie, and the
+  settings service **refuses to store an enabled flag** with no agent for the same reason. With no
+  agent the checker is a silent no-op plus one `Tiger_Log` line, and the comment passes through
+  unchecked.
+- **`isConnected()`, not `isAvailable()`.** The latter also asks whether the *current user* may
+  chat, which is meaningless for a background check running on behalf of an anonymous commenter.
+- **A verdict may only TIGHTEN.** `spam` routes the comment to the spam bin; `ham`, `unknown`, a
+  timeout, a missing agent and a broken checker all leave the install's normal moderation posture
+  untouched. Nothing a checker says can publish something that wasn't going to be published.
+- **Prompt injection is the live risk**, because the classified text is attacker-controlled. The
+  body is delimited and framed as data; only the two literal answers are accepted; anything else is
+  `unknown`. So the worst an injection achieves is the treatment the comment would have had with no
+  checker at all — it can never talk its way into being approved.
+- **The poster is never told they were classified.** A binned comment gets the same "awaiting
+  moderation" reply a held one does; confirming the verdict just lets a spammer iterate until it
+  passes.
+- **One-shot `complete()`, not the agent Loop** — a classification needs no tools, no ReAct steps
+  and no transcript, and it must not be able to *do* anything.
+
+Cost and latency are real: this is an LLM round-trip on every comment with a body, paid by the org's
+BYO key. That's why it is opt-in, skipped for a star-only rating (nothing to read), and fails open on
+a timeout.
 
 ---
 
@@ -234,8 +263,12 @@ Nothing about that contract changes. This module fills numbers that are currentl
 - **An edited BODY re-enters moderation** when the install holds comments; a changed **rating does
   not**. Otherwise "post something innocuous, get approved, rewrite it" is an open door — while a
   number bounded 1–5 has nothing to moderate.
-- **Threading defaults to 1** (one reply level), per subject via the registry's `threading`. A reply
-  must belong to the same subject as its parent, so a thread can't be grafted onto another.
+- **Threading defaults to 3** (`tiger.comment.threading`, per-subject override via the registry).
+  Deep enough for a real exchange, shallow enough that a thread doesn't walk off a phone — the
+  renderer caps its *indent* at 3 regardless, so a deeper tree stays correct without becoming
+  unreadable. A reply must belong to the same subject as its parent, so a thread can't be grafted
+  onto another, and the depth limit is published to the client so the Reply button disappears at the
+  limit rather than failing on submit.
 - **`comment_count` and `rating_count` stay separate**, in the table and in the payload.
 - **No guest ratings.** Guest *commenting* is a config opt-in (`tiger.comment.allow_guests`, off);
   ratings still require an identity, because an anonymous score is just an open ballot box.
@@ -245,7 +278,9 @@ Still open:
 - **A pending rating is excluded from the average** (so posting alone can't move a score) — which
   means a busy subject's public average lags moderation. Acceptable, but worth revisiting if a queue
   ever backs up.
-- The **spam-check registry** exists as a design; nothing registers into it yet.
+- **The AI checker is inline**, so a comment post waits on a model round-trip. If that latency ever
+  bites, the alternative is classifying the moderation queue on a schedule instead — cheaper and
+  faster to post, at the cost of spam sitting in the queue longer.
 
 ---
 

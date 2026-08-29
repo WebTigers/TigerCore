@@ -48,4 +48,9 @@ return [
     'comment.col.actions'           => 'Actions',
     'comment.rating'                => 'Rating',
     'comment.out_of_5'              => 'out of 5',
+    'comment.form.reply'            => 'Reply',
+    'comment.admin.spam_agent'      => 'AI spam check',
+    'comment.admin.spam_agent_help' => 'Ask the connected AI agent to classify each new comment. A spam verdict routes it to the spam bin; anything else is left alone.',
+    'comment.admin.no_agent'        => 'No AI agent is connected, so the AI spam check is unavailable.',
+    'comment.admin.saved'           => 'Settings saved.',
 ];

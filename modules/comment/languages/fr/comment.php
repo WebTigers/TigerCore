@@ -48,4 +48,9 @@ return [
     'comment.col.actions'           => 'Actions',
     'comment.rating'                => 'Note',
     'comment.out_of_5'              => 'sur 5',
+    'comment.form.reply'            => 'Répondre',
+    'comment.admin.spam_agent'      => 'Détection de spam par IA',
+    'comment.admin.spam_agent_help' => 'Demandez à l’agent IA connecté de classer chaque nouveau commentaire. Un verdict « spam » l’envoie à la corbeille ; sinon rien ne change.',
+    'comment.admin.no_agent'        => 'Aucun agent IA n’est connecté, la détection de spam par IA est donc indisponible.',
+    'comment.admin.saved'           => 'Paramètres enregistrés.',
 ];

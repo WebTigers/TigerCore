@@ -28,13 +28,17 @@ final class CommentServiceTest extends IntegrationTestCase
         // API call does — the same seam the other service integration tests use.
         \Zend_Registry::set('tiger.auth.stateless', true);
 
+        \Tiger_Comment_Spam::reset();
+        \Tiger_Comment_Spam::setTransport(null);
+
         Tiger_Comment::reset();
         Tiger_Comment::registerSubject([
             'key'     => 'test.thing',
             'label'   => 'Thing',
             'resolve' => static fn ($id) => ['title' => 'A Thing', 'url' => '/thing/' . $id, 'exists' => $id !== 'gone'],
-            'ratings' => true,
-            'owns'    => static fn ($id, $uid) => $uid === 'owner-user',
+            'ratings'   => true,
+            'threading' => 2,
+            'owns'      => static fn ($id, $uid) => $uid === 'owner-user',
         ]);
         $this->enable(true);
     }
@@ -43,6 +47,8 @@ final class CommentServiceTest extends IntegrationTestCase
     {
         $reg = \Zend_Registry::getInstance();
         if ($reg->offsetExists('tiger.auth.stateless')) { $reg->offsetUnset('tiger.auth.stateless'); }
+        \Tiger_Comment_Spam::reset();
+        \Tiger_Comment_Spam::setTransport(null);
         Tiger_Comment::reset();
         parent::tearDown();
     }
@@ -278,5 +284,125 @@ final class CommentServiceTest extends IntegrationTestCase
         $agg = (new Tiger_Model_CommentAggregate())->forSubject('test.thing', 't1');
         $this->assertSame(0, $agg['rating_count'], 'the rollup can never outlive the thread it summarizes');
         $this->assertSame(0.0, $agg['rating_avg']);
+    }
+
+    // ---- spam checking ------------------------------------------------------
+
+    #[Test]
+    public function a_spam_verdict_routes_the_comment_to_the_spam_bin(): void
+    {
+        \Tiger_Comment_Spam::register(static fn () => \Tiger_Comment_Spam::VERDICT_SPAM);
+        $this->loginAs('user');
+
+        $out = $this->post([]);
+
+        $this->assertSame(1, $out['result'], 'the poster is never told they were classified');
+        $this->assertSame(Tiger_Model_Comment::STATUS_SPAM, $out['data']['status']);
+    }
+
+    /** A verdict may only TIGHTEN — a "ham" must never publish what the install would have held. */
+    #[Test]
+    public function a_ham_verdict_cannot_publish_a_held_comment(): void
+    {
+        \Tiger_Comment_Spam::register(static fn () => \Tiger_Comment_Spam::VERDICT_HAM);
+        $this->loginAs('user');
+
+        $out = $this->post([]);
+
+        $this->assertSame(Tiger_Model_Comment::STATUS_PENDING, $out['data']['status']);
+    }
+
+    #[Test]
+    public function an_unknown_verdict_leaves_the_moderation_posture_alone(): void
+    {
+        \Tiger_Comment_Spam::register(static fn () => \Tiger_Comment_Spam::VERDICT_UNKNOWN);
+        $this->loginAs('user');
+
+        $this->assertSame(Tiger_Model_Comment::STATUS_PENDING, $this->post([])['data']['status']);
+    }
+
+    #[Test]
+    public function a_spammed_comment_never_reaches_the_public_thread_or_the_average(): void
+    {
+        \Tiger_Comment_Spam::register(static fn () => \Tiger_Comment_Spam::VERDICT_SPAM);
+        $this->loginAs('user');
+        $this->post(['rating' => 1]);
+
+        $svc = new Comment_Service_Comment();
+        $svc->list(['subject' => 'test.thing:t1']);
+
+        $this->assertSame([], ((array) $svc->getResponse()->data)['comments']);
+        $this->assertSame(0, (new Tiger_Model_CommentAggregate())->forSubject('test.thing', 't1')['rating_count']);
+    }
+
+    // ---- nesting ------------------------------------------------------------
+
+    #[Test]
+    public function a_reply_is_stored_one_level_below_its_parent(): void
+    {
+        $this->loginAs('user');
+        $this->post([]);
+        $parent = (new Tiger_Model_Comment())->byStatus(Tiger_Model_Comment::STATUS_PENDING, 5)[0];
+
+        $svc = new Comment_Service_Comment();
+        $svc->post(['subject' => 'test.thing:t1', 'body' => 'a reply', 'parent_id' => $parent['comment_id'], '_t' => time() - 10]);
+
+        $this->assertSame(1, (int) $svc->getResponse()->result);
+
+        $rows  = (new Tiger_Model_Comment())->byStatus(Tiger_Model_Comment::STATUS_PENDING, 10);
+        $reply = array_values(array_filter($rows, static fn ($r) => $r['parent_id'] !== null))[0];
+
+        $this->assertSame(1, (int) $reply['depth']);
+        $this->assertSame($parent['comment_id'], $reply['parent_id']);
+    }
+
+    #[Test]
+    public function nesting_stops_at_the_subjects_declared_depth(): void
+    {
+        $this->loginAs('user');
+        $this->post([]);
+
+        $svc    = new Comment_Service_Comment();
+        $parent = (new Tiger_Model_Comment())->byStatus(Tiger_Model_Comment::STATUS_PENDING, 5)[0]['comment_id'];
+
+        // threading = 2, so depth 1 and 2 are fine and depth 3 is refused.
+        foreach ([1, 2] as $level) {
+            $svc = new Comment_Service_Comment();
+            $svc->post(['subject' => 'test.thing:t1', 'body' => 'level ' . $level, 'parent_id' => $parent, '_t' => time() - 10]);
+            $this->assertSame(1, (int) $svc->getResponse()->result, 'depth ' . $level . ' is within the limit');
+
+            $rows   = (new Tiger_Model_Comment())->byStatus(Tiger_Model_Comment::STATUS_PENDING, 20);
+            $deepest = array_values(array_filter($rows, static fn ($r) => (int) $r['depth'] === $level))[0];
+            $parent  = $deepest['comment_id'];
+        }
+
+        $svc = new Comment_Service_Comment();
+        $svc->post(['subject' => 'test.thing:t1', 'body' => 'too deep', 'parent_id' => $parent, '_t' => time() - 10]);
+
+        $this->assertSame(0, (int) $svc->getResponse()->result, 'past the declared depth a reply is refused');
+    }
+
+    /** A reply must not be grafted onto a thread on a different subject. */
+    #[Test]
+    public function a_reply_to_another_subjects_comment_is_refused(): void
+    {
+        $this->loginAs('user');
+        $this->post([]);
+        $parent = (new Tiger_Model_Comment())->byStatus(Tiger_Model_Comment::STATUS_PENDING, 5)[0];
+
+        $svc = new Comment_Service_Comment();
+        $svc->post(['subject' => 'test.thing:OTHER', 'body' => 'grafted', 'parent_id' => $parent['comment_id'], '_t' => time() - 10]);
+
+        $this->assertSame(0, (int) $svc->getResponse()->result);
+    }
+
+    #[Test]
+    public function the_thread_payload_publishes_the_depth_limit_for_the_client(): void
+    {
+        $svc = new Comment_Service_Comment();
+        $svc->list(['subject' => 'test.thing:t1']);
+
+        $this->assertSame(2, ((array) $svc->getResponse()->data)['threading'],
+            'the Reply affordance is offered from the SERVER rule, not a client guess');
     }
 }
