@@ -41,10 +41,23 @@ class Tiger_Comment
     /** Seconds an author may keep editing their own comment. */
     const CONFIG_EDIT_WINDOW = 'tiger.comment.edit_window';
 
+    /** How deep replies may nest, when a subject provider doesn't say. */
+    const CONFIG_THREADING = 'tiger.comment.threading';
+
     const MODERATION_HOLD    = 'hold';      // new comments land `pending` (default)
     const MODERATION_PUBLISH = 'publish';   // new comments land `approved`
 
     const DEFAULT_EDIT_WINDOW = 900;        // 15 minutes
+
+    /**
+     * Default nesting depth: three levels of replies.
+     *
+     * Deep enough for a real conversation (a reply, an answer, a clarification), shallow enough that
+     * a thread never walks off the right edge of a phone. A provider may override per subject, and an
+     * install may raise it — the renderer caps its INDENT at 3 regardless, so a deeper tree stays
+     * structurally correct without becoming unreadable.
+     */
+    const DEFAULT_THREADING = 3;
 
     /** @var array<string,array> key => provider */
     protected static $_subjects = [];
@@ -68,7 +81,7 @@ class Tiger_Comment
             'resource'   => $provider['resource']   ?? null,
             'privilege'  => (string) ($provider['privilege'] ?? 'index'),
             'ratings'    => (bool) ($provider['ratings'] ?? false),
-            'threading'  => max(0, (int) ($provider['threading'] ?? 1)),
+            'threading'  => max(0, (int) ($provider['threading'] ?? self::defaultThreading())),
             'may_review' => $provider['may_review'] ?? null,
             'owns'       => $provider['owns']       ?? null,
         ];
@@ -171,6 +184,17 @@ class Tiger_Comment
     public static function allowsGuests()
     {
         return (bool) self::_cfg(self::CONFIG_ALLOW_GUESTS, false);
+    }
+
+    /**
+     * The install-wide default reply depth, for a provider that doesn't declare one.
+     *
+     * @return int 0 = flat, N = N levels of replies
+     */
+    public static function defaultThreading()
+    {
+        $v = self::_cfg(self::CONFIG_THREADING, null);
+        return $v === null ? self::DEFAULT_THREADING : max(0, (int) $v);
     }
 
     /** How long an author may keep editing their own comment, in seconds. @return int */

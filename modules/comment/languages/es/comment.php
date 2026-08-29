@@ -48,4 +48,9 @@ return [
     'comment.col.actions'           => 'Acciones',
     'comment.rating'                => 'Valoración',
     'comment.out_of_5'              => 'de 5',
+    'comment.form.reply'            => 'Responder',
+    'comment.admin.spam_agent'      => 'Comprobación de spam con IA',
+    'comment.admin.spam_agent_help' => 'Pide al agente de IA conectado que clasifique cada comentario nuevo. Un veredicto de spam lo envía a la papelera; cualquier otro resultado no cambia nada.',
+    'comment.admin.no_agent'        => 'No hay ningún agente de IA conectado, por lo que la comprobación de spam con IA no está disponible.',
+    'comment.admin.saved'           => 'Ajustes guardados.',
 ];

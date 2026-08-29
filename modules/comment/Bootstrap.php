@@ -27,7 +27,7 @@ class Comment_Bootstrap extends Zend_Application_Module_Bootstrap
             'resolve'   => [Comment_Service_Subjects::class, 'page'],
             'resource'  => 'PageController',
             'ratings'   => false,   // a CMS page takes discussion, not stars
-            'threading' => 1,
+            'threading' => Tiger_Comment::defaultThreading(),
         ]);
 
         // The blog only registers when the module is actually present — a subject whose module is
@@ -39,9 +39,26 @@ class Comment_Bootstrap extends Zend_Application_Module_Bootstrap
                 'resolve'   => [Comment_Service_Subjects::class, 'blogPost'],
                 'resource'  => 'Blog_IndexController',
                 'ratings'   => false,
-                'threading' => 1,
+                'threading' => Tiger_Comment::defaultThreading(),
             ]);
         }
+    }
+
+    /**
+     * The AI spam checker.
+     *
+     * Registered unconditionally — the checker itself decides at call time whether an agent is
+     * connected and whether an admin switched it on, and returns `unknown` (fail-open) plus a log
+     * line otherwise. Gating the REGISTRATION on availability instead would mean a key added later
+     * doesn't take effect until the next deploy.
+     */
+    protected function _initCommentSpam()
+    {
+        if (!class_exists('Tiger_Comment_Spam') || !class_exists('Tiger_Comment') || !Tiger_Comment::isEnabled()) {
+            return;
+        }
+
+        Tiger_Comment_Spam::register([Tiger_Comment_Spam::class, 'agentCheck']);
     }
 
     /**

@@ -66,6 +66,27 @@
 
         if (status) { status.addEventListener('change', function () { if (grid) { grid.ajax.reload(); } }); }
 
+        // The AI spam toggle — only present when the server found a connected agent.
+        var spam = document.getElementById('comment-spam-agent');
+        if (spam) {
+            spam.addEventListener('change', function () {
+                var body = new URLSearchParams({
+                    module: 'comment', service: 'settings', method: 'save',
+                    spam_agent: spam.checked ? '1' : '0'
+                });
+                fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
+                    .then(function (r) { return r.json().catch(function () { return {}; }); })
+                    .then(function (res) {
+                        (res && res.messages || []).forEach(function (m) {
+                            TigerDOM.notify(fb, m.message, { type: m.class });
+                        });
+                        // The server refuses to store an aspiration, so reflect what it actually did.
+                        if (!res || res.result !== 1) { spam.checked = !spam.checked; }
+                    })
+                    .catch(function () { spam.checked = !spam.checked; });
+            });
+        }
+
         document.addEventListener('click', function (ev) {
             var btn = ev.target.closest('.cm-act');
             if (!btn) { return; }

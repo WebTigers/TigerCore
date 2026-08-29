@@ -48,4 +48,9 @@ return [
     'comment.col.actions'           => 'Aktionen',
     'comment.rating'                => 'Bewertung',
     'comment.out_of_5'              => 'von 5',
+    'comment.form.reply'            => 'Antworten',
+    'comment.admin.spam_agent'      => 'KI-Spamprüfung',
+    'comment.admin.spam_agent_help' => 'Lassen Sie den verbundenen KI-Agenten jeden neuen Kommentar einstufen. Ein Spam-Urteil verschiebt ihn in den Spam-Ordner; alles andere bleibt unverändert.',
+    'comment.admin.no_agent'        => 'Es ist kein KI-Agent verbunden, daher ist die KI-Spamprüfung nicht verfügbar.',
+    'comment.admin.saved'           => 'Einstellungen gespeichert.',
 ];

@@ -48,4 +48,9 @@ return [
     'comment.col.actions'           => 'कार्रवाइयाँ',
     'comment.rating'                => 'रेटिंग',
     'comment.out_of_5'              => '5 में से',
+    'comment.form.reply'            => 'उत्तर दें',
+    'comment.admin.spam_agent'      => 'एआई स्पैम जाँच',
+    'comment.admin.spam_agent_help' => 'कनेक्टेड एआई एजेंट से हर नई टिप्पणी को वर्गीकृत करने को कहें। स्पैम फैसला उसे स्पैम में भेजता है; अन्यथा कुछ नहीं बदलता।',
+    'comment.admin.no_agent'        => 'कोई एआई एजेंट कनेक्टेड नहीं है, इसलिए एआई स्पैम जाँच उपलब्ध नहीं है।',
+    'comment.admin.saved'           => 'सेटिंग्स सहेजी गईं।',
 ];

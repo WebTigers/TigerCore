@@ -42,7 +42,33 @@ final class CommentTest extends UnitTestCase
         $s = Tiger_Comment::subject('shop.product');
         $this->assertSame('Product', $s['label']);
         $this->assertTrue($s['ratings']);
-        $this->assertSame(1, $s['threading'], 'threading defaults to one reply level');
+        $this->assertSame(
+            Tiger_Comment::DEFAULT_THREADING,
+            $s['threading'],
+            'a provider that says nothing about threading gets the install default'
+        );
+    }
+
+    #[Test]
+    public function aProviderMayOverrideTheNestingDepth(): void
+    {
+        Tiger_Comment::registerSubject($this->provider(['threading' => 0]));
+
+        $this->assertSame(0, Tiger_Comment::subject('shop.product')['threading'], 'flat is a valid choice');
+    }
+
+    #[Test]
+    public function theInstallCanRaiseOrLowerTheDefaultDepth(): void
+    {
+        $this->setConfig(['tiger' => ['comment' => ['threading' => '5']]]);
+
+        $this->assertSame(5, Tiger_Comment::defaultThreading());
+    }
+
+    #[Test]
+    public function anUnsetDepthFallsBackToTheConstant(): void
+    {
+        $this->assertSame(Tiger_Comment::DEFAULT_THREADING, Tiger_Comment::defaultThreading());
     }
 
     #[Test]

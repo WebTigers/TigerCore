@@ -24,6 +24,25 @@ $t = fn($k) => $this->t($k);
 
 <div id="comment-feedback"></div>
 
+<?php if ($this->agentAvailable): ?>
+    <?php // Rendered ONLY when an agent is connected — a toggle for a check that can't run is a lie. ?>
+    <div class="card mb-4">
+        <div class="card-header fw-semibold">
+            <i class="fa-solid fa-shield-halved me-2"></i><?= $this->escape($t('comment.admin.spam_agent')) ?>
+        </div>
+        <div class="card-body">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="comment-spam-agent"
+                       <?= $this->spamAgent ? 'checked' : '' ?>>
+                <label class="form-check-label" for="comment-spam-agent">
+                    <?= $this->escape($t('comment.admin.spam_agent')) ?>
+                </label>
+            </div>
+            <p class="text-body-secondary mb-0 mt-2"><?= $this->escape($t('comment.admin.spam_agent_help')) ?></p>
+        </div>
+    </div>
+<?php endif; ?>
+
 <div class="card">
     <div class="card-body">
         <table id="comment-grid" class="table table-hover w-100">

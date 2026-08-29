@@ -46,7 +46,7 @@
              + esc(rating + ' ' + t('commentOutOf5', 'out of 5')) + '">' + html + '</span>';
     }
 
-    function commentHTML(c) {
+    function commentHTML(c, canReply) {
         var badge = c.verified
             ? '<span class="badge text-bg-success-subtle text-success-emphasis border border-success-subtle ms-2">'
               + '<i class="fa-solid fa-circle-check me-1"></i>' + esc(t('commentVerified', 'Verified purchase')) + '</span>'
@@ -55,15 +55,55 @@
             ? '<button type="button" class="btn btn-link btn-sm p-0 ms-2 tc-delete" data-id="' + esc(c.comment_id) + '">'
               + esc(t('commentDelete', 'Delete')) + '</button>'
             : '';
-        return '<div class="tc-item py-3 border-bottom" style="margin-left:' + (Math.min(c.depth || 0, 3) * 1.5) + 'rem">'
-             + '<div class="d-flex align-items-center mb-1">'
+        // A reply is only offered where one can actually be POSTED — the subject's depth limit is the
+        // server's rule, so the button disappears at the deepest level rather than failing on submit.
+        var reply = canReply
+            ? '<button type="button" class="btn btn-link btn-sm p-0 ms-2 tc-reply" data-id="' + esc(c.comment_id) + '">'
+              + esc(t('commentReply', 'Reply')) + '</button>'
+            : '';
+
+        // The INDENT caps at 3 even when the tree is deeper: past that a thread walks off the right
+        // edge of a phone, and the parentage is already carried by the reply header.
+        return '<div class="tc-item py-3 border-bottom" data-id="' + esc(c.comment_id) + '"'
+             + ' style="margin-left:' + (Math.min(c.depth || 0, 3) * 1.5) + 'rem">'
+             + '<div class="d-flex align-items-center flex-wrap mb-1">'
              +   starsHTML(c.rating)
              +   '<strong>' + esc(c.author) + '</strong>' + badge
              +   '<span class="text-body-secondary small ms-2">' + esc((c.created_at || '').slice(0, 10)) + '</span>'
-             +   mine
+             +   reply + mine
              + '</div>'
              + (c.body ? '<div class="tc-body">' + esc(c.body).replace(/\n/g, '<br>') + '</div>' : '')
+             + '<div class="tc-reply-mount"></div>'
              + '</div>';
+    }
+
+    /**
+     * Order a flat list into a TREE — each comment immediately followed by its replies, depth-first.
+     *
+     * The server returns the thread in creation order, which for a nested conversation interleaves
+     * replies with unrelated later top-level comments. Sorting client-side keeps the API a simple
+     * ordered read and keeps the tree a rendering concern.
+     */
+    function tree(list) {
+        var byParent = {}, out = [];
+        list.forEach(function (c) {
+            var key = c.parent_id || '';
+            (byParent[key] = byParent[key] || []).push(c);
+        });
+        (function walk(parent) {
+            (byParent[parent] || []).forEach(function (c) {
+                out.push(c);
+                walk(c.comment_id);
+            });
+        })('');
+        // Anything whose parent was removed mid-thread would otherwise vanish — append the orphans
+        // rather than silently dropping somebody's words.
+        if (out.length < list.length) {
+            var seen = {};
+            out.forEach(function (c) { seen[c.comment_id] = true; });
+            list.forEach(function (c) { if (!seen[c.comment_id]) { out.push(c); } });
+        }
+        return out;
     }
 
     function render(root, res) {
@@ -72,8 +112,9 @@
         var d    = (res && res.data) || {};
         var all  = d.comments || [];
 
+        var maxDepth = typeof d.threading === 'number' ? d.threading : 0;
         list.innerHTML = all.length
-            ? all.map(commentHTML).join('')
+            ? tree(all).map(function (c) { return commentHTML(c, (c.depth || 0) < maxDepth); }).join('')
             : '<p class="text-body-secondary">' + esc(t('commentEmpty', 'No comments yet.')) + '</p>';
 
         // The honeypot must be reachable by nothing a human uses: hidden from layout, from the
@@ -108,8 +149,43 @@
         var fb = root.querySelector('.tiger-comments-feedback');
 
         root.addEventListener('click', function (ev) {
-            var submit = ev.target.closest('.tc-submit');
-            var del    = ev.target.closest('.tc-delete');
+            var submit  = ev.target.closest('.tc-submit');
+            var del     = ev.target.closest('.tc-delete');
+            var replyTo = ev.target.closest('.tc-reply');
+            var send    = ev.target.closest('.tc-reply-send');
+
+            if (replyTo) {
+                var item  = replyTo.closest('.tc-item');
+                var mount = item ? item.querySelector('.tc-reply-mount') : null;
+                if (!mount) { return; }
+                if (mount.innerHTML) { mount.innerHTML = ''; return; }   // a second click closes it
+                mount.innerHTML =
+                    '<div class="mt-2">'
+                  + '<textarea class="form-control mb-2 tc-reply-body" rows="2" placeholder="'
+                  +   esc(t('commentReply', 'Reply')) + '"></textarea>'
+                  + '<button type="button" class="btn btn-sm btn-primary tc-reply-send" data-parent="'
+                  +   esc(replyTo.getAttribute('data-id')) + '">' + esc(t('commentSubmit', 'Post')) + '</button>'
+                  + '</div>';
+                var box = mount.querySelector('.tc-reply-body');
+                if (box) { box.focus(); }
+                return;
+            }
+
+            if (send) {
+                var mountEl = send.closest('.tc-reply-mount');
+                var bodyEl  = mountEl ? mountEl.querySelector('.tc-reply-body') : null;
+                TigerButton.run(send, function () {
+                    return api({
+                        method:    'post',
+                        subject:   root.getAttribute('data-comment-subject') || '',
+                        body:      bodyEl ? bodyEl.value : '',
+                        parent_id: send.getAttribute('data-parent'),
+                        _t:        String(Math.floor(Date.now() / 1000) - 5)
+                    });
+                }).then(function (res) { after(res); });
+                return;
+            }
+
             if (!submit && !del) { return; }
 
             if (del) {

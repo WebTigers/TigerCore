@@ -24,5 +24,10 @@ class Comment_AdminController extends Tiger_Controller_Admin_Action
 
         $this->view->title    = 'Comments — Tiger Admin';
         $this->view->statuses = Tiger_Model_Comment::STATUSES;
+
+        // The AI spam control only APPEARS when there is a live agent to run it — an always-visible
+        // toggle that silently does nothing is worse than no toggle.
+        $this->view->agentAvailable = Tiger_Comment_Spam::agentAvailable();
+        $this->view->spamAgent      = Tiger_Comment_Spam::agentEnabled();
     }
 }
