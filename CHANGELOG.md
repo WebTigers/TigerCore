@@ -6,6 +6,22 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.1] — 2026-09-07
+
+### Changed
+
+- **The marketplace endpoint now ships as a default.** `Tiger_Module_Registry::DEFAULT_MARKETPLACE`
+  points the `webtigers` live-API source at `https://webtigers.com/marketplace/feed`. Previously
+  `tiger.modules.marketplace` was unset, so that source was inert and a fresh install saw only the
+  free Directory — the commercial layer was invisible until an operator found and set a config key.
+
+  This mirrors how the Directory has always worked (a class constant, overridable by config), so the
+  two shipped sources are symmetrical. **A default is not a dependency:** set
+  `tiger.modules.marketplace` to a different URL to use another marketplace, or to **`''`** to switch
+  the commercial layer off entirely and keep only the free Directory. `marketplaceUrl()`
+  distinguishes "never configured" from "explicitly emptied" so an operator's opt-out is never
+  silently undone.
+
 ## [1.5.0] — 2026-08-29
 
 ### Added
