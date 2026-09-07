@@ -59,9 +59,10 @@ a paid module **relaxes that to informed trust in the vendor.**
 **Both fetch a URL and yield the same `{modules, taxonomy}` shape**, so a marketplace and a directory compose
 uniformly. Two sources ship by default, **both removable**:
 
-- **`webtigers`** — a `live-api` marketplace ("marketplace #0"), priority `0`. Inert until its URL is set
-  (`tiger.modules.marketplace`); when configured it becomes the source of truth for the dynamic/commercial
-  layer.
+- **`webtigers`** — a `live-api` marketplace ("marketplace #0"), priority `0`. **Ships enabled**, pointed at
+  `Tiger_Module_Registry::DEFAULT_MARKETPLACE`. Override with `tiger.modules.marketplace` to point at a
+  different marketplace, or set it to **`''`** to switch the commercial layer off entirely and leave only the
+  free Directory. A default, not a dependency — nothing in core privileges that URL beyond being what ships.
 - **`tiger-vendors`** — the `git-index` Directory, priority `10`. URL config-overridable
   (`tiger.modules.registry`); the free, reviewable catalog **and the resilient offline fallback**.
 

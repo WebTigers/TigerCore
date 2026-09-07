@@ -8,8 +8,9 @@
  * feed. Two are shipped by default (both removable, admin-overridable):
  *
  *  - **`webtigers` — a live-API marketplace ("marketplace #0")**, priority 0. The source of truth
- *    for the *dynamic/commercial* layer (ratings, downloads, paid catalog). Inert until its URL is
- *    configured (`tiger.modules.marketplace`) — phase 2 stands up the endpoint.
+ *    for the *dynamic/commercial* layer (ratings, downloads, paid catalog). Ships pointed at
+ *    `DEFAULT_MARKETPLACE`, config-overridable via `tiger.modules.marketplace` — set it to '' to
+ *    turn the commercial layer off entirely and leave the free Directory.
  *  - **`tiger-vendors` — the git Directory**, priority 10. A public `index.json` compiled by CI
  *    from `WebTigers/TigerVendors` — the free, reviewable community catalog and the resilient
  *    offline **fallback**. Its URL stays config-overridable (`tiger.modules.registry`).
@@ -32,6 +33,14 @@
 class Tiger_Module_Registry
 {
     const DEFAULT_INDEX     = 'https://raw.githubusercontent.com/WebTigers/TigerVendors/main/data/index.json';
+
+    /**
+     * The shipped marketplace endpoint. A default, NOT a hard-coded dependency: it is overridable by
+     * `tiger.modules.marketplace` like the Directory's is by `tiger.modules.registry`, and setting
+     * that to '' disables the source. An install that would rather use somebody else's marketplace —
+     * or none — changes one config row; nothing here privileges this URL beyond being the default.
+     */
+    const DEFAULT_MARKETPLACE = 'https://webtigers.com/marketplace/feed';
     const CACHE_TTL         = 10800;   // 3h — a few refreshes a day, per the discovery model
     const CACHE_FILE        = 'registry-index.json';   // the Directory source's cache (legacy-stable name)
 
@@ -388,15 +397,23 @@ class Tiger_Module_Registry
     }
 
     /**
-     * The WebTigers marketplace API URL ("marketplace #0"), from `tiger.modules.marketplace`; '' =
-     * inert (the live-API source stays disabled) until phase 2 configures the endpoint.
+     * The marketplace API URL ("marketplace #0") — `tiger.modules.marketplace`, else
+     * DEFAULT_MARKETPLACE.
      *
-     * @return string the marketplace endpoint, or '' when unset
+     * An explicitly EMPTY config value disables the source, which is why this distinguishes "unset"
+     * (fall back to the default) from "set to nothing" (the operator turned the commercial layer
+     * off). `isset()` on the config node is the difference; a plain truthiness check would silently
+     * re-enable a source an admin had deliberately switched off.
+     *
+     * @return string the marketplace endpoint, or '' when explicitly disabled
      */
     public static function marketplaceUrl()
     {
         $mod = self::_modulesConfig();
-        return ($mod && $mod->get('marketplace')) ? (string) $mod->marketplace : '';
+        if ($mod && $mod->get('marketplace') !== null) {
+            return (string) $mod->marketplace;   // includes '' — a deliberate opt-out
+        }
+        return self::DEFAULT_MARKETPLACE;
     }
 
     /** The two shipped default sources (marketplace #0 first, then the git Directory). */

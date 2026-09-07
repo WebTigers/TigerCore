@@ -31,6 +31,13 @@ final class RegistryTest extends UnitTestCase
         parent::setUp();
         $this->cacheDir = rtrim(APPLICATION_ROOT, '/') . '/storage/cache';
         @mkdir($this->cacheDir, 0775, true);
+
+        // The marketplace source ships ENABLED (DEFAULT_MARKETPLACE), so without this these tests
+        // would reach the real endpoint and merge live listings into a fixture — a unit test making
+        // a network call, and a suite whose results move when the catalogue does. Priming an empty
+        // cache keeps it resolvable offline; each test that cares about the marketplace sets its own
+        // config or cache explicitly.
+        $this->primeSourceCache('registry-webtigers.json', ['modules' => [], 'taxonomy' => []]);
     }
 
     protected function tearDown(): void
@@ -296,10 +303,35 @@ final class RegistryTest extends UnitTestCase
             'marketplace #0 (priority 0) is ordered before the directory (priority 10)'
         );
         [$mkt, $dir] = $sources;
-        $this->assertFalse($mkt->isFetchable(), 'the live-API marketplace is inert until its URL is set');
+        $this->assertTrue($mkt->isFetchable(), 'the marketplace ships pointed at DEFAULT_MARKETPLACE');
         $this->assertTrue($dir->isFetchable(), 'the git directory is active by default');
         $this->assertTrue($mkt->default && $mkt->removable && $dir->default && $dir->removable, 'both are removable defaults');
+        $this->assertSame(Tiger_Module_Registry::DEFAULT_MARKETPLACE, $mkt->url, 'the marketplace carries the shipped endpoint');
         $this->assertSame(Tiger_Module_Registry::DEFAULT_INDEX, $dir->url, 'the directory carries the registry URL');
+    }
+
+    #[Test]
+    public function the_marketplace_override_points_the_live_api_source(): void
+    {
+        $this->setConfig(['tiger' => ['modules' => ['marketplace' => 'https://store.example/feed']]]);
+        $mkt = Tiger_Module_Registry::sources()[0];
+        $this->assertSame('https://store.example/feed', $mkt->url, 'an install can point at somebody else\'s marketplace');
+        $this->assertTrue($mkt->isFetchable());
+    }
+
+    /**
+     * Empty is an OPT-OUT, not "unset". A truthiness check here would silently re-enable a source the
+     * operator had deliberately switched off — the difference between "I never configured this" and
+     * "I turned the commercial layer off" has to survive.
+     */
+    #[Test]
+    public function an_explicitly_empty_marketplace_url_disables_the_source(): void
+    {
+        $this->setConfig(['tiger' => ['modules' => ['marketplace' => '']]]);
+        $mkt = Tiger_Module_Registry::sources()[0];
+        $this->assertSame('', $mkt->url);
+        $this->assertFalse($mkt->isFetchable(), 'the commercial layer is off; the free directory remains');
+        $this->assertTrue(Tiger_Module_Registry::sources()[1]->isFetchable());
     }
 
     #[Test]
