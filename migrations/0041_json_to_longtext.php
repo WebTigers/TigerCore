@@ -13,6 +13,12 @@
  * `json_valid` CHECK constraint (a MODIFY can leave the implicit check behind, and a module table may carry
  * its own) and drop it. Idempotent — the sweep drops only what exists.
  *
+ * PORTABILITY: the sweep must run on MySQL too, where it correctly finds NOTHING — MySQL's JSON is a real
+ * native type with no implicit json_valid CHECK, so only MariaDB ever has one to drop. But the two engines
+ * expose different columns: MariaDB's `information_schema.CHECK_CONSTRAINTS` carries TABLE_NAME and MySQL's
+ * does not, so selecting it directly is a hard 1054 on MySQL and the whole install dies here. Join through
+ * TABLE_CONSTRAINTS, which carries TABLE_NAME on BOTH.
+ *
  * ONE-WAY by design: no `down` back to JSON. Re-adding a json_valid CHECK would re-introduce the depth bug,
  * so a rollback here would be actively harmful. New tables must use LONGTEXT, never JSON (see AGENTS.md).
  */
@@ -26,10 +32,13 @@ return [
         // Drop EVERY json_valid CHECK still present in this schema (core leftovers + any module table).
         function ($db) {
             $rows = $db->fetchAll(
-                "SELECT TABLE_NAME AS t, CONSTRAINT_NAME AS c
-                   FROM information_schema.CHECK_CONSTRAINTS
-                  WHERE CONSTRAINT_SCHEMA = DATABASE()
-                    AND LOWER(CHECK_CLAUSE) LIKE '%json_valid%'"
+                "SELECT tc.TABLE_NAME AS t, cc.CONSTRAINT_NAME AS c
+                   FROM information_schema.CHECK_CONSTRAINTS cc
+                   JOIN information_schema.TABLE_CONSTRAINTS tc
+                     ON tc.CONSTRAINT_SCHEMA = cc.CONSTRAINT_SCHEMA
+                    AND tc.CONSTRAINT_NAME   = cc.CONSTRAINT_NAME
+                  WHERE cc.CONSTRAINT_SCHEMA = DATABASE()
+                    AND LOWER(cc.CHECK_CLAUSE) LIKE '%json_valid%'"
             );
             foreach ($rows as $r) {
                 $db->query('ALTER TABLE `' . $r['t'] . '` DROP CONSTRAINT `' . $r['c'] . '`');
