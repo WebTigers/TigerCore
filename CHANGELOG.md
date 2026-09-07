@@ -6,6 +6,24 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.3] — 2026-09-07
+
+### Fixed
+
+- **Tiger now installs on MySQL.** Migration `0041_json_to_longtext` selected `TABLE_NAME` from
+  `information_schema.CHECK_CONSTRAINTS` — a column MariaDB exposes and **MySQL does not**. On MySQL
+  that is a hard `1054 Unknown column 'TABLE_NAME'`, so the migration threw and the install died at
+  "Database setup failed". Since cPanel ships either engine, this made roughly half of shared hosting
+  uninstallable; every install to date happened to be MariaDB, which is why it went unseen.
+
+  The sweep now joins through `information_schema.TABLE_CONSTRAINTS`, which carries `TABLE_NAME` on
+  both engines. On MySQL it correctly finds nothing — MySQL's `JSON` is a real native type with no
+  implicit `CHECK(json_valid(col))`, so only MariaDB ever has one to drop — but it must still *run*.
+
+  Verified on MySQL 8.0.46 and MariaDB 12.3.2, and the full migration set (47 migrations, 40 tables,
+  bundled module migrations included) was applied against a scratch MySQL 8 database to confirm this
+  was the only incompatibility.
+
 ## [1.5.2] — 2026-09-07
 
 ### Fixed
