@@ -219,6 +219,20 @@ class Tiger_Backup
                 foreach ($fileComps as $c) { $restored[] = $c; }
             }
 
+            // Published assets are excluded from the archive (see _walk), so a copy-mode install
+            // would come back with no CSS/JS. Re-publish them — a no-op on a symlinked install, and
+            // fail-soft: a restored site must not be reported as failed over re-creatable files.
+            if ($fileComps) {
+                try {
+                    $assets = Tiger_Install::republishAssets(self::_root());
+                    if ($assets['error'] !== null) {
+                        Tiger_Log::warn('backup.restore.assets', ['error' => $assets['error']]);
+                    }
+                } catch (Throwable $e) {
+                    Tiger_Log::warn('backup.restore.assets', ['error' => $e->getMessage()]);
+                }
+            }
+
             self::_rrmdir($stage);
             @unlink($flag);
             Tiger_Log::info('backup.restored', ['components' => $restored, 'safety_id' => $safetyId]);
@@ -326,6 +340,11 @@ class Tiger_Backup
             if ($f === '.' || $f === '..') { continue; }
             $abs = $dir . '/' . $f;
             if (is_link($abs)) { continue; }                 // never follow symlinks (e.g. public/_theme)
+            // Published assets are DERIVED from vendor/ and are re-creatable with `tiger link:assets`.
+            // A symlinked install skips them via the check above; on a host without symlink() they are
+            // real directories, and without this they would bloat every backup with a copy of the
+            // theme + framework assets. Excluded by their marker, so a user's own dir is untouched.
+            if (is_dir($abs) && is_file($abs . '/' . Tiger_Install::ASSET_COPY_MARKER)) { continue; }
             foreach ($excludeAbs as $ex) {
                 if ($abs === $ex || strpos($abs, $ex . '/') === 0) { continue 2; }
             }
