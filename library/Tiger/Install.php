@@ -169,10 +169,20 @@ class Tiger_Install
         return $made;
     }
 
+    /** Marker dropped inside a COPIED asset dir, so a re-publish knows the dir is ours to replace. */
+    const ASSET_COPY_MARKER = '.tiger-published';
+
     /**
-     * (Re)create the webroot's default asset symlinks — `_tiger` (shared core public assets) and
-     * `_theme` (the active theme's assets). This is the failsafe way to wire assets on ANY host:
-     * recreate the links, never copy — so a framework/theme update is picked up with no re-publish.
+     * (Re)create the webroot's default asset links — `_tiger` (shared core public assets) and
+     * `_theme` (the active theme's assets). A SYMLINK where the host allows it, falling back to a
+     * recursive COPY where `symlink()` is disabled — which is common on hardened shared/cPanel
+     * hosting, the very target Tiger is built for. Before the fallback existed this threw, so the
+     * web installer died at "wiring assets" and left an unstyled site.
+     *
+     * The two modes are NOT equivalent, and the difference is the whole reason `republishAssets()`
+     * exists: a symlink points INTO vendor/, so a framework or theme update is picked up for free;
+     * a copy is a snapshot and goes stale the moment vendor/ changes. Anything that swaps vendor/
+     * (see Tiger_Update_Core) must therefore re-publish, and only copy-mode installs need it.
      *
      * Works for both layouts because the target is computed from $root (absolute):
      *   - co-located (dev / VPS):  webroot = <root>/public
@@ -184,6 +194,8 @@ class Tiger_Install
      * @param string $root     application root (holds vendor/)
      * @param string $theme    active theme whose assets `_theme` points at
      * @return array<string,string> link name => absolute target, for each (re)created link
+     * @see    Tiger_Install::assetsAreCopied() to detect copy mode
+     * @see    Tiger_Install::republishAssets() to refresh a copy-mode install after an update
      */
     public static function linkPublicAssets($webroot, $root, $theme = 'puma')
     {
@@ -208,16 +220,132 @@ class Tiger_Install
             if (is_link($link)) {
                 @unlink($link);                       // replace an old/stale link
             } elseif (is_dir($link)) {
-                throw new RuntimeException("linkPublicAssets: refusing to replace a real directory: {$link}");
+                // A real directory is normally the user's and is never clobbered — EXCEPT one we
+                // published ourselves in copy mode, which carries our marker and must be refreshed.
+                if (!is_file($link . '/' . self::ASSET_COPY_MARKER)) {
+                    throw new RuntimeException("linkPublicAssets: refusing to replace a real directory: {$link}");
+                }
+                self::_rrmdir($link);
             } elseif (file_exists($link)) {
                 @unlink($link);
             }
-            if (!@symlink($target, $link)) {
-                throw new RuntimeException("linkPublicAssets: could not create symlink {$link} -> {$target}");
+            // A symlink is always preferred (self-updating). `symlink()` may be absent from
+            // disable_functions entirely, so guard the call rather than relying on its return.
+            $linked = static::_canSymlink() ? @symlink($target, $link) : false;
+            if (!$linked) {
+                self::_rcopy($target, $link);
+                if (!is_dir($link)) {
+                    throw new RuntimeException("linkPublicAssets: could neither link nor copy {$target} -> {$link}");
+                }
+                @file_put_contents(
+                    $link . '/' . self::ASSET_COPY_MARKER,
+                    "Published by Tiger because symlink() is unavailable on this host.\n"
+                    . "Managed automatically — do not edit; it is replaced on update.\n"
+                );
             }
             $made[$name] = $target;
         }
         return $made;
+    }
+
+    /**
+     * Is this install serving COPIED assets rather than symlinks? True when either published dir is a
+     * real directory carrying our marker — i.e. the host blocked `symlink()` at publish time.
+     *
+     * @param  string $webroot docroot dir holding `_tiger` / `_theme`
+     * @return bool
+     */
+    public static function assetsAreCopied($webroot)
+    {
+        $webroot = rtrim((string) $webroot, '/');
+        foreach (['_tiger', '_theme'] as $name) {
+            $dir = $webroot . '/' . $name;
+            if (!is_link($dir) && is_dir($dir) && is_file($dir . '/' . self::ASSET_COPY_MARKER)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Refresh published assets after vendor/ changes. A NO-OP on a symlinked install (the link already
+     * points at the new files) — so this is safe and cheap to call unconditionally after any update.
+     * On a copy-mode install it re-copies, which is the only thing that stops a host without
+     * `symlink()` from serving last version's CSS and JS forever.
+     *
+     * Fail-soft by contract: an update that succeeded must not be reported as failed because assets
+     * could not be re-published. The caller logs what came back.
+     *
+     * @param  string  $root    application root (holds vendor/)
+     * @param  ?string $webroot docroot; defaults to PUBLIC_PATH, else <root>/public
+     * @param  ?string $theme   active theme; defaults to the resolved one, else puma
+     * @return array{mode:string,republished:bool,error:?string} what happened
+     */
+    public static function republishAssets($root, $webroot = null, $theme = null)
+    {
+        $root    = rtrim((string) $root, '/');
+        $webroot = $webroot !== null
+            ? rtrim((string) $webroot, '/')
+            : (defined('PUBLIC_PATH') ? PUBLIC_PATH : $root . '/public');
+
+        if (!is_dir($webroot)) {
+            return ['mode' => 'unknown', 'republished' => false, 'error' => 'webroot not found: ' . $webroot];
+        }
+        if (!self::assetsAreCopied($webroot)) {
+            return ['mode' => 'symlink', 'republished' => false, 'error' => null];
+        }
+        if ($theme === null) {
+            $theme = 'puma';
+            if (class_exists('Tiger_Theme')) {
+                try {
+                    $active = Tiger_Theme::active();
+                    if (is_string($active) && $active !== '') { $theme = $active; }
+                } catch (Throwable $e) { /* fall back to puma */ }
+            }
+        }
+        try {
+            self::linkPublicAssets($webroot, $root, $theme);
+            return ['mode' => 'copy', 'republished' => true, 'error' => null];
+        } catch (Throwable $e) {
+            return ['mode' => 'copy', 'republished' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Can this host create symlinks? `symlink()` is frequently in `disable_functions` on shared
+     * cPanel hosting, where calling it is a fatal Error rather than a false return — hence
+     * function_exists, not a try/catch. Overridable so tests can exercise the copy path, which is a
+     * supported install mode and cannot otherwise be reached on a dev machine.
+     *
+     * @return bool
+     */
+    protected static function _canSymlink()
+    {
+        return function_exists('symlink');
+    }
+
+    /** Recursively copy a directory tree (asset publishing fallback). */
+    protected static function _rcopy($src, $dst)
+    {
+        @mkdir($dst, 0775, true);
+        foreach (scandir($src) ?: [] as $item) {
+            if ($item === '.' || $item === '..') { continue; }
+            $s = $src . '/' . $item;
+            $d = $dst . '/' . $item;
+            is_dir($s) ? self::_rcopy($s, $d) : @copy($s, $d);
+        }
+    }
+
+    /** Recursively remove a directory tree (never follows symlinks). */
+    protected static function _rrmdir($dir)
+    {
+        if (!is_dir($dir) || is_link($dir)) { @unlink($dir); return; }
+        foreach (scandir($dir) ?: [] as $item) {
+            if ($item === '.' || $item === '..') { continue; }
+            $p = $dir . '/' . $item;
+            (is_dir($p) && !is_link($p)) ? self::_rrmdir($p) : @unlink($p);
+        }
+        @rmdir($dir);
     }
 
     /**

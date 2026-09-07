@@ -198,6 +198,24 @@ class Tiger_Update_Core
             }
         }
 
+        // ---- re-publish assets ---------------------------------------------
+        // vendor/ just moved under us. A SYMLINKED install needs nothing (the link already points at
+        // the new files) and this is a cheap no-op there. A COPY-mode install — a host with
+        // symlink() disabled, i.e. much of shared cPanel — would otherwise serve the OLD theme and
+        // framework assets forever, silently, with updated PHP behind them. Fail-soft: the code is
+        // already updated and healthy, so a publish problem is reported, never a rollback.
+        try {
+            $assets = Tiger_Install::republishAssets($root);
+            if ($assets['republished']) {
+                $add('assets', true, 'Re-published copied assets (this host blocks symlink()).');
+            } elseif ($assets['error'] !== null) {
+                $add('assets', false, 'Assets need re-publishing but it failed — run `tiger link:assets`: '
+                    . $assets['error']);
+            }
+        } catch (Throwable $e) {
+            $add('assets', false, 'Asset re-publish issue (code is updated + healthy — review): ' . $e->getMessage());
+        }
+
         // ---- commit --------------------------------------------------------
         self::_rrmdir($old);
         self::_rrmdir($stage);
