@@ -6,6 +6,37 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.2] — 2026-09-07
+
+### Fixed
+
+- **Tiger now installs on hosts that block `symlink()`.** `Tiger_Install::linkPublicAssets()` threw
+  when `symlink()` was unavailable, so the one-file web installer died at "wiring assets" and left an
+  installed-but-unstyled site. `symlink` sits in `disable_functions` on a great deal of hardened
+  shared/cPanel hosting — the exact market that installer exists for — so this was not an edge case.
+  It now falls back to a recursive copy, matching what `Tiger_Module_Installer::_publishAssets()` has
+  always done for module assets.
+
+  The requirements screen also called `symlink()` optional and claimed "a copy fallback is used
+  otherwise". There was no such fallback; now there is, and the text says what actually happens.
+
+### Added
+
+- **`Tiger_Install::assetsAreCopied()` / `republishAssets()`** — copy mode is not equivalent to a
+  symlink. A link points into `vendor/`, so an update is picked up for free; a copy is a snapshot.
+  Left alone, a copy-mode install would serve the previous version's CSS and JS forever after an
+  update, silently, with new PHP behind it. `republishAssets()` refreshes it and is a no-op on a
+  symlinked install, so callers need no branching.
+
+### Changed
+
+- **`Tiger_Update_Core` re-publishes assets after the vendor swap** — fail-soft, so a healthy update
+  is never reported as failed over files that can simply be re-created.
+- **`Tiger_Backup` excludes published asset directories** (they are derived from `vendor/`, and on a
+  copy-mode host would bloat every backup), and **`restore()` re-publishes them**, so that exclusion
+  can never leave a restored site without assets. Both key off a marker file written at publish time,
+  so a directory the user created is never touched.
+
 ## [1.5.1] — 2026-09-07
 
 ### Changed
