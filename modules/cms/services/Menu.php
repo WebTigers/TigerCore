@@ -13,6 +13,39 @@
  */
 class Cms_Service_Menu extends Tiger_Service_Service
 {
+
+    /**
+     * The org a menu mutation may target — NEVER the raw request value.
+     *
+     * Every mutation here used to read `org_id` straight from the payload and act on it, so an admin
+     * in org A could pass `org_id=B` and edit or delete B's menus without holding any membership
+     * there. The admin ACL is derived from the CALLER's own membership, so it granted nothing about
+     * the target rows (TIGER-65).
+     *
+     * Menus are GLOBAL today — MenuController pins the editor to `''` ("per-tenant menu editing is a
+     * later concern") — so this deliberately allows two scopes and no others: the global scope, and
+     * the caller's own tenant. That keeps the shipping editor working and leaves the per-tenant door
+     * open, while making another tenant's rows unreachable.
+     *
+     * @param  array $params the /api message
+     * @return string|null the org to act in, or null when the caller asked for one they may not touch
+     */
+    protected function _scopedOrgId(array $params)
+    {
+        $asked = (string) ($params['org_id'] ?? '');
+        $mine  = $this->_menuOrgId();
+
+        if ($asked === '' || $asked === $mine) { return $asked; }
+        return null;   // an org the caller has no claim on
+    }
+
+    /** The caller's own tenant ('' when org-less / global). */
+    protected function _menuOrgId()
+    {
+        $idn = Zend_Auth::getInstance()->hasIdentity() ? Zend_Auth::getInstance()->getIdentity() : null;
+        return ($idn && !empty($idn->org_id)) ? (string) $idn->org_id : '';
+    }
+
     /**
      * Return the DataTables source for the menus list: one row per (org, menu_key) with an item count.
      *
@@ -149,7 +182,8 @@ class Cms_Service_Menu extends Tiger_Service_Service
         ];
 
         $model = new Tiger_Model_Menu();
-        $orgId = (string) ($params['org_id'] ?? '');
+        $orgId = $this->_scopedOrgId($params);
+        if ($orgId === null) { $this->_error('core.api.error.not_allowed'); return; }
 
         try {
             $out = $this->_transaction(function () use ($model, $menuKey, $orgId, $params, $data) {
@@ -188,7 +222,8 @@ class Cms_Service_Menu extends Tiger_Service_Service
         $id = (string) ($params['menu_id'] ?? '');
         if ($id === '') { $this->_error('core.api.error.general'); return; }
         $menuKey = (string) ($params['menu_key'] ?? '');
-        $orgId   = (string) ($params['org_id'] ?? '');
+        $orgId = $this->_scopedOrgId($params);
+        if ($orgId === null) { $this->_error('core.api.error.not_allowed'); return; }
         try {
             // Deleting an item from a theme menu materializes it first (fork), then drops the item.
             $map    = $this->_ensureForked($menuKey, $orgId);
@@ -210,7 +245,8 @@ class Cms_Service_Menu extends Tiger_Service_Service
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
         $menuKey = (string) ($params['menu_key'] ?? '');
-        $orgId   = (string) ($params['org_id'] ?? '');
+        $orgId = $this->_scopedOrgId($params);
+        if ($orgId === null) { $this->_error('core.api.error.not_allowed'); return; }
         if ($menuKey === '') { $this->_error('core.api.error.general'); return; }
         try {
             $model = new Tiger_Model_Menu();
@@ -233,7 +269,8 @@ class Cms_Service_Menu extends Tiger_Service_Service
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
         $menuKey = (string) ($params['menu_key'] ?? '');
-        $orgId   = (string) ($params['org_id'] ?? '');
+        $orgId = $this->_scopedOrgId($params);
+        if ($orgId === null) { $this->_error('core.api.error.not_allowed'); return; }
         $items   = json_decode((string) ($params['tree'] ?? ''), true);
         if ($menuKey === '' || !is_array($items)) { $this->_error('core.api.error.general'); return; }
         try {
@@ -273,7 +310,8 @@ class Cms_Service_Menu extends Tiger_Service_Service
         $themeMenus = Tiger_Theme_Menus::all();
         if (!$themeMenus) { $this->_error('cms.menu.import_none'); return; }
 
-        $orgId    = (string) ($params['org_id'] ?? '');
+        $orgId = $this->_scopedOrgId($params);
+        if ($orgId === null) { $this->_error('core.api.error.not_allowed'); return; }
         $only     = trim((string) ($params['menu_key'] ?? ''));
         $themeKey = $this->_activeThemeKey();
         $model    = new Tiger_Model_Menu();
@@ -326,7 +364,8 @@ class Cms_Service_Menu extends Tiger_Service_Service
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
         $menuKey = (string) ($params['menu_key'] ?? '');
-        $orgId   = (string) ($params['org_id'] ?? '');
+        $orgId = $this->_scopedOrgId($params);
+        if ($orgId === null) { $this->_error('core.api.error.not_allowed'); return; }
         if ($menuKey === '') { $this->_error('core.api.error.general'); return; }
         try {
             $model = new Tiger_Model_Menu();
