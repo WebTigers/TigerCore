@@ -6,6 +6,29 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.4] — 2026-09-08
+
+### Added
+
+- **A SITE link above the admin navigation.** There was no way to get from the control panel to the
+  public site — you retyped the URL or dug out a bookmark, every session. The sidebar now opens with a
+  `SITE` heading, a globe, the configured site name, and an external-link icon, pointing at `/` in a
+  new tab (`rel="noopener"`) so you keep your place in admin. Showing the *name* matters on a
+  multi-tenant or white-labelled install: you can see which site you are about to open.
+
+  Deliberately **not** a registered `Tiger_Admin_Nav` item — it is the way *out* to the front end, not
+  an admin section, so it cannot be reordered, ACL-filtered, or pushed down the list by a module. It
+  adds no CSS, reusing the classes that already handle the collapsed rail, and the `/account` surface
+  inherits it from the shared shell. (TIGER-59)
+
+### Changed
+
+- **`/get-tiger` option 02 has an actual download button.** The TigerInstall card promised "a one-click
+  setup on any standard LAMP host — no shell, no Composer, no DevOps" and then offered no link and no
+  file; the only copyable thing on the page was the Composer command in option 03, which is precisely
+  the path that does *not* work for the audience option 02 is written for. It now links to the
+  `releases/latest` installer **zip** (added in all six locale views).
+
 ## [1.5.3] — 2026-09-07
 
 ### Fixed
