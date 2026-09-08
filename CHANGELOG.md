@@ -6,6 +6,19 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.10] — 2026-09-08
+
+### Security
+
+- **Raised the `paragonie/sodium_compat` floor past the Ed25519 validation advisory.** The constraint
+  (`^1.21 || ^2.0`) permitted the versions the 2026-08-18 advisory covers (`>=2,<2.5.1 | <1.24.1`) — a
+  misfiring Ed25519 main-subgroup validation gate that lets invalid public keys load. Impact on Tiger is
+  low: a host with native `ext-sodium` never runs the polyfill, and the advisory's real bite is
+  `crypto_sign_ed25519_pk_to_curve25519`, which Tiger never calls (`Tiger_Crypto_Signature` verifies
+  detached signatures). It matters anyway because sodium_compat is a dependency *precisely* so Ed25519
+  works on shared cPanel hosts **without** `ext-sodium` — and there the polyfill is the implementation,
+  in the code that gates paid module installs. Now `^1.24.1 || ^2.5.1`; resolves clean.
+
 ## [1.5.9] — 2026-09-08
 
 **Security release.** Five authorization/credential defects, all reported by an AI code review (Astra /
