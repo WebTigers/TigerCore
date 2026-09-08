@@ -224,6 +224,28 @@ class Tiger_Model_Media extends Tiger_Model_Table
     }
 
     /**
+     * The active media row in an org's library with these exact bytes, or null.
+     *
+     * Identity is (org, checksum): the same file may legitimately live in two orgs' libraries, so the
+     * tenant scope is part of the lookup rather than a filter the caller is trusted to remember.
+     *
+     * @param  string $checksum sha256 of the file's bytes
+     * @param  string $orgId    the owning org
+     * @return Zend_Db_Table_Row_Abstract|null the row, or null when this org has no copy
+     */
+    public function getByChecksum($checksum, $orgId)
+    {
+        $checksum = (string) $checksum;
+        if ($checksum === '') { return null; }
+        return $this->fetchRow(
+            $this->activeSelect()
+                ->where('org_id = ?', (string) $orgId)
+                ->where('checksum = ?', $checksum)
+                ->limit(1)
+        );
+    }
+
+    /**
      * Full-text search of the media library (the seam behind the Tiger_Search "media" provider).
      *
      * MATCH…AGAINST the ft_media index (filename/title/caption/description), with a LIKE fallback for

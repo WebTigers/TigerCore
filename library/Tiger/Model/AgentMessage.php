@@ -44,6 +44,21 @@ class Tiger_Model_AgentMessage extends Tiger_Model_Table
     }
 
     /**
+     * The assistant message belonging to a run — the row whose meta carries the action ledger.
+     *
+     * @param  string $runId the run
+     * @return Zend_Db_Table_Row_Abstract|null the assistant row, or null when the run has none yet
+     */
+    public function getAssistantForRun($runId)
+    {
+        return $this->fetchRow(
+            $this->activeSelect()
+                ->where('run_id = ?', (string) $runId)
+                ->where('role = ?', self::ROLE_ASSISTANT)
+        );
+    }
+
+    /**
      * The transcript of a conversation, oldest first.
      *
      * @param  string $conversationId the thread
