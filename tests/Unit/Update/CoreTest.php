@@ -170,6 +170,43 @@ final class CoreTest extends UnitTestCase
 
     // ---- maintenance flag + recursive rmdir -----------------------------------
 
+    // ---- migration sources a self-update applies -------------------------------
+
+    #[Test]
+    public function a_self_update_scans_bundled_module_migrations_not_just_core(): void
+    {
+        // The regression. This block used to hand-roll [tiger-core/migrations], so a migration shipped
+        // inside a BUNDLED core module was never applied by a self-update — the code arrived, its
+        // tables did not, and the feature failed later with nothing pointing back at the update. Same
+        // blind spot the web installer had (TIGER-55); this was the last caller on its own copy.
+        $paths = UpdateCoreProbe::migrationPaths(TIGER_CORE_PATH . '/../..');
+
+        $this->assertNotEmpty($paths);
+        $this->assertContains(TIGER_CORE_PATH . '/migrations', $paths, 'core migrations still scanned');
+
+        $bundled = glob(TIGER_CORE_PATH . '/modules/*/migrations') ?: [];
+        if ($bundled) {
+            foreach ($bundled as $dir) {
+                $this->assertContains($dir, $paths, 'a bundled core module migration dir must be scanned');
+            }
+        } else {
+            $this->markTestIncomplete('no bundled core module ships migrations right now');
+        }
+    }
+
+    #[Test]
+    public function migration_sources_are_deduplicated_and_must_exist(): void
+    {
+        // The list is fed straight to Tiger_Db_Migrator; a phantom dir or a repeat would have it
+        // scanning nothing useful twice.
+        $paths = UpdateCoreProbe::migrationPaths(TIGER_CORE_PATH . '/../..');
+
+        $this->assertSame(array_values(array_unique($paths)), $paths, 'no duplicates');
+        foreach ($paths as $dir) {
+            $this->assertDirectoryExists($dir);
+        }
+    }
+
     // ---- post-swap staleness --------------------------------------------------
     //
     // The rename is atomic on disk; PHP is not. With opcache.validate_timestamps=1 and
@@ -378,5 +415,6 @@ final class UpdateCoreProbe extends Tiger_Update_Core
     public static function versionIn($d) { return self::_versionIn($d); }
     public static function maintenance($w, $on) { return self::_maintenance($w, $on); }
     public static function resetOpcache(): bool { return self::_resetOpcache(); }
+    public static function migrationPaths($v): array { return self::_migrationPaths($v); }
     public static function rrmdir($d): void { self::_rrmdir($d); }
 }

@@ -220,13 +220,15 @@ class Tiger_Update_Core
         if (!empty($opts['migrate']) || !array_key_exists('migrate', $opts)) {
             try {
                 if (class_exists('Tiger_Db_Migrator') && class_exists('Zend_Db_Table_Abstract')) {
-                    $db  = Zend_Db_Table_Abstract::getDefaultAdapter();
-                    $dir = $vendor . '/webtigers/tiger-core/migrations';
-                    if ($db && is_dir($dir)) {
-                        (new Tiger_Db_Migrator($db, [$dir]))->migrate();
-                        $add('migrate', true, 'Core migrations applied.');
+                    $db = Zend_Db_Table_Abstract::getDefaultAdapter();
+
+                    $paths = self::_migrationPaths($vendor);
+                    if ($db && $paths) {
+                        (new Tiger_Db_Migrator($db, $paths))->migrate();
+                        $add('migrate', true, 'Migrations applied (' . count($paths) . ' source'
+                            . (count($paths) === 1 ? '' : 's') . ' — core, app and bundled modules).');
                     } else {
-                        $add('migrate', true, 'No core migrations to run.');
+                        $add('migrate', true, 'No migrations to run.');
                     }
                 }
             } catch (Throwable $e) {
@@ -353,6 +355,32 @@ class Tiger_Update_Core
         if (!is_file($file)) { return null; }
         return preg_match('/VERSION\s*=\s*[\'"]([^\'"]+)[\'"]/', (string) @file_get_contents($file), $m)
             ? $m[1] : null;
+    }
+
+    /**
+     * Every migration source a self-update must apply, existing dirs only.
+     *
+     * ONE authority for the scan — `Tiger_Module_Installer::migrationPaths()`, the same helper
+     * `bin/tiger migrate`, the module installer and the web installer use. The self-update previously
+     * hand-rolled its own list containing ONLY tiger-core/migrations, so migrations shipped inside
+     * BUNDLED core modules were never applied: the code arrived but its tables did not, and the
+     * feature then failed at runtime with nothing pointing back at the update. That is the same blind
+     * spot the web installer had (TIGER-55); this was the last caller still on its own copy.
+     *
+     * Falls back to the core dir alone if the helper is unavailable — running core migrations beats
+     * running none.
+     *
+     * @param  string $vendor the (already swapped) vendor dir
+     * @return array<int,string> de-duplicated, existing migration directories
+     */
+    protected static function _migrationPaths($vendor)
+    {
+        $paths = (class_exists('Tiger_Module_Installer')
+                  && method_exists('Tiger_Module_Installer', 'migrationPaths'))
+            ? Tiger_Module_Installer::migrationPaths()
+            : [$vendor . '/webtigers/tiger-core/migrations'];
+
+        return array_values(array_filter(array_unique($paths), 'is_dir'));
     }
 
     /**
