@@ -1004,7 +1004,10 @@ class Tiger_Service_Authentication
         if ($userId === null) {
             return null;
         }
-        $user = (new Tiger_Model_User())->findById($userId);
+        // activeById(), not findById(): findById excludes soft-deleted users but returns SUSPENDED
+        // ones, so a valid token kept working after the account was disabled. A token is a credential
+        // for an account — if the account cannot authorize, neither can the token.
+        $user = (new Tiger_Model_User())->activeById($userId);
         return $user ? $this->_buildIdentity($user) : null;
     }
 

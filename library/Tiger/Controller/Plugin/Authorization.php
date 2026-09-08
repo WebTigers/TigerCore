@@ -94,18 +94,45 @@ class Tiger_Controller_Plugin_Authorization extends Zend_Controller_Plugin_Abstr
             return self::ROLE_GUEST;
         }
 
-        Tiger_Model_Table::setActor($identity->user_id);   // created_by/updated_by flow
-        Tiger_Model_Table::setOrg((string) ($identity->org_id ?? ''));   // org_id (tenant) flow
+        // The ACCOUNT itself must still authorize. Suspending or deleting a user previously left every
+        // EXISTING session at its old role — only password login checked status — so disabling an
+        // account did not disable the session already in flight, which is the case that matters.
+        // Fail CLOSED: if we cannot confirm the account is live, authorize as guest.
+        try {
+            $live = (new Tiger_Model_User())->activeById($identity->user_id);
+        } catch (Throwable $e) {
+            $live = null;
+        }
+        if (!$live) {
+            Tiger_Model_Table::setActor(null);
+            Tiger_Model_Table::setOrg('');
+            $identity->role = self::ROLE_GUEST;
+            return self::ROLE_GUEST;
+        }
 
-        $role = self::ROLE_AUTHENTICATED;
-        if (!empty($identity->org_id)) {
+        Tiger_Model_Table::setActor($identity->user_id);   // created_by/updated_by flow
+
+        $role  = self::ROLE_AUTHENTICATED;
+        $orgId = (string) ($identity->org_id ?? '');
+        if ($orgId !== '') {
             try {
-                $live = (new Tiger_Model_OrgUser())->roleOf($identity->org_id, $identity->user_id);
-                $role = $live ?: self::ROLE_AUTHENTICATED;  // membership gone -> base role
+                // activeRoleOf(), not roleOf(): a SUSPENDED membership must stop conferring its role.
+                $liveRole = (new Tiger_Model_OrgUser())->activeRoleOf($orgId, $identity->user_id);
             } catch (Throwable $e) {
-                $role = isset($identity->role) ? $identity->role : self::ROLE_AUTHENTICATED;
+                $liveRole = null;
+            }
+            if ($liveRole) {
+                $role = $liveRole;
+            } else {
+                // Membership gone, suspended or unreadable: drop the tenant context as well as the
+                // role. Leaving org_id set would keep pointing tenant-scoped queries at an org this
+                // session is no longer entitled to — matching what fresh identity construction does.
+                $orgId = '';
+                $identity->org_id = null;
             }
         }
+        Tiger_Model_Table::setOrg($orgId);   // org_id (tenant) flow
+
         $identity->role = $role;   // refresh for services (_isAdmin)
         return $role;
     }

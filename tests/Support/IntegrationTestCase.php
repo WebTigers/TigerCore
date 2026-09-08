@@ -104,9 +104,92 @@ abstract class IntegrationTestCase extends TestCase
         return $identity;
     }
 
+    /**
+     * Ensure an ACTIVE org, user and membership exist for a signed-in fixture identity.
+     *
+     * Call this from tests that exercise the AUTHORIZATION PLUGIN, which verifies the account and the
+     * membership against the database each request. Ordinary service tests do not need it: they call
+     * services directly and `_isAdmin()` reads the identity's role without a lookup.
+     *
+     * Deliberately NOT called from login(). Doing so wrote rows for every one of ~2200 tests, and
+     * those writes escaped the per-test transaction and permanently polluted the shared test database
+     * — which then broke an unrelated test asserting a pre-install state.
+     *
+     * Idempotent, and it leaves an existing row's status alone so a test can suspend a user or a
+     * membership and then assert that authorization actually drops.
+     *
+     * @param  string $userId
+     * @param  string $orgId
+     * @param  string $role
+     * @return void
+     */
+    protected function seedIdentityRows(string $userId, string $orgId, string $role): void
+    {
+        if ($userId === '') { return; }
+        $db  = \Zend_Db_Table_Abstract::getDefaultAdapter();
+        $now = date('Y-m-d H:i:s');
+
+        if (!$db->fetchOne($db->quoteInto('SELECT user_id FROM user WHERE user_id = ?', $userId))) {
+            $db->insert('user', [
+                'user_id'    => $userId,
+                'email'      => $userId . '@tests.tiger.local',
+                'username'   => $userId,
+                'status'     => 'active',
+                'deleted'    => 0,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+        if ($orgId === '') { return; }
+
+        // org_user.org_id is FK-constrained to org, so the tenant has to exist before the membership.
+        if (!$db->fetchOne($db->quoteInto('SELECT org_id FROM org WHERE org_id = ?', $orgId))) {
+            $db->insert('org', [
+                'org_id'     => $orgId,
+                'name'       => $orgId,
+                'slug'       => $orgId,
+                'status'     => 'active',
+                'deleted'    => 0,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+
+        $has = $db->fetchOne(
+            'SELECT org_user_id FROM org_user WHERE '
+            . $db->quoteInto('org_id = ?', $orgId) . ' AND '
+            . $db->quoteInto('user_id = ?', $userId)
+        );
+        if (!$has) {
+            $db->insert('org_user', [
+                'org_user_id' => \Tiger_Uuid::v7(),
+                'org_id'      => $orgId,
+                'user_id'     => $userId,
+                'role'        => $role,
+                'status'      => 'active',
+                'deleted'     => 0,
+                'created_at'  => $now,
+                'updated_at'  => $now,
+            ]);
+        }
+    }
+
     /** Shorthand: sign in a synthetic user carrying $role, in the shared test org. */
     protected function loginAs(string $role): object
     {
+        return $this->login('user-' . $role, 'org-test', $role);
+    }
+
+    /**
+     * loginAs() PLUS the backing org/user/membership rows — for tests that run the authorization
+     * plugin, which re-verifies the account and membership against the database on every request.
+     *
+     * @param  string $role
+     * @return object the identity
+     */
+    protected function loginAsReal(string $role): object
+    {
+        $this->seedIdentityRows('user-' . $role, 'org-test', $role);
         return $this->login('user-' . $role, 'org-test', $role);
     }
 

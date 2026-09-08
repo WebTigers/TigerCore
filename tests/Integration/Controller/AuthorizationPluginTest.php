@@ -86,6 +86,76 @@ final class AuthorizationPluginTest extends IntegrationTestCase
 
     // ----- _resolveRole (the live-role guarantee) ----------------------------------------------
 
+    // ----- account + membership STATE must authorize, not merely exist (TIGER-61 / TIGER-62) -----
+    //
+    // activeSelect() filters `deleted` only, so a SUSPENDED row used to keep conferring its role. The
+    // sessions that mattered were exactly the ones never re-checked: suspending a person did nothing
+    // to the session they already had. Fresh identity construction always checked status === 'active',
+    // so fresh and existing sessions disagreed.
+
+    #[Test]
+    public function a_suspended_membership_stops_conferring_its_role(): void
+    {
+        [$userId, $orgId] = $this->signInWithMembership('admin');
+        $this->assertSame('admin', $this->plugin()->pubResolveRole());
+
+        (new Tiger_Model_OrgUser())->update(
+            ['status' => 'suspended'],
+            ['org_id = ?' => $orgId, 'user_id = ?' => $userId]
+        );
+
+        $this->assertSame('user', $this->plugin()->pubResolveRole(),
+            'a suspended membership must not keep admin rights in an existing session');
+    }
+
+    #[Test]
+    public function a_suspended_membership_also_clears_the_tenant_context(): void
+    {
+        // Downgrading the role but leaving org_id set would keep pointing tenant-scoped queries at an
+        // org this session is no longer entitled to.
+        [$userId, $orgId] = $this->signInWithMembership('admin');
+        $this->plugin()->pubResolveRole();
+        $this->assertSame($orgId, Tiger_Model_Table::org());
+
+        (new Tiger_Model_OrgUser())->update(
+            ['status' => 'suspended'],
+            ['org_id = ?' => $orgId, 'user_id = ?' => $userId]
+        );
+        $this->plugin()->pubResolveRole();
+
+        $this->assertSame('', Tiger_Model_Table::org(), 'stale tenant context is dropped, not just the role');
+    }
+
+    #[Test]
+    public function a_suspended_user_resolves_to_guest(): void
+    {
+        [$userId] = $this->signInWithMembership('admin');
+        $this->assertSame('admin', $this->plugin()->pubResolveRole());
+
+        (new Tiger_Model_User())->update(['status' => 'suspended'], ['user_id = ?' => $userId]);
+
+        $this->assertSame('guest', $this->plugin()->pubResolveRole(),
+            'disabling an account must disable the session already in flight');
+    }
+
+    #[Test]
+    public function a_soft_deleted_user_resolves_to_guest(): void
+    {
+        [$userId] = $this->signInWithMembership('admin');
+        (new Tiger_Model_User())->softDelete(['user_id = ?' => $userId]);
+
+        $this->assertSame('guest', $this->plugin()->pubResolveRole());
+    }
+
+    #[Test]
+    public function an_active_account_and_membership_still_authorize(): void
+    {
+        // The positive control: the tightening must not deny a legitimate session.
+        $this->signInWithMembership('admin');
+        $this->assertSame('admin', $this->plugin()->pubResolveRole());
+    }
+
+
     #[Test]
     public function a_request_with_no_identity_resolves_to_guest(): void
     {
