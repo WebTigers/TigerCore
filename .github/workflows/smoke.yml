@@ -141,6 +141,25 @@ jobs:
             if [ "$code" = "$exp" ]; then echo "PASS  $name -> $code"; else echo "FAIL  $name -> $code (expected $exp)"; fail=1; fi
           }
 
+          # A 200 is NOT evidence a page works. TIGER-72 shipped every commercial module pointing its
+          # JavaScript at a path no module publishes: the pages rendered, the markup was correct, the
+          # responses were 200, and the browser silently 404'd every script — so checkout, the billing
+          # area and the licence manager were all inert while every check we had stayed green. Fetch
+          # what each page REFERENCES, not just the page.
+          assets() {  # name url
+            local name="$1" url="$2"
+            curl -s "$url" >assets.html || true
+            local refs n=0 bad=0
+            refs=$(grep -oE '(src|href)="(/[^"]+\.(js|css))(\?[^"]*)?"' assets.html \
+                   | sed -E 's/^(src|href)="//; s/"$//' | sort -u)
+            for a in $refs; do
+              n=$((n+1))
+              local c; c=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8000${a}")
+              if [ "$c" != "200" ]; then echo "FAIL  $name references $a -> $c"; bad=1; fi
+            done
+            if [ "$bad" = "0" ]; then echo "PASS  $name — $n referenced asset(s) all load"; else fail=1; fi
+          }
+
           check "landing /"            200 "http://127.0.0.1:8000/"
           check "login /login"         200 "http://127.0.0.1:8000/login"
           check "marketing /vibe"      200 "http://127.0.0.1:8000/vibe"
@@ -148,6 +167,14 @@ jobs:
           check "/api gateway alive"   200 "http://127.0.0.1:8000/api"
           check "unknown slug 404"     404 "http://127.0.0.1:8000/no-such-page-xyzzy"
           check "org-scoped CMS page"  200 "http://127.0.0.1:8000/ci-smoke-page"
+
+          # Every asset these pages ask for must actually be served. Root-relative .js/.css only:
+          # external CDNs are not ours to gate a build on, and the cache-buster query is tolerated.
+          assets "landing /"           "http://127.0.0.1:8000/"
+          assets "login /login"        "http://127.0.0.1:8000/login"
+          assets "marketing /vibe"     "http://127.0.0.1:8000/vibe"
+          assets "marketing /agency"   "http://127.0.0.1:8000/agency"
+          assets "CMS page"            "http://127.0.0.1:8000/ci-smoke-page"
 
           # The home page must carry the Solutions mega-menu (its cards link to the marketing pages).
           curl -s "http://127.0.0.1:8000/" >home.html || true
