@@ -6,6 +6,29 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.5] — 2026-09-08
+
+### Fixed
+
+- **The one-click core update always rolled back.** It downloaded, verified, staged and swapped
+  correctly, then reverted — because the post-swap health probe was measuring Tiger's own maintenance
+  page. The swap runs behind a `503`, `_httpHealth()` treats `>= 500` as unhealthy, and the probe ran
+  before maintenance was lifted, so a perfectly good build was rolled back every time.
+
+  It went unseen because the probe returns *inconclusive* (which passes) whenever it cannot reach the
+  site — no `HTTP_HOST`, no curl, blocked loopback. Every update on our own boxes was `composer update`
+  from a shell. It failed precisely on shared hosting, where "one click, no shell" is the whole point
+  of that screen.
+
+  `_maintenance()` now mints a per-update nonce into the flag; the probe presents it as
+  `X-Tiger-Update-Probe`; and the maintenance page admits that one request to a real dispatch.
+  Visitors still get `503`; the probe gets a genuine answer about whether the new code boots.
+
+  Includes a **legacy bridge**: the updater that runs an update is the *old* one being replaced, so
+  existing installs send no nonce and would be permanently unable to self-update to this very fix. A
+  nonce-less flag plus the older updater's distinctive probe User-Agent is admitted — narrow by
+  construction, and it closes itself once an install is nonce-capable. (TIGER-60)
+
 ## [1.5.4] — 2026-09-08
 
 ### Added
