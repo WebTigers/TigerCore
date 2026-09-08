@@ -6,6 +6,39 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.8] — 2026-09-08
+
+### Fixed
+
+- **The Update button installed from a cache up to 3 hours old.** `System_Service_Updates::apply()`
+  built its index from `Tiger_Update_Checker::all()` with no refresh. "Check again" bypasses that
+  cache; Update did not — so an operator could click it and silently install a **superseded** release.
+  Observed installing 1.5.4 half an hour after 1.5.5 shipped, with the screen showing 1.5.4 and nothing
+  looking wrong. Worst case that hands out a release pulled *because* it was bad.
+
+  The check is for display; the update is an action. `apply()` now re-resolves at click time and, when
+  the freshly resolved version differs from what was displayed, says so rather than silently
+  substituting. (TIGER-68)
+
+### Added
+
+- **Add New in the Modules nav**, linking straight to the install screen — installing something no
+  longer means opening Manage first to find the button. The nav matcher also gained an `exact` flag,
+  because `/system/modules` is a prefix of `/system/modules/add` and Manage would otherwise light up on
+  the Add screen too.
+
+### Changed
+
+- **The smoke suite now fetches what each page REFERENCES, not just the page.** A 200 is not evidence a
+  page works: TIGER-72 shipped commercial modules pointing their JavaScript at a path no module
+  publishes, so checkout, the billing area and the licence manager were inert while every check stayed
+  green. Each page's root-relative `.js`/`.css` references must now all serve.
+
+  Adding it exposed two harness defects, both fixed here: the smoke harness never ran `link:assets`, and
+  `ci/router.php` could not serve static files at all (`return false` makes PHP's built-in server
+  resolve them against its own docroot, not `public/`). Between them the suite had never served a
+  stylesheet or a script while asserting that a release "BOOTS, MIGRATES, and SERVES".
+
 ## [1.5.7] — 2026-09-08
 
 **Security release.** Four authorization defects, all reported by an AI code review (Astra / OpenAI
