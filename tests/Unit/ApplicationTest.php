@@ -138,4 +138,114 @@ final class ApplicationTest extends UnitTestCase
         // No var/update/.maintenance flag on disk → normal dispatch (returns false, serves nothing).
         $this->assertFalse($this->call($this->app(), '_updateInProgress'));
     }
+
+    // ---- the update health probe ----------------------------------------------
+    //
+    // The vendor swap happens behind this 503 page. Tiger_Update_Core then probes the site to decide
+    // whether the NEW code boots — so the page must step aside for that one request, or the probe
+    // measures the holding page and every successful update is rolled back (which is exactly what
+    // happened in the field before the nonce existed).
+
+    /** Write the maintenance flag with an optional nonce; returns a cleanup callable. */
+    private function flag(string $nonce = ''): callable
+    {
+        $dir  = APPLICATION_ROOT . '/var/update';
+        $file = $dir . '/.maintenance';
+        $pre  = is_dir($dir);
+        @mkdir($dir, 0775, true);
+        file_put_contents($file, time() . ($nonce !== '' ? ' ' . $nonce : ''));
+        return function () use ($file, $dir, $pre): void {
+            @unlink($file);
+            if (!$pre) { @rmdir($dir); }
+        };
+    }
+
+    #[Test]
+    public function a_flagged_update_serves_the_maintenance_page(): void
+    {
+        $cleanup = $this->flag('abc123');
+        unset($_SERVER['HTTP_X_TIGER_UPDATE_PROBE']);
+        try {
+            ob_start();
+            $served = $this->call($this->app(), '_updateInProgress');
+            $body   = (string) ob_get_clean();
+            $this->assertTrue($served, 'an ordinary visitor is held at the maintenance page');
+            $this->assertStringContainsString('Updating', $body);
+        } finally { $cleanup(); }
+    }
+
+    #[Test]
+    public function the_matching_probe_nonce_is_admitted_to_a_real_dispatch(): void
+    {
+        $cleanup = $this->flag('abc123');
+        $_SERVER['HTTP_X_TIGER_UPDATE_PROBE'] = 'abc123';
+        try {
+            ob_start();
+            $served = $this->call($this->app(), '_updateInProgress');
+            $body   = (string) ob_get_clean();
+            $this->assertFalse($served, 'the health probe must reach the NEW code, not the holding page');
+            $this->assertSame('', $body);
+        } finally { $cleanup(); }
+    }
+
+    #[Test]
+    public function a_wrong_probe_nonce_is_still_held_at_the_maintenance_page(): void
+    {
+        // The nonce is a targeted exception, not a public bypass — a guess must not get through.
+        $cleanup = $this->flag('abc123');
+        $_SERVER['HTTP_X_TIGER_UPDATE_PROBE'] = 'not-the-nonce';
+        try {
+            ob_start();
+            $served = $this->call($this->app(), '_updateInProgress');
+            ob_end_clean();
+            $this->assertTrue($served);
+        } finally { $cleanup(); }
+    }
+
+    #[Test]
+    public function a_probe_header_without_a_nonce_in_the_flag_is_held(): void
+    {
+        // A nonce-less flag is not an open door for an arbitrary header.
+        $cleanup = $this->flag();
+        $_SERVER['HTTP_X_TIGER_UPDATE_PROBE'] = 'anything';
+        unset($_SERVER['HTTP_USER_AGENT']);
+        try {
+            ob_start();
+            $served = $this->call($this->app(), '_updateInProgress');
+            ob_end_clean();
+            $this->assertTrue($served);
+        } finally { $cleanup(); }
+    }
+
+    #[Test]
+    public function a_legacy_updater_probe_is_admitted_when_the_flag_has_no_nonce(): void
+    {
+        // The updater that RUNS an update is the old one being replaced. Without this bridge an
+        // install on a pre-nonce version could never self-update to the release that fixes
+        // self-updating — on a product whose promise is "no shell".
+        $cleanup = $this->flag();                       // legacy flag: timestamp only
+        unset($_SERVER['HTTP_X_TIGER_UPDATE_PROBE']);
+        $_SERVER['HTTP_USER_AGENT'] = 'Tiger_Update health';
+        try {
+            ob_start();
+            $served = $this->call($this->app(), '_updateInProgress');
+            ob_end_clean();
+            $this->assertFalse($served);
+        } finally { $cleanup(); }
+    }
+
+    #[Test]
+    public function the_legacy_bridge_closes_once_the_flag_carries_a_nonce(): void
+    {
+        // A nonce-capable updater is held to the nonce — the UA alone stops being enough.
+        $cleanup = $this->flag('abc123');
+        unset($_SERVER['HTTP_X_TIGER_UPDATE_PROBE']);
+        $_SERVER['HTTP_USER_AGENT'] = 'Tiger_Update health';
+        try {
+            ob_start();
+            $served = $this->call($this->app(), '_updateInProgress');
+            ob_end_clean();
+            $this->assertTrue($served);
+        } finally { $cleanup(); }
+    }
 }

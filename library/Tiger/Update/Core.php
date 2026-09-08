@@ -20,6 +20,17 @@
 class Tiger_Update_Core
 {
     const HEALTH_TIMEOUT = 15;
+
+    /**
+     * Header carrying the maintenance nonce on the post-swap health probe.
+     *
+     * The swap happens behind a 503 maintenance page, so a naive probe measures OUR OWN holding page
+     * and concludes the new code is broken — which rolled back every successful update on any host
+     * where the probe could actually reach the site. The probe presents the nonce, and
+     * Tiger_Application lets exactly that request through to a real dispatch, so what is measured is
+     * whether the NEW code boots. Read as an underscored server key: X-Tiger-Update-Probe.
+     */
+    const PROBE_HEADER = 'X-Tiger-Update-Probe';
     const GH_API         = 'https://api.github.com';
 
     /**
@@ -148,7 +159,7 @@ class Tiger_Update_Core
         $add('stage', true, "Staged pre-resolved vendor/ — TigerCore {$newVer}.");
 
         // ---- the atomic swap (renames on one filesystem) -------------------
-        self::_maintenance($work, true);
+        $probeNonce = self::_maintenance($work, true);
         $old = $root . '/vendor.old-' . getmypid();
         if (!@rename($vendor, $old)) {
             self::_maintenance($work, false);
@@ -165,7 +176,7 @@ class Tiger_Update_Core
 
         // ---- health check --------------------------------------------------
         $liveVer = self::_versionIn($vendor);
-        $http    = static::_httpHealth();         // true | false | null(unknown) — overridable for tests
+        $http    = static::_httpHealth($probeNonce);   // true | false | null(unknown) — overridable for tests
         $healthy = $liveVer !== null && ($target === null || self::_norm($liveVer) === $target) && $http !== false;
         if (!$healthy) {
             $bad = $root . '/vendor.bad-' . getmypid();
@@ -320,15 +331,19 @@ class Tiger_Update_Core
     }
 
     /** Best-effort HTTP boot check of the just-swapped code: true | false | null(unknown). */
-    protected static function _httpHealth()
+    protected static function _httpHealth($nonce = '')
     {
         $host = $_SERVER['HTTP_HOST'] ?? '';
         if ($host === '' || !function_exists('curl_init')) { return null; }
         $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
         $ch = curl_init($scheme . '://' . $host . '/');
+        // Present the nonce so the maintenance page steps aside for THIS request only — otherwise the
+        // probe reads our own 503 and reports the new code as broken.
+        $headers = ($nonce !== '') ? [self::PROBE_HEADER . ': ' . $nonce] : [];
         curl_setopt_array($ch, [
             CURLOPT_NOBODY => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_TIMEOUT => self::HEALTH_TIMEOUT, CURLOPT_SSL_VERIFYPEER => false, CURLOPT_USERAGENT => 'Tiger_Update health',
+            CURLOPT_HTTPHEADER => $headers,
         ]);
         $ok   = curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -339,8 +354,15 @@ class Tiger_Update_Core
     protected static function _maintenance($work, $on)
     {
         $flag = $work . '/.maintenance';
-        if ($on) { @file_put_contents($flag, (string) time()); }
-        else { @unlink($flag); }
+        if (!$on) { @unlink($flag); return ''; }
+
+        // The flag file carries "<timestamp> <nonce>". The timestamp keeps the existing 120s
+        // auto-expiry (a crashed update can never wedge the site); the nonce is what lets the health
+        // probe through the maintenance page. Freshly minted per update and never reused, and it only
+        // exists while the flag does, so it cannot be replayed after the window closes.
+        $nonce = bin2hex(random_bytes(16));
+        @file_put_contents($flag, time() . ' ' . $nonce);
+        return $nonce;
     }
 
     protected static function _norm($v)

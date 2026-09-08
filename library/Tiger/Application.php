@@ -49,6 +49,9 @@ class Tiger_Application
      * Serve a 503 "Updating…" flash while a core self-update swaps `vendor/` (the flag written by
      * Tiger_Update_Core). Auto-expires after 120s so a crashed update can never wedge the site.
      *
+     * A request carrying the updater's nonce in X-Tiger-Update-Probe is admitted to a normal dispatch
+     * so the post-swap health check measures the new code rather than this page (Tiger_Update_Core).
+     *
      * @return bool true if the maintenance page was served (skip dispatch)
      */
     protected function _updateInProgress()
@@ -60,6 +63,34 @@ class Tiger_Application
         if (!is_file($flag) || (time() - (int) @filemtime($flag)) > 120) {
             return false;
         }
+
+        // Let the updater's own health probe THROUGH to a real dispatch. The swap happens behind this
+        // 503, so without this the probe measures the holding page, concludes the new code is broken,
+        // and rolls back every successful update (the whole one-click update was non-functional on any
+        // host where the probe could reach the site). The flag file holds "<timestamp> <nonce>";
+        // only a request presenting that exact nonce is admitted, so this is not a public bypass —
+        // the caller must be able to READ a file inside the app to know it, and it dies with the flag.
+        $parts = explode(' ', trim((string) @file_get_contents($flag)));
+        $nonce = $parts[1] ?? '';
+        $probe = (string) ($_SERVER['HTTP_X_TIGER_UPDATE_PROBE'] ?? '');
+
+        if ($nonce !== '') {
+            if ($probe !== '' && hash_equals($nonce, $probe)) {
+                return false;   // dispatch normally — the probe must see the NEW code answer
+            }
+        } elseif (($_SERVER['HTTP_USER_AGENT'] ?? '') === 'Tiger_Update health') {
+            // LEGACY BRIDGE. The updater that runs an update is the OLD one being replaced, so an
+            // install on a pre-nonce version sends no header and would be stuck failing forever —
+            // unable to self-update to the very release that fixes self-updating, on a product whose
+            // promise is "no shell". Older updaters do send this exact probe User-Agent, and a flag
+            // with no nonce means an old updater wrote it. Narrow by construction: it applies only
+            // during an update window, only when the flag lacks a nonce, and it stops applying the
+            // moment the install is nonce-capable. Forging it wins nothing — the maintenance page is
+            // a courtesy, not an access control; the "prize" is seeing the site normally for a few
+            // seconds instead of a 503.
+            return false;
+        }
+
         if (!headers_sent()) {
             header('HTTP/1.1 503 Service Unavailable');
             header('Retry-After: 20');
