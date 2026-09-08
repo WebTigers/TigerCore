@@ -63,6 +63,8 @@ return [
     'theme.action.copy' => 'कॉपी करें',
 
     'theme.admin.title'         => 'Tiger एडमिन',
+    'theme.admin.site'          => 'साइट',
+    'theme.a11y.view_site'      => 'साइट देखें (नए टैब में खुलता है)',
     'theme.admin.navigation'    => 'नेविगेशन',
     'theme.admin.guest'         => 'अतिथि',
     'theme.admin.user_fallback' => 'यूज़र',
