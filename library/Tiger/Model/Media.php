@@ -369,9 +369,16 @@ class Tiger_Model_Media extends Tiger_Model_Table
         $dir = (strtoupper((string) ($opts['orderDir'] ?? '')) === 'ASC') ? 'ASC' : 'DESC';
         $orderSql = isset($orderCols[$col]) ? ($orderCols[$col] . ' ' . $dir) : 'created_at DESC';
 
-        $scope = function ($sel) use ($kind) {
+        // TENANT SCOPE. This listing had no org filter at all, so the admin Media Library enumerated
+        // EVERY tenant's rows — filename, title, id and the private serving URL — which is also how a
+        // caller obtained the media_id it then passed to update/delete (TIGER-64). Global rows
+        // (org_id = '') are shared library content and stay visible, matching the public browse gate.
+        $orgId = array_key_exists('org_id', $opts) ? (string) $opts['org_id'] : (string) Tiger_Model_Table::org();
+        $scope = function ($sel) use ($db, $kind, $orgId) {
             $sel->where('deleted = 0');
             if ($kind !== '') { $sel->where('kind = ?', $kind); }
+            $sel->where('(' . $db->quoteInto('org_id = ?', $orgId)
+                        . ' OR ' . $db->quoteInto('org_id = ?', '') . ')');
         };
         $searchFn = function ($sel) use ($db, $search) {
             if ($search === '') { return; }

@@ -163,6 +163,7 @@ class Media_Service_Media extends Tiger_Service_Service
         // entirely when Uploads is filtered out.
         $data = $includeUploads
             ? (new Tiger_Model_Media())->datatable([
+                'org_id'   => $this->_orgId(),   // the caller's tenant — never a caller-supplied value
                 'search'   => $dt['search'],
                 'kind'     => $kindFilter,
                 'orderCol' => isset($dt['order'][0]) ? $dt['order'][0]['column'] : -1,
@@ -310,7 +311,8 @@ class Media_Service_Media extends Tiger_Service_Service
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
         $id = (string) ($params['media_id'] ?? '');
         $model = new Tiger_Model_Media();
-        if ($id === '' || !$model->findById($id)) { $this->_error('core.api.error.general'); return; }
+        // Ownership, not just role: the ACL says this caller is an admin, not that this row is theirs.
+        if (!$this->_ownedMedia($id)) { $this->_error('core.api.error.general'); return; }
 
         $data = [];
         foreach (['title', 'caption', 'alt_text', 'description'] as $f) {
@@ -341,7 +343,9 @@ class Media_Service_Media extends Tiger_Service_Service
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
         $id  = (string) ($params['media_id'] ?? '');
         $model = new Tiger_Model_Media();
-        $row = $id !== '' ? $model->findById($id) : null;
+        // Ownership FIRST — below this point the stored bytes are destroyed, which is not undoable by
+        // the soft delete that follows it.
+        $row = $this->_ownedMedia($id);
         if (!$row) { $this->_error('core.api.error.general'); return; }
         $media = $row->toArray();
 
@@ -464,6 +468,30 @@ class Media_Service_Media extends Tiger_Service_Service
             'medium'     => $model->url($m, 'medium'),
             'large'      => $model->url($m, 'large'),   // also the lightbox source
         ];
+    }
+
+    /**
+     * A media row the caller is entitled to act on, or null.
+     *
+     * `update()` and `delete()` used to take a `media_id` and act on whatever `findById()` returned,
+     * with no ownership test at all — so an admin in org A could modify or delete org B's media, and
+     * delete destroys the stored bytes before soft-deleting the row (TIGER-64). The ACL granted the
+     * admin ROLE; it said nothing about the target row.
+     *
+     * Global rows (`org_id = ''`, e.g. module-shipped media) stay reachable, matching how the library
+     * already treats them elsewhere.
+     *
+     * @param  string $id media_id
+     * @return Zend_Db_Table_Row_Abstract|null
+     */
+    protected function _ownedMedia($id)
+    {
+        if ((string) $id === '') { return null; }
+        $row = (new Tiger_Model_Media())->findById((string) $id);
+        if (!$row) { return null; }
+
+        $owner = (string) $row->org_id;
+        return ($owner === '' || $owner === $this->_orgId()) ? $row : null;
     }
 
     /** The uploading admin's org scope ('' when org-less / global). */
