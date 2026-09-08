@@ -16,10 +16,12 @@ if ($path !== '/' && is_file($file)) {
     // against its OWN docroot — the app root, since that is where we launch it — not public/. So every
     // static asset 404'd, and the smoke suite, whose job is to prove a release SERVES, had never
     // served a stylesheet or a script. Nothing noticed because nothing checked (TIGER-72's lesson).
-    $real = realpath($file);
-    $base = realpath($root . '/public');
-    if ($real === false || $base === false || strpos($real, $base . DIRECTORY_SEPARATOR) !== 0) {
-        http_response_code(404);   // never serve outside public/, symlink or traversal
+    // Guard the REQUEST PATH, not the resolved target. public/_theme and public/_tiger are symlinks
+    // that deliberately point OUT of public/ (into vendor/ and the theme) — that is the whole
+    // asset-publishing design — so a realpath-containment check would reject precisely the files this
+    // is meant to serve. Refuse traversal in the path instead.
+    if (strpos($path, '..') !== false || strpos($path, "\0") !== false) {
+        http_response_code(404);
         return true;
     }
     $types = [
@@ -29,10 +31,10 @@ if ($path !== '/' && is_file($file)) {
         'woff' => 'font/woff', 'woff2' => 'font/woff2', 'ttf' => 'font/ttf', 'eot' => 'application/vnd.ms-fontobject',
         'txt' => 'text/plain', 'xml' => 'application/xml',
     ];
-    $ext = strtolower((string) pathinfo($real, PATHINFO_EXTENSION));
+    $ext = strtolower((string) pathinfo($file, PATHINFO_EXTENSION));
     header('Content-Type: ' . ($types[$ext] ?? 'application/octet-stream'));
-    header('Content-Length: ' . filesize($real));
-    readfile($real);
+    header('Content-Length: ' . filesize($file));
+    readfile($file);
     return true;
 }
 
