@@ -112,6 +112,25 @@ final class CheckerTest extends UnitTestCase
     // ---- core() / all() / available() with a primed cache ----------------------
 
     #[Test]
+    public function refreshBypassesAWarmCache(): void
+    {
+        // The property System_Service_Updates::apply() now relies on. The CHECK is cached for 3h for
+        // display; the ACTION must re-resolve, or an operator can click Update and install a
+        // SUPERSEDED release — observed installing 1.5.4 half an hour after 1.5.5 shipped. (TIGER-68)
+        $key   = 'w4-refresh-' . bin2hex(random_bytes(3));
+        $calls = 0;
+        $fn    = function () use (&$calls) { $calls++; return 'v' . $calls; };
+
+        $this->assertSame('v1', UpdateCheckerProbe::cached($key, false, $fn));
+        $this->assertSame('v1', UpdateCheckerProbe::cached($key, false, $fn), 'a warm cache is served');
+        $this->assertSame(1, $calls, 'and the resolver is not re-run');
+
+        $this->assertSame('v2', UpdateCheckerProbe::cached($key, true, $fn), 'refresh re-resolves');
+        $this->assertSame(2, $calls);
+        $this->assertSame('v2', UpdateCheckerProbe::cached($key, false, $fn), 'and the fresh value replaces the cache');
+    }
+
+    #[Test]
     public function coreFlagsAnUpdateWhenPackagistIsNewer(): void
     {
         $this->primeCache('core', '99.0.0');   // pretend Packagist has a much newer release

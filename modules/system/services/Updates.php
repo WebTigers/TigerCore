@@ -38,15 +38,38 @@ class System_Service_Updates extends Tiger_Service_Service
         if (is_string($slugs)) { $slugs = array_filter(array_map('trim', explode(',', $slugs))); }
         if (!is_array($slugs) || !$slugs) { $this->_error('system.update.none_selected'); return; }
 
+        // The CHECK is for display and is cached for Tiger_Update_Checker::CACHE_TTL (3h); an ACTION must
+        // not run on a stale premise. This used to apply whatever the cache held, so an operator could
+        // click Update and silently install a SUPERSEDED release — observed installing 1.5.4 half an
+        // hour after 1.5.5 shipped, with the screen showing 1.5.4 and nothing looking wrong. Worst case
+        // that hands out a version which was replaced *because* it was bad. Re-resolve now; the extra
+        // cost is one API call against a download we already checksum. (TIGER-68)
+        $shown = [];
+        foreach (Tiger_Update_Checker::all() as $u) { $shown[$u['slug']] = (string) ($u['latest'] ?? ''); }
+
         $index = [];
-        foreach (Tiger_Update_Checker::all() as $u) { $index[$u['slug']] = $u; }
+        foreach (Tiger_Update_Checker::all(true) as $u) { $index[$u['slug']] = $u; }
 
         $results = [];
         foreach ($slugs as $slug) {
-            $results[] = isset($index[$slug])
-                ? $this->_applyOne($index[$slug])
-                : ['slug' => $slug, 'name' => $slug, 'ok' => false,
-                   'log' => [['step' => 'resolve', 'ok' => false, 'detail' => 'Unknown or no-longer-pending item.']]];
+            if (!isset($index[$slug])) {
+                // Refreshing can legitimately empty this — the item may have stopped being pending.
+                $results[] = ['slug' => $slug, 'name' => $slug, 'ok' => false,
+                    'log' => [['step' => 'resolve', 'ok' => false, 'detail' => 'Unknown or no-longer-pending item.']]];
+                continue;
+            }
+            $u    = $index[$slug];
+            $note = [];
+            $now  = (string) ($u['latest'] ?? '');
+            if (isset($shown[$slug]) && $shown[$slug] !== '' && $shown[$slug] !== $now) {
+                // Say so rather than silently substituting a different version than the one displayed.
+                $note[] = ['step' => 'resolve', 'ok' => true,
+                    'detail' => 'A newer release appeared since this screen was loaded — installing '
+                        . $now . ' (the list showed ' . $shown[$slug] . ').'];
+            }
+            $res = $this->_applyOne($u);
+            if ($note) { $res['log'] = array_merge($note, (array) ($res['log'] ?? [])); }
+            $results[] = $res;
         }
         $this->_recordHistory($results, $index);
         $this->_success(['results' => $results], 'system.update.done');
