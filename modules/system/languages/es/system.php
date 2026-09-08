@@ -237,6 +237,7 @@ return [
     'system.settings.smtp.test_body'                 => 'Este es un mensaje de prueba de tu instalación de Tiger. Si lo has recibido, el correo saliente funciona.',
     'system.settings.smtp.test_sent'                 => 'Correo de prueba enviado.',
     'system.settings.smtp.test_bad_address'          => 'Introduce una dirección de correo válida para enviar la prueba.',
+    'system.settings.smtp.test_password_required' => 'Vuelve a introducir la contraseña SMTP al probar otro servidor: la guardada solo se reutiliza con el servidor para el que se guardó.',
 
     // ---- Settings: reCAPTCHA ---------------------------------------------------------------
     'system.settings.recaptcha.header'                 => 'Google reCAPTCHA',

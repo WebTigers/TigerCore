@@ -245,6 +245,59 @@ class Tiger_Location
      * @param  array  $formConfig field overrides from the form (endpoint, key, …)
      * @return array
      */
+    /**
+     * The adapter config a connection test should run with — saved values, overlaid with what the
+     * caller submitted, MINUS any saved secret when the caller changed where the request will go.
+     *
+     * A stored secret belongs to the destination it was stored FOR. This previously overlaid submitted
+     * fields onto the decrypted config with no such binding, so changing only the `endpoint` — and
+     * leaving the key blank — sent the SAVED API key to a caller-chosen URL; the adapter appends the
+     * key to that URL, so the destination simply receives it. An admin may legitimately configure a
+     * new endpoint; they should not thereby be able to READ a secret they cannot otherwise see, by
+     * pointing a test at a server they control. (TIGER-74)
+     *
+     * Public so the rule is testable without making a network call — the alternative is a test that
+     * re-implements it, which proves nothing about this code.
+     *
+     * @param  string $provider   adapter key
+     * @param  string $class      adapter class (already resolved + validated by the caller)
+     * @param  array  $formConfig submitted fields; blank means "unchanged"
+     * @return array  the config to construct the adapter with
+     */
+    public static function testConfig($provider, $class, array $formConfig)
+    {
+        $saved = self::_decryptSecrets((array) self::_config("location.adapters.{$provider}", []));
+
+        $isSecret = [];
+        if (class_exists($class, true)) {
+            try {
+                $probe = new $class($saved);
+                foreach ((method_exists($probe, 'fields') ? $probe->fields() : []) as $f) {
+                    if (is_array($f) && ($f['type'] ?? 'text') === 'secret' && !empty($f['key'])) {
+                        $isSecret[(string) $f['key']] = true;
+                    }
+                }
+            } catch (Throwable $e) { /* no field metadata → nothing is treated as inheritable */ }
+        }
+
+        $destinationChanged = false;
+        foreach ($formConfig as $k => $v) {
+            if ($v === '' || $v === null || !empty($isSecret[$k])) { continue; }
+            if ((string) ($saved[$k] ?? '') !== (string) $v) { $destinationChanged = true; break; }
+        }
+
+        $cfg = $saved;
+        foreach ($formConfig as $k => $v) { if ($v !== '' && $v !== null) { $cfg[$k] = (string) $v; } }
+
+        if ($destinationChanged) {
+            foreach (array_keys($isSecret) as $k) {
+                $supplied = isset($formConfig[$k]) && trim((string) $formConfig[$k]) !== '';
+                if (!$supplied) { unset($cfg[$k], $cfg[$k . '_enc']); }   // new endpoint, WITHOUT the old secret
+            }
+        }
+        return $cfg;
+    }
+
     public static function test(string $ip, string $provider, array $formConfig = []): array
     {
         $ip = trim($ip);
@@ -253,8 +306,7 @@ class Tiger_Location
         $class    = self::$_adapters[$provider] ?? null;
         if (!$class || !class_exists($class, true)) { return ['ok' => false, 'error' => 'Unknown provider.']; }
 
-        $cfg = self::_decryptSecrets((array) self::_config("location.adapters.{$provider}", []));
-        foreach ($formConfig as $k => $v) { if ($v !== '' && $v !== null) { $cfg[$k] = (string) $v; } }
+        $cfg = self::testConfig($provider, $class, $formConfig);
 
         $inst = new $class($cfg);
         if (!($inst instanceof Tiger_Location_Adapter_Interface) || !$inst->supports(Tiger_Location_Adapter_Interface::CAP_IP)) {

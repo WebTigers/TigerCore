@@ -237,6 +237,7 @@ return [
     'system.settings.smtp.test_body'                 => 'यह आपके Tiger इंस्टॉल से भेजा गया परीक्षण संदेश है। यदि यह आपको मिला है, तो आउटगोइंग मेल काम कर रहा है।',
     'system.settings.smtp.test_sent'                 => 'परीक्षण ईमेल भेजा गया।',
     'system.settings.smtp.test_bad_address'          => 'परीक्षण भेजने के लिए एक मान्य ईमेल पता दर्ज करें।',
+    'system.settings.smtp.test_password_required' => 'किसी दूसरे सर्वर का परीक्षण करते समय SMTP पासवर्ड दोबारा दर्ज करें — सहेजा गया पासवर्ड केवल उसी सर्वर के लिए दोबारा उपयोग होता है।',
 
     // ---- Settings: reCAPTCHA ---------------------------------------------------------------
     'system.settings.recaptcha.header'                 => 'Google reCAPTCHA',

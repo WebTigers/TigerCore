@@ -150,6 +150,30 @@ class System_Service_Settings extends Tiger_Service_Service
      * @param  array $params to, mail_transport, mail_smtp_{host,port,ssl,auth,username,password}, mail_from_{email,name}
      * @return void
      */
+    /**
+     * Would this test send the SAVED SMTP password somewhere other than where it was saved?
+     *
+     * Compares the submitted destination (host / port / username) against what is configured. Only a
+     * test aimed at the SAME destination may silently reuse the stored secret; anything else must
+     * supply its own.
+     *
+     * @param  array $params the /api message
+     * @return bool
+     */
+    protected static function _smtpDestinationChanged(array $params)
+    {
+        $cfg  = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
+        $smtp = ($cfg && $cfg->get('mail') && $cfg->mail->get('smtp')) ? $cfg->mail->smtp : null;
+        if (!$smtp) { return true; }   // nothing saved → nothing may be inherited
+
+        foreach (['host' => 'mail_smtp_host', 'port' => 'mail_smtp_port', 'username' => 'mail_smtp_username'] as $k => $field) {
+            $submitted = trim((string) ($params[$field] ?? ''));
+            if ($submitted === '') { continue; }               // unchanged / not offered
+            if ($submitted !== trim((string) $smtp->get($k))) { return true; }
+        }
+        return false;
+    }
+
     public function mailTest(array $params): void
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
@@ -159,9 +183,19 @@ class System_Service_Settings extends Tiger_Service_Service
             $this->_error('system.settings.smtp.test_bad_address'); return;
         }
 
-        // Blank password → the stored one, so testing an existing setup needs no re-typing.
+        // Blank password → the stored one, so testing an EXISTING setup needs no re-typing. But only
+        // for the destination it was stored for: host/port/username all come from the request, so
+        // reusing the saved secret against a submitted server let an admin point the test at a machine
+        // they control and receive a credential they cannot otherwise read. Changing the server is a
+        // legitimate admin action; harvesting the old password while doing it is not. (TIGER-73)
         $password = (string) ($params['mail_smtp_password'] ?? '');
-        if ($password === '') { $password = Tiger_Mail::storedSmtpPassword(); }
+        if ($password === '') {
+            if (self::_smtpDestinationChanged($params)) {
+                $this->_error('system.settings.smtp.test_password_required');
+                return;
+            }
+            $password = Tiger_Mail::storedSmtpPassword();
+        }
 
         $provider = (string) ($params['mail_provider'] ?? '');
         $pDef     = Tiger_Mail_Provider::get($provider);
