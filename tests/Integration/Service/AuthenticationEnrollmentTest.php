@@ -198,6 +198,25 @@ final class AuthenticationEnrollmentTest extends IntegrationTestCase
     }
 
     #[Test]
+    public function a_token_stops_working_once_the_account_is_suspended(): void
+    {
+        // A token is a credential FOR AN ACCOUNT. Suspending the account previously left the token
+        // fully authorized, because identityFromToken() used findById() — which excludes soft-deleted
+        // users but happily returns suspended ones. Password login checked status; nothing else did.
+        $uid   = (new Tiger_Model_User())->insert(['email' => 'tok-susp@authz.test', 'status' => 'active']);
+        $orgId = (new Tiger_Model_Org())->insert(['name' => 'Tok Susp', 'slug' => 'tok-susp']);
+        (new Tiger_Model_OrgUser())->insert(['org_id' => $orgId, 'user_id' => $uid, 'role' => 'admin', 'status' => 'active']);
+        $token = (new Tiger_Model_UserCredential())->createToken($uid)['token'];
+
+        $this->assertIsObject($this->auth->identityFromToken($token), 'valid while the account is active');
+
+        (new Tiger_Model_User())->update(['status' => 'suspended'], ['user_id = ?' => $uid]);
+
+        $this->assertNull($this->auth->identityFromToken($token),
+            'a suspended account must not keep authorizing through a still-valid token');
+    }
+
+    #[Test]
     public function identity_from_token_is_null_for_a_bogus_token(): void
     {
         $this->assertNull($this->auth->identityFromToken('tgr_deadbeefdead_' . str_repeat('a', 48)), 'unknown token => null');

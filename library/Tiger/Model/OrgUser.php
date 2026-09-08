@@ -25,6 +25,9 @@
  */
 class Tiger_Model_OrgUser extends Tiger_Model_Table
 {
+    /** A membership authorizes only in this state (the table also holds `invited` / `suspended`). */
+    const STATUS_ACTIVE = 'active';
+
     protected $_name    = 'org_user';
     protected $_primary = 'org_user_id';
 
@@ -38,6 +41,39 @@ class Tiger_Model_OrgUser extends Tiger_Model_Table
      * @param  string $userId
      * @return Zend_Db_Table_Row_Abstract|null
      */
+    /**
+     * The membership ONLY IF it currently authorizes — status `active`, not soft-deleted.
+     *
+     * `membership()` deliberately returns invited/suspended rows too, because administration needs to
+     * see and edit them. Authorization must not use it: `activeSelect()` filters `deleted` only, so a
+     * SUSPENDED membership still returned its role and an already-authenticated session kept admin
+     * rights after being suspended — the sessions that mattered were exactly the ones not re-checked.
+     * Fresh identity construction always did check `status === 'active'`, so the two disagreed.
+     *
+     * @param  string $orgId
+     * @param  string $userId
+     * @return Zend_Db_Table_Row_Abstract|null
+     * @see    Tiger_Model_OrgUser::membership() for the administrative lookup that includes inactive rows
+     */
+    public function activeMembership($orgId, $userId)
+    {
+        $row = $this->membership($orgId, $userId);
+        return ($row && (string) $row->status === self::STATUS_ACTIVE) ? $row : null;
+    }
+
+    /**
+     * The role a membership currently confers, or null when it confers none.
+     *
+     * @param  string $orgId
+     * @param  string $userId
+     * @return string|null
+     */
+    public function activeRoleOf($orgId, $userId)
+    {
+        $row = $this->activeMembership($orgId, $userId);
+        return $row ? $row->role : null;
+    }
+
     public function membership($orgId, $userId)
     {
         return $this->fetchRow(

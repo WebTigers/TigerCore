@@ -27,6 +27,25 @@
  */
 class Tiger_Model_User extends Tiger_Model_Table
 {
+    /** A user authorizes only in this state; the admin UI also offers `suspended`. */
+    const STATUS_ACTIVE = 'active';
+
+    /**
+     * The user ONLY IF the account currently authorizes — status `active`, not soft-deleted.
+     *
+     * `findById()` excludes soft-deleted rows but happily returns a SUSPENDED user, so suspending an
+     * account did not stop its existing session or its personal access token: password login checked
+     * `status === 'active'`, and nothing else did. Authorization entry points must use this instead.
+     *
+     * @param  string $userId
+     * @return Zend_Db_Table_Row_Abstract|null
+     */
+    public function activeById($userId)
+    {
+        $row = $this->findById($userId);
+        return ($row && (string) $row->status === self::STATUS_ACTIVE) ? $row : null;
+    }
+
     protected $_name    = 'user';
     protected $_primary = 'user_id';
 

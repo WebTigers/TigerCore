@@ -111,7 +111,7 @@ final class AuthorizationPluginExtraTest extends ControllerTestCase
     #[Test]
     public function an_authenticated_but_forbidden_caller_is_forwarded_to_the_403(): void
     {
-        $this->loginAs('user');                  // a plain user...
+        $this->loginAsReal('user');                  // a plain user...
         $req = $this->request('admin');          // ...hitting AdminController, which has no allow rule
         $res = $this->runGate($req);
 
