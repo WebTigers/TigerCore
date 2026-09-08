@@ -6,6 +6,28 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.6] — 2026-09-08
+
+### Fixed
+
+- **The one-click update rolled back even with 1.5.5's fix.** The vendor rename is atomic on disk;
+  PHP is not. With `opcache.validate_timestamps=1` and `revalidate_freq=2`, workers keep executing the
+  **previous bytecode** for up to two seconds after the swap. The health probe fires within one
+  second, so it reaches a worker still running the *old* `Application.php` — which has no nonce bridge
+  — reads the maintenance `503` it was supposed to be admitted past, and rolls back a good update.
+
+  Beyond the probe, this means real visitors could execute a **mix of old and new code** for a second
+  or two after any swap.
+
+  `opcache_reset()` now runs immediately after the swap (best effort — absent when OPcache is off and
+  restricted by `opcache.restrict_api` on many shared hosts, so it reports rather than throws), and a
+  **failed** health probe is retried 3× at 2s intervals to cover the hosts where it cannot. A healthy
+  or inconclusive reading is still taken immediately, so a good update is never slowed, and a
+  genuinely broken build still fails after every retry. (TIGER-60)
+
+  **Known limit:** the updater that runs an update is the *old* one, so an install on ≤ 1.5.5 cannot
+  self-update onto this fix — it needs one manual bump, after which self-update works.
+
 ## [1.5.5] — 2026-09-08
 
 ### Fixed
