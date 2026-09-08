@@ -170,6 +170,68 @@ final class CoreTest extends UnitTestCase
 
     // ---- maintenance flag + recursive rmdir -----------------------------------
 
+    // ---- post-swap staleness --------------------------------------------------
+    //
+    // The rename is atomic on disk; PHP is not. With opcache.validate_timestamps=1 and
+    // revalidate_freq=N, workers keep running the PREVIOUS bytecode for up to N seconds — so the
+    // health probe reads the old code, sees the maintenance page it was meant to be let through,
+    // and rolls back a good update. Reproduced on a live cPanel host: probe at t+0 returned 503,
+    // the identical request moments later returned 200.
+
+    #[Test]
+    public function resetting_the_opcode_cache_never_throws(): void
+    {
+        // Best effort by contract: absent when OPcache is off, and closed off by opcache.restrict_api
+        // on plenty of shared hosts. It must report, never explode — an update is already mid-flight.
+        $this->assertIsBool(UpdateCoreProbe::resetOpcache());
+    }
+
+    #[Test]
+    public function a_failed_health_probe_is_retried_before_rolling_back(): void
+    {
+        // The load-bearing behaviour: one 'unhealthy' reading right after the swap is NOT trusted,
+        // because that is exactly what stale bytecode looks like.
+        RetryingUpdateProbe::$readings = [false, false, true];
+        RetryingUpdateProbe::$pauses   = 0;
+
+        $this->assertTrue(RetryingUpdateProbe::probeUntilSettled());
+        $this->assertSame(2, RetryingUpdateProbe::$pauses, 'waited between attempts rather than hammering');
+        $this->assertSame([], RetryingUpdateProbe::$readings, 'consumed exactly the readings it needed');
+    }
+
+    #[Test]
+    public function a_healthy_first_probe_is_taken_immediately(): void
+    {
+        // A good update must not be slowed down by the retry machinery.
+        RetryingUpdateProbe::$readings = [true, false, false];
+        RetryingUpdateProbe::$pauses   = 0;
+
+        $this->assertTrue(RetryingUpdateProbe::probeUntilSettled());
+        $this->assertSame(0, RetryingUpdateProbe::$pauses);
+    }
+
+    #[Test]
+    public function an_inconclusive_probe_is_not_retried(): void
+    {
+        // null means "could not reach the site" — already treated as passing; retrying buys nothing.
+        RetryingUpdateProbe::$readings = [null, true];
+        RetryingUpdateProbe::$pauses   = 0;
+
+        $this->assertNull(RetryingUpdateProbe::probeUntilSettled());
+        $this->assertSame(0, RetryingUpdateProbe::$pauses);
+    }
+
+    #[Test]
+    public function a_genuinely_broken_build_still_fails_after_every_retry(): void
+    {
+        // The rail must keep working: retries must not turn a real failure into a pass.
+        RetryingUpdateProbe::$readings = [false, false, false, false, false, false];
+        RetryingUpdateProbe::$pauses   = 0;
+
+        $this->assertFalse(RetryingUpdateProbe::probeUntilSettled());
+        $this->assertSame(Tiger_Update_Core::HEALTH_RETRIES, RetryingUpdateProbe::$pauses);
+    }
+
     #[Test]
     public function maintenance_mints_a_nonce_and_writes_it_beside_the_timestamp(): void
     {
@@ -272,6 +334,38 @@ final class CoreTest extends UnitTestCase
 }
 
 /** Test seam: expose Tiger_Update_Core's protected build/parse/io helpers (never the live swap). */
+/**
+ * Drives the retry loop with scripted probe readings and a sleep that does not sleep, so the
+ * post-swap staleness behaviour is testable without a web server or a stopwatch.
+ */
+final class RetryingUpdateProbe extends Tiger_Update_Core
+{
+    /** @var array<int,bool|null> */
+    public static array $readings = [];
+    public static int $pauses = 0;
+
+    protected static function _httpHealth($nonce = '')
+    {
+        return array_shift(self::$readings);
+    }
+
+    protected static function _pause($seconds)
+    {
+        self::$pauses++;
+    }
+
+    /** The exact loop update() runs, isolated. */
+    public static function probeUntilSettled()
+    {
+        $http = static::_httpHealth('');
+        for ($try = 1; $http === false && $try <= self::HEALTH_RETRIES; $try++) {
+            static::_pause(self::HEALTH_RETRY_WAIT);
+            $http = static::_httpHealth('');
+        }
+        return $http;
+    }
+}
+
 final class UpdateCoreProbe extends Tiger_Update_Core
 {
     public static function norm($v): string { return self::_norm($v); }
@@ -283,5 +377,6 @@ final class UpdateCoreProbe extends Tiger_Update_Core
     public static function locateVendor($s) { return self::_locateVendor($s); }
     public static function versionIn($d) { return self::_versionIn($d); }
     public static function maintenance($w, $on) { return self::_maintenance($w, $on); }
+    public static function resetOpcache(): bool { return self::_resetOpcache(); }
     public static function rrmdir($d): void { self::_rrmdir($d); }
 }

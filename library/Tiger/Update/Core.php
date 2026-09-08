@@ -21,6 +21,10 @@ class Tiger_Update_Core
 {
     const HEALTH_TIMEOUT = 15;
 
+    /** Retries for a FAILED health probe, and the wait between them (seconds). Covers opcache turnover. */
+    const HEALTH_RETRIES    = 3;
+    const HEALTH_RETRY_WAIT = 2;
+
     /**
      * Header carrying the maintenance nonce on the post-swap health probe.
      *
@@ -174,9 +178,30 @@ class Tiger_Update_Core
         }
         $add('swap', true, 'vendor/ swapped atomically.');
 
+        // The rename is atomic on disk, but PHP does not notice immediately: with
+        // opcache.validate_timestamps=1 and revalidate_freq=N, workers keep executing the PREVIOUS
+        // bytecode for up to N seconds. Real visitors can therefore run a MIX of old and new code,
+        // and the health probe below — which fires within a second — reaches a worker still running
+        // the old code, reads the maintenance page it was supposed to be let through, and rolls back
+        // a perfectly good update. Observed on a live cPanel host (revalidate_freq=2): probe at t+0
+        // returned 503, a moment later the identical request returned 200.
+        $opcacheReset = static::_resetOpcache();
+        $add('opcache', $opcacheReset, $opcacheReset
+            ? 'Opcode cache reset — the new code takes effect at once.'
+            : 'Opcode cache could not be reset (absent or restricted) — the health probe retries to cover it.');
+
         // ---- health check --------------------------------------------------
         $liveVer = self::_versionIn($vendor);
-        $http    = static::_httpHealth($probeNonce);   // true | false | null(unknown) — overridable for tests
+        // Probe with retries. opcache_reset() above should make the first attempt authoritative, but it
+        // can be unavailable or restricted (opcache.restrict_api), and a worker may still be mid-flight
+        // — so a single "unhealthy" reading is not trusted until the cache has had time to turn over.
+        // Only a FAILURE is retried: a healthy or inconclusive answer is taken immediately, so a good
+        // update is never slowed down.
+        $http = static::_httpHealth($probeNonce);      // true | false | null(unknown) — overridable for tests
+        for ($try = 1; $http === false && $try <= self::HEALTH_RETRIES; $try++) {
+            static::_pause(self::HEALTH_RETRY_WAIT);
+            $http = static::_httpHealth($probeNonce);
+        }
         $healthy = $liveVer !== null && ($target === null || self::_norm($liveVer) === $target) && $http !== false;
         if (!$healthy) {
             $bad = $root . '/vendor.bad-' . getmypid();
@@ -328,6 +353,32 @@ class Tiger_Update_Core
         if (!is_file($file)) { return null; }
         return preg_match('/VERSION\s*=\s*[\'"]([^\'"]+)[\'"]/', (string) @file_get_contents($file), $m)
             ? $m[1] : null;
+    }
+
+    /**
+     * Drop the compiled bytecode for the code we just replaced. Without this, PHP serves the PREVIOUS
+     * vendor/ for up to opcache.revalidate_freq seconds after the swap.
+     *
+     * Best effort by design: the API is absent when OPcache is off and can be closed off by
+     * opcache.restrict_api on shared hosts. A false return is reported, not fatal — the probe retries
+     * cover it, and a plain timestamp revalidation gets there on its own shortly.
+     *
+     * @return bool whether the cache was actually reset
+     */
+    protected static function _resetOpcache()
+    {
+        if (!function_exists('opcache_reset')) { return false; }
+        try {
+            return (bool) @opcache_reset();
+        } catch (Throwable $e) {
+            return false;   // restrict_api, or a disabled cache
+        }
+    }
+
+    /** Wall-clock pause between health retries. A seam so tests never actually sleep. */
+    protected static function _pause($seconds)
+    {
+        sleep((int) $seconds);
     }
 
     /** Best-effort HTTP boot check of the just-swapped code: true | false | null(unknown). */
