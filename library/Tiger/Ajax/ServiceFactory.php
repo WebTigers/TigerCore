@@ -37,6 +37,30 @@
 class Tiger_Ajax_ServiceFactory
 {
     /**
+     * Method names that only READ. Everything else is treated as a mutation.
+     *
+     * The single authority for that question — Tiger_Agent_Forge consumes this list rather than keeping
+     * its own, because "is this call a write?" must not be answerable two different ways.
+     */
+    const READ_VERBS = [
+        'get', 'list', 'datatable', 'search', 'find', 'view', 'show', 'read',
+        'test', 'options', 'discover', 'history', 'conversations', 'load', 'preview', 'count',
+        'scan', 'inspect', 'report',
+    ];
+
+    /**
+     * Is this action a mutation (anything not in READ_VERBS)? Fail-CLOSED: an unrecognised verb is a
+     * write, so a new method is protected by default rather than by remembering to classify it.
+     *
+     * @param  string $action
+     * @return bool
+     */
+    public static function isMutation($action)
+    {
+        return !in_array(strtolower((string) $action), self::READ_VERBS, true);
+    }
+
+    /**
      * Module names that can NEVER be dispatched via /api — they map to framework /
      * core namespaces. The public API is app/module surface only.
      *
@@ -121,6 +145,18 @@ class Tiger_Ajax_ServiceFactory
 
     // -------------------------------------------------------------------------
 
+    /**
+     * Is this a safe/read-only HTTP method? GET and HEAD are the ones a browser will issue from a
+     * top-level navigation carrying cookies, which is precisely what SameSite=Lax permits.
+     *
+     * @return bool
+     */
+    protected function _isReadOnlyMethod()
+    {
+        $m = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'POST'));
+        return $m === 'GET' || $m === 'HEAD';
+    }
+
     protected function _processRequest()
     {
         try {
@@ -129,6 +165,19 @@ class Tiger_Ajax_ServiceFactory
             $service    = $params['service'];
             $controller = $params['controller'];
             $action     = $params['action'];
+
+            // MUTATIONS MAY NOT ARRIVE BY GET. The endpoint is deliberately verb-agnostic for READS
+            // (WEBSERVICES.md §9) — routing fields resolve from POST *or* query — but that also let a
+            // state-changing call ride a plain GET, which is the one shape the session cookie's
+            // SameSite=Lax does NOT stop: Lax blocks cross-site POST while still sending cookies on a
+            // top-level GET navigation. So an <img>/link could reach a mutation as the logged-in admin.
+            // Services that validate a Tiger_Form get its CSRF token; ones that do not (e.g.
+            // Mcp_Service_Settings::save) had nothing at all. Requiring a non-GET method is what makes
+            // SameSite effective, and costs the documented read-over-GET nothing. (TIGER-70)
+            if (self::isMutation($action) && $this->_isReadOnlyMethod()) {
+                $this->_fail('core.api.error.method_not_allowed');
+                return;
+            }
 
             // Reserved-module guard — DISABLED. The ACL is the gate: _authorize() runs
             // before any class is touched, and deny-by-default refuses every resource that

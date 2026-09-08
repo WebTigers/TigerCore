@@ -58,6 +58,51 @@ class Tiger_Log
      * @param  array  $context structured key/value context
      * @return void
      */
+    /** URL parts whose VALUE is a credential — the next path segment, or the query value. */
+    const REDACT_KEYS = ['code', 'token', 'secret', 'key', 'password', 'passwd', 'pass', 'otp', 'signature'];
+
+    /**
+     * A request URI safe to persist — credential-bearing parts replaced with `[redacted]`.
+     *
+     * Password reset puts its secret in the PATH (`/auth/reset/cid/<id>/code/<token>`), and the error
+     * controller logs the raw REQUEST_URI on any 500. A reset link that errors before redemption
+     * therefore left a still-valid account-recovery credential sitting in a log — a destination with
+     * broader access and longer retention than the credential store it came from. (TIGER-71)
+     *
+     * Deliberately NOT applied to every context key called `uri`: menu hrefs are logged under that name
+     * too, and mangling them would be a different bug. Callers that log a REQUEST uri use this.
+     *
+     * @param  string $uri
+     * @return string
+     */
+    public static function redactUri($uri)
+    {
+        $uri = (string) $uri;
+        if ($uri === '') { return ''; }
+
+        $parts = explode('?', $uri, 2);
+        $segs  = explode('/', $parts[0]);
+        foreach ($segs as $i => $seg) {
+            if ($i + 1 < count($segs) && in_array(strtolower($seg), self::REDACT_KEYS, true) && $segs[$i + 1] !== '') {
+                $segs[$i + 1] = '[redacted]';
+            }
+        }
+        $out = implode('/', $segs);
+
+        if (isset($parts[1]) && $parts[1] !== '') {
+            $pairs = explode('&', $parts[1]);
+            foreach ($pairs as $j => $pair) {
+                $kv = explode('=', $pair, 2);
+                if (count($kv) === 2 && in_array(strtolower(rawurldecode($kv[0])), self::REDACT_KEYS, true)) {
+                    $pairs[$j] = $kv[0] . '=[redacted]';
+                }
+            }
+            $out .= '?' . implode('&', $pairs);
+        }
+        return $out;
+    }
+
+
     public static function error($message, array $context = [])
     {
         self::_emit(Zend_Log::ERR, $message, $context);

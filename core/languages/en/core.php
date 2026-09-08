@@ -16,6 +16,7 @@ return [
     'core.api.error.csrf'            => 'Oops — your security token expired. Please refresh the page to continue. (They time out on purpose; blame the security gremlins.)',
     'core.api.error.invalid_action'  => 'That action is not available.',
     'core.api.error.not_allowed'     => "You don't have permission to do that.",
+    'core.api.error.method_not_allowed' => 'That action must be sent as a POST request.',
     'core.api.error.login_required'  => 'Please sign in to continue.',
     'core.token.created'          => 'Token created — copy it now; it won\'t be shown again.',
     'core.token.revoked'          => 'Token revoked.',

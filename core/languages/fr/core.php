@@ -12,6 +12,7 @@ return [
     'core.api.error.csrf'            => 'Oups — votre jeton de sécurité a expiré. Veuillez actualiser la page pour continuer. (Ils expirent volontairement ; blâmez les gremlins de la sécurité.)',
     'core.api.error.invalid_action'  => 'Cette action n’est pas disponible.',
     'core.api.error.not_allowed'     => 'Vous n’avez pas la permission de faire cela.',
+    'core.api.error.method_not_allowed' => 'Cette action doit être envoyée en POST.',
     'core.api.error.login_required'  => 'Veuillez vous connecter pour continuer.',
     'core.token.created'          => 'Jeton créé — copiez-le maintenant ; il ne sera plus affiché.',
     'core.token.revoked'          => 'Jeton révoqué.',

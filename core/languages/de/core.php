@@ -12,6 +12,7 @@ return [
     'core.api.error.csrf'            => 'Hoppla — Ihr Sicherheitstoken ist abgelaufen. Bitte laden Sie die Seite neu, um fortzufahren. (Sie laufen absichtlich ab; schieben Sie es auf die Sicherheitsgremlins.)',
     'core.api.error.invalid_action'  => 'Diese Aktion ist nicht verfügbar.',
     'core.api.error.not_allowed'     => 'Sie haben keine Berechtigung dafür.',
+    'core.api.error.method_not_allowed' => 'Diese Aktion muss als POST-Anfrage gesendet werden.',
     'core.api.error.login_required'  => 'Bitte melden Sie sich an, um fortzufahren.',
     'core.token.created'          => 'Token erstellt — kopieren Sie es jetzt; es wird nicht erneut angezeigt.',
     'core.token.revoked'          => 'Token widerrufen.',

@@ -120,6 +120,70 @@ final class AuthenticationEnrollmentTest extends IntegrationTestCase
         $this->assertTrue($this->auth->getTwoFactorStatus()['enabled'], 'the factor is now live');
     }
 
+    // ---- replacing an existing factor must clear the same bar as removing it (TIGER-67) ----
+    //
+    // activateTotp() -> replaceTotp() PURGES the current authenticator and every recovery code before
+    // writing the new one. disableTotp() rightly demands the current code first; enrollment demanded
+    // nothing, so replacement was a way around the protection removal enforces — an unlocked session
+    // could swap the owner's authenticator for its own and burn the recovery codes on the way.
+
+    /** Sign in a fresh user and get TOTP live for them. Returns [email, secret]. */
+    private function withTotpEnabled(string $pw): array
+    {
+        [, $email] = $this->makeUserWithPassword($pw);
+        $this->auth->login($email, $pw);
+        $enroll = $this->auth->beginTotpEnrollment();
+        $this->auth->activateTotp(Tiger_Auth_Totp::codeAt($enroll['secret'], intdiv(time(), 30)));
+        $this->assertTrue($this->auth->getTwoFactorStatus()['enabled'], 'precondition: 2FA is on');
+        return [$email, (string) $enroll['secret']];
+    }
+
+    #[Test]
+    public function re_enrolling_without_the_current_code_is_refused(): void
+    {
+        [, $secret] = $this->withTotpEnabled('replace me 0001');
+
+        $this->assertNull($this->auth->beginTotpEnrollment(), 'no current code → no new secret issued');
+        $this->assertTrue($this->auth->getTwoFactorStatus()['enabled'], 'the existing factor survives');
+
+        // And the ORIGINAL authenticator still works — nothing was purged.
+        $this->assertTrue($this->auth->getTwoFactorStatus()['recovery'] > 0, 'recovery codes survive too');
+        $this->assertNotNull(Tiger_Auth_Totp::codeAt($secret, intdiv(time(), 30)));
+    }
+
+    #[Test]
+    public function re_enrolling_with_a_wrong_current_code_is_refused(): void
+    {
+        $this->withTotpEnabled('replace me 0002');
+        $this->assertNull($this->auth->beginTotpEnrollment('000000'));
+        $this->assertTrue($this->auth->getTwoFactorStatus()['enabled']);
+    }
+
+    #[Test]
+    public function re_enrolling_with_the_current_code_is_allowed(): void
+    {
+        // The positive control: a legitimate replacement must still work, or the fix has just broken
+        // rotating your authenticator.
+        [, $secret] = $this->withTotpEnabled('replace me 0003');
+
+        $current = Tiger_Auth_Totp::codeAt($secret, intdiv(time(), 30));
+        $enroll  = $this->auth->beginTotpEnrollment($current);
+        $this->assertIsArray($enroll, 'a valid current code authorizes the replacement');
+        $this->assertNotSame($secret, $enroll['secret'], 'and a NEW secret is issued');
+
+        $this->assertTrue($this->auth->activateTotp(Tiger_Auth_Totp::codeAt($enroll['secret'], intdiv(time(), 30))));
+        $this->assertTrue($this->auth->getTwoFactorStatus()['enabled']);
+    }
+
+    #[Test]
+    public function first_time_enrollment_still_needs_no_code(): void
+    {
+        // The other positive control: this guard must only bite when a factor already exists.
+        [, $email] = $this->makeUserWithPassword('first time 0004');
+        $this->auth->login($email, 'first time 0004');
+        $this->assertIsArray($this->auth->beginTotpEnrollment(), 'nothing to replace → nothing to prove');
+    }
+
     #[Test]
     public function activate_totp_rejects_a_wrong_code_and_stays_disabled(): void
     {

@@ -30,11 +30,11 @@
 class Tiger_Agent_Forge
 {
     /** api methods that only READ — auto-run without approval (everything else is a write). */
-    const READ_VERBS = [
-        'get', 'list', 'datatable', 'search', 'find', 'view', 'show', 'read',
-        'test', 'options', 'discover', 'history', 'conversations', 'load', 'preview', 'count',
-        'scan', 'inspect', 'report',
-    ];
+    /**
+     * Read-only method names. Delegated to the gateway so "is this call a write?" has ONE answer —
+     * the agent's approval gate and the /api method guard must never disagree about it.
+     */
+    const READ_VERBS = Tiger_Ajax_ServiceFactory::READ_VERBS;
 
     /**
      * The auto-approve mode RANK an action needs before the Loop may run it without asking:

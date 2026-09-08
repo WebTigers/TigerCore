@@ -12,6 +12,7 @@ return [
     'core.api.error.csrf'            => 'Ops — seu token de segurança expirou. Atualize a página para continuar. (Eles expiram de propósito; culpe os gremlins da segurança.)',
     'core.api.error.invalid_action'  => 'Essa ação não está disponível.',
     'core.api.error.not_allowed'     => 'Você não tem permissão para fazer isso.',
+    'core.api.error.method_not_allowed' => 'Essa ação precisa ser enviada como uma requisição POST.',
     'core.api.error.login_required'  => 'Faça login para continuar.',
     'core.token.created'          => 'Token criado — copie-o agora; ele não será exibido novamente.',
     'core.token.revoked'          => 'Token revogado.',
