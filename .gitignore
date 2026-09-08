@@ -13,3 +13,9 @@
 # Third-party/commercial theme modules are their OWN (private) repos, never inside tiger-core.
 # They install into the app modules dir (application/modules/theme-<name>/), not here.
 /modules/theme-*/
+
+# Scratch written by test/CI runs, never committed: Tiger_Update_Checker's file cache (the update
+# tests write one entry per run) and the smoke script's page buffer (smoke.yml curls each page to
+# `assets.html` in the working dir to check what it references).
+/tests/fixtures/var/
+/assets.html
