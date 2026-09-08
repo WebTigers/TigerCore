@@ -11,6 +11,8 @@
  *   href      (string)  link target
  *   icon      (string)  Font Awesome class, top level only (e.g. 'fa-users')
  *   match     (string)  path prefix that marks the item active (default: href)
+ *   exact     (bool)    match the path EXACTLY rather than as a prefix — use when this item's path is
+ *                       a prefix of a sibling's (e.g. /system/modules vs /system/modules/add)
  *   resource  (string)  optional ACL resource — item HIDES if the live role can't
  *                       reach it (menus mirror permissions automatically)
  *   children  (array)   nested items (submenu). A parent with children is a TOGGLE —
@@ -50,9 +52,13 @@ $nav = $this->nav ?? array_merge([
     ['key' => 'users',     'label' => 'core.nav.users',   'href' => '/access/user',    'icon' => 'fa-users',    'match' => '/access/user',   'resource' => 'Access_UserController'],
     ['key' => 'orgs',      'label' => 'core.nav.orgs',    'href' => '/access/org',     'icon' => 'fa-building',  'match' => '/access/org',    'resource' => 'Access_OrgController'],
     ['key' => 'code',      'label' => 'core.nav.code',    'href' => '/code',           'icon' => 'fa-code',            'match' => '/code',          'resource' => 'Code_IndexController'],
-    // Modules is a toggle (like Settings): Manage = the module manager, Updates = the update center.
+    // Modules is a toggle (like Settings): Add New = the install screen, Manage = the module
+    // manager, Updates = the update center.
     ['key' => 'modules',   'label' => 'core.nav.modules', 'icon' => 'fa-puzzle-piece', 'children' => [
-        ['key' => 'modules_manage', 'label' => 'core.nav.modules_manage', 'href' => '/system/modules', 'match' => '/system/modules', 'resource' => 'System_ModulesController'],
+        ['key' => 'modules_add',    'label' => 'system.modules.add_new',   'href' => '/system/modules/add', 'match' => '/system/modules/add', 'resource' => 'System_ModulesController'],
+        // `exact`: /system/modules is a PREFIX of /system/modules/add, so a prefix match would light
+        // Manage up on the Add screen too — two active items reads as a bug.
+        ['key' => 'modules_manage', 'label' => 'core.nav.modules_manage', 'href' => '/system/modules', 'match' => '/system/modules', 'exact' => true, 'resource' => 'System_ModulesController'],
         ['key' => 'modules_update', 'label' => 'system.nav.updates',       'href' => '/system/updates', 'match' => '/system/updates', 'resource' => 'System_UpdatesController'],
     ]],
 ], Tiger_Admin_Nav::items(), [
@@ -92,9 +98,13 @@ $allowed = function ($item) use ($acl, $role) {
 // ('/admin') matches exactly so it doesn't light up for every /admin/* child.
 $isActive = function ($item) use ($path) {
     $m = rtrim($item['match'] ?? $item['href'] ?? '', '/');
+    if ($m === '') { return false; }
+    // `exact` opts an item out of prefix matching — needed wherever one item's path is a prefix of a
+    // sibling's, or both light up at once.
+    if (!empty($item['exact'])) { return $path === $m; }
     // The home roots match exactly so they don't light up for every child path.
     if ($m === '/admin' || $m === '/account') { return $path === $m || $path === ''; }
-    return $m !== '' && strpos($path, $m) === 0;
+    return strpos($path, $m) === 0;
 };
 
 $render = function ($items, $depth = 0, $group = 'root') use (&$render, $allowed, $isActive, $overrideOrder, $t) {
