@@ -150,14 +150,6 @@ class Ally_Service_Scan extends Tiger_Service_Service
      */
     private function _pageList(): array
     {
-        $m  = new Tiger_Model_Page();
-        $db = $m->getAdapter();
-        return $db->fetchAll(
-            $db->select()
-               ->from('page', ['page_id', 'title', 'slug', 'format', 'locale'])
-               ->where('type = ?', Tiger_Model_Page::TYPE_PAGE)
-               ->where('deleted = ?', 0)
-               ->order(['slug ASC', 'locale ASC'])
-        );
+        return (new Tiger_Model_Page())->getSummaries(Tiger_Model_Page::TYPE_PAGE);
     }
 }

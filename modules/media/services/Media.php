@@ -209,14 +209,12 @@ class Media_Service_Media extends Tiger_Service_Service
 
         $checksum = @hash_file('sha256', $src) ?: null;
         $model    = new Tiger_Model_Media();
-        $db       = $model->getAdapter();
 
         // Idempotent: same bytes already in THIS org's library -> return it, don't duplicate the file.
         if ($checksum) {
-            $existingId = $db->fetchOne($db->select()->from('media', ['media_id'])
-                ->where('deleted = 0')->where('org_id = ?', $this->_orgId())->where('checksum = ?', $checksum)->limit(1));
-            if ($existingId) {
-                $this->_success(['media' => $this->_present($model->findById($existingId)), 'existing' => true], 'media.copied');
+            $existing = $model->getByChecksum($checksum, $this->_orgId());
+            if ($existing) {
+                $this->_success(['media' => $this->_present($existing), 'existing' => true], 'media.copied');
                 return;
             }
         }

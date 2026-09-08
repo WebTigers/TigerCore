@@ -141,6 +141,51 @@ class Tiger_Model_Page extends Tiger_Model_Table
     }
 
     /**
+     * Lightweight summaries of every active page of a type — deliberately WITHOUT `body`, so a caller
+     * that only lists or walks pages doesn't drag every page's content through memory.
+     *
+     * @param  string $type a TYPE_* constant
+     * @return array<int,array<string,string>> [page_id, title, slug, format, locale], by slug then locale
+     */
+    public function getSummaries($type = self::TYPE_PAGE)
+    {
+        $db = $this->getAdapter();
+        return $db->fetchAll(
+            $db->select()
+                ->from($this->_name, ['page_id', 'title', 'slug', 'format', 'locale'])
+                ->where('type = ?', (string) $type)
+                ->where('deleted = ?', 0)
+                ->order(['slug ASC', 'locale ASC'])
+        );
+    }
+
+    /**
+     * Every active row of any of the given types.
+     *
+     * @param  array $types TYPE_* constants
+     * @return Zend_Db_Table_Rowset_Abstract the matching rows (empty when $types is empty)
+     */
+    public function getByTypes(array $types)
+    {
+        $types = array_values(array_filter(array_map('strval', $types), 'strlen'));
+        if (!$types) { return $this->fetchAll($this->activeSelect()->where('1 = 0')); }
+        return $this->fetchAll($this->activeSelect()->where('type IN (?)', $types));
+    }
+
+    /**
+     * The first active row holding this page_key, in ANY locale, org, or type — the global-uniqueness
+     * lookup. Distinct from fetchByKey(), which resolves a key WITHIN a locale + tenant scope: this one
+     * answers "is this handle taken anywhere", so a key minted here can't collide with another scope.
+     *
+     * @param  string $key the page_key handle
+     * @return Zend_Db_Table_Row_Abstract|null the row that holds it, or null when the key is free
+     */
+    public function getByPageKey($key)
+    {
+        return $this->fetchRow($this->activeSelect()->where('page_key = ?', (string) $key)->limit(1));
+    }
+
+    /**
      * Fetch by stable handle (layouts, partials, or a page by key). Not publish-
      * gated — layouts/partials are infrastructure, fetched regardless of status.
      * Tenant row wins over global.

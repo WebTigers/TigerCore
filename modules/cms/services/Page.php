@@ -149,9 +149,9 @@ class Cms_Service_Page extends Tiger_Service_Service
     {
         $pm  = new Tiger_Model_Page();
         $out = [];
-        foreach ($pm->fetchAll($pm->activeSelect()->where('type IN (?)', [
+        foreach ($pm->getByTypes([
             Tiger_Model_Page::TYPE_PAGE, Tiger_Model_Page::TYPE_LAYOUT, Tiger_Model_Page::TYPE_PARTIAL,
-        ])) as $r) {
+        ]) as $r) {
             if (empty($r->meta)) { continue; }
             $meta = is_array($r->meta) ? $r->meta : json_decode((string) $r->meta, true);
             if (!is_array($meta) || ($meta['source'] ?? '') !== 'theme') { continue; }
@@ -463,7 +463,7 @@ class Cms_Service_Page extends Tiger_Service_Service
     {
         $key = $base;
         for ($i = 2; $i <= 50; $i++) {
-            $hit = $pm->fetchRow($pm->activeSelect()->where('page_key = ?', $key)->limit(1));
+            $hit = $pm->getByPageKey($key);
             if (!$hit) { return $key; }
             $key = $base . '-' . $i;
         }

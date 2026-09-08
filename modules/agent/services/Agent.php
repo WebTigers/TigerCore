@@ -481,16 +481,13 @@ class Agent_Service_Agent extends Tiger_Service_Service
     protected function _syncMessageMeta($runId, array $ledger, $status): void
     {
         try {
-            $m   = new Tiger_Model_AgentMessage();
-            $row = $m->fetchRow($m->activeSelect()->where('run_id = ?', $runId)->where('role = ?', Tiger_Model_AgentMessage::ROLE_ASSISTANT));
+            $row = (new Tiger_Model_AgentMessage())->getAssistantForRun($runId);
             if (!$row) { return; }
             $meta = json_decode((string) $row->meta, true) ?: [];
             $meta['actions'] = $ledger;
             $meta['status']  = $status;
-            $m->update(
-                ['meta' => json_encode($meta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)],
-                $m->getAdapter()->quoteInto('message_id = ?', $row->message_id)
-            );
+            $row->meta = json_encode($meta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $row->save();
         } catch (Throwable $e) { /* cosmetic re-render sync — never fail approval over it */ }
     }
 
