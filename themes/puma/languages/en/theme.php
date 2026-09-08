@@ -75,6 +75,8 @@ return [
 
     // Admin shell
     'theme.admin.title'         => 'Tiger Admin',
+    'theme.admin.site'          => 'Site',
+    'theme.a11y.view_site'      => 'View site (opens in a new tab)',
     'theme.admin.navigation'    => 'Navigation',
     'theme.admin.guest'         => 'Guest',
     'theme.admin.user_fallback' => 'User',

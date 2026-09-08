@@ -7,9 +7,27 @@
  * The collapsible nav rail. Renders the menu partial in the SAME scope (render())
  * so $this->nav flows through. Collapse/off-canvas behavior is in tiger.prefs.js
  * (toggled via the header's data-tiger-toggle="sidebar" button).
+ *
+ * The SITE block is the way OUT of admin to the public site — deliberately above the nav and
+ * NOT a registered Tiger_Admin_Nav item, so it can't be reordered, ACL-filtered, or pushed down
+ * the list by a module. It reuses `.tiger-nav` for styling but omits `data-nav-group`, which is
+ * what tiger.admin-nav.js binds to — so it gets the look without joining the collapsible groups.
  */
 ?>
 <aside class="tiger-sidebar-left" aria-label="<?= $this->escape($this->t('theme.a11y.sidebar_nav')) ?>">
+    <div class="tiger-sidebar-title"><?= $this->escape($this->t('theme.admin.site')) ?></div>
+    <ul class="tiger-nav">
+        <li>
+            <a href="/" target="_blank" rel="noopener"
+               title="<?= $this->escape($this->t('theme.a11y.view_site')) ?>">
+                <i class="fa-solid fa-globe fa-fw"></i>
+                <span class="tiger-nav-label"><?= $this->escape($this->siteName ?: 'Tiger') ?></span>
+                <i class="fa-solid fa-arrow-up-right-from-square tiger-nav-caret tiger-nav-label"
+                   aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+
     <div class="tiger-sidebar-title"><?= $this->escape($this->t('theme.admin.navigation')) ?></div>
 
     <?= $this->render('_partials/admin-menu.phtml') ?>

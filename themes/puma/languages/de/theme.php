@@ -63,6 +63,8 @@ return [
     'theme.action.copy' => 'Kopieren',
 
     'theme.admin.title'         => 'Tiger-Verwaltung',
+    'theme.admin.site'          => 'Website',
+    'theme.a11y.view_site'      => 'Website ansehen (öffnet in einem neuen Tab)',
     'theme.admin.navigation'    => 'Navigation',
     'theme.admin.guest'         => 'Gast',
     'theme.admin.user_fallback' => 'Benutzer',

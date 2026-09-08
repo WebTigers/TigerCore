@@ -63,6 +63,8 @@ return [
     'theme.action.copy' => 'Copiar',
 
     'theme.admin.title'         => 'Administración de Tiger',
+    'theme.admin.site'          => 'Sitio',
+    'theme.a11y.view_site'      => 'Ver el sitio (se abre en una pestaña nueva)',
     'theme.admin.navigation'    => 'Navegación',
     'theme.admin.guest'         => 'Invitado',
     'theme.admin.user_fallback' => 'Usuario',
