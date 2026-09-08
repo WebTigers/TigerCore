@@ -26,6 +26,9 @@ jobs:
     # Skip drafts until they're marked ready (saves tokens on WIP branches).
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    # The real runaway guard. Typical reviews finish in 1-3 min; the longest that has ever completed
+    # was 11m15s. 30 caps the bill without truncating a legitimately deep review.
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: write
@@ -45,4 +48,12 @@ jobs:
           # Calibration lives in the repo-root REVIEW.md (highest-priority instruction to every agent).
           # Sonnet 5 is the cost/quality default (~half of Opus). For a deep security pass, switch the
           # model to claude-opus-4-8.
-          claude_args: "--max-turns 30 --model claude-sonnet-5"
+          #
+          # --max-turns: the cap binds on TOOL CALLS, not wall-clock — a PR touching many files spends
+          # turns on reads. At 30 it was exhausting on exactly the large security PRs where review is
+          # worth most (#227 hit the cap in 5 min; #226, a bigger review, finished inside it in 11 min),
+          # and an exhausted run posts NOTHING — a red check with no findings, which reads as "reviewed,
+          # nothing found". 100 gives ~3x headroom over the worst run that has completed. Cost is bounded
+          # by timeout-minutes below, which is the honest backstop: it caps a runaway by wall-clock no
+          # matter how cheap the individual turns are.
+          claude_args: "--max-turns 100 --model claude-sonnet-5"
