@@ -6,6 +6,40 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.9] — 2026-09-08
+
+**Security release.** Five authorization/credential defects, all reported by an AI code review (Astra /
+OpenAI Codex) and each reproduced against real code before fixing.
+
+### Security
+
+- **A stored secret is now bound to the destination it was stored for.** Both "test your connection"
+  actions took the DESTINATION from the request and the CREDENTIAL from encrypted storage, with nothing
+  tying them together. `mailTest` reused the saved SMTP password against a submitted host/port/username;
+  `Tiger_Location::test` overlaid a submitted `endpoint` onto the decrypted config while the saved API
+  key survived, and the adapter appends that key to the URL. Either let an admin aim a test at a machine
+  they control and receive a credential they cannot otherwise read. A saved secret is now reused only
+  when the destination is unchanged. (TIGER-73, TIGER-74)
+
+- **Replacing an MFA factor now clears the same bar as removing one.** `activateTotp()` →
+  `replaceTotp()` purges the current authenticator *and every recovery code*, but enrollment required
+  nothing while `disableTotp()` correctly demands the current code — so replacement was a way around the
+  protection removal enforces. Enrollment now requires the current factor when one exists, and records
+  that authorization so activation cannot be reached by an enrollment begun before 2FA was switched on.
+  (TIGER-67)
+
+- **`/api` mutations may no longer arrive by GET.** The endpoint is deliberately verb-agnostic, which is
+  right for reads, but a state-changing call could ride a plain GET — the one shape `SameSite=Lax` does
+  not stop, since Lax blocks cross-site POST while still sending cookies on a top-level GET navigation.
+  Services that validate a `Tiger_Form` had its CSRF token; ones that do not had nothing. Classification
+  is fail-closed (an unrecognised verb is a write), and `Tiger_Agent_Forge` now consumes the gateway's
+  list so the agent's approval gate and the API guard cannot disagree. (TIGER-70)
+
+- **Password-reset secrets no longer reach the error log.** Reset carries its secret in the path, and the
+  error controller logged the raw `REQUEST_URI` on any 500 — leaving a still-valid account-recovery
+  credential in a destination with broader access and longer retention than the credential store.
+  `Tiger_Log::redactUri()` blanks credential-bearing path segments and query values. (TIGER-71)
+
 ## [1.5.8] — 2026-09-08
 
 ### Fixed
