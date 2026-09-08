@@ -6,6 +6,56 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.7] — 2026-09-08
+
+**Security release.** Four authorization defects, all reported by an AI code review (Astra / OpenAI
+Codex) and each reproduced against real code before fixing. Installs running multiple tenants, or
+relying on account suspension, should update.
+
+### Security
+
+- **Suspended accounts and memberships kept authorizing existing sessions.** `activeSelect()` filters
+  `deleted` only, so `Tiger_Model_OrgUser::roleOf()` returned a **suspended** membership's role and the
+  per-request authorization plugin refreshed the identity from it. The plugin never checked the user at
+  all, and `identityFromToken()` used `findById()` — which excludes soft-deleted users but returns
+  suspended ones. Password login *did* check status, so enforcement differed by entry point.
+
+  Net effect: suspend an admin and their open session kept admin; suspend a user and their personal
+  access token kept working. Now `OrgUser::activeMembership()`/`activeRoleOf()` and
+  `User::activeById()` are the single authorities, applied at the session and token entry points, and
+  a membership that no longer authorizes **clears the tenant context** rather than merely downgrading
+  the role. Fails closed. (TIGER-61, TIGER-62)
+
+- **An admin could reach another tenant's media.** `Tiger_Model_Media::datatable()` had no org filter,
+  so the admin Media Library enumerated every tenant's rows — including private serving URLs, which is
+  how a caller learned a foreign `media_id`. `update()` and `delete()` then acted on any id, and
+  `delete()` destroys the stored bytes before the soft delete. Listing is now tenant-scoped and both
+  mutations require ownership. (TIGER-64)
+
+- **MCP token revocation cleared another user's policy.** `Mcp_Service_Settings::revokeToken()` called
+  the owner-scoped `UserCredential::revokeToken()` but ignored its boolean result, then cleared the
+  token's MCP policy unconditionally — `clearConfig()` has no owner predicate — and reported success
+  either way. Naming a credential you did not own left it correctly un-revoked while wiping its policy
+  back to the permissive defaults (`DEFAULT_MODULES`, `read_only=false`, `org_scoped=false`). That
+  silently **widens** somebody else's live token rather than denying it. Revocation is now gated on the
+  owner-scoped result. (TIGER-66)
+
+- **CMS menu mutations trusted a caller-supplied `org_id`.** All six (`save`, `delete`, `deleteMenu`,
+  `reorder`, `importFromTheme`, `revertToTheme`) acted on whatever org the payload named, so an admin
+  in one tenant could edit or delete another's menus. They now accept only the global scope or the
+  caller's own tenant. (TIGER-65)
+
+  Menus remain global by design (`MenuController` pins the editor to `''`), so **any tenant admin can
+  still edit global menus** — unchanged here, because restricting that to a platform-operator
+  capability is a product decision rather than a security fix.
+
+### Fixed
+
+- **A core self-update applies bundled module migrations.** The self-update hand-rolled its own scan of
+  `tiger-core/migrations` only, so migrations shipped inside bundled core modules never ran: the code
+  arrived, its tables did not. It now uses `Tiger_Module_Installer::migrationPaths()`, the same single
+  authority the CLI and both installers use. (TIGER-57)
+
 ## [1.5.6] — 2026-09-08
 
 ### Fixed
