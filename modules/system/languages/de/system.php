@@ -237,6 +237,7 @@ return [
     'system.settings.smtp.test_body'                 => 'Dies ist eine Testnachricht Ihrer Tiger-Installation. Wenn Sie sie erhalten haben, funktioniert der E-Mail-Versand.',
     'system.settings.smtp.test_sent'                 => 'Test-E-Mail gesendet.',
     'system.settings.smtp.test_bad_address'          => 'Geben Sie eine gültige E-Mail-Adresse für den Test an.',
+    'system.settings.smtp.test_password_required' => 'Gib das SMTP-Passwort erneut ein, wenn du einen anderen Server testest — das gespeicherte wird nur für den Server verwendet, für den es gespeichert wurde.',
 
     // ---- Settings: reCAPTCHA ---------------------------------------------------------------
     'system.settings.recaptcha.header'                 => 'Google reCAPTCHA',

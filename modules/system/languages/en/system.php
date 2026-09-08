@@ -239,6 +239,7 @@ return [
     'system.settings.smtp.test_body'                 => 'This is a test message from your Tiger install. If you received it, outgoing mail is working.',
     'system.settings.smtp.test_sent'                 => 'Test email sent.',
     'system.settings.smtp.test_bad_address'          => 'Enter a valid email address to send the test to.',
+    'system.settings.smtp.test_password_required' => 'Re-enter the SMTP password when testing a different server — the saved one is only reused for the server it was saved for.',
 
     // ---- Settings: reCAPTCHA ---------------------------------------------------------------
     'system.settings.recaptcha.header'                 => 'Google reCAPTCHA',
