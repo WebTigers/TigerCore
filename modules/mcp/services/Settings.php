@@ -84,7 +84,16 @@ class Mcp_Service_Settings extends Tiger_Service_Service
         $userId = Zend_Auth::getInstance()->getIdentity()->user_id ?? null;
         $id     = (string) ($params['credential_id'] ?? '');
         if ($userId === null || $id === '') { $this->_error('core.api.error.general'); return; }
-        (new Tiger_Model_UserCredential())->revokeToken($userId, $id);
+        // Ownership comes from revokeToken()'s own predicate (credential_id AND user_id AND type=PAT),
+        // and its boolean result IS that answer. Ignoring it meant a caller could name a credential
+        // they do not own: the credential correctly survived, but clearConfig() — which has no owner
+        // predicate — still wiped that token's MCP policy, dropping it to the permissive defaults
+        // (DEFAULT_MODULES, read_only=false, org_scoped=false). That silently WIDENS someone else's
+        // live token, and the call reported success either way. (TIGER-66)
+        if (!(new Tiger_Model_UserCredential())->revokeToken($userId, $id)) {
+            $this->_error('core.api.error.not_allowed');
+            return;   // nothing revoked → nothing cleared
+        }
         Tiger_Mcp_Token::clearConfig($id);
         $this->_success([], 'mcp.token.revoked');
     }
