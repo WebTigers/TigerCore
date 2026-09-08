@@ -12,6 +12,7 @@ return [
     'core.api.error.csrf'            => 'Vaya — tu token de seguridad caducó. Actualiza la página para continuar. (Caducan a propósito; culpa a los duendes de la seguridad.)',
     'core.api.error.invalid_action'  => 'Esa acción no está disponible.',
     'core.api.error.not_allowed'     => 'No tienes permiso para hacer eso.',
+    'core.api.error.method_not_allowed' => 'Esa acción debe enviarse como una solicitud POST.',
     'core.api.error.login_required'  => 'Inicia sesión para continuar.',
     'core.token.created'          => 'Token creado — cópialo ahora; no se volverá a mostrar.',
     'core.token.revoked'          => 'Token revocado.',

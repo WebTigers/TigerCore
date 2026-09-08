@@ -114,7 +114,7 @@ class ErrorController extends Tiger_Controller_Action
                     'method'     => $req->getMethod(),
                 ],
                 'server' => [
-                    'uri'        => isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '',
+                    'uri'        => Tiger_Log::redactUri(isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : ''),
                     'host'       => isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '',
                     'ip'         => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '',
                     'user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '',
@@ -133,7 +133,7 @@ class ErrorController extends Tiger_Controller_Action
             'exc'   => get_class($ex),
             'err'   => $ex->getMessage(),
             'where' => $ex->getFile() . ':' . $ex->getLine(),
-            'uri'   => isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '',
+            'uri'   => Tiger_Log::redactUri(isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : ''),
             'route' => $req ? $req->getModuleName() . '/' . $req->getControllerName() . '/' . $req->getActionName() : '',
         ]);
     }

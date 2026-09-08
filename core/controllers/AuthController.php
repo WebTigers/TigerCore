@@ -307,7 +307,9 @@ class AuthController extends Tiger_Controller_Action
             $this->_json(['result' => 0, 'message' => 'core.api.error.not_allowed'], 401);
             return;
         }
-        $data = $auth->beginTotpEnrollment();
+        // Replacing an existing authenticator needs the current one, exactly as disabling does; the
+        // shipped UI never re-enrolls while 2FA is on, so this only matters to a direct API caller.
+        $data = $auth->beginTotpEnrollment((string) $this->getRequest()->getPost('current_code', ''));
         if (!$data) {
             $this->_json(['result' => 0, 'message' => 'core.auth.twofa.unavailable'], 400);
             return;

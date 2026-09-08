@@ -456,11 +456,30 @@ class Tiger_Service_Authentication
      *
      * @return array{secret:string,otpauth:string,recovery:string[]}|null
      */
-    public function beginTotpEnrollment()
+    public function beginTotpEnrollment($currentCode = null)
     {
         $identity = $this->getIdentity();
         if (!$identity || empty($identity->user_id) || !Tiger_Crypto::isConfigured()) {
             return null;
+        }
+
+        // RE-ENROLLING REPLACES an existing authenticator: activateTotp() -> replaceTotp() purges the
+        // current TOTP credential AND every recovery code before writing the new one. disableTotp()
+        // rightly demands the current code (or a recovery code) first; enrollment demanded nothing, so
+        // replacement was a way around the protection that removal enforces — an unlocked session could
+        // swap the owner's authenticator for the attacker's and burn the recovery codes on the way.
+        //
+        // The shipped UI never reaches this state (it offers DISABLE, then a fresh setup), so this is
+        // about the endpoints, which are the actual security boundary. (TIGER-67)
+        $model     = new Tiger_Model_UserCredential();
+        $replacing = $model->hasActiveTotp($identity->user_id);
+        if ($replacing) {
+            $code = trim((string) $currentCode);
+            if ($code === ''
+                || (!$this->_verifyTotpCode($identity->user_id, $code)
+                    && !$model->redeemRecoveryCode($identity->user_id, $code))) {
+                return null;
+            }
         }
 
         $secret   = Tiger_Auth_Totp::generateSecret();
@@ -472,6 +491,9 @@ class Tiger_Service_Authentication
         $ns->secret   = $secret;
         $ns->recovery = array_map([$this, '_hashRecovery'], $codes);
         $ns->expires  = time() + self::ENROLL_TTL;
+        // Records that THIS enrollment was authorized to replace an existing factor, so activateTotp()
+        // can tell an authorized replacement from an enrollment that merely started before 2FA was on.
+        $ns->replacing = $replacing;
 
         return [
             'secret'   => $secret,
@@ -502,7 +524,15 @@ class Tiger_Service_Authentication
             return false;
         }
 
-        (new Tiger_Model_UserCredential())->replaceTotp(
+        // Defence in depth for the ordering edge: an enrollment begun while 2FA was OFF must not be
+        // activated later to replace a factor enabled in the meantime. Only an enrollment that cleared
+        // the current-factor check at begin() carries `replacing`.
+        $model = new Tiger_Model_UserCredential();
+        if ($model->hasActiveTotp($identity->user_id) && empty($ns->replacing)) {
+            return false;
+        }
+
+        $model->replaceTotp(
             $identity->user_id,
             Tiger_Crypto::encrypt((string) $ns->secret),
             (array) $ns->recovery
