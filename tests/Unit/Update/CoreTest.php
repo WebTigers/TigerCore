@@ -171,6 +171,48 @@ final class CoreTest extends UnitTestCase
     // ---- maintenance flag + recursive rmdir -----------------------------------
 
     #[Test]
+    public function maintenance_mints_a_nonce_and_writes_it_beside_the_timestamp(): void
+    {
+        // The nonce is what lets the post-swap health probe past our own 503. Without it the probe
+        // reads the maintenance page and every successful update gets rolled back.
+        $work = $this->tmp . '/work-nonce';
+        @mkdir($work, 0775, true);
+
+        $nonce = UpdateCoreProbe::maintenance($work, true);
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{32}$/', (string) $nonce);
+
+        $parts = explode(' ', (string) file_get_contents($work . '/.maintenance'));
+        $this->assertCount(2, $parts, 'flag holds "<timestamp> <nonce>"');
+        $this->assertNotSame('', $parts[0], 'timestamp kept — it drives the 120s auto-expiry');
+        $this->assertSame($nonce, $parts[1]);
+
+        UpdateCoreProbe::maintenance($work, false);
+    }
+
+    #[Test]
+    public function each_update_mints_a_fresh_nonce(): void
+    {
+        // Per-update and never reused, so a nonce cannot be replayed against a later update.
+        $work = $this->tmp . '/work-fresh';
+        @mkdir($work, 0775, true);
+
+        $a = UpdateCoreProbe::maintenance($work, true);
+        $b = UpdateCoreProbe::maintenance($work, true);
+        $this->assertNotSame($a, $b);
+
+        UpdateCoreProbe::maintenance($work, false);
+    }
+
+    #[Test]
+    public function clearing_maintenance_returns_no_nonce(): void
+    {
+        $work = $this->tmp . '/work-clear';
+        @mkdir($work, 0775, true);
+        UpdateCoreProbe::maintenance($work, true);
+        $this->assertSame('', UpdateCoreProbe::maintenance($work, false));
+    }
+
+    #[Test]
     public function maintenance_writes_then_removes_the_flag(): void
     {
         $work = $this->tmp . '/work';
@@ -240,6 +282,6 @@ final class UpdateCoreProbe extends Tiger_Update_Core
     public static function extract($a, $i): bool { return self::_extract($a, $i); }
     public static function locateVendor($s) { return self::_locateVendor($s); }
     public static function versionIn($d) { return self::_versionIn($d); }
-    public static function maintenance($w, $on): void { self::_maintenance($w, $on); }
+    public static function maintenance($w, $on) { return self::_maintenance($w, $on); }
     public static function rrmdir($d): void { self::_rrmdir($d); }
 }
