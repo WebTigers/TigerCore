@@ -8,12 +8,18 @@ platform read [ARCHITECTURE.md](ARCHITECTURE.md) (esp. §1 distribution, §4 ent
 cascade); for the **host requirements** the preflight verifies read [INSTALL.md](INSTALL.md) (the
 source of truth for §5 here); for the deploy surface read [FEATURES.md](FEATURES.md).
 
-> **Status: design-of-record (proposed, not built).** This records the decisions and their rationale.
-> Today install is the `bin/tiger` CLI (`install:secrets` / `migrate` / `install:admin`) plus the
-> composer path (`composer create-project`, done). This spec covers the **no-shell / cPanel** channel
-> ([[install-distribution-model]]): a single `tiger-install.php`, shipped from its **own one-file repo**
-> (`WebTigers/TigerInstall`), **evergreen** (§12). Where it says "the installer does X," that's the
-> target behavior.
+> **Status: BUILT and shipping.** `tiger-install.php` ships from its own one-file repo
+> (`WebTigers/TigerInstall`, currently **1.0.3**) as a release ZIP plus a `.sha256`, and the no-shell
+> path has been proven end to end on a deliberately hostile shared-cPanel account — MySQL 8, `symlink()`
+> disabled, no shell — including a full teardown and clean re-install, and zero-config authenticated
+> mail. This document remains the **design of record**: the decisions and the reasoning behind them.
+> Where it says "the installer does X," that is what it does.
+>
+> The other two channels are unchanged: the `bin/tiger` CLI (`install:secrets` / `migrate` /
+> `install:admin`) and Composer (`composer create-project`).
+>
+> **For the step-by-step of actually running an install on a cPanel account** — including which steps
+> only a human can perform — see [CPANEL.md](CPANEL.md). This doc is the *why*; that one is the *how*.
 
 ---
 
