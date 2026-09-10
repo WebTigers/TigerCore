@@ -19,20 +19,28 @@ these steps were proven on.
 
 ---
 
-## 0. The one rule: know which half is yours
+## 0. The one rule: know what access each step needs
 
-Almost everything is automatable. Three things are not, and the difference is not arbitrary — each is
-walled off by cPanel itself, not by convention.
+Steps are gated by **what session or privilege they require**, not by who is at the keyboard. The
+distinction matters: an agent driving the user's logged-in cPanel browser session can click through the
+UI exactly as a person would, while a headless or API-only client cannot.
 
-| Task | Who | Why it cannot be otherwise |
+| Step needs | Agent with the user's **cPanel session** | Headless / API-only client |
 |---|---|---|
-| Create the cPanel **account** | **human** (WHM) | Reseller/root privilege. An account cannot create itself. |
-| Create the **MySQL database + user + grant** | **human** (cPanel → *MySQL® Databases*) | A user-space PHP script is denied `CREATE DATABASE`/`CREATE USER`; cPanel owns provisioning and prefixes names as `cpuser_name`. See INSTALLER.md §4. |
-| Run **AutoSSL** | **human** (cPanel → *SSL/TLS Status*) | Needs an authenticated cPanel session. There is no user-space path, and it is **not the agent's lane** — see §6. |
-| Everything else | **agent / installer** | Download, extract, place code above docroot, write secrets, migrate, create the owner, self-delete |
+| **Nothing** — the installer wizard itself | does it | does it |
+| **An authenticated cPanel session** — create the database (§4), run AutoSSL (§3) | **can do it** | **hand back** with exact instructions |
+| **WHM / reseller** — create the account (§2) | hand back, unless the user is a reseller | hand back |
 
-**Do not try to work around these three.** An agent that asks a user to paste a cPanel API token has
-traded a 30-second click for a security ask, and it will be wrong more often than it is right.
+Why the middle row is walled off from the *installer* even though a session can reach it: a user-space
+PHP script is denied `CREATE DATABASE`/`CREATE USER` — cPanel owns provisioning and tracks its own
+prefixed names (INSTALLER.md §4) — and AutoSSL has no user-space entry point at all.
+
+Two rules hold in every column:
+
+- **Never ask the user to paste a cPanel API token** to route around a missing session. That trades a
+  thirty-second click for a security ask.
+- **Never fake a result you could not achieve.** If AutoSSL was not run, the site is HTTP — say so
+  plainly rather than describing it as secure.
 
 ---
 
@@ -44,14 +52,14 @@ Confirm all of these before touching anything. Each has cost a real install when
   preflight refuses below it. 3AO's default is `ea-php81`.
 - **`mbstring` loaded**, and `zip` or `phar` for extraction. The preflight reports precisely what is short.
 - **The domain resolves publicly.** `dig +short A <domain>` must return the server's IP. This does not
-  block the install, but it blocks **AutoSSL** (§6) and any inbound webhook. A domain that returns
+  block the install, but it blocks **AutoSSL** (§3) and any inbound webhook. A domain that returns
   `NXDOMAIN` is unregistered; one that returns `SERVFAIL` is registered but its nameservers are not
   answering — different problems, different fixes.
 - **You can reach the account's file manager or FTP.** No shell: uploading is how the installer arrives.
 
 ---
 
-## 2. The account (human, WHM)
+## 2. The account (WHM — usually the human)
 
 Skip if the account exists.
 
@@ -69,7 +77,28 @@ zone simply did not exist anywhere.
 
 ---
 
-## 3. The database (human, cPanel UI)
+## 3. Get HTTPS working **before** you install
+
+Do this before the database and the wizard — not at the end.
+
+**The wizard asks the user to choose an admin password, and on a plain HTTP site that password crosses
+the network in the clear.** AutoSSL needs only DNS, not Tiger, so there is no reason to install first.
+
+**Prerequisite:** the domain must already resolve (§1). AutoSSL validates ownership over the public
+hostname and cannot issue otherwise — and when it fails later, the user will reasonably conclude the
+*install* is broken rather than DNS.
+
+cPanel → **SSL/TLS Status** → tick the domain and `www` → **Run AutoSSL**. Give it a minute, reload,
+and confirm a valid certificate.
+
+- **With a cPanel session:** do it.
+- **Without one:** hand the user those exact steps and wait. It is worth the pause.
+
+Do **not** substitute a self-signed certificate or edit the SSL store. If HTTPS genuinely cannot be had
+— DNS is not ready and the user wants to proceed anyway — that is their call to make knowingly: tell
+them the admin password will travel in the clear and to change it once TLS is up.
+
+## 4. The database (cPanel UI — session required)
 
 cPanel → *MySQL® Databases*:
 
@@ -88,7 +117,7 @@ database and user *creation* is walled off.
 
 ---
 
-## 4. Fetch and place the installer (agent)
+## 5. Fetch and place the installer (agent)
 
 Take the current release from **TigerInstall**, not a raw file from a branch:
 
@@ -102,19 +131,21 @@ domain's docroot). File Manager's upload, or FTP.
 
 Then open it in a browser: `https://<domain>/tiger-install.php`
 
-> The installer **deletes itself on success**, so there is exactly one run per upload. A failed install
-> that needs a retry means re-uploading the file. This is deliberate — no lingering `install.php`.
+> The installer **deletes itself once the owner is created** — and only then. Every error path stops
+> before that, so after a failed step the file is still there and **retrying needs no re-upload**.
+> Provisioning has been idempotent since installer 1.0.3: a retry preserves existing secrets rather than
+> regenerating them. Fix what the error names and submit the step again.
 
 ---
 
-## 5. The wizard (agent drives, five screens)
+## 6. The wizard (agent drives, five screens)
 
 | Screen | What it does | What it needs |
 |---|---|---|
 | **Requirements** | Preflight: PHP version, extensions, writability | nothing — read the verdict |
 | **Location** | Detects the docroot and proposes an app dir **above** it | confirm or correct the path |
 | **Download** | Fetches the vendored release ZIP, verifies its checksum, extracts | a version, or accept latest |
-| **Database** | Tests the connection, writes `local.ini`, migrates | the three values from §3 |
+| **Database** | Tests the connection, writes `local.ini`, migrates | the three values from §4 |
 | **Admin** | Creates the founding org + owner | email, password, org name |
 
 Then it finishes, reports what it did, and unlinks itself.
@@ -127,32 +158,6 @@ Check that a referenced CSS/JS asset actually loads.
 Since **1.0.3** the installer refuses a release that ships no `.sha256`, and refuses to proceed on a
 checksum mismatch — a download it cannot verify is an abort, not a warning. Provisioning is also
 idempotent from 1.0.3: a retry preserves existing secrets rather than regenerating them.
-
----
-
-## 6. AutoSSL — **the human's job, in the cPanel UI**
-
-**This is not the agent's lane.** AutoSSL needs an authenticated cPanel session; there is no user-space
-path to it, and an agent should stop here and hand back a clear instruction.
-
-Tell the user, in these words or close to them:
-
-> Log in to cPanel → **SSL/TLS Status** → tick the domain (and `www`) → **Run AutoSSL**.
-> It takes a minute or two. Reload the page; the domain should show a valid certificate.
-
-**Before sending them, confirm the prerequisite** — AutoSSL validates ownership over the public
-hostname, so it cannot issue until DNS resolves:
-
-```
-dig +short A <domain>     # must return the server's IP
-```
-
-If that is empty, AutoSSL will fail and the user will reasonably think the install is broken. Fix DNS
-first, then send them to the UI.
-
-**Do not** attempt to substitute a self-signed certificate, edit the SSL store, or promise HTTPS the
-install does not have. Report the state honestly: the site works over HTTP and needs one click in the
-UI for HTTPS.
 
 ---
 
@@ -177,10 +182,10 @@ UI for HTTPS.
 |---|---|---|
 | Preflight refuses on PHP version | domain set to an older PHP | *MultiPHP Manager* → set ≥ 8.1 |
 | "Tiger already appears to be installed" | a configured `local.ini` in the target | intended guard — choose another app dir, or clear the old install deliberately |
-| Download step fails / checksum refused | release missing its `.sha256`, or a partial fetch | retry; if a release genuinely ships no checksum, download the ZIP yourself and use the manual upload |
+| Checksum missing or mismatched | release-side problem, or a truncated download | retry once; if a published release genuinely ships no `.sha256`, **report it** — do not bypass. Manual upload is the human's deliberate trust decision about a ZIP they already hold, never a workaround |
 | Site renders unstyled | assets neither linked nor copied | confirm core ≥ 1.5.2; re-publish assets from the admin |
-| AutoSSL fails | domain does not resolve publicly | fix DNS first (§6), then re-run from the UI |
-| Installer page 404s after a failure | it self-deleted on a *partial* success | re-upload `tiger-install.php` and run again |
+| AutoSSL fails | domain does not resolve publicly | fix DNS first (§1), then re-run from the UI |
+| Installer 404s **after the owner was created** | it self-deleted, as designed | the install finished — verify the site (§below) rather than re-uploading |
 
 ---
 
