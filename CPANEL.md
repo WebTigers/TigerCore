@@ -28,7 +28,7 @@ UI exactly as a person would, while a headless or API-only client cannot.
 | Step needs | Agent with the user's **cPanel session** | Headless / API-only client |
 |---|---|---|
 | **Nothing** — the installer wizard itself | does it | does it |
-| **An authenticated cPanel session** — create the database (§4), run AutoSSL (§3) | **can do it** | **hand back** with exact instructions |
+| **An authenticated cPanel session** — create the database (§4), add a domain or subdomain (§1), run AutoSSL (§3) | **can do it** | **hand back** with exact instructions |
 | **WHM / reseller** — create the account (§2) | hand back, unless the user is a reseller | hand back |
 
 Why the middle row is walled off from the *installer* even though a session can reach it: a user-space
@@ -56,6 +56,40 @@ Confirm all of these before touching anything. Each has cost a real install when
   `NXDOMAIN` is unregistered; one that returns `SERVFAIL` is registered but its nameservers are not
   answering — different problems, different fixes.
 - **You can reach the account's file manager or FTP.** No shell: uploading is how the installer arrives.
+
+### Where is Tiger going?
+
+Not every install owns the account. Tiger may be going in **beside a site that is already running** —
+on a subdomain (`app.example.com`) or a second domain in the same cPanel account. Settle it here,
+because it decides which hostname gets the certificate (§3), which database is created (§4), and which
+directory the installer is uploaded into (§5).
+
+| Case | In cPanel | Docroot |
+|---|---|---|
+| Tiger **is** the site | nothing to create | `public_html` |
+| Tiger on a **subdomain** | *Domains* → **Create A New Domain** | `public_html/app` (proposed) |
+| Tiger on **another domain** on the account | same screen | `public_html/<domain>` |
+
+Adding the domain needs an **authenticated cPanel session** — the same column as creating a database.
+Accept the document root cPanel proposes unless there is a reason not to.
+
+A subdomain of a domain already on the account needs no DNS work; it is served from the existing zone.
+A separate domain must be registered with nameservers already pointing here — run the `dig +short A`
+check above against the new name.
+
+Three things bite when installing beside a live site:
+
+- **Two URLs.** The docroot sits *inside* `public_html`, so `app.example.com` is also reachable at
+  `example.com/app/` — a real path, not a redirect. Set the site URL to the hostname you intend.
+- **The parent `.htaccess` sits above your docroot.** A WordPress or Tiger neighbour ends its
+  `public_html/.htaccess` with a front-controller catch-all (`RewriteRule . /index.php [L]`) and your
+  directory is underneath it. It fails in the cruellest way: `/` is a real file and looks perfect,
+  while every *route* falls through to the other site. Test a deep route, not the home page.
+- **Database names collide.** cPanel prefixes by account, so `cpuser_tiger` may already be the running
+  site's. Read the list first; pick `cpuser_tigerapp` or similar. Same for the database user.
+
+**Never modify the existing site to make room** — not its `.htaccess`, not its files, not its document
+root. If Tiger cannot go in cleanly beside it, say so and let the human decide.
 
 ---
 
@@ -136,8 +170,12 @@ https://github.com/WebTigers/TigerInstall/releases/latest
   → tiger-install.zip        (and its .sha256)
 ```
 
-Unzip and upload `tiger-install.php` into the domain's document root (`public_html`, or the addon
-domain's docroot). File Manager's upload, or FTP.
+Unzip and upload `tiger-install.php` into **the document root settled in §1** — `public_html` for a
+plain install, or the subdomain/second-domain docroot when going in beside an existing site. File
+Manager's upload, or FTP.
+
+Getting this wrong is quiet: dropping the installer in `public_html` when Tiger was meant to live on
+`app.example.com` installs it over the *existing* site's document root.
 
 Then open it in a browser: `https://<domain>/tiger-install.php`
 
@@ -205,7 +243,7 @@ End with something the human can act on, not a log dump:
 
 - the site URL and whether it currently serves over HTTP or HTTPS
 - the admin URL and the account created (never the password in plain text if it can be avoided)
-- **the AutoSSL instruction** (§6), if HTTPS is not yet active
+- **the AutoSSL instruction** (§3), if HTTPS is not yet active
 - anything left undone, said plainly — an unfinished step reported honestly costs far less than one
   discovered later
 
