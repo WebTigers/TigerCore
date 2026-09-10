@@ -6,6 +6,43 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.12] — 2026-09-10
+
+**Backup and restore safety.** Five defects on paths that either destroy data or claim to have
+preserved it. No migrations; no API changes.
+
+### Fixed
+
+- **Restore ran after its safety backup failed (TIGER-83).** `create()` returns a `backup_id` on its
+  *error* path too — the catalog row opens before the archive is built — so a non-null id proved
+  nothing, and restore read only the id. The installation was overwritten with no recovery point
+  behind it. The safety net now either exists or the destructive work does not start.
+
+- **A partial restore overwrote components nobody selected (TIGER-84).** Requesting any file component
+  copied the archive's entire `files/` tree, so a media-only restore replaced application code and
+  configuration — components the safety backup did not cover, since it covers only what was requested.
+  The blast radius was wider than the recovery. Restore is now scoped to the selected components, and
+  the component→path mapping is one authority shared by create and restore, which previously had none.
+
+- **Failed writes were reported as success (TIGER-85).** The SQL dumper ignored every `fwrite()` return
+  (its own docblock already promised `@throws` on a write failure) and the file copier suppressed every
+  `mkdir`/`copy` result, so a full disk produced a truncated archive or a half-restored installation,
+  labelled ok. Writes and `fclose` are checked, a truncated dump is unlinked rather than left for
+  archiving, and copy failures abort the restore naming the safety backup that holds the previous state.
+
+- **Archives shared filenames (TIGER-86).** Minute resolution meant two backups in one minute shared a
+  filename *and* a storage key, so distinct catalog rows pointed at one overwritten archive — and on
+  restore the automatic safety backup could land on the very archive being restored and replace it
+  before extraction. Names are now second-resolution plus a random suffix.
+
+- **Live dumps had no consistent snapshot (TIGER-87).** The dumper paginated `LIMIT/OFFSET` with no
+  snapshot and no `ORDER BY`, so concurrent writes could place a parent and its child in the archive
+  from different moments, and rows could be duplicated or skipped across chunks. Now `REPEATABLE READ`
+  + `START TRANSACTION WITH CONSISTENT SNAPSHOT` with deterministic primary-key ordering — no locks and
+  no shell, so it holds on shared hosting. It covers transactional tables; MyISAM is covered by no
+  snapshot, and the dump records which it got. It never opens that transaction inside a caller's, since
+  MySQL treats `START TRANSACTION` as an implicit commit.
+
 ## [1.5.11] — 2026-09-10
 
 Housekeeping. No behaviour change for an installed site; no migrations, no API changes.
