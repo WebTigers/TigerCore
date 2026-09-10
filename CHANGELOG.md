@@ -6,6 +6,32 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.11] — 2026-09-10
+
+Housekeeping. No behaviour change for an installed site; no migrations, no API changes.
+
+### Changed
+
+- **Services no longer build their own SQL.** Five services were composing predicates onto a model's
+  `activeSelect()`, or building a select straight off the adapter, instead of calling a finder. Each now
+  calls a named model method and gets a row or rowset back, so the query lives in one place and a caller
+  cannot re-derive it differently. Two incidental wins: `Media::copyToLibrary` now does one query instead
+  of two (the finder returns the row it previously re-fetched by id), and `Tiger_Model_Page::getByTypes()`
+  guards the empty-input case so an empty filter can never degenerate into a full-table read. (TIGER-75)
+
+### Fixed
+
+- **The update-checker test no longer leaks a cache file on every run.** `CheckerTest` tracks the files it
+  writes and removes them in `tearDown()`, but `refreshBypassesAWarmCache` never registered its own — and
+  because the cache key is randomised per run, each run left a *new* file behind rather than overwriting
+  one. Test-only; it never affected a running site.
+
+### Internal
+
+- The AI review workflow's turn cap was raised from 30 to 100, with a 30-minute job timeout as the real
+  cost bound. The cap binds on tool calls rather than wall-clock, so it was exhausting on exactly the
+  large PRs where review is worth most — and an exhausted run posts nothing, which reads as a clean review.
+
 ## [1.5.10] — 2026-09-08
 
 ### Security
