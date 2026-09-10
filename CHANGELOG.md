@@ -6,6 +6,31 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.14] — 2026-09-10
+
+**cPanel runbook.** Two gaps in `CPANEL.md`, mirrored from the published `tiger-cpanel-install` skill.
+Documentation only — no code, no migrations, no API changes.
+
+### Added
+
+- **Installing beside a site that is already running.** The runbook assumed Tiger owned the account.
+  It now covers adding Tiger on a subdomain or a second domain: creating it in the Domains UI (a
+  cPanel-session job), the DNS split between a subdomain of an existing zone and a separate domain,
+  and the three things that bite. cPanel puts subdomain document roots *inside* `public_html`, so the
+  new site is also reachable at `example.com/app/` and the neighbouring site's `.htaccess` sits above
+  the new document root — a front-controller catch-all there breaks every *route* while the home page
+  keeps working, so verification now fetches a deep route. Database names collide because cPanel
+  prefixes by account. Governing rule: never modify the existing site to make room.
+- **Tick the wildcard entry when running AutoSSL.** If SSL/TLS Status lists `*.<domain>`, include it.
+  A certificate missing a name surfaces as a browser *security warning* rather than a missing
+  certificate, so it reads as a broken site. Notes the expected case where a wildcard will not issue
+  under HTTP validation.
+
+### Fixed
+
+- **A stale cross-reference** left by the §-reorder in 1.5.13: §9 pointed at "the AutoSSL instruction
+  (§6)" after AutoSSL had moved to §3.
+
 ## [1.5.13] — 2026-09-10
 
 **Shared-hosting install docs.** The cPanel runbook and the `/get-tiger` page now describe the same
