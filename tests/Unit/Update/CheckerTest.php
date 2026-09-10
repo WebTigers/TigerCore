@@ -118,6 +118,7 @@ final class CheckerTest extends UnitTestCase
         // display; the ACTION must re-resolve, or an operator can click Update and install a
         // SUPERSEDED release — observed installing 1.5.4 half an hour after 1.5.5 shipped. (TIGER-68)
         $key   = 'w4-refresh-' . bin2hex(random_bytes(3));
+        $this->wrote[] = $this->cacheDir() . '/' . $key . '.json';
         $calls = 0;
         $fn    = function () use (&$calls) { $calls++; return 'v' . $calls; };
 
