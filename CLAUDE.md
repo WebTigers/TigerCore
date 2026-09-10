@@ -5,7 +5,8 @@ writing code, and follow the patterns already here rather than inventing new one
 
 Reference docs: @ARCHITECTURE.md (the why) · @FEATURES.md (what the platform does) ·
 @WEBSERVICES.md (the `/api` message pattern) · @ROUTING.md (URLs, module route overrides) ·
-@ADMIN.md (the admin-screen template) · @THEMES.md (installable themes & how they meet the CMS) ·
+@ADMIN.md (the admin-screen template) ·
+@CPANEL.md (the shared-cPanel install runbook — what an agent does, and what only the human can) · @THEMES.md (installable themes & how they meet the CMS) ·
 @CODE.md (code modules & the Code Area — shareable snippets) ·
 @COMMENTS.md (comments, ratings & reviews — one primitive, attachable to anything) ·
 @MARKETPLACE.md (buying/selling paid modules — the open licensing protocol + the buyer-side client) ·
