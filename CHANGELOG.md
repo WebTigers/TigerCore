@@ -6,6 +6,27 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.13] — 2026-09-10
+
+**Shared-hosting install docs.** The cPanel runbook and the `/get-tiger` page now describe the same
+workflow as the published `tiger-cpanel-install` skill. Documentation and marketing views only — no
+code, no migrations, no API changes.
+
+### Added
+
+- **A "Vibe coding: shared hosting" band on `/get-tiger`.** Two copy-paste prompts that hand the
+  install to an AI assistant: install the `tiger-cpanel-install` skill, then point it at a domain.
+  The page states the human boundary up front — signing into cPanel and running AutoSSL stay the
+  user's job, because AutoSSL requires an authenticated cPanel session. Added to all six locale
+  views (`en/de/es/fr/hi/pt`); prompt text is translated, the skill name and URL stay literal.
+
+### Changed
+
+- **`CPANEL.md` reconciled with the skill.** The runbook opens with a capability table (what a
+  user-space PHP process on shared hosting can and cannot do) and orders the work
+  account → HTTPS → database → installer → wizard, matching the revised skill. Previously the two
+  disagreed about when AutoSSL runs.
+
 ## [1.5.12] — 2026-09-10
 
 **Backup and restore safety.** Five defects on paths that either destroy data or claim to have
