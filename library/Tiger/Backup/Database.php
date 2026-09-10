@@ -35,51 +35,143 @@ class Tiger_Backup_Database
         $fh = @fopen($path, 'wb');
         if (!$fh) { throw new RuntimeException('Tiger_Backup_Database: cannot write ' . $path); }
 
-        $now = date('Y-m-d H:i:s');
-        fwrite($fh, "-- TigerBackup SQL dump ({$now})\n-- TIGER_STMT_TOKEN: {$token}\n");
-        foreach (["SET NAMES utf8mb4", "SET FOREIGN_KEY_CHECKS=0", "SET SQL_MODE='NO_AUTO_VALUE_ON_ZERO'"] as $s) {
-            fwrite($fh, $s . ';' . $sep);
-        }
+        // A CONSISTENT SNAPSHOT for the whole dump. Without it this walks a live database across
+        // hundreds of independent queries: concurrent writes can put a parent and its child, or an
+        // order and its payment, in the archive from different moments, and rows inserted or deleted
+        // mid-pagination are duplicated or skipped outright. The archive still says "ok".
+        //
+        // REPEATABLE READ + START TRANSACTION WITH CONSISTENT SNAPSHOT gives every SELECT below one
+        // frozen view, with no locks taken and no shell required — so it holds on shared hosting.
+        // Honest limit: this covers transactional (InnoDB) tables. A MyISAM table is not covered by
+        // any snapshot, and a host that refuses the statement is logged and dumped without one
+        // rather than failing the backup outright.
+        // NEVER open one inside a caller's transaction. MySQL treats START TRANSACTION as an IMPLICIT
+        // COMMIT, so doing it here would silently commit whatever the caller had in flight — their work
+        // becomes permanent and their rollback has nothing left to undo. (Caught exactly that way: it
+        // committed the test harness's wrapping transaction and leaked rows into the shared database.)
+        // If a transaction is already open we skip our own; the caller's transaction is itself a
+        // consistent read view, so consistency is not lost — only our control of it.
+        $snapshot = false;
+        $inTxn    = false;
+        try {
+            $conn  = $db->getConnection();
+            $inTxn = ($conn instanceof PDO) && $conn->inTransaction();
+        } catch (Throwable $e) { $inTxn = false; }
 
-        $tableCount = 0; $rowCount = 0;
-        foreach ($db->listTables() as $table) {
-            $create = $db->fetchRow('SHOW CREATE TABLE ' . $db->quoteIdentifier($table));
-            $ddl    = $create['Create Table'] ?? ($create['Create View'] ?? null);
-            if (!$ddl) { continue; }
-            $isView = !isset($create['Create Table']);
-
-            fwrite($fh, 'DROP ' . ($isView ? 'VIEW' : 'TABLE') . ' IF EXISTS ' . $db->quoteIdentifier($table) . ';' . $sep);
-            fwrite($fh, $ddl . ';' . $sep);
-            $tableCount++;
-            if ($isView) { continue; }   // no rows to dump for a view
-
-            $cols    = array_keys($db->describeTable($table));
-            $colList = implode(',', array_map([$db, 'quoteIdentifier'], $cols));
-            $qTable  = $db->quoteIdentifier($table);
-            $offset  = 0;
-
-            do {
-                $rows = $db->fetchAll(sprintf('SELECT * FROM %s LIMIT %d OFFSET %d', $qTable, self::CHUNK, $offset));
-                if (!$rows) { break; }
-                $values = [];
-                foreach ($rows as $row) {
-                    $cells = [];
-                    foreach ($cols as $c) {
-                        $v = $row[$c] ?? null;
-                        $cells[] = $v === null ? 'NULL' : $db->quote($v);
-                    }
-                    $values[] = '(' . implode(',', $cells) . ')';
+        if ($inTxn) {
+            if (class_exists('Tiger_Log')) {
+                Tiger_Log::info('backup.db.snapshot_deferred', ['reason' => 'caller already in a transaction']);
+            }
+        } else {
+            try {
+                $db->query('SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+                $db->query('START TRANSACTION WITH CONSISTENT SNAPSHOT');
+                $snapshot = true;
+            } catch (Throwable $e) {
+                if (class_exists('Tiger_Log')) {
+                    Tiger_Log::warn('backup.db.snapshot_unavailable', ['error' => $e->getMessage()]);
                 }
-                fwrite($fh, 'INSERT INTO ' . $qTable . ' (' . $colList . ") VALUES\n" . implode(",\n", $values) . ';' . $sep);
-                $rowCount += count($rows);
-                $offset   += self::CHUNK;
-            } while (count($rows) === self::CHUNK);
+            }
         }
 
-        fwrite($fh, "SET FOREIGN_KEY_CHECKS=1;" . $sep);
-        fclose($fh);
+        try {
+            self::_w($fh, "-- TigerBackup SQL dump (" . date('Y-m-d H:i:s') . ")\n-- TIGER_STMT_TOKEN: {$token}\n", $path);
+            self::_w($fh, "-- consistent_snapshot: " . ($snapshot ? 'yes' : 'no') . "\n", $path);
+            foreach (["SET NAMES utf8mb4", "SET FOREIGN_KEY_CHECKS=0", "SET SQL_MODE='NO_AUTO_VALUE_ON_ZERO'"] as $st) {
+                self::_w($fh, $st . ';' . $sep, $path);
+            }
 
-        return ['tables' => $tableCount, 'rows' => $rowCount, 'token' => $token];
+            $tableCount = 0; $rowCount = 0;
+            foreach ($db->listTables() as $table) {
+                $create = $db->fetchRow('SHOW CREATE TABLE ' . $db->quoteIdentifier($table));
+                $ddl    = $create['Create Table'] ?? ($create['Create View'] ?? null);
+                if (!$ddl) { continue; }
+                $isView = !isset($create['Create Table']);
+
+                self::_w($fh, 'DROP ' . ($isView ? 'VIEW' : 'TABLE') . ' IF EXISTS ' . $db->quoteIdentifier($table) . ';' . $sep, $path);
+                self::_w($fh, $ddl . ';' . $sep, $path);
+                $tableCount++;
+                if ($isView) { continue; }   // no rows to dump for a view
+
+                $meta    = $db->describeTable($table);
+                $cols    = array_keys($meta);
+                $colList = implode(',', array_map([$db, 'quoteIdentifier'], $cols));
+                $qTable  = $db->quoteIdentifier($table);
+                // Deterministic pagination. LIMIT/OFFSET without ORDER BY has no guaranteed order, so
+                // a row can be returned in two chunks or none. Order by the primary key where there
+                // is one; the snapshot covers the rest.
+                $order   = self::_pkOrder($db, $meta);
+                $offset  = 0;
+
+                do {
+                    $rows = $db->fetchAll(sprintf(
+                        'SELECT * FROM %s%s LIMIT %d OFFSET %d', $qTable, $order, self::CHUNK, $offset
+                    ));
+                    if (!$rows) { break; }
+                    $values = [];
+                    foreach ($rows as $row) {
+                        $cells = [];
+                        foreach ($cols as $c) {
+                            $v = $row[$c] ?? null;
+                            $cells[] = $v === null ? 'NULL' : $db->quote($v);
+                        }
+                        $values[] = '(' . implode(',', $cells) . ')';
+                    }
+                    self::_w($fh, 'INSERT INTO ' . $qTable . ' (' . $colList . ") VALUES\n" . implode(",\n", $values) . ';' . $sep, $path);
+                    $rowCount += count($rows);
+                    $offset   += self::CHUNK;
+                } while (count($rows) === self::CHUNK);
+            }
+
+            self::_w($fh, "SET FOREIGN_KEY_CHECKS=1;" . $sep, $path);
+
+            // fclose can fail on a full disk while every fwrite appeared to succeed (buffering), so a
+            // dump is not complete until the handle closes cleanly.
+            if (!fclose($fh)) {
+                $fh = null;
+                throw new RuntimeException('Tiger_Backup_Database: failed to close ' . $path . ' — the dump may be truncated.');
+            }
+            $fh = null;
+            if ($snapshot) { try { $db->query('COMMIT'); } catch (Throwable $e) {} }
+
+            return ['tables' => $tableCount, 'rows' => $rowCount, 'token' => $token, 'snapshot' => $snapshot];
+        } catch (Throwable $e) {
+            if (is_resource($fh)) { @fclose($fh); }
+            if ($snapshot) { try { $db->query('ROLLBACK'); } catch (Throwable $e2) {} }
+            @unlink($path);   // never leave a truncated dump where a caller might archive it
+            throw $e;
+        }
+    }
+
+    /**
+     * Write, or throw. fwrite() returns the byte count actually written and reports a short write
+     * rather than raising — so an unchecked call turns a full disk into a silently truncated archive
+     * that still reports success.
+     *
+     * @throws RuntimeException on a short or failed write
+     */
+    protected static function _w($fh, $chunk, $path)
+    {
+        $expect  = strlen($chunk);
+        $written = @fwrite($fh, $chunk);
+        if ($written === false || $written !== $expect) {
+            throw new RuntimeException(sprintf(
+                'Tiger_Backup_Database: short write to %s (%s of %d bytes) — out of disk space?',
+                $path, $written === false ? 'failed' : (string) $written, $expect
+            ));
+        }
+    }
+
+    /** ` ORDER BY <pk...>` for a table that has a primary key, else '' (the snapshot still applies). */
+    protected static function _pkOrder($db, array $meta)
+    {
+        $pk = [];
+        foreach ($meta as $name => $col) {
+            if (!empty($col['PRIMARY'])) { $pk[(int) ($col['PRIMARY_POSITION'] ?? 0)] = $name; }
+        }
+        if (!$pk) { return ''; }
+        ksort($pk);
+        return ' ORDER BY ' . implode(',', array_map([$db, 'quoteIdentifier'], $pk));
     }
 
     /**

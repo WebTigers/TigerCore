@@ -52,7 +52,7 @@ class Tiger_Backup
         $source  = ($opts['source'] ?? 'manual') === 'scheduled' ? 'scheduled' : 'manual';
         $secrets = array_key_exists('include_secrets', $opts) ? (bool) $opts['include_secrets'] : true;
 
-        $filename = 'TigerBackup-' . date('Y-m-d-H-i') . '.zip';
+        $filename = self::_archiveName();
         $model    = new Tiger_Model_Backup();
         $id       = $model->begin($filename, $disk, $components, $source);
         $start    = microtime(true);
@@ -197,8 +197,22 @@ class Tiger_Backup
         try {
             // Pre-restore safety net: a local backup of the same components we're about to overwrite.
             if (($opts['safety'] ?? true)) {
-                $safety = self::create($want, ['disk' => 'local', 'source' => 'manual', 'notify' => false]);
-                $safetyId = $safety['backup_id'] ?? null;
+                $safety = static::create($want, ['disk' => 'local', 'source' => 'manual', 'notify' => false]);
+                // create() returns a backup_id on its ERROR path too (the catalog row is opened before
+                // the archive is built), so a non-null id proved nothing. Restore used to read only the
+                // id and carry on — destroying the installation with no recovery point behind it.
+                // The safety net either exists or the destructive work does not start.
+                if (($safety['status'] ?? '') !== 'ok') {
+                    @unlink($flag);
+                    Tiger_Log::error('backup.restore.safety_failed', [
+                        'error' => $safety['error'] ?? 'safety backup did not complete',
+                    ]);
+                    return ['status' => 'error', 'safety_id' => $safety['backup_id'] ?? null,
+                            'error'  => 'Safety backup failed (' . ($safety['error'] ?? 'unknown error')
+                                      . ') — refusing to restore without a recovery point. '
+                                      . 'Fix the backup destination, or re-run with safety disabled if you accept the risk.'];
+                }
+                $safetyId = $safety['backup_id'];
             }
 
             $stage = self::_stagingDir() . '/restore-' . bin2hex(random_bytes(4));
@@ -211,11 +225,27 @@ class Tiger_Backup
                 $restored[] = self::DATABASE;
             }
 
-            // Then files. The archive's files/ tree is restored as a unit (it holds whatever file
-            // components were captured); requesting any file component restores that tree once.
+            // Then files — ONLY the components that were asked for. This used to copy the archive's
+            // whole files/ tree whenever any file component was selected, so a media-only restore
+            // from a mixed archive overwrote application code and configuration. Those components
+            // were also absent from the safety backup (which covers $want), so the blast radius was
+            // wider than the recovery. Scoping the copy makes safety coverage equal to what can be
+            // overwritten, by construction.
             $fileComps = array_intersect([self::MEDIA, self::MODULES, self::PLATFORM], $want);
             if ($fileComps && is_dir($stage . '/files')) {
-                self::_copyTree($stage . '/files', self::_root());   // files/<relpath> → root/<relpath>
+                $paths   = self::_componentPaths($fileComps, true);
+                $failed  = [];
+                $copied  = self::_copyTree($stage . '/files', self::_root(), $paths, '', $failed);
+                if ($failed) {
+                    // Unchecked mkdir/copy meant a permissions or disk failure produced a PARTIALLY
+                    // restored installation reported as success. Report it instead.
+                    throw new RuntimeException(sprintf(
+                        '%d file(s) could not be restored (first: %s) — the installation is partially restored; '
+                        . 'the safety backup %s holds the previous state.',
+                        count($failed), $failed[0], $safetyId ?: '(none)'
+                    ));
+                }
+                Tiger_Log::info('backup.restore.files', ['copied' => $copied, 'components' => array_values($fileComps)]);
                 foreach ($fileComps as $c) { $restored[] = $c; }
             }
 
@@ -294,6 +324,73 @@ class Tiger_Backup
     // ---------------------------------------------------------------- internals
 
     /** Gather the absolute→archive-relative file map for the selected file components. */
+    /**
+     * The ROOT-RELATIVE paths a set of components owns, and the paths that must be kept out of them.
+     *
+     * ONE authority, deliberately: create() used to derive this and restore() had no equivalent at
+     * all, which is exactly how a media-only restore came to overwrite application code. Both sides
+     * now read the same answer, so they cannot drift.
+     *
+     * @param  array $components component constants
+     * @param  bool  $secrets    include application/configs/local.ini
+     * @return array{include:string[],exclude:string[]} root-relative paths
+     */
+    /**
+     * A unique, immutable archive name.
+     *
+     * Minute resolution meant two backups in the same minute shared one filename AND one storage key,
+     * so distinct catalog rows pointed at a single overwritten archive. Worse on restore: the automatic
+     * safety backup could land on the very archive being restored and replace it before extraction —
+     * you would restore the safety snapshot instead of the archive you asked for. Second resolution
+     * plus a random suffix makes every archive distinct and immutable.
+     *
+     * @return string
+     */
+    protected static function _archiveName()
+    {
+        return 'TigerBackup-' . date('Y-m-d-H-i-s') . '-' . bin2hex(random_bytes(3)) . '.zip';
+    }
+
+    protected static function _componentPaths(array $components, $secrets = true)
+    {
+        $root = self::_root();
+        $rel  = static function ($abs) use ($root) { return ltrim(substr($abs, strlen($root)), '/'); };
+
+        $include = [];
+        if (in_array(self::MEDIA, $components, true)) {
+            foreach (self::_mediaRoots() as $r) { $include[] = $rel($r); }
+        }
+        if (in_array(self::MODULES, $components, true)) {
+            $include[] = 'application/modules';
+        }
+        if (in_array(self::PLATFORM, $components, true)) {
+            foreach (['application', 'public', 'composer.json', 'composer.lock'] as $p) { $include[] = $p; }
+        }
+
+        $exclude = self::ALWAYS_EXCLUDE;
+        // PLATFORM pulls all of public/ + application/, which contain the media roots. Media is its
+        // own component, so keep it out unless it was asked for.
+        if (!in_array(self::MEDIA, $components, true)) {
+            foreach (self::_mediaRoots() as $r) { $exclude[] = $rel($r); }
+        }
+        if (!$secrets) { $exclude[] = 'application/configs/local.ini'; }
+
+        return ['include' => array_values(array_unique(array_filter($include))),
+                'exclude' => array_values(array_unique(array_filter($exclude)))];
+    }
+
+    /** Does a root-relative path sit under any of these root-relative prefixes? */
+    protected static function _underAny($rel, array $prefixes)
+    {
+        $rel = ltrim((string) $rel, '/');
+        foreach ($prefixes as $p) {
+            $p = ltrim((string) $p, '/');
+            if ($p === '') { continue; }
+            if ($rel === $p || strpos($rel, $p . '/') === 0) { return true; }
+        }
+        return false;
+    }
+
     protected static function _collectFiles(array $components, $secrets)
     {
         $root  = self::_root();
@@ -387,15 +484,57 @@ class Tiger_Backup
     }
 
     /** Copy a directory tree $src/* into $dst (overwriting). */
-    protected static function _copyTree($src, $dst)
+    /**
+     * Copy a staged tree onto the live root — scoped to the selected components, and CHECKED.
+     *
+     * Both properties were missing. It copied everything it was handed (TIGER-84) and suppressed every
+     * mkdir/copy result (TIGER-85), so a partial restore silently overwrote unselected components and
+     * a failed write was reported as success.
+     *
+     * @param  string $src    staged dir
+     * @param  string $dst    live destination
+     * @param  array  $paths  ['include'=>[], 'exclude'=>[]] root-relative, from _componentPaths()
+     * @param  string $rel    root-relative path of $src (recursion state)
+     * @param  array  $failed collects paths that could not be written
+     * @return int    files copied
+     */
+    protected static function _copyTree($src, $dst, array $paths = [], $rel = '', array &$failed = [])
     {
-        if (!is_dir($src)) { return; }
+        if (!is_dir($src)) { return 0; }
+        $include = $paths['include'] ?? [];
+        $exclude = $paths['exclude'] ?? [];
+        $copied  = 0;
+
         foreach (scandir($src) ?: [] as $f) {
             if ($f === '.' || $f === '..') { continue; }
-            $s = $src . '/' . $f; $d = $dst . '/' . $f;
-            if (is_dir($s)) { @is_dir($d) || @mkdir($d, 0775, true); self::_copyTree($s, $d); }
-            else { @copy($s, $d); }
+            $s      = $src . '/' . $f;
+            $d      = $dst . '/' . $f;
+            $childR = $rel === '' ? $f : $rel . '/' . $f;
+
+            if ($exclude && self::_underAny($childR, $exclude)) { continue; }
+            // Descend into a dir that either sits inside a selected component or is a prefix of one
+            // (application/ on the way to application/modules); only FILES are gated on inclusion.
+            if (is_dir($s)) {
+                if ($include && !self::_underAny($childR, $include) && !self::_leadsTo($childR, $include)) { continue; }
+                if (!is_dir($d) && !@mkdir($d, 0775, true) && !is_dir($d)) { $failed[] = $childR; continue; }
+                $copied += self::_copyTree($s, $d, $paths, $childR, $failed);
+                continue;
+            }
+            if ($include && !self::_underAny($childR, $include)) { continue; }
+            if (!@copy($s, $d)) { $failed[] = $childR; continue; }
+            $copied++;
         }
+        return $copied;
+    }
+
+    /** Is this dir an ancestor of any selected path? (application/ leads to application/modules) */
+    protected static function _leadsTo($rel, array $prefixes)
+    {
+        $rel = ltrim((string) $rel, '/');
+        foreach ($prefixes as $p) {
+            if (strpos(ltrim((string) $p, '/'), $rel . '/') === 0) { return true; }
+        }
+        return false;
     }
 
     protected static function _mediaRoots()

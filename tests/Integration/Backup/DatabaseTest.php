@@ -36,6 +36,20 @@ final class DatabaseTest extends IntegrationTestCase
     /** @var string[] throwaway tables to hard-drop (they escape the per-test transaction via DDL) */
     private array $throwaway = [];
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // dump() logs when it defers its consistent snapshot because a caller (here, the harness's
+        // per-test transaction) already has one open. That is the guard working as designed — point the
+        // log at a null writer so the INFO line doesn't trip phpunit's failOnRisky.
+        $base = \Zend_Registry::isRegistered('Zend_Config')
+            ? new \Zend_Config(\Zend_Registry::get('Zend_Config')->toArray(), true)
+            : new \Zend_Config([], true);
+        $base->merge(new \Zend_Config(['tiger' => ['log' => ['writer' => 'null']]], true));
+        \Zend_Registry::set('Zend_Config', $base);
+        if (class_exists('Tiger_Log')) { \Tiger_Log::reset(); }
+    }
+
     protected function tearDown(): void
     {
         foreach ($this->tmpFiles as $f) { @unlink($f); }
