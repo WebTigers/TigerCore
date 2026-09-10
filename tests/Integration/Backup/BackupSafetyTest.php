@@ -18,6 +18,17 @@ use Zend_Registry;
 final class FailingSafetyBackup extends Tiger_Backup
 {
     public static array $created = [];
+    public static string $root   = '';
+
+    /**
+     * Point the destructive destination at a sandbox.
+     *
+     * Without this the test writes into the REAL checkout whenever the guard under test fails —
+     * which is exactly what happened while mutation-testing: with the safety gate removed, restore()
+     * ran for real and dropped a file into public/_media/ of the working tree. A test for a
+     * destructive path must not be able to perform the destruction it is asserting against.
+     */
+    protected static function _root() { return self::$root !== '' ? self::$root : parent::_root(); }
     public static function create(array $components, array $opts = [])
     {
         self::$created[] = $components;
@@ -52,6 +63,7 @@ final class BackupSafetyTest extends IntegrationTestCase
         $this->sandbox = sys_get_temp_dir() . '/bk-safety-' . bin2hex(random_bytes(4));
         mkdir($this->sandbox, 0777, true);
         FailingSafetyBackup::$created = [];
+        FailingSafetyBackup::$root    = '';
     }
 
     protected function tearDown(): void
@@ -90,12 +102,20 @@ final class BackupSafetyTest extends IntegrationTestCase
         $za->addFromString('files/public/_media/x.txt', 'restored');
         $za->close();
 
+        $live = $this->sandbox . '/live-root';
+        mkdir($live, 0777, true);
+        FailingSafetyBackup::$root = $live;
+
         $res = FailingSafetyBackup::restore($zip, ['media']);
 
         $this->assertSame('error', $res['status'], 'restore refuses to run');
         $this->assertStringContainsString('Safety backup failed', $res['error']);
         $this->assertNotEmpty(FailingSafetyBackup::$created, 'it did attempt the safety backup first');
         $this->assertSame([], $res['restored'] ?? [], 'nothing was restored');
+        $this->assertFalse(
+            is_file($live . '/public/_media/x.txt'),
+            'and nothing was written to the destination — the abort happened BEFORE extraction'
+        );
     }
 
     // ---- TIGER-84: only what was asked for --------------------------------------------------------

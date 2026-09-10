@@ -235,7 +235,7 @@ class Tiger_Backup
             if ($fileComps && is_dir($stage . '/files')) {
                 $paths   = self::_componentPaths($fileComps, true);
                 $failed  = [];
-                $copied  = self::_copyTree($stage . '/files', self::_root(), $paths, '', $failed);
+                $copied  = self::_copyTree($stage . '/files', static::_root(), $paths, '', $failed);
                 if ($failed) {
                     // Unchecked mkdir/copy meant a permissions or disk failure produced a PARTIALLY
                     // restored installation reported as success. Report it instead.
@@ -254,7 +254,7 @@ class Tiger_Backup
             // fail-soft: a restored site must not be reported as failed over re-creatable files.
             if ($fileComps) {
                 try {
-                    $assets = Tiger_Install::republishAssets(self::_root());
+                    $assets = Tiger_Install::republishAssets(static::_root());
                     if ($assets['error'] !== null) {
                         Tiger_Log::warn('backup.restore.assets', ['error' => $assets['error']]);
                     }
