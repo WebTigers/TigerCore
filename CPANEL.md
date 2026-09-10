@@ -91,6 +91,16 @@ hostname and cannot issue otherwise — and when it fails later, the user will r
 cPanel → **SSL/TLS Status** → tick the domain and `www` → **Run AutoSSL**. Give it a minute, reload,
 and confirm a valid certificate.
 
+**On a fresh account, tick the wildcard entry too.** If the list shows `*.<domain>`, include it in the
+same run. A certificate covering only the bare domain and `www` leaves every other subdomain — the one
+you add next week, and the service names cPanel creates itself — on an expired or mismatched cert,
+which the browser reports as a security warning rather than as a missing certificate. Tick everything
+the page lists; there is no cost to covering a name and a real cost to missing one.
+
+If the wildcard is listed but AutoSSL will not issue for it, that is expected on some providers —
+HTTP validation cannot prove control of a wildcard, so it needs DNS-based validation. The bare domain
+and `www` are what the install needs; note it and move on.
+
 - **With a cPanel session:** do it.
 - **Without one:** hand the user those exact steps and wait. It is worth the pause.
 
