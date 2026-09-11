@@ -243,13 +243,18 @@ final class ProviderImageTest extends UnitTestCase
     #[Test]
     public function an_empty_prompt_is_refused_by_every_adapter(): void
     {
+        // NOT fail() inside the try: PHPUnit's AssertionFailedError extends RuntimeException, so a
+        // `catch (RuntimeException)` swallows the failure and the test can never fail. Found by
+        // mutation testing the sibling module.
         foreach ([new FakeImageOpenAi(), new FakeImageGemini()] as $a) {
+            $threw = false;
             try {
                 $a->generateImage('   ', [], 'gpt-image-1', 'k');
-                $this->fail('an empty prompt should throw: ' . get_class($a));
             } catch (RuntimeException $e) {
+                $threw = true;
                 $this->assertStringContainsString('empty', strtolower($e->getMessage()));
             }
+            $this->assertTrue($threw, 'an empty prompt should throw: ' . get_class($a));
         }
     }
 
@@ -300,20 +305,16 @@ final class ProviderImageTest extends UnitTestCase
         $a = new FakeImageGemini();
 
         FakeImageGemini::$response = ['predictions' => []];
-        try {
-            $a->generateImage('x', [], 'imagen-3.0-generate-002', 'k');
-            $this->fail('imagen path should throw on empty predictions');
-        } catch (RuntimeException $e) {
-            $this->assertStringContainsString('no image data', $e->getMessage());
-        }
+        $threw = false;
+        try { $a->generateImage('x', [], 'imagen-3.0-generate-002', 'k'); }
+        catch (RuntimeException $e) { $threw = true; $this->assertStringContainsString('no image data', $e->getMessage()); }
+        $this->assertTrue($threw, 'imagen path should throw on empty predictions');
 
         FakeImageGemini::$response = ['candidates' => [['content' => ['parts' => [['text' => 'sorry']]]]]];
-        try {
-            $a->generateImage('x', [], 'gemini-2.5-flash-image-preview', 'k');
-            $this->fail('generateContent path should throw when the model answered with text, not an image');
-        } catch (RuntimeException $e) {
-            $this->assertStringContainsString('no image data', $e->getMessage());
-        }
+        $threw = false;
+        try { $a->generateImage('x', [], 'gemini-2.5-flash-image-preview', 'k'); }
+        catch (RuntimeException $e) { $threw = true; $this->assertStringContainsString('no image data', $e->getMessage()); }
+        $this->assertTrue($threw, 'generateContent path should throw when the model answered with text');
     }
 
     #[Test]
