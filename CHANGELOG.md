@@ -6,6 +6,20 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.16] — 2026-09-11
+
+**The install prompt pointed at a URL agents refuse.** Marketing views only — no code, no migrations,
+no API changes.
+
+### Fixed
+
+- **`/get-tiger` published a `/tree/` link.** The "paste this into your assistant" prompt pointed at
+  `.../Skills/tree/main/skills/tiger-cpanel-install`. GitHub's `robots.txt` carries
+  `Disallow: /*/tree/` and `Disallow: /*/raw/` for `User-agent: *`, so a robots-respecting fetcher
+  refuses exactly that URL — our most-published instruction named the one form least likely to work.
+  `/blob/` is not disallowed, so it now links the file directly. `raw.githubusercontent.com` is no
+  better as a default: separate host, blocked by egress allowlists in some clients. All six locales.
+
 ## [1.5.15] — 2026-09-11
 
 **A correction on `/get-tiger`.** Marketing views only — no code, no migrations, no API changes.
