@@ -6,6 +6,28 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.17] — 2026-09-11
+
+**Image generation in the provider layer.** The foundation for TigerImage — no behaviour changes for
+an install that does not use it.
+
+### Added
+
+- **`Tiger_Agent_Provider_ImageAdapter`** — a sibling interface implemented only by adapters that can
+  draw, so "can this adapter generate an image?" is an `instanceof` rather than a method every
+  text-only adapter must stub. `complete()` is text-in/text-out; generation is prompt+params → bytes,
+  a different shape that has no business being squeezed through it.
+- **`Factory::supportsImageGeneration()`**, mirroring `supportsVision()` and deliberately independent
+  of it — `gpt-4o` sees and cannot draw, `gpt-image-1` draws and is not a chat model.
+  **`canGenerateImages()`** asks both halves and is what callers should use;
+  **`imageProviders()`** lists the adapters that can.
+- **OpenAI and Gemini** implement it. Base64 is requested rather than a URL, because those URLs
+  expire. Gemini's two shapes (`imagen-*` via `:predict`, `gemini-*-image-*` via `:generateContent`)
+  are hidden behind the one normalised result, and asking `imagen` for a reference image is refused
+  rather than silently dropped.
+
+Verified against the live OpenAI API, not only against stubs.
+
 ## [1.5.16] — 2026-09-11
 
 **The install prompt pointed at a URL agents refuse.** Marketing views only — no code, no migrations,
