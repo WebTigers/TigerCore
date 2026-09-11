@@ -6,6 +6,20 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.15] — 2026-09-11
+
+**A correction on `/get-tiger`.** Marketing views only — no code, no migrations, no API changes.
+
+### Fixed
+
+- **The shared-hosting band claimed an assistant cannot run AutoSSL.** It said the user keeps "the two
+  jobs that are yours alone: signing into cPanel, and clicking Run AutoSSL". The second half is wrong —
+  once the user is signed in, an assistant working inside that cPanel session can click what they
+  could click, and `CPANEL.md`'s access table has always said an authenticated session **can do it**.
+  The copy contradicted the runbook it points at. What is true is narrower and is now what the
+  footnote says: for security reasons some assistants will not type credentials, so they pause and
+  hand the keyboard back. All six locales.
+
 ## [1.5.14] — 2026-09-10
 
 **cPanel runbook.** Two gaps in `CPANEL.md`, mirrored from the published `tiger-cpanel-install` skill.
