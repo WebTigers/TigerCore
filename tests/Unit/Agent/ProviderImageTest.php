@@ -26,6 +26,8 @@ use Tiger_Agent_Provider_OpenAi;
  * @see Tiger_Agent_Provider_Gemini
  */
 #[CoversClass(Tiger_Agent_Provider_Factory::class)]
+#[CoversClass(Tiger_Agent_Provider_OpenAi::class)]
+#[CoversClass(Tiger_Agent_Provider_Gemini::class)]
 final class ProviderImageTest extends UnitTestCase
 {
     /* ---- capability probes ------------------------------------------------------------------ */
@@ -249,6 +251,86 @@ final class ProviderImageTest extends UnitTestCase
                 $this->assertStringContainsString('empty', strtolower($e->getMessage()));
             }
         }
+    }
+
+
+    /**
+     * Aspect mapping is not cosmetic: a user who asks for a portrait image and silently gets a square
+     * one has to notice it themselves. Every branch, including the degenerate inputs.
+     */
+    #[Test]
+    public function gemini_maps_every_aspect_branch(): void
+    {
+        $cases = [
+            '1920x1080' => '16:9',   // wide
+            '1200x900'  => '4:3',    // mildly wide
+            '1080x1920' => '9:16',   // tall
+            '900x1200'  => '3:4',    // mildly tall
+            '1024x1024' => '1:1',    // square
+            'nonsense'  => '1:1',    // unparseable → square
+            '0x0'       => '1:1',    // degenerate → square, not a division by zero
+            ''          => '1:1',    // absent → square
+        ];
+        $a = new FakeImageGemini();
+        FakeImageGemini::$response = ['predictions' => [['bytesBase64Encoded' => 'X']]];
+
+        foreach ($cases as $size => $expected) {
+            $a->generateImage('x', ['size' => $size], 'imagen-3.0-generate-002', 'k');
+            $this->assertSame($expected, FakeImageGemini::$sent['parameters']['aspectRatio'],
+                "size '$size' should map to $expected");
+        }
+    }
+
+    #[Test]
+    public function openai_snaps_portrait_to_portrait(): void
+    {
+        $a = new FakeImageOpenAi();
+        FakeImageOpenAi::$response = ['data' => [['b64_json' => 'A']]];
+
+        $a->generateImage('x', ['size' => '600x1400'], 'gpt-image-1', 'k');
+        $this->assertSame('1024x1536', FakeImageOpenAi::$sent['size']);
+
+        $a->generateImage('x', ['size' => '1024x1536'], 'gpt-image-1', 'k');
+        $this->assertSame('1024x1536', FakeImageOpenAi::$sent['size'], 'an already-legal size passes through');
+    }
+
+    #[Test]
+    public function gemini_fails_loudly_on_no_image_data_on_both_paths(): void
+    {
+        $a = new FakeImageGemini();
+
+        FakeImageGemini::$response = ['predictions' => []];
+        try {
+            $a->generateImage('x', [], 'imagen-3.0-generate-002', 'k');
+            $this->fail('imagen path should throw on empty predictions');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('no image data', $e->getMessage());
+        }
+
+        FakeImageGemini::$response = ['candidates' => [['content' => ['parts' => [['text' => 'sorry']]]]]];
+        try {
+            $a->generateImage('x', [], 'gemini-2.5-flash-image-preview', 'k');
+            $this->fail('generateContent path should throw when the model answered with text, not an image');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('no image data', $e->getMessage());
+        }
+    }
+
+    #[Test]
+    public function gemini_passes_negative_prompt_and_seed_to_imagen(): void
+    {
+        $a = new FakeImageGemini();
+        FakeImageGemini::$response = ['predictions' => [['bytesBase64Encoded' => 'X']]];
+
+        $a->generateImage('a tiger', ['negative_prompt' => 'blurry', 'seed' => 42], 'imagen-3.0-generate-002', 'k');
+        $params = FakeImageGemini::$sent['parameters'];
+        $this->assertSame('blurry', $params['negativePrompt']);
+        $this->assertSame(42, $params['seed']);
+
+        // absent options must not be sent as empty values the provider would reject
+        $a->generateImage('a tiger', [], 'imagen-3.0-generate-002', 'k');
+        $this->assertArrayNotHasKey('negativePrompt', FakeImageGemini::$sent['parameters']);
+        $this->assertArrayNotHasKey('seed', FakeImageGemini::$sent['parameters']);
     }
 
     #[Test]
