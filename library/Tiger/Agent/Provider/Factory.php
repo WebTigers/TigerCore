@@ -175,4 +175,76 @@ class Tiger_Agent_Provider_Factory
                 return false;
         }
     }
+
+    /**
+     * Can this provider+model GENERATE an image? (TIGER-96)
+     *
+     * Sibling to supportsVision(), and deliberately independent of it. Vision READS images,
+     * generation WRITES them, and the overlap is partial: gpt-4o sees but does not draw, gpt-image-1
+     * draws but is not a chat model. Conflating them would offer users models that cannot do the job
+     * they picked them for.
+     *
+     * This answers only "can the model draw". The adapter must ALSO implement
+     * Tiger_Agent_Provider_ImageAdapter — see canGenerateImages(), which asks both questions.
+     *
+     * Named-model cues rather than a live capability call, matching supportsVision(): vendors do not
+     * expose a machine-readable "can draw" flag, and a wrong answer here costs a greyed-out option,
+     * not a failure.
+     *
+     * @param  string $provider provider key
+     * @param  string $model    model id
+     * @return bool
+     */
+    public static function supportsImageGeneration($provider, $model)
+    {
+        $m = strtolower((string) $model);
+        switch ((string) $provider) {
+            case 'openai':                                      // the images endpoint: gpt-image-* and dall-e-*
+                return strpos($m, 'gpt-image') !== false || strpos($m, 'dall-e') !== false;
+            case 'gemini':                                      // imagen-*, and the *-image-* generation variants
+                return strpos($m, 'imagen') !== false
+                       || (bool) preg_match('~gemini-[^ ]*image~', $m);
+            case 'grok':                                        // xAI's image models are named for it
+                return strpos($m, 'image') !== false;
+            case 'openrouter':                                  // route id names its upstream — reuse the same cues
+                return (bool) preg_match('~gpt-image|dall-e|imagen|flux|stable-diffusion|sdxl~', $m);
+            case 'anthropic':                                   // no image generation model today
+            case 'deepseek':
+            case 'groq':
+            case 'mistral':
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * The full capability answer: this provider can draw with this model, AND its adapter knows how.
+     *
+     * Both halves are required and neither implies the other — an adapter may implement the image
+     * interface while the selected model is a text model, and a drawing model is useless behind an
+     * adapter that has no code path to call it. Callers should use THIS rather than either half.
+     *
+     * @param  string $provider provider key
+     * @param  string $model    model id
+     * @return bool
+     */
+    public static function canGenerateImages($provider, $model)
+    {
+        if (!self::supportsImageGeneration($provider, $model)) { return false; }
+        return self::make($provider) instanceof Tiger_Agent_Provider_ImageAdapter;
+    }
+
+    /**
+     * Every configured provider that can draw, for a UI that has to offer a choice.
+     *
+     * @return array<int,string> provider keys whose adapter implements the image interface
+     */
+    public static function imageProviders()
+    {
+        $out = [];
+        foreach (array_keys(self::PROVIDERS) as $key) {
+            if (self::make($key) instanceof Tiger_Agent_Provider_ImageAdapter) { $out[] = $key; }
+        }
+        return $out;
+    }
 }

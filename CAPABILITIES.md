@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**200 classes** across **33 capabilities** · **20 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**201 classes** across **33 capabilities** · **20 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -195,6 +195,7 @@
 - **Tiger_Agent_Provider_Gemini** `@api` — Google Gemini via the Generative Language API (Google AI Studio key).  ·  `library/Tiger/Agent/Provider/Gemini.php`
 - **Tiger_Agent_Provider_Grok** `@api` — xAI Grok (OpenAI-compatible).  ·  `library/Tiger/Agent/Provider/Grok.php`
 - **Tiger_Agent_Provider_Groq** `@api` — Groq's fast open-model inference (OpenAI-compatible; free tier).  ·  `library/Tiger/Agent/Provider/Groq.php`
+- **Tiger_Agent_Provider_ImageAdapter** `@api` — the contract an adapter implements if its provider can DRAW.  ·  `library/Tiger/Agent/Provider/ImageAdapter.php`
 - **Tiger_Agent_Provider_Mistral** `@api` — Mistral La Plateforme (OpenAI-compatible; free tier).  ·  `library/Tiger/Agent/Provider/Mistral.php`
 - **Tiger_Agent_Provider_OpenAi** `@api` — OpenAI (GPT) via the chat/completions API.  ·  `library/Tiger/Agent/Provider/OpenAi.php`
 - **Tiger_Agent_Provider_OpenAiCompatible** `@api` — the base adapter for every provider that speaks the OpenAI `/chat/completions` wire format.  ·  `library/Tiger/Agent/Provider/OpenAiCompatible.php`
