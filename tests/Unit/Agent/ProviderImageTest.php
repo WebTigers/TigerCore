@@ -6,367 +6,117 @@ namespace Tiger\Tests\Unit\Agent;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
-use RuntimeException;
 use Tiger\Tests\Support\UnitTestCase;
+use Tiger_Agent_Provider_Adapter;
 use Tiger_Agent_Provider_Factory;
 use Tiger_Agent_Provider_Gemini;
 use Tiger_Agent_Provider_ImageAdapter;
 use Tiger_Agent_Provider_OpenAi;
 
 /**
- * Image generation across the provider layer (TIGER-96) — the capability probes, and each adapter's
- * request-building / response-normalising, exercised by stubbing the one transport seam (`_post`).
+ * The image-adapter REGISTRY (TIGER-103).
  *
- * The property under test throughout: a caller gets ONE shape back regardless of which provider
- * served it, and `params` reports what was actually used rather than what was asked for. Without
- * that echo a later refinement cannot reproduce the image.
+ * Core declares the contract and holds the register. It ships no image-generation code and knows
+ * nothing about which models can draw — a module providing the capability registers its adapters at
+ * bootstrap, the same shape Tiger_Search and Tiger_Audience already use.
+ *
+ * So what is tested here is the seam, not any provider's behaviour. The implementations and their
+ * model knowledge are TigerImage's, and are tested there.
  *
  * @see Tiger_Agent_Provider_Factory
- * @see Tiger_Agent_Provider_OpenAi
- * @see Tiger_Agent_Provider_Gemini
  */
 #[CoversClass(Tiger_Agent_Provider_Factory::class)]
-#[CoversClass(Tiger_Agent_Provider_OpenAi::class)]
-#[CoversClass(Tiger_Agent_Provider_Gemini::class)]
 final class ProviderImageTest extends UnitTestCase
 {
-    /* ---- capability probes ------------------------------------------------------------------ */
+    protected function setUp(): void { Tiger_Agent_Provider_Factory::clearImageAdapters(); }
+    protected function tearDown(): void { Tiger_Agent_Provider_Factory::clearImageAdapters(); }
 
+    /** The property that matters most: a plain Tiger cannot draw, and says so. */
     #[Test]
-    public function it_recognises_image_models(): void
+    public function core_alone_has_no_image_capability(): void
     {
-        $yes = [
-            ['openai', 'gpt-image-1'], ['openai', 'dall-e-3'],
-            ['gemini', 'imagen-3.0-generate-002'], ['gemini', 'gemini-2.5-flash-image-preview'],
-            ['grok',   'grok-2-image'],
-            ['openrouter', 'black-forest-labs/flux-1.1-pro'],
-        ];
-        foreach ($yes as [$p, $m]) {
-            $this->assertTrue(Tiger_Agent_Provider_Factory::supportsImageGeneration($p, $m), "$p/$m should draw");
-        }
+        $this->assertSame([], Tiger_Agent_Provider_Factory::imageProviders(),
+            'an install with no image module must report no providers');
+        $this->assertNull(Tiger_Agent_Provider_Factory::imageAdapter('openai'));
+        $this->assertFalse(Tiger_Agent_Provider_Factory::canGenerateImages('openai', 'gpt-image-1'));
+    }
+
+    /** Core ships no image-generation code — the interface is a declaration, not an implementation. */
+    #[Test]
+    public function the_shipped_adapters_do_not_implement_the_image_interface(): void
+    {
+        $this->assertNotInstanceOf(Tiger_Agent_Provider_ImageAdapter::class, new Tiger_Agent_Provider_OpenAi());
+        $this->assertNotInstanceOf(Tiger_Agent_Provider_ImageAdapter::class, new Tiger_Agent_Provider_Gemini());
     }
 
     #[Test]
-    public function it_refuses_text_only_models(): void
+    public function a_module_can_register_and_core_then_reports_it(): void
     {
-        $no = [
-            ['openai', 'gpt-5'], ['openai', 'gpt-4o'],
-            ['anthropic', 'claude-opus-5'],
-            ['gemini', 'gemini-2.5-pro'],
-            ['deepseek', 'deepseek-chat'], ['groq', 'llama-3.3-70b'], ['mistral', 'mistral-large'],
-        ];
-        foreach ($no as [$p, $m]) {
-            $this->assertFalse(Tiger_Agent_Provider_Factory::supportsImageGeneration($p, $m), "$p/$m should NOT draw");
-        }
-    }
+        Tiger_Agent_Provider_Factory::registerImageAdapter('openai', new FakeDrawingAdapter(['gpt-image-1']));
 
-    /**
-     * The whole reason these are two probes. Conflating them would offer a user a model that cannot
-     * do the job they picked it for, in both directions.
-     */
-    #[Test]
-    public function vision_and_generation_are_independent(): void
-    {
-        // sees, cannot draw
-        $this->assertTrue(Tiger_Agent_Provider_Factory::supportsVision('openai', 'gpt-4o'));
-        $this->assertFalse(Tiger_Agent_Provider_Factory::supportsImageGeneration('openai', 'gpt-4o'));
-        // draws, is not a chat/vision model
-        $this->assertTrue(Tiger_Agent_Provider_Factory::supportsImageGeneration('openai', 'gpt-image-1'));
-        $this->assertFalse(Tiger_Agent_Provider_Factory::supportsVision('openai', 'gpt-image-1'));
-    }
-
-    #[Test]
-    public function full_capability_needs_both_halves(): void
-    {
-        // model draws AND the adapter implements the interface
+        $this->assertSame(['openai'], Tiger_Agent_Provider_Factory::imageProviders());
+        $this->assertInstanceOf(Tiger_Agent_Provider_ImageAdapter::class,
+            Tiger_Agent_Provider_Factory::imageAdapter('openai'));
         $this->assertTrue(Tiger_Agent_Provider_Factory::canGenerateImages('openai', 'gpt-image-1'));
-        // adapter implements it, but this model is a text model
-        $this->assertFalse(Tiger_Agent_Provider_Factory::canGenerateImages('openai', 'gpt-5'));
-        // no image adapter at all, whatever the model is called
-        $this->assertFalse(Tiger_Agent_Provider_Factory::canGenerateImages('anthropic', 'claude-opus-5'));
+    }
 
-        // THE case that pins the instanceof half: OpenRouter genuinely routes to flux, so the MODEL
-        // draws — but its adapter has no image code path yet, so the full answer must still be no.
-        // Without this, dropping the adapter check entirely would go unnoticed (found by mutation).
-        $this->assertTrue(
-            Tiger_Agent_Provider_Factory::supportsImageGeneration('openrouter', 'black-forest-labs/flux-1.1-pro'),
-            'the model can draw'
-        );
-        $this->assertFalse(
-            Tiger_Agent_Provider_Factory::canGenerateImages('openrouter', 'black-forest-labs/flux-1.1-pro'),
-            'but this adapter cannot drive it, so the full capability answer is no'
-        );
+    /** Registration is not capability: the ADAPTER decides whether it can draw with a given model. */
+    #[Test]
+    public function a_registered_adapter_still_refuses_a_model_it_cannot_draw_with(): void
+    {
+        Tiger_Agent_Provider_Factory::registerImageAdapter('openai', new FakeDrawingAdapter(['gpt-image-1']));
+
+        $this->assertTrue(Tiger_Agent_Provider_Factory::canGenerateImages('openai', 'gpt-image-1'));
+        $this->assertFalse(Tiger_Agent_Provider_Factory::canGenerateImages('openai', 'gpt-5'),
+            'a text model behind a registered adapter still cannot draw');
     }
 
     #[Test]
-    public function it_lists_only_drawing_adapters(): void
+    public function registering_twice_replaces_rather_than_duplicates(): void
     {
-        $providers = Tiger_Agent_Provider_Factory::imageProviders();
-        $this->assertContains('openai', $providers);
-        $this->assertContains('gemini', $providers);
-        $this->assertNotContains('anthropic', $providers);
-        $this->assertNotContains('deepseek', $providers);
-    }
+        Tiger_Agent_Provider_Factory::registerImageAdapter('openai', new FakeDrawingAdapter(['a']));
+        Tiger_Agent_Provider_Factory::registerImageAdapter('openai', new FakeDrawingAdapter(['b']));
 
-    /* ---- OpenAI ----------------------------------------------------------------------------- */
-
-    #[Test]
-    public function openai_asks_for_base64_and_normalises_the_result(): void
-    {
-        $a = new FakeImageOpenAi();
-        FakeImageOpenAi::$response = ['data' => [
-            ['b64_json' => 'AAAA', 'revised_prompt' => 'a tidier prompt'],
-            ['b64_json' => 'BBBB'],
-        ]];
-
-        $out = $a->generateImage('a tiger', ['n' => 2, 'size' => '1024x1024'], 'gpt-image-1', 'k');
-
-        $this->assertCount(2, $out['images']);
-        $this->assertSame('image/png', $out['images'][0]['mime']);
-        $this->assertSame('AAAA', $out['images'][0]['data']);
-        // params echo what was used, including the model's own rewrite
-        $this->assertSame('gpt-image-1', $out['params']['model']);
-        $this->assertSame(2, $out['params']['n']);
-        $this->assertSame('a tidier prompt', $out['params']['revised_prompt']);
-    }
-
-    /** A URL would expire; base64 is requested so a stored image cannot rot. */
-    #[Test]
-    public function openai_requests_b64_for_dalle_and_clamps_n(): void
-    {
-        $a = new FakeImageOpenAi();
-        FakeImageOpenAi::$response = ['data' => [['b64_json' => 'AAAA']]];
-        $a->generateImage('x', ['n' => 5], 'dall-e-3', 'k');
-
-        $this->assertSame('b64_json', FakeImageOpenAi::$sent['response_format']);
-        $this->assertSame(1, FakeImageOpenAi::$sent['n'], 'dall-e-3 rejects n > 1');
-    }
-
-    /** gpt-image-* always returns base64 and rejects the field, so it must not be sent. */
-    #[Test]
-    public function openai_omits_response_format_for_gpt_image(): void
-    {
-        $a = new FakeImageOpenAi();
-        FakeImageOpenAi::$response = ['data' => [['b64_json' => 'AAAA']]];
-        $a->generateImage('x', [], 'gpt-image-1', 'k');
-
-        $this->assertArrayNotHasKey('response_format', FakeImageOpenAi::$sent);
+        $this->assertSame(['openai'], Tiger_Agent_Provider_Factory::imageProviders(), 'one entry, not two');
+        $this->assertFalse(Tiger_Agent_Provider_Factory::canGenerateImages('openai', 'a'), 'the later registration wins');
+        $this->assertTrue(Tiger_Agent_Provider_Factory::canGenerateImages('openai', 'b'));
     }
 
     #[Test]
-    public function openai_snaps_an_illegal_size(): void
+    public function provider_keys_are_case_insensitive_and_trimmed(): void
     {
-        $a = new FakeImageOpenAi();
-        FakeImageOpenAi::$response = ['data' => [['b64_json' => 'AAAA']]];
-
-        $a->generateImage('x', ['size' => '4000x1000'], 'gpt-image-1', 'k');
-        $this->assertSame('1536x1024', FakeImageOpenAi::$sent['size'], 'landscape snaps to landscape');
-
-        $a->generateImage('x', ['size' => 'enormous'], 'gpt-image-1', 'k');
-        $this->assertSame('1024x1024', FakeImageOpenAi::$sent['size'], 'nonsense falls back to square');
+        Tiger_Agent_Provider_Factory::registerImageAdapter('  OpenAI  ', new FakeDrawingAdapter(['m']));
+        $this->assertTrue(Tiger_Agent_Provider_Factory::canGenerateImages('openai', 'm'));
     }
 
     #[Test]
-    public function openai_fails_loudly_on_no_image_data(): void
+    public function an_empty_provider_key_is_ignored(): void
     {
-        $a = new FakeImageOpenAi();
-        FakeImageOpenAi::$response = ['data' => []];
-        $this->expectException(RuntimeException::class);
-        $a->generateImage('x', [], 'gpt-image-1', 'k');
+        Tiger_Agent_Provider_Factory::registerImageAdapter('   ', new FakeDrawingAdapter(['m']));
+        $this->assertSame([], Tiger_Agent_Provider_Factory::imageProviders());
     }
 
-    /* ---- Gemini ----------------------------------------------------------------------------- */
-
+    /** Vision stays core's — it describes the CHAT surface core actually uses — and stays separate. */
     #[Test]
-    public function gemini_uses_predict_for_imagen(): void
+    public function vision_is_unaffected_and_independent(): void
     {
-        $a = new FakeImageGemini();
-        FakeImageGemini::$response = ['predictions' => [
-            ['bytesBase64Encoded' => 'CCCC', 'mimeType' => 'image/jpeg'],
-        ]];
-
-        $out = $a->generateImage('a tiger', ['size' => '1920x1080', 'n' => 1], 'imagen-3.0-generate-002', 'k');
-
-        $this->assertStringContainsString(':predict', FakeImageGemini::$url);
-        $this->assertSame('16:9', FakeImageGemini::$sent['parameters']['aspectRatio'], 'WxH maps to an aspect ratio');
-        $this->assertSame('CCCC', $out['images'][0]['data']);
-        $this->assertSame('image/jpeg', $out['images'][0]['mime'], 'the provider mime is preserved');
-    }
-
-    #[Test]
-    public function gemini_uses_generate_content_for_the_chat_image_models(): void
-    {
-        $a = new FakeImageGemini();
-        FakeImageGemini::$response = ['candidates' => [
-            ['content' => ['parts' => [['inlineData' => ['data' => 'DDDD', 'mimeType' => 'image/png']]]]],
-        ]];
-
-        $out = $a->generateImage('a tiger', [], 'gemini-2.5-flash-image-preview', 'k');
-
-        $this->assertStringContainsString(':generateContent', FakeImageGemini::$url);
-        $this->assertSame('DDDD', $out['images'][0]['data']);
-    }
-
-    /** The reference rides as inlineData — the same wire shape vision input already uses. */
-    #[Test]
-    public function gemini_sends_a_reference_image_as_inline_data(): void
-    {
-        $a = new FakeImageGemini();
-        FakeImageGemini::$response = ['candidates' => [
-            ['content' => ['parts' => [['inlineData' => ['data' => 'DDDD']]]]],
-        ]];
-
-        $out = $a->generateImage('warmer', ['reference' => ['mime' => 'image/png', 'data' => 'SEED']],
-            'gemini-2.5-flash-image-preview', 'k');
-
-        $parts = FakeImageGemini::$sent['contents'][0]['parts'];
-        $this->assertSame('SEED', $parts[1]['inlineData']['data']);
-        $this->assertSame('supplied', $out['params']['reference']);
-    }
-
-    /**
-     * Imagen's predict endpoint has no reference slot. Dropping the steer silently would produce a
-     * plausible image that is not what was asked for — worse than refusing.
-     */
-    #[Test]
-    public function gemini_refuses_a_reference_imagen_cannot_honour(): void
-    {
-        $a = new FakeImageGemini();
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessageMatches('~reference image~i');
-        $a->generateImage('x', ['reference' => ['mime' => 'image/png', 'data' => 'SEED']],
-            'imagen-3.0-generate-002', 'k');
-    }
-
-    /* ---- shared ----------------------------------------------------------------------------- */
-
-    #[Test]
-    public function an_empty_prompt_is_refused_by_every_adapter(): void
-    {
-        // NOT fail() inside the try: PHPUnit's AssertionFailedError extends RuntimeException, so a
-        // `catch (RuntimeException)` swallows the failure and the test can never fail. Found by
-        // mutation testing the sibling module.
-        foreach ([new FakeImageOpenAi(), new FakeImageGemini()] as $a) {
-            $threw = false;
-            try {
-                $a->generateImage('   ', [], 'gpt-image-1', 'k');
-            } catch (RuntimeException $e) {
-                $threw = true;
-                $this->assertStringContainsString('empty', strtolower($e->getMessage()));
-            }
-            $this->assertTrue($threw, 'an empty prompt should throw: ' . get_class($a));
-        }
-    }
-
-
-    /**
-     * Aspect mapping is not cosmetic: a user who asks for a portrait image and silently gets a square
-     * one has to notice it themselves. Every branch, including the degenerate inputs.
-     */
-    #[Test]
-    public function gemini_maps_every_aspect_branch(): void
-    {
-        $cases = [
-            '1920x1080' => '16:9',   // wide
-            '1200x900'  => '4:3',    // mildly wide
-            '1080x1920' => '9:16',   // tall
-            '900x1200'  => '3:4',    // mildly tall
-            '1024x1024' => '1:1',    // square
-            'nonsense'  => '1:1',    // unparseable → square
-            '0x0'       => '1:1',    // degenerate → square, not a division by zero
-            ''          => '1:1',    // absent → square
-        ];
-        $a = new FakeImageGemini();
-        FakeImageGemini::$response = ['predictions' => [['bytesBase64Encoded' => 'X']]];
-
-        foreach ($cases as $size => $expected) {
-            $a->generateImage('x', ['size' => $size], 'imagen-3.0-generate-002', 'k');
-            $this->assertSame($expected, FakeImageGemini::$sent['parameters']['aspectRatio'],
-                "size '$size' should map to $expected");
-        }
-    }
-
-    #[Test]
-    public function openai_snaps_portrait_to_portrait(): void
-    {
-        $a = new FakeImageOpenAi();
-        FakeImageOpenAi::$response = ['data' => [['b64_json' => 'A']]];
-
-        $a->generateImage('x', ['size' => '600x1400'], 'gpt-image-1', 'k');
-        $this->assertSame('1024x1536', FakeImageOpenAi::$sent['size']);
-
-        $a->generateImage('x', ['size' => '1024x1536'], 'gpt-image-1', 'k');
-        $this->assertSame('1024x1536', FakeImageOpenAi::$sent['size'], 'an already-legal size passes through');
-    }
-
-    #[Test]
-    public function gemini_fails_loudly_on_no_image_data_on_both_paths(): void
-    {
-        $a = new FakeImageGemini();
-
-        FakeImageGemini::$response = ['predictions' => []];
-        $threw = false;
-        try { $a->generateImage('x', [], 'imagen-3.0-generate-002', 'k'); }
-        catch (RuntimeException $e) { $threw = true; $this->assertStringContainsString('no image data', $e->getMessage()); }
-        $this->assertTrue($threw, 'imagen path should throw on empty predictions');
-
-        FakeImageGemini::$response = ['candidates' => [['content' => ['parts' => [['text' => 'sorry']]]]]];
-        $threw = false;
-        try { $a->generateImage('x', [], 'gemini-2.5-flash-image-preview', 'k'); }
-        catch (RuntimeException $e) { $threw = true; $this->assertStringContainsString('no image data', $e->getMessage()); }
-        $this->assertTrue($threw, 'generateContent path should throw when the model answered with text');
-    }
-
-    #[Test]
-    public function gemini_passes_negative_prompt_and_seed_to_imagen(): void
-    {
-        $a = new FakeImageGemini();
-        FakeImageGemini::$response = ['predictions' => [['bytesBase64Encoded' => 'X']]];
-
-        $a->generateImage('a tiger', ['negative_prompt' => 'blurry', 'seed' => 42], 'imagen-3.0-generate-002', 'k');
-        $params = FakeImageGemini::$sent['parameters'];
-        $this->assertSame('blurry', $params['negativePrompt']);
-        $this->assertSame(42, $params['seed']);
-
-        // absent options must not be sent as empty values the provider would reject
-        $a->generateImage('a tiger', [], 'imagen-3.0-generate-002', 'k');
-        $this->assertArrayNotHasKey('negativePrompt', FakeImageGemini::$sent['parameters']);
-        $this->assertArrayNotHasKey('seed', FakeImageGemini::$sent['parameters']);
-    }
-
-    #[Test]
-    public function both_adapters_declare_the_interface(): void
-    {
-        $this->assertInstanceOf(Tiger_Agent_Provider_ImageAdapter::class, new Tiger_Agent_Provider_OpenAi());
-        $this->assertInstanceOf(Tiger_Agent_Provider_ImageAdapter::class, new Tiger_Agent_Provider_Gemini());
+        $this->assertTrue(Tiger_Agent_Provider_Factory::supportsVision('openai', 'gpt-4o'));
+        $this->assertFalse(Tiger_Agent_Provider_Factory::canGenerateImages('openai', 'gpt-4o'),
+            'seeing an image is not drawing one');
     }
 }
 
-/** Stubs the one cURL seam so the payload can be inspected and a canned body returned. */
-final class FakeImageOpenAi extends Tiger_Agent_Provider_OpenAi
+/** A stand-in for whatever a capability module registers. */
+final class FakeDrawingAdapter implements Tiger_Agent_Provider_Adapter, Tiger_Agent_Provider_ImageAdapter
 {
-    public static array $response = [];
-    public static array $sent     = [];
-    public static string $url     = '';
+    /** @param array<int,string> $models */
+    public function __construct(private array $models) {}
 
-    protected function _post($url, array $payload, array $headers)
+    public function complete($system, array $messages, $model, $apiKey) { return ['text' => '', 'usage' => []]; }
+    public function models($apiKey = '') { return []; }
+    public function supportsModel($model) { return in_array((string) $model, $this->models, true); }
+    public function generateImage($prompt, array $options, $model, $apiKey)
     {
-        self::$url  = $url;
-        self::$sent = $payload;
-        return self::$response;
-    }
-}
-
-final class FakeImageGemini extends Tiger_Agent_Provider_Gemini
-{
-    public static array $response = [];
-    public static array $sent     = [];
-    public static string $url     = '';
-
-    protected function _post($url, array $payload, $apiKey)
-    {
-        self::$url  = $url;
-        self::$sent = $payload;
-        return self::$response;
+        return ['images' => [['mime' => 'image/png', 'data' => base64_encode('x')]], 'params' => []];
     }
 }

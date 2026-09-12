@@ -6,6 +6,32 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.18] — 2026-09-11
+
+**The image provider layer becomes a registry.** Core no longer contains image-generation code.
+
+### Changed
+
+- **`Tiger_Agent_Provider_Factory` gained `registerImageAdapter()`**, matching the shape
+  `Tiger_Search::register()` and `Tiger_Audience::register()` already use. A capability module
+  registers its adapters at bootstrap; core holds the register and nothing else. `canGenerateImages()`
+  and `imageProviders()` now answer **from the registry**, so an install with no image module reports
+  no capability — which is the honest answer rather than a gap.
+- **`Tiger_Agent_Provider_ImageAdapter` gained `supportsModel()`.** The adapter answers for its own
+  models, which deleted the static switch of model-name cues from core. Core knew which vendor models
+  could draw, so every vendor release was a core edit; that knowledge belongs with the implementation.
+
+### Removed
+
+- **`generateImage()` from the OpenAI and Gemini adapters, and `supportsImageGeneration()` from the
+  Factory.** Core was shipping POSTs to `/images/generations` and `:predict` that core never calls, for
+  a capability only an optional module uses. The implementations moved to TigerImage as subclasses of
+  the core adapters, so transport, auth headers and the BYO key are still shared rather than
+  duplicated.
+
+Consumers of the 1.5.17 interface need TigerImage 0.2.0+. No effect on an install that does not
+generate images.
+
 ## [1.5.17] — 2026-09-11
 
 **Image generation in the provider layer.** The foundation for TigerImage — no behaviour changes for

@@ -176,75 +176,76 @@ class Tiger_Agent_Provider_Factory
         }
     }
 
+    /* ---- image generation: a REGISTRY, not a const (TIGER-103) --------------------------------
+     * Core declares the contract and holds the register; it ships no image-generation code and knows
+     * nothing about which models can draw. A module providing the capability registers its adapters at
+     * bootstrap — the same shape Tiger_Search::register() and Tiger_Audience::register() already use.
+     * ------------------------------------------------------------------------------------------ */
+
+    /** @var array<string,Tiger_Agent_Provider_ImageAdapter> provider key => adapter */
+    protected static $_imageAdapters = [];
+
     /**
-     * Can this provider+model GENERATE an image? (TIGER-96)
+     * Register an image-capable adapter for a provider.
      *
-     * Sibling to supportsVision(), and deliberately independent of it. Vision READS images,
-     * generation WRITES them, and the overlap is partial: gpt-4o sees but does not draw, gpt-image-1
-     * draws but is not a chat model. Conflating them would offer users models that cannot do the job
-     * they picked them for.
+     * Called from a module's Bootstrap. Re-registering the same provider replaces it, so a module
+     * update or a second call is idempotent rather than an error.
      *
-     * This answers only "can the model draw". The adapter must ALSO implement
-     * Tiger_Agent_Provider_ImageAdapter — see canGenerateImages(), which asks both questions.
-     *
-     * Named-model cues rather than a live capability call, matching supportsVision(): vendors do not
-     * expose a machine-readable "can draw" flag, and a wrong answer here costs a greyed-out option,
-     * not a failure.
-     *
-     * @param  string $provider provider key
-     * @param  string $model    model id
-     * @return bool
+     * @param  string                            $provider provider key, e.g. 'openai'
+     * @param  Tiger_Agent_Provider_ImageAdapter $adapter
+     * @return void
      */
-    public static function supportsImageGeneration($provider, $model)
+    public static function registerImageAdapter($provider, Tiger_Agent_Provider_ImageAdapter $adapter)
     {
-        $m = strtolower((string) $model);
-        switch ((string) $provider) {
-            case 'openai':                                      // the images endpoint: gpt-image-* and dall-e-*
-                return strpos($m, 'gpt-image') !== false || strpos($m, 'dall-e') !== false;
-            case 'gemini':                                      // imagen-*, and the *-image-* generation variants
-                return strpos($m, 'imagen') !== false
-                       || (bool) preg_match('~gemini-[^ ]*image~', $m);
-            case 'grok':                                        // xAI's image models are named for it
-                return strpos($m, 'image') !== false;
-            case 'openrouter':                                  // route id names its upstream — reuse the same cues
-                return (bool) preg_match('~gpt-image|dall-e|imagen|flux|stable-diffusion|sdxl~', $m);
-            case 'anthropic':                                   // no image generation model today
-            case 'deepseek':
-            case 'groq':
-            case 'mistral':
-            default:
-                return false;
-        }
+        $key = strtolower(trim((string) $provider));
+        if ($key === '') { return; }
+        self::$_imageAdapters[$key] = $adapter;
+    }
+
+    /** Forget every registered image adapter — tests, and a module being deactivated mid-request. */
+    public static function clearImageAdapters()
+    {
+        self::$_imageAdapters = [];
     }
 
     /**
-     * The full capability answer: this provider can draw with this model, AND its adapter knows how.
+     * The registered image adapter for a provider, or null when none is.
      *
-     * Both halves are required and neither implies the other — an adapter may implement the image
-     * interface while the selected model is a text model, and a drawing model is useless behind an
-     * adapter that has no code path to call it. Callers should use THIS rather than either half.
+     * @param  string $provider
+     * @return Tiger_Agent_Provider_ImageAdapter|null
+     */
+    public static function imageAdapter($provider)
+    {
+        return self::$_imageAdapters[strtolower(trim((string) $provider))] ?? null;
+    }
+
+    /**
+     * Can this provider+model generate an image right now?
      *
-     * @param  string $provider provider key
-     * @param  string $model    model id
+     * Both halves: an adapter must be registered AND able to draw with that model. Neither implies the
+     * other — a text model behind a registered adapter still cannot draw.
+     *
+     * @param  string $provider
+     * @param  string $model
      * @return bool
      */
     public static function canGenerateImages($provider, $model)
     {
-        if (!self::supportsImageGeneration($provider, $model)) { return false; }
-        return self::make($provider) instanceof Tiger_Agent_Provider_ImageAdapter;
+        $adapter = self::imageAdapter($provider);
+        return $adapter !== null && $adapter->supportsModel($model);
     }
 
     /**
-     * Every configured provider that can draw, for a UI that has to offer a choice.
+     * Providers with a registered image adapter, for a UI that has to offer a choice.
      *
-     * @return array<int,string> provider keys whose adapter implements the image interface
+     * Empty on an install with no image module — which is the honest answer, not a gap.
+     *
+     * @return array<int,string>
      */
     public static function imageProviders()
     {
-        $out = [];
-        foreach (array_keys(self::PROVIDERS) as $key) {
-            if (self::make($key) instanceof Tiger_Agent_Provider_ImageAdapter) { $out[] = $key; }
-        }
-        return $out;
+        $keys = array_keys(self::$_imageAdapters);
+        sort($keys);
+        return $keys;
     }
 }
