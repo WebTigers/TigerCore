@@ -149,6 +149,7 @@ return [
     'system.modules.danger'          => 'DANGER !',
     'system.modules.close'           => 'Fermer',
     'system.modules.delete_warning'  => 'Supprimer ce module est une action destructrice qui détruira des données. Vous <u>NE POUVEZ PAS ANNULER</u> cette action !',
+    'system.modules.delete_includes'  => 'Tout disparaît : ses tables de base de données et les données qu\'elles contiennent, ses réglages, ses fichiers, et tout ce qu\'il a stocké dans <code>storage/</code>.',
     'system.modules.delete_type_pre' => 'Veuillez taper',
     'system.modules.delete_type_post' => 'pour supprimer ce module.',
     'system.modules.delete_placeholder' => 'Tapez le nom du module pour confirmer',

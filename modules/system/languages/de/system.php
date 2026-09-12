@@ -149,6 +149,7 @@ return [
     'system.modules.danger'          => 'GEFAHR!',
     'system.modules.close'           => 'Schließen',
     'system.modules.delete_warning'  => 'Das Löschen dieses Moduls ist eine destruktive Aktion, die Daten zerstört. Sie können diese Aktion <u>NICHT RÜCKGÄNGIG MACHEN</u>!',
+    'system.modules.delete_includes'  => 'Alles wird entfernt: seine Datenbanktabellen samt Inhalt, seine Einstellungen, seine Dateien und alles, was es unter <code>storage/</code> abgelegt hat.',
     'system.modules.delete_type_pre' => 'Bitte tippen Sie',
     'system.modules.delete_type_post' => 'um dieses Modul zu löschen.',
     'system.modules.delete_placeholder' => 'Tippen Sie den Modulnamen zur Bestätigung',

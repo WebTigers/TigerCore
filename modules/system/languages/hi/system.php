@@ -149,6 +149,7 @@ return [
     'system.modules.danger'          => 'खतरा!',
     'system.modules.close'           => 'बंद करें',
     'system.modules.delete_warning'  => 'इस मॉड्यूल को हटाना एक विनाशकारी क्रिया है जो डेटा नष्ट कर देगी। आप इस क्रिया को <u>पूर्ववत नहीं कर सकते</u>!',
+    'system.modules.delete_includes'  => 'सब कुछ हट जाएगा: इसकी डेटाबेस टेबल और उनमें मौजूद डेटा, इसकी सेटिंग्स, इसकी फ़ाइलें, और <code>storage/</code> में संग्रहीत सब कुछ।',
     'system.modules.delete_type_pre' => 'कृपया टाइप करें',
     'system.modules.delete_type_post' => 'इस मॉड्यूल को हटाने के लिए।',
     'system.modules.delete_placeholder' => 'पुष्टि के लिए मॉड्यूल का नाम टाइप करें',

@@ -149,6 +149,7 @@ return [
     'system.modules.danger'          => 'PERIGO!',
     'system.modules.close'           => 'Fechar',
     'system.modules.delete_warning'  => 'Excluir este módulo é uma ação destrutiva que destruirá dados. Você <u>NÃO PODE DESFAZER</u> esta ação!',
+    'system.modules.delete_includes'  => 'Tudo será removido: suas tabelas de banco de dados e os dados nelas, suas configurações, seus arquivos e tudo o que tiver armazenado em <code>storage/</code>.',
     'system.modules.delete_type_pre' => 'Digite',
     'system.modules.delete_type_post' => 'para excluir este módulo.',
     'system.modules.delete_placeholder' => 'Digite o nome do módulo para confirmar',
