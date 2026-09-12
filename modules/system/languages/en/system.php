@@ -151,6 +151,7 @@ return [
     'system.modules.danger'          => 'DANGER!',
     'system.modules.close'           => 'Close',
     'system.modules.delete_warning'  => 'Deleting this module is a destructive action that will destroy data. You <u>CANNOT UNDO</u> this action!',
+    'system.modules.delete_includes'  => 'Everything goes: its database tables and the data in them, its settings, its files, and anything it stored under <code>storage/</code>.',
     'system.modules.delete_type_pre' => 'Please type',
     'system.modules.delete_type_post' => 'to delete this module.',
     'system.modules.delete_placeholder' => 'Type the module name to confirm',

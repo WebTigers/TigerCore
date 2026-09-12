@@ -255,6 +255,18 @@ A module is **purely additive** — it plugs in by convention, touching no Core 
 - **Permissions** — resources are class names (`Module_Controller_*`, `Module_Service_*`); every
   access goes through `Zend_Acl::isAllowed($role, $resource, $privilege)`.
 - **Views/i18n/routes** — same additive pattern.
+- **Persistent files** — a module that stores user files puts them in **`storage/<slug>/`**, never
+  inside its own directory. An update renames the module directory to a backup and then deletes the
+  backup, so anything kept inside it is destroyed on a routine update, silently. `storage/media`,
+  `storage/backups` and `storage/tigerimage` all follow this. **Purge deletes `storage/<slug>/`**
+  along with the module's tables, config rows, assets and files, so "remove everything, cannot be
+  undone" is true. A module storing anywhere else leaves orphans behind that promise.
+- **A custom class namespace** — ZF1 ships eight resource types (`Model_DbTable`, `Model_Mapper`,
+  `Form`, `Model`, `Plugin`, `Service`, `View_Helper`, `View_Filter`). Anything else is declared in
+  the module Bootstrap with `addResourceType()`. `Widget` and `Adapter` are the names already in use
+  here — reuse one rather than coining a synonym. **Register class names, never instances**: a module
+  Bootstrap that throws is fatal during `Resource_Modules` and takes down every page, not just that
+  module's.
 
 **Activation is zero-infra.** A module **never touches infrastructure** — no Apache/nginx config,
 no filesystem outside its own dir, no DNS. It works the moment it's activated, on any install.

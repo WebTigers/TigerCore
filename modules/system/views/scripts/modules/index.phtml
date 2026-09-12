@@ -138,6 +138,9 @@ $typeIcon = static function ($t) {
             </div>
             <div class="modal-body">
                 <p class="fw-semibold text-danger-emphasis"><?= $this->t('system.modules.delete_warning') ?></p>
+                <?php // Name what goes. Agreeing to remove "the module" is not obviously agreeing to
+                      // remove gigabytes of generated images under storage/ (TIGER-101). ?>
+                <p class="text-body-secondary"><?= $this->t('system.modules.delete_includes') ?></p>
                 <p class="mb-2"><?= $this->t('system.modules.delete_type_pre') ?> <code id="mod-delete-token" class="text-danger-emphasis fw-bold"></code> <?= $this->t('system.modules.delete_type_post') ?></p>
                 <input type="text" id="mod-delete-input" class="form-control" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="<?= $this->escape($this->t('system.modules.delete_placeholder')) ?>">
                 <div id="mod-delete-feedback" class="mt-2"></div>

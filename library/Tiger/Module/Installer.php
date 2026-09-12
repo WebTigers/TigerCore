@@ -308,6 +308,59 @@ class Tiger_Module_Installer
 
         // 4) Delete the files.
         self::_rrmdir($target);
+
+        // 5) Delete the module's OWN storage (TIGER-101).
+        //    A module cannot keep user data inside its own directory — an update renames that
+        //    directory away and deletes the backup — so the convention is `storage/<slug>/`
+        //    (`storage/media`, `storage/backups`, `storage/tigerimage`). Without this, a user who
+        //    typed the confirmation and was told this removes everything still had gigabytes of
+        //    their data on disk. "Cannot be undone" has to mean it.
+        self::_purgeStorage($slug);
+    }
+
+    /**
+     * The convention-located storage directory a module owns, or null when it has none.
+     *
+     * Anchored at APPLICATION_ROOT and confined to `storage/`. The slug reaching here has already
+     * passed _validSlug(), whose pattern admits no dots or slashes — but this resolves and re-checks
+     * anyway, because the function deletes a tree and "the caller validated it" is how that goes
+     * wrong. A symlinked storage dir pointing outside is refused for the same reason.
+     *
+     * @param  string $slug a validated module slug
+     * @return string|null an absolute path inside storage/, or null if absent or suspicious
+     */
+    protected static function storageDir($slug)
+    {
+        $base = defined('APPLICATION_ROOT') ? rtrim(APPLICATION_ROOT, '/') : rtrim(getcwd(), '/');
+        $root = realpath($base . '/storage');
+        if ($root === false) { return null; }
+
+        $dir = realpath($root . '/' . $slug);
+        if ($dir === false) { return null; }                       // nothing stored — nothing to do
+
+        // Containment: the resolved path must sit strictly INSIDE storage/, so neither a crafted slug
+        // nor a symlink can make this delete something else.
+        if (strpos($dir, $root . DIRECTORY_SEPARATOR) !== 0) { return null; }
+        return $dir;
+    }
+
+    /**
+     * Remove a module's storage tree. Best-effort: failing to delete data must not leave the module
+     * half-removed, and the row and files are already gone by this point.
+     *
+     * @param  string $slug a validated module slug
+     * @return bool true if a tree was found and removal was attempted
+     */
+    protected static function _purgeStorage($slug)
+    {
+        $dir = self::storageDir($slug);
+        if ($dir === null) { return false; }
+        try {
+            self::_rrmdir($dir);
+        } catch (Throwable $e) {
+            return false;
+        }
+        return true;
     }
 
     /**
