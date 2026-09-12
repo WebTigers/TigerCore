@@ -6,6 +6,35 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.20] — 2026-09-12
+
+**Deleting a module now removes the data it owns.**
+
+### Fixed
+
+- **Module purge left `storage/<slug>/` behind.** The delete dialog says the action destroys data and
+  cannot be undone; it wasn't true. `purge()` rolled back migrations, hard-deleted scoped config and
+  option rows, unpublished assets and removed the module directory — but reached nothing under
+  `storage/`, which is the only safe place a module *can* keep user files (an update renames the
+  module directory to a backup and then deletes it). A user who typed the confirmation still had
+  their files on disk. Purge now removes that tree too.
+
+  Guarded in layers: `_validSlug()` already rejects dots and slashes and purge already refuses any
+  non-app module, so a bundled module like `media` can never reach this and `storage/media` is
+  unreachable by construction — and `storageDir()` still resolves with `realpath` and re-checks
+  containment, because "the caller validated it" is how a recursive delete escapes. A symlink out of
+  `storage/` is refused. Removal is best-effort, so failing to delete data cannot leave a module
+  half-removed.
+
+### Changed
+
+- **The delete confirmation names what it deletes** — tables and their data, settings, files, and
+  anything under `storage/`. Agreeing to remove "the module" is not obviously agreeing to remove
+  gigabytes of generated images. Six locales.
+- **`ARCHITECTURE.md` §6** documents both module conventions this surfaced: persistent files belong in
+  `storage/<slug>/`, and a custom class namespace is declared with `addResourceType()` reusing an
+  existing type name (`Widget`, `Adapter`) with class names registered rather than instances.
+
 ## [1.5.19] — 2026-09-12
 
 **The image-adapter registry becomes lazy.**
