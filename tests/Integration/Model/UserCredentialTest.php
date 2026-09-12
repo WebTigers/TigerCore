@@ -111,6 +111,52 @@ final class UserCredentialTest extends IntegrationTestCase
         $this->assertNull($this->cred->verifyToken($minted['token']), 'a revoked (soft-deleted) token never verifies again');
     }
 
+    /**
+     * Verification reports WHICH credential was presented (TIGER-102).
+     *
+     * verifyToken() answers "whose token is this", which is all authentication needed — so the
+     * credential itself was discarded the moment the user was resolved. Anything attributed to the
+     * TOKEN rather than the user (a spend ceiling, a rate limit, an audit trail) was therefore
+     * unenforceable: a scoped token handed to an agent could spend the whole organisation's budget,
+     * because by the time a service ran nothing said which key it was.
+     */
+    #[Test]
+    public function verification_reports_which_credential_was_used(): void
+    {
+        $user   = $this->makeUser();
+        $minted = $this->cred->createToken($user);
+
+        $v = $this->cred->verifyTokenCredential($minted['token']);
+        $this->assertIsArray($v);
+        $this->assertSame($user, $v['user_id']);
+        $this->assertSame($minted['credential_id'], $v['credential_id'], 'the token names its own credential');
+        $this->assertSame($minted['prefix'], $v['prefix'], 'and its human-readable handle');
+
+        // The SECRET must never come back — this value ends up on an identity that may be logged.
+        $this->assertSame(['user_id', 'credential_id', 'prefix'], array_keys($v),
+            'no secret, no hash, nothing beyond attribution');
+        foreach ($v as $field) {
+            $this->assertStringNotContainsString($minted['token'], (string) $field);
+        }
+    }
+
+    #[Test]
+    public function a_bad_token_reports_no_credential_and_verifyToken_still_answers_the_old_question(): void
+    {
+        $user   = $this->makeUser();
+        $minted = $this->cred->createToken($user);
+
+        $this->assertNull($this->cred->verifyTokenCredential('not-a-token'));
+        $this->assertNull($this->cred->verifyTokenCredential('tgr_deadbeef0000_' . str_repeat('0', 48)));
+
+        // back-compat: the original contract is unchanged for every existing caller
+        $this->assertSame($user, $this->cred->verifyToken($minted['token']));
+
+        $this->cred->revokeToken($user, $minted['credential_id']);
+        $this->assertNull($this->cred->verifyTokenCredential($minted['token']),
+            'a revoked token names no credential either');
+    }
+
     #[Test]
     public function a_recovery_code_redeems_once_then_burns(): void
     {

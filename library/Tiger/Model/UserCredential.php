@@ -174,6 +174,28 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
      */
     public function verifyToken($plain)
     {
+        $v = $this->verifyTokenCredential($plain);
+        return $v === null ? null : $v['user_id'];
+    }
+
+    /**
+     * Verify a token and report WHICH credential it was (TIGER-102).
+     *
+     * verifyToken() answers "whose token is this", which is all authentication needs. But a limit
+     * attributed to the TOKEN — a spend ceiling, a rate limit, an audit trail — needs to know which
+     * key was presented, and that was being discarded the moment the user was resolved. A scoped
+     * token handed to an agent could therefore spend the whole organisation's budget, because by the
+     * time a service ran, nothing said which key it was.
+     *
+     * Returns the credential_id and its PREFIX (the human-readable handle already shown in
+     * /mcp/admin). Never the secret: this value is destined for an identity object that may be
+     * logged, cached, or returned, and a secret has no business travelling that far.
+     *
+     * @param  string $plain the Bearer token
+     * @return array{user_id:string,credential_id:string,prefix:string}|null
+     */
+    public function verifyTokenCredential($plain)
+    {
         if (!preg_match('/^tgr_([a-f0-9]{12})_[a-f0-9]{48}$/', (string) $plain, $m)) {
             return null;
         }
@@ -185,7 +207,11 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
         }
         $this->update(['last_used_at' => $this->_now()],
             $this->getAdapter()->quoteInto('credential_id = ?', $row->credential_id));
-        return $row->user_id;
+        return [
+            'user_id'       => (string) $row->user_id,
+            'credential_id' => (string) $row->credential_id,
+            'prefix'        => (string) $row->identifier,
+        ];
     }
 
     /**

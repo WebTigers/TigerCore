@@ -1030,18 +1030,31 @@ class Tiger_Service_Authentication
      */
     public function identityFromToken($plain)
     {
-        $userId = (new Tiger_Model_UserCredential())->verifyToken((string) $plain);
-        if ($userId === null) {
+        $verified = (new Tiger_Model_UserCredential())->verifyTokenCredential((string) $plain);
+        if ($verified === null) {
             return null;
         }
+        $userId = $verified['user_id'];
         // activeById(), not findById(): findById excludes soft-deleted users but returns SUSPENDED
         // ones, so a valid token kept working after the account was disabled. A token is a credential
         // for an account — if the account cannot authorize, neither can the token.
         $user = (new Tiger_Model_User())->activeById($userId);
-        return $user ? $this->_buildIdentity($user) : null;
+        return $user ? $this->_buildIdentity($user, null, $verified) : null;
     }
 
-    protected function _buildIdentity($user, $orgId = null)
+    /**
+     * Build the identity object.
+     *
+     * `$credential` is the token this call authenticated with, or null for a session (TIGER-102).
+     * Both keys are ALWAYS set — null rather than absent — so "was this a token?" is answerable
+     * instead of being inferred from a missing property, which is the kind of inference that quietly
+     * becomes wrong when someone adds a third auth path.
+     *
+     * @param  object     $user
+     * @param  string|null $orgId
+     * @param  array|null  $credential {credential_id, prefix} from verifyTokenCredential(), or null
+     */
+    protected function _buildIdentity($user, $orgId = null, ?array $credential = null)
     {
         $ouModel = new Tiger_Model_OrgUser();
 
@@ -1077,6 +1090,10 @@ class Tiger_Service_Authentication
             'org_id'   => $activeOrgId,
             'org_name' => $orgName,
             'role'     => $role,   // the role IN the active org (or the base role)
+            // Which credential authenticated this call, or null for a session (TIGER-102). The
+            // prefix is the handle /mcp/admin shows; the SECRET is never carried here.
+            'credential_id'     => $credential['credential_id'] ?? null,
+            'credential_prefix' => $credential['prefix'] ?? null,
         ];
     }
 
