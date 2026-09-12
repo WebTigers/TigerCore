@@ -182,41 +182,75 @@ class Tiger_Agent_Provider_Factory
      * bootstrap — the same shape Tiger_Search::register() and Tiger_Audience::register() already use.
      * ------------------------------------------------------------------------------------------ */
 
-    /** @var array<string,Tiger_Agent_Provider_ImageAdapter> provider key => adapter */
+    /** @var array<string,string|callable|Tiger_Agent_Provider_ImageAdapter> provider key => how to get one */
     protected static $_imageAdapters = [];
+
+    /** @var array<string,Tiger_Agent_Provider_ImageAdapter> memoised instances */
+    protected static $_imageAdapterInstances = [];
 
     /**
      * Register an image-capable adapter for a provider.
      *
-     * Called from a module's Bootstrap. Re-registering the same provider replaces it, so a module
-     * update or a second call is idempotent rather than an error.
+     * LAZY BY DESIGN. Pass a CLASS NAME or a factory closure; an instance is accepted but is the
+     * least good option. Registration happens in a module Bootstrap, and a Bootstrap that throws is
+     * fatal during Resource_Modules — it takes down every page, not just that module's. Naming a
+     * class instead of constructing one means nothing has to be loadable at registration time, so an
+     * autoload-timing problem degrades to "cannot draw" instead of to a dead site. It also stops
+     * every request paying to construct adapters it may never use.
      *
-     * @param  string                            $provider provider key, e.g. 'openai'
-     * @param  Tiger_Agent_Provider_ImageAdapter $adapter
+     * Re-registering a provider replaces it, so a second call is idempotent rather than an error.
+     *
+     * @param  string                                          $provider provider key, e.g. 'openai'
+     * @param  string|callable|Tiger_Agent_Provider_ImageAdapter $adapter class name (preferred),
+     *                                                                    factory, or instance
      * @return void
      */
-    public static function registerImageAdapter($provider, Tiger_Agent_Provider_ImageAdapter $adapter)
+    public static function registerImageAdapter($provider, $adapter)
     {
         $key = strtolower(trim((string) $provider));
-        if ($key === '') { return; }
+        if ($key === '' || $adapter === null) { return; }
         self::$_imageAdapters[$key] = $adapter;
+        unset(self::$_imageAdapterInstances[$key]);   // a re-register invalidates the memo
     }
 
     /** Forget every registered image adapter — tests, and a module being deactivated mid-request. */
     public static function clearImageAdapters()
     {
-        self::$_imageAdapters = [];
+        self::$_imageAdapters         = [];
+        self::$_imageAdapterInstances = [];
     }
 
     /**
-     * The registered image adapter for a provider, or null when none is.
+     * The image adapter for a provider, constructed on first use, or null when none is registered.
+     *
+     * Resolution never throws: a class name that does not exist, a factory that fails, or something
+     * that turns out not to implement the contract all yield null. The caller's question is "can this
+     * draw", and the honest answer to a broken registration is no — not an exception from a getter.
      *
      * @param  string $provider
      * @return Tiger_Agent_Provider_ImageAdapter|null
      */
     public static function imageAdapter($provider)
     {
-        return self::$_imageAdapters[strtolower(trim((string) $provider))] ?? null;
+        $key = strtolower(trim((string) $provider));
+        if (isset(self::$_imageAdapterInstances[$key])) { return self::$_imageAdapterInstances[$key]; }
+        if (!isset(self::$_imageAdapters[$key]))        { return null; }
+
+        $spec = self::$_imageAdapters[$key];
+        try {
+            if (is_string($spec)) {
+                $adapter = class_exists($spec) ? new $spec() : null;
+            } elseif (is_callable($spec)) {
+                $adapter = $spec();
+            } else {
+                $adapter = $spec;
+            }
+        } catch (Throwable $e) {
+            $adapter = null;
+        }
+
+        if (!$adapter instanceof Tiger_Agent_Provider_ImageAdapter) { return null; }
+        return self::$_imageAdapterInstances[$key] = $adapter;
     }
 
     /**
@@ -244,7 +278,12 @@ class Tiger_Agent_Provider_Factory
      */
     public static function imageProviders()
     {
-        $keys = array_keys(self::$_imageAdapters);
+        $keys = [];
+        foreach (array_keys(self::$_imageAdapters) as $key) {
+            // Resolve, so a registration naming a class that does not exist is not advertised as a
+            // capability. Listing something that cannot be used is worse than listing nothing.
+            if (self::imageAdapter($key) !== null) { $keys[] = $key; }
+        }
         sort($keys);
         return $keys;
     }
