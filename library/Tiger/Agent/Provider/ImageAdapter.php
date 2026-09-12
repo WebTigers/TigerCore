@@ -10,11 +10,17 @@
  * also means "can this adapter draw?" is answerable with `instanceof` — a stronger, compile-time-ish
  * signal than a method every adapter must stub and that might return null.
  *
+ * CORE DECLARES IT; A MODULE IMPLEMENTS IT. Nothing in tiger-core generates an image. Implementations
+ * are registered at runtime by whichever module provides the capability (TigerImage today), through
+ * Tiger_Agent_Provider_Factory::registerImageAdapter(). An install without such a module simply has no
+ * image adapters, and every capability answer is honestly false — rather than core shipping HTTP calls
+ * for a feature it does not have.
+ *
  * Capability is TWO questions, both of which must be yes:
- *   1. Does the ADAPTER implement this interface?            → `instanceof`
- *   2. Can the chosen MODEL generate images?                 → Factory::supportsImageGeneration()
- * An adapter may implement this while the model selected in it cannot draw (OpenAI serves both
- * kinds), so neither check substitutes for the other.
+ *   1. Is an adapter REGISTERED for this provider?           → Factory::imageAdapter()
+ *   2. Can it draw with the chosen MODEL?                    → $adapter->supportsModel()
+ * An adapter may be registered while the model selected in it cannot draw (OpenAI serves both kinds),
+ * so neither check substitutes for the other. Factory::canGenerateImages() asks both.
  *
  * This is independent of vision. Vision READS images, generation WRITES them, and a model may have
  * either without the other — so `supportsVision()` and `supportsImageGeneration()` are separate
@@ -24,6 +30,22 @@
  */
 interface Tiger_Agent_Provider_ImageAdapter
 {
+    /**
+     * Can this adapter draw with this model?
+     *
+     * THE ADAPTER ANSWERS FOR ITS OWN MODELS. Core used to carry a static switch of model-name cues,
+     * which meant every vendor release was a core edit and core knew things about products it does not
+     * integrate with. Asking the adapter is both looser and more accurate — it is the only party that
+     * knows what it can call.
+     *
+     * Independent of vision. Vision READS images, generation WRITES them, and a model may have either
+     * without the other, so this is never a proxy for Factory::supportsVision().
+     *
+     * @param  string $model the model id
+     * @return bool
+     */
+    public function supportsModel($model);
+
     /**
      * Generate one or more images.
      *
