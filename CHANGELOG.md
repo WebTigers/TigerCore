@@ -6,6 +6,35 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.21] — 2026-09-12
+
+**An identity now says which credential authenticated it.**
+
+### Added
+
+- **`Tiger_Model_UserCredential::verifyTokenCredential()`** returns the matched credential's `credential_id`
+  and `prefix` alongside the `user_id`, where `verifyToken()` returned only the user. A scoped MCP token is
+  handed to an agent precisely so its reach can be limited — module allow-list, read-only flag, org scoping
+  — but any limit attributed to the **token** rather than the user was unenforceable, because
+  `identityFromToken()` resolved the credential to a user and then discarded it. By the time a service ran,
+  nothing said which key was presented. Concretely: an install-time image-generation token could spend an
+  organisation's entire monthly budget, because the org-wide cap was the only ceiling that could exist. The
+  same gap blocked per-token rate limits and any audit trail asking "which key did this".
+
+  The **prefix**, never the secret. The prefix is the human-readable handle `/mcp/admin` already displays,
+  so an operator can match it to a key they issued; this value travels onto an identity that may be logged,
+  cached or returned, and a secret has no business going that far. A test asserts no property of an identity
+  contains the token.
+
+- **`credential_id` and `credential_prefix` on the identity**, set by `Tiger_Service_Authentication`. Both are
+  **always present** — `null` for a session login rather than absent. "Was this a token?" must be answerable
+  by reading a property, not inferred from a missing one; absence-as-signal is what quietly becomes wrong the
+  day a third auth path appears.
+
+`verifyToken()` is unchanged for its existing caller and delegates to the new method, so nothing that reads
+only a user id needs to change.
+
+
 ## [1.5.20] — 2026-09-12
 
 **Deleting a module now removes the data it owns.**
