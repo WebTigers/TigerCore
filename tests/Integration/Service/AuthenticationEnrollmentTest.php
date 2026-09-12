@@ -261,6 +261,60 @@ final class AuthenticationEnrollmentTest extends IntegrationTestCase
         $this->assertFalse($this->auth->isAuthenticated(), 'token resolution never establishes a session');
     }
 
+    /**
+     * The identity says WHICH token authenticated it (TIGER-102).
+     *
+     * Without this, any limit attributed to a token rather than a user is unenforceable — a scoped
+     * MCP token handed to an agent could spend an organisation's whole budget, because by the time a
+     * service ran, nothing recorded which key was presented.
+     */
+    #[Test]
+    public function a_token_identity_names_the_credential_it_authenticated_with(): void
+    {
+        $uid   = (new Tiger_Model_User())->insert(['email' => $this->email(), 'status' => 'active']);
+        $orgId = (new Tiger_Model_Org())->insert(['name' => 'Attr Org', 'slug' => 'org-' . bin2hex(random_bytes(6))]);
+        (new Tiger_Model_OrgUser())->insert(['org_id' => $orgId, 'user_id' => $uid, 'role' => 'admin', 'status' => 'active']);
+        $minted = (new Tiger_Model_UserCredential())->createToken($uid);
+
+        $identity = $this->auth->identityFromToken($minted['token']);
+
+        $this->assertSame($minted['credential_id'], $identity->credential_id,
+            'a per-token limit needs to know which token this is');
+        $this->assertSame($minted['prefix'], $identity->credential_prefix,
+            'the handle /mcp/admin shows, so a human can match it to a key they issued');
+
+        // The secret must never ride on an identity — it may be logged, cached or returned.
+        foreach (get_object_vars($identity) as $field) {
+            $this->assertStringNotContainsString($minted['token'], (string) $field,
+                'no property of an identity may contain the token itself');
+        }
+    }
+
+    /**
+     * A session identity sets the fields to NULL rather than omitting them.
+     *
+     * "Was this a token?" must be answerable by reading a property, not inferred from its absence —
+     * absence-as-signal is what quietly becomes wrong the day a third auth path appears.
+     */
+    #[Test]
+    public function a_session_identity_has_the_credential_fields_present_and_null(): void
+    {
+        $email = $this->email();
+        $uid   = (new Tiger_Model_User())->insert(['email' => $email, 'status' => 'active']);
+        (new Tiger_Model_UserCredential())->setPassword($uid, 'correct-horse-battery');
+        $orgId = (new Tiger_Model_Org())->insert(['name' => 'Sess Org', 'slug' => 'org-' . bin2hex(random_bytes(6))]);
+        (new Tiger_Model_OrgUser())->insert(['org_id' => $orgId, 'user_id' => $uid, 'role' => 'admin', 'status' => 'active']);
+
+        $this->auth->login($email, 'correct-horse-battery');
+        $identity = Zend_Auth::getInstance()->getIdentity();
+
+        $vars = get_object_vars($identity);
+        $this->assertArrayHasKey('credential_id', $vars, 'present, so it can be read rather than inferred');
+        $this->assertArrayHasKey('credential_prefix', $vars);
+        $this->assertNull($identity->credential_id, 'a session is not a token');
+        $this->assertNull($identity->credential_prefix);
+    }
+
     #[Test]
     public function a_token_stops_working_once_the_account_is_suspended(): void
     {
