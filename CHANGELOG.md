@@ -6,6 +6,22 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.19] — 2026-09-12
+
+**The image-adapter registry becomes lazy.**
+
+### Changed
+
+- **`registerImageAdapter()` now takes a class name or a factory**, not an instance. Registration
+  happens in a module Bootstrap, and a Bootstrap that throws is **fatal during `Resource_Modules`** —
+  it takes down every page, not just that module's. Naming a class means nothing has to be loadable
+  at registration time, so an autoload-timing problem degrades to "cannot draw" rather than to a dead
+  site, and a request that never generates an image never constructs an adapter. An instance is still
+  accepted, so 1.5.18 registrations keep working.
+- **Resolution never throws.** A class name that does not exist, a factory that fails, or something
+  that does not implement the contract all resolve to `null`; `imageProviders()` lists only
+  registrations that actually resolve, so a broken one is never advertised as a capability.
+
 ## [1.5.18] — 2026-09-11
 
 **The image provider layer becomes a registry.** Core no longer contains image-generation code.

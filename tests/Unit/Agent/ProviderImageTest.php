@@ -96,6 +96,74 @@ final class ProviderImageTest extends UnitTestCase
         $this->assertSame([], Tiger_Agent_Provider_Factory::imageProviders());
     }
 
+    /* ---- lazy registration (TIGER-103 follow-up) -------------------------------------------- */
+
+    /**
+     * The property that stops a registration mistake taking down a site: a Bootstrap names a class,
+     * it is not constructed until something asks. A Bootstrap that throws is fatal during
+     * Resource_Modules — every page, not just that module's.
+     */
+    #[Test]
+    public function a_class_name_is_not_constructed_until_asked(): void
+    {
+        CountingAdapter::$constructed = 0;
+        Tiger_Agent_Provider_Factory::registerImageAdapter('openai', CountingAdapter::class);
+        $this->assertSame(0, CountingAdapter::$constructed, 'registering must not construct');
+
+        Tiger_Agent_Provider_Factory::imageAdapter('openai');
+        $this->assertSame(1, CountingAdapter::$constructed, 'first use constructs');
+
+        Tiger_Agent_Provider_Factory::imageAdapter('openai');
+        Tiger_Agent_Provider_Factory::canGenerateImages('openai', 'x');
+        $this->assertSame(1, CountingAdapter::$constructed, 'and is memoised thereafter');
+    }
+
+    #[Test]
+    public function a_factory_closure_is_accepted(): void
+    {
+        Tiger_Agent_Provider_Factory::registerImageAdapter('openai',
+            static fn() => new FakeDrawingAdapter(['from-factory']));
+        $this->assertTrue(Tiger_Agent_Provider_Factory::canGenerateImages('openai', 'from-factory'));
+    }
+
+    /** An already-built instance still works — the least good option, but not a break. */
+    #[Test]
+    public function an_instance_is_still_accepted(): void
+    {
+        Tiger_Agent_Provider_Factory::registerImageAdapter('openai', new FakeDrawingAdapter(['m']));
+        $this->assertTrue(Tiger_Agent_Provider_Factory::canGenerateImages('openai', 'm'));
+    }
+
+    /**
+     * A broken registration degrades to "cannot draw". Resolution must never throw from a getter —
+     * the caller asked a yes/no question.
+     */
+    #[Test]
+    public function a_broken_registration_yields_null_not_an_exception(): void
+    {
+        Tiger_Agent_Provider_Factory::registerImageAdapter('a', 'No_Such_Class_Anywhere');
+        Tiger_Agent_Provider_Factory::registerImageAdapter('b', static function () { throw new \RuntimeException('boom'); });
+        Tiger_Agent_Provider_Factory::registerImageAdapter('c', new \stdClass());
+
+        foreach (['a', 'b', 'c'] as $k) {
+            $this->assertNull(Tiger_Agent_Provider_Factory::imageAdapter($k), "registration '$k' should resolve to null");
+            $this->assertFalse(Tiger_Agent_Provider_Factory::canGenerateImages($k, 'anything'));
+        }
+        $this->assertSame([], Tiger_Agent_Provider_Factory::imageProviders(),
+            'a registration that cannot resolve must not be advertised as a capability');
+    }
+
+    #[Test]
+    public function re_registering_invalidates_the_memo(): void
+    {
+        Tiger_Agent_Provider_Factory::registerImageAdapter('openai', new FakeDrawingAdapter(['old']));
+        $this->assertTrue(Tiger_Agent_Provider_Factory::canGenerateImages('openai', 'old'));
+
+        Tiger_Agent_Provider_Factory::registerImageAdapter('openai', new FakeDrawingAdapter(['new']));
+        $this->assertFalse(Tiger_Agent_Provider_Factory::canGenerateImages('openai', 'old'), 'the memo must not survive');
+        $this->assertTrue(Tiger_Agent_Provider_Factory::canGenerateImages('openai', 'new'));
+    }
+
     /** Vision stays core's — it describes the CHAT surface core actually uses — and stays separate. */
     #[Test]
     public function vision_is_unaffected_and_independent(): void
@@ -103,6 +171,20 @@ final class ProviderImageTest extends UnitTestCase
         $this->assertTrue(Tiger_Agent_Provider_Factory::supportsVision('openai', 'gpt-4o'));
         $this->assertFalse(Tiger_Agent_Provider_Factory::canGenerateImages('openai', 'gpt-4o'),
             'seeing an image is not drawing one');
+    }
+}
+
+/** Counts constructions, to prove registration is lazy. */
+final class CountingAdapter implements Tiger_Agent_Provider_Adapter, Tiger_Agent_Provider_ImageAdapter
+{
+    public static int $constructed = 0;
+    public function __construct() { self::$constructed++; }
+    public function complete($system, array $messages, $model, $apiKey) { return ['text' => '', 'usage' => []]; }
+    public function models($apiKey = '') { return []; }
+    public function supportsModel($model) { return true; }
+    public function generateImage($prompt, array $options, $model, $apiKey)
+    {
+        return ['images' => [['mime' => 'image/png', 'data' => base64_encode('x')]], 'params' => []];
     }
 }
 
