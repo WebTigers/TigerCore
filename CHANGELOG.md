@@ -6,6 +6,10 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.6.1] — 2026-09-13
+
+**Updates you can see coming, and rows that tell you what happened.**
+
 ### Added
 
 - **A pending-updates badge on Modules › Updates** (TIGER-112). A red count on the menu item, and on
