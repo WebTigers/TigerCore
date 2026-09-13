@@ -6,6 +6,25 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **Footer legal links no longer depend on a config key somebody remembers to set.** Publish a page at
+  `privacy` or `terms` and the footer links it; publish nothing and nothing renders, which is what a
+  customer install with no legal pages needs. `tiger.footer.privacy_url` / `.terms_url` still override,
+  for a site whose policies live on another domain or under different slugs.
+
+  Written because webtigers.com ran seven weeks with a published privacy policy that nothing linked to.
+  The pages and the config were separate deploy steps, one happened and the other didn't, and an unset
+  config is indistinguishable from "this site deliberately shows no legal links" — no error, no warning,
+  nothing a test can catch. It surfaced only because Google's OAuth verification requires the policy to
+  be linked from the home page.
+
+  The lookup runs only when the config is unset, is memoized per request, resolves through
+  `Tiger_Model_Page::resolveBySlug()` so a draft or an archived page is never linked, and is fail-soft:
+  no database means no link, never a 500 in a footer. New `Tiger_View_Helper_LegalLinks`; the PUMA
+  footer partial now asks it rather than reading config itself, because a theme has no business
+  querying the database.
+
 ## [1.5.21] — 2026-09-12
 
 **An identity now says which credential authenticated it.**

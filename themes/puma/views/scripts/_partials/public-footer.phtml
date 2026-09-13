@@ -6,19 +6,12 @@
  */
 $tigerVersion = $this->tigerVersion ?? (class_exists('Tiger_Version') ? Tiger_Version::VERSION : '');
 
-// Optional legal links, driven by the config tier (live-override) so they survive core updates
-// and never render on an install that hasn't set them: tiger.footer.privacy_url / .terms_url.
-$footerCfg = static function (string $key): ?string {
-    if (!Zend_Registry::isRegistered('Zend_Config')) { return null; }
-    $node = Zend_Registry::get('Zend_Config')->get('tiger');
-    foreach (['footer', $key] as $seg) {
-        if (!($node instanceof Zend_Config)) { return null; }
-        $node = $node->get($seg);
-    }
-    return (is_string($node) && $node !== '') ? $node : null;
-};
-$privacyUrl = $footerCfg('privacy_url');
-$termsUrl   = $footerCfg('terms_url');
+// Legal links. tiger.footer.privacy_url / .terms_url override; otherwise they resolve from a
+// published page at /privacy or /terms. The theme asks, the helper decides — a theme has no
+// business querying the database. See Tiger_View_Helper_LegalLinks (TIGER-119).
+$legal      = $this->legalLinks();
+$privacyUrl = $legal['privacy'];
+$termsUrl   = $legal['terms'];
 ?>
 <footer class="border-top mt-5 py-4" style="background: var(--bs-tertiary-bg);">
     <div class="container d-flex flex-wrap justify-content-between align-items-center gap-2 text-secondary">

@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**201 classes** across **33 capabilities** · **20 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**202 classes** across **33 capabilities** · **20 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -270,6 +270,7 @@
 - **Tiger_View_Helper_CodeInject** `@api` — emit Tiger Code's client tier into the page.  ·  `library/Tiger/View/Helper/CodeInject.php`
 - **Tiger_View_Helper_FormRecaptcha** `@api` — renders the Google reCAPTCHA widget.  ·  `library/Tiger/View/Helper/FormRecaptcha.php`
 - **Tiger_View_Helper_I18n** `@api` — hand the page's JS ONLY the localized strings it needs, WITHOUT an inline `<script>` blob.  ·  `library/Tiger/View/Helper/I18n.php`
+- **Tiger_View_Helper_LegalLinks** `@api` — the footer's privacy/terms links, without anyone having to know a config key exists (TIGER-119).  ·  `library/Tiger/View/Helper/LegalLinks.php`
 - **Tiger_View_Helper_LocaleView** `@api` — render the LOCALE variant of a view when one ships, else the default.  ·  `library/Tiger/View/Helper/LocaleView.php`
 - **Tiger_View_Helper_MediaField** `@api` — a form field that picks media via TigerMediaPicker.  ·  `library/Tiger/View/Helper/MediaField.php`
 - **Tiger_View_Helper_Menu** `@api` — render a custom menu in a view: `<?= $this->menu('primary') ?>`.  ·  `library/Tiger/View/Helper/Menu.php`
