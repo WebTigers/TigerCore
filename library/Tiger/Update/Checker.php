@@ -20,6 +20,8 @@ class Tiger_Update_Checker
     const CORE_PACKAGE  = 'webtigers/tiger-core';
     const PACKAGIST     = 'https://repo.packagist.org/p2/%s.json';
     const CACHE_TTL     = 10800;   // 3h
+    const PENDING_FILE  = 'pending.json';   // the badge's summary — see pendingCached()
+    const PENDING_TTL   = 172800;  // 2 days
     const CHANGELOG     = 'CHANGELOG.md';   // the Keep-a-Changelog file every Tiger repo maintains
 
     /**
@@ -37,7 +39,41 @@ class Tiger_Update_Checker
         foreach (self::modules($refresh) as $m) {
             $out[] = $m;
         }
+        self::_writePending($out);
         return $out;
+    }
+
+    /**
+     * How many updates the LAST CHECK found — without checking (TIGER-112).
+     *
+     * The admin menu badge calls this on every page render, so it must never reach the network:
+     * `available()` would, whenever the per-item cache is cold or past its 3h TTL, and a slow or
+     * unreachable GitHub would then hang every admin page. This reads one summary file that every
+     * full check writes, and answers 0 when there has never been a check — no badge, not a fetch.
+     *
+     * The summary keeps for PENDING_TTL (2 days), longer than the per-item cache: yesterday's count is
+     * a better badge than none, and a scheduled check refreshes it daily. Past that, it clears rather
+     * than showing a stale number forever if the scheduler has died.
+     *
+     * @return int
+     */
+    public static function pendingCached()
+    {
+        $file = self::_cacheDir() . '/' . self::PENDING_FILE;
+        if (!is_file($file) || (time() - filemtime($file)) > self::PENDING_TTL) {
+            return 0;
+        }
+        $data = json_decode((string) @file_get_contents($file), true);
+        return is_array($data) ? max(0, (int) ($data['count'] ?? 0)) : 0;
+    }
+
+    /** Record the pending count from a full check, for pendingCached(). Best-effort. */
+    protected static function _writePending(array $all)
+    {
+        $count = 0;
+        foreach ($all as $u) { if (!empty($u['update'])) { $count++; } }
+        @mkdir(self::_cacheDir(), 0775, true);
+        @file_put_contents(self::_cacheDir() . '/' . self::PENDING_FILE, json_encode(['count' => $count, 'at' => time()]));
     }
 
     /**

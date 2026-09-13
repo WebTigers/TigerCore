@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**206 classes** across **33 capabilities** · **21 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**207 classes** across **33 capabilities** · **21 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -251,6 +251,7 @@
 
 ### Admin shell & dashboard
 
+- **Tiger_Admin_Badge** `@api` — resolve a registry item's `badge` to a count, fail-soft.  ·  `library/Tiger/Admin/Badge.php`
 - **Tiger_Admin_Header** `@api` — the registry for action slots in the admin's TOP HEADER BAR.  ·  `library/Tiger/Admin/Header.php`
 - **Tiger_Admin_Nav** `@api` — the admin sidebar's TOP-LEVEL nav registry (the module hook).  ·  `library/Tiger/Admin/Nav.php`
 - **Tiger_Admin_Settings** `@api` — the admin "Settings" registry (the module hook).  ·  `library/Tiger/Admin/Settings.php`

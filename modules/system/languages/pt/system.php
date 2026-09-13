@@ -401,6 +401,11 @@ return [
     'system.js.drop_label' => 'Solte seu módulo .zip',
     'system.js.drop_sublabel' => 'descompactado na sua pasta de módulos',
     'system.nav.label' => 'Sistema',
+    // Row states on the Updates screen (TIGER-113)
+    'system.updates.state_done'    => 'Concluído',
+    'system.updates.state_failed'  => 'Falhou',
+    'system.updates.state_manual'  => 'Manual',
+    'system.updates.state_current' => 'Agora atualizado',
     'system.nav.updates' => 'Atualizações',
     'system.nav.acl' => 'Simulador de ACL',
     'system.nav.logs' => 'Registros',

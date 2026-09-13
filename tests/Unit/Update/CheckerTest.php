@@ -93,6 +93,64 @@ final class CheckerTest extends UnitTestCase
         $this->assertNull(UpdateCheckerProbe::sliceChangelog($empty, '2.0.0'));
     }
 
+    // ---- pendingCached : the menu badge's read (TIGER-112) -----------------------
+
+    private function pendingFile(): string
+    {
+        return $this->cacheDir() . '/' . Tiger_Update_Checker::PENDING_FILE;
+    }
+
+    /** No check has ever run: no badge — and, critically, no fetch either. */
+    #[Test]
+    public function pendingCachedIsZeroWhenNoCheckHasRun(): void
+    {
+        @unlink($this->pendingFile());
+        $this->assertSame(0, Tiger_Update_Checker::pendingCached());
+    }
+
+    /** A full check records how many it found; the badge reads that back. */
+    #[Test]
+    public function aFullCheckRecordsThePendingCountForTheBadge(): void
+    {
+        $this->wrote[] = $this->pendingFile();
+        UpdateCheckerProbe::writePending([
+            ['slug' => 'a', 'update' => true],
+            ['slug' => 'b', 'update' => false],
+            ['slug' => 'c', 'update' => true],
+        ]);
+        $this->assertSame(2, Tiger_Update_Checker::pendingCached(), 'two of three had an update');
+    }
+
+    /** A dead scheduler must not leave a stale number on the menu forever. */
+    #[Test]
+    public function aStalePendingSummaryClearsRatherThanLingering(): void
+    {
+        $this->wrote[] = $this->pendingFile();
+        UpdateCheckerProbe::writePending([['slug' => 'a', 'update' => true]]);
+        touch($this->pendingFile(), time() - Tiger_Update_Checker::PENDING_TTL - 60);
+        $this->assertSame(0, Tiger_Update_Checker::pendingCached());
+    }
+
+    /** Yesterday's count is a better badge than none: the summary outlives the 3h per-item cache. */
+    #[Test]
+    public function thePendingSummaryOutlivesThePerItemCache(): void
+    {
+        $this->wrote[] = $this->pendingFile();
+        UpdateCheckerProbe::writePending([['slug' => 'a', 'update' => true]]);
+        touch($this->pendingFile(), time() - Tiger_Update_Checker::CACHE_TTL - 3600);   // 4h old: per-item cache would be stale
+        $this->assertSame(1, Tiger_Update_Checker::pendingCached(), 'still shown a day later');
+    }
+
+    /** Garbage on disk is no badge, never an exception on every admin page. */
+    #[Test]
+    public function aCorruptPendingSummaryIsZero(): void
+    {
+        @mkdir($this->cacheDir(), 0775, true);
+        file_put_contents($this->pendingFile(), '{not json');
+        $this->wrote[] = $this->pendingFile();
+        $this->assertSame(0, Tiger_Update_Checker::pendingCached());
+    }
+
     // ---- _cached : read-through ------------------------------------------------
 
     #[Test]
@@ -207,6 +265,7 @@ final class UpdateCheckerProbe extends Tiger_Update_Checker
     public static function cacheDir(): string { return self::_cacheDir(); }
     public static function sliceChangelog($md, $version) { return self::_sliceChangelog($md, $version); }
     public static function cached($key, $refresh, callable $fn) { return self::_cached($key, $refresh, $fn); }
+    public static function writePending(array $all): void { self::_writePending($all); }
 
     public static function descriptor($type, $name, $slug, $installed, $latest, $method, $repository, $ref): array
     {

@@ -403,6 +403,11 @@ return [
     'system.js.drop_label' => 'Drop your module .zip',
     'system.js.drop_sublabel' => 'unpacked into your modules folder',
     'system.nav.label' => 'System',
+    // Row states on the Updates screen (TIGER-113)
+    'system.updates.state_done'    => 'Done',
+    'system.updates.state_failed'  => 'Failed',
+    'system.updates.state_manual'  => 'Manual',
+    'system.updates.state_current' => 'Now current',
     'system.nav.updates' => 'Updates',
     'system.nav.acl' => 'ACL Simulator',
     'system.nav.logs' => 'Logs',

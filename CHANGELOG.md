@@ -6,6 +6,33 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+### Added
+
+- **A pending-updates badge on Modules › Updates** (TIGER-112). A red count on the menu item, and on
+  the collapsed Modules parent so it is seen before the submenu is opened. It reads a summary the last
+  full check wrote — `Tiger_Update_Checker::pendingCached()` — and **never checks for itself**: the
+  menu renders on every admin page, and an unreachable GitHub must not hang it. A new daily job,
+  `system.update_check`, keeps that summary warm; the summary keeps for two days so a missed run does
+  not blank it, and clears after that so a dead scheduler cannot leave a stale number up forever.
+  ACL-gated with the item: a role that cannot see Updates is not told there are any.
+
+- **`Tiger_Admin_Nav` items take a `badge`**, as `Tiger_Admin_Header` items do; a parent shows the sum
+  of its visible children's. The resolver is shared (`Tiger_Admin_Badge`) and fail-soft.
+
+### Changed
+
+- **The Updates screen settles each row into a readable state after applying** (TIGER-113). Done: the
+  checkbox becomes a green check, the Update button is *removed* (a disabled one still reads as
+  something to do), the row dims, and the version line shows what is now installed as current.
+  Failed: a red mark, and the checkbox and button stay so it can be retried — a failed update that
+  looked untouched was indistinguishable from one that had not been tried. Manual advisories are not
+  marked done, because they are not. When the last row completes, the all-clear card appears without a
+  reload, and the sidebar badge is corrected in place.
+
+- The Updates screen's script moved out of the view into `modules/system/assets/js/system.updates.js`,
+  and its inline `style=` attributes into `admin.css` — both house rules. The three row-state strings
+  it hardcoded in English are keyed and translated.
+
 ## [1.6.0] — 2026-09-13
 
 **In-app messaging: the platform can now tell operators things.**
