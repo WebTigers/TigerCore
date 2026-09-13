@@ -1,0 +1,49 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * Compose (TIGER-114). Recipients are members of MY org, found through the service's picker so the
+ * same "active member of this org" rule applies here as at send time. Submitting is a /api call.
+ */
+$this->i18n([
+    'searchHint'   => 'message.compose.search_hint',
+    'noMatches'    => 'message.compose.no_matches',
+    'remove'       => 'message.compose.remove_recipient',
+    'sent'         => 'message.sent',
+    'sendFailed'   => 'message.error.send_failed',
+    'sending'      => 'message.compose.sending',
+]);
+$replyTo = (string) $this->replyTo;
+?>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1"><i class="fa-solid fa-pen-to-square me-2"></i><?= $this->escape($this->t('message.compose.title')) ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->escape($this->t('message.compose.subtitle')) ?></p>
+    </div>
+    <a href="/message" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left me-2"></i><?= $this->escape($this->t('message.nav.label')) ?></a>
+</div>
+
+<div id="msg-feedback"></div>
+
+<form id="msg-compose" class="card" autocomplete="off" data-reply-to="<?= $this->escape($replyTo) ?>">
+    <div class="card-body">
+        <label class="form-label" for="msg-to"><?= $this->escape($this->t('message.compose.to')) ?></label>
+        <div class="d-flex flex-wrap gap-1 mb-2" id="msg-chips"></div>
+        <input class="form-control" id="msg-to" type="text" placeholder="<?= $this->escape($this->t('message.compose.search_hint')) ?>"
+               aria-describedby="msg-to-help" role="combobox" aria-expanded="false" aria-controls="msg-suggest" aria-autocomplete="list">
+        <div class="list-group position-absolute shadow d-none" id="msg-suggest" role="listbox"></div>
+        <div class="form-text" id="msg-to-help"><?= $this->escape($this->t('message.compose.to_help')) ?></div>
+
+        <label class="form-label mt-3" for="msg-subject"><?= $this->escape($this->t('message.compose.subject')) ?></label>
+        <input class="form-control" id="msg-subject" name="subject" type="text" maxlength="191" required>
+
+        <label class="form-label mt-3" for="msg-body"><?= $this->escape($this->t('message.compose.body')) ?></label>
+        <textarea class="form-control" id="msg-body" name="body" rows="8" required></textarea>
+    </div>
+    <div class="card-footer d-flex justify-content-end gap-2">
+        <a href="/message" class="btn btn-secondary"><?= $this->escape($this->t('message.action.cancel')) ?></a>
+        <button type="submit" class="btn btn-primary" id="msg-send"><i class="fa-solid fa-paper-plane me-2"></i><?= $this->escape($this->t('message.action.send')) ?></button>
+    </div>
+</form>
+
+<script src="<?= $this->escape($this->asset('/_modules/message/js/message.compose.js')) ?>" defer></script>

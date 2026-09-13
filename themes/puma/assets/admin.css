@@ -419,3 +419,12 @@ body.avatar-drop-active::after {
 .iti__country:hover { background-color: var(--bs-tertiary-bg) !important; }
 .iti__selected-country:hover,
 .iti__selected-country-primary:hover { background-color: var(--bs-tertiary-bg) !important; }
+
+/* ---- header-bar action badges (Tiger_Admin_Header `badge`) -----------------------------------
+ * The red count pill on a header icon — unread messages, pending updates. Positioned on the icon's
+ * top-right corner; the old demo bell did this with an inline style, which the house rule forbids. */
+.admin-header-badge {
+    top: .35rem;
+    left: calc(100% - .35rem);
+    font-size: .6rem;
+}

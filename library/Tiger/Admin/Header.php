@@ -19,7 +19,13 @@
  *       'href'     => '/support',
  *       'resource' => 'Support_IndexController',     // ACL resource — hides if denied
  *       'order'    => 50,                            // sort weight (lower first)
+ *       'badge'    => fn () => $unreadCount,         // optional: int or callable → red count pill; 0 = none
  *   ]);
+ *
+ * `badge` is a CALLABLE rather than a number because the header renders on every admin page: the
+ * count must be computed at render, for the current user, and only if the item survived the ACL
+ * filter — a callable defers all three. It must be cheap (an indexed count, a cached read); never a
+ * network call. A callable that throws renders no badge rather than breaking the header.
  *
  * @api
  */
@@ -42,7 +48,7 @@ class Tiger_Admin_Header
         if (empty($item['key']) || empty($item['label']) || empty($item['href'])) {
             return;
         }
-        self::$_items[$item['key']] = $item + ['icon' => 'fa-circle', 'resource' => null, 'order' => 100];
+        self::$_items[$item['key']] = $item + ['icon' => 'fa-circle', 'resource' => null, 'order' => 100, 'badge' => null];
     }
 
     /**
@@ -65,8 +71,27 @@ class Tiger_Admin_Header
                 'icon'     => $p['icon'],
                 'resource' => $p['resource'],
                 'order'    => $p['order'],
+                'badge'    => $p['badge'] ?? null,
             ];
         }, $items);
+    }
+
+    /**
+     * Resolve an item's badge to a count for THIS render, fail-soft.
+     *
+     * @param  array $item an entry from items()
+     * @return int   0 means "no badge"
+     */
+    public static function badgeCount(array $item)
+    {
+        $b = $item['badge'] ?? null;
+        if ($b === null) { return 0; }
+        try {
+            $n = is_callable($b) ? $b() : $b;
+            return max(0, (int) $n);
+        } catch (Throwable $e) {
+            return 0;   // a badge must never be the reason the header fails to render
+        }
     }
 
     /** Reset the registry (tests). @return void */
