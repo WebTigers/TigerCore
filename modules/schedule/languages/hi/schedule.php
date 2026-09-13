@@ -29,9 +29,9 @@ return [
     'schedule.day.saturday'  => 'शनिवार',
 
     // Cadence summaries (%s placeholders: frequency, day/time)
-    'schedule.summary.daily'   => '%s को %s बजे',
-    'schedule.summary.weekly'  => '%s, %s को %s बजे',
-    'schedule.summary.monthly' => '%s, %s तारीख को %s बजे',
+    'schedule.summary.daily' => '%1$s को %2$s बजे',
+    'schedule.summary.weekly' => '%1$s, %2$s को %3$s बजे',
+    'schedule.summary.monthly' => '%1$s, %2$s तारीख को %3$s बजे',
 
     // Run outcome badges
     'schedule.outcome.ok'      => 'सफल',

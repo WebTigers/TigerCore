@@ -43,6 +43,22 @@ jobs:
       - name: Unit suite
         run: composer test:unit
 
+  # The client half of localization. Plain node + assert, no package.json: Tiger.t() is one function
+  # every module's JavaScript goes through, and a test that needs no toolchain is one that still runs.
+  javascript:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Syntax-check the theme's browser assets
+        run: |
+          for f in themes/puma/assets/js/*.js; do node --check "$f"; done
+      - name: Tiger.t() contract
+        run: node tests/js/tiger.i18n.test.js
+
   # Needs a database — one PHP version is enough; the schema, not the interpreter, is under test.
   integration:
     runs-on: ubuntu-latest

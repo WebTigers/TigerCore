@@ -132,7 +132,7 @@ return [
     'cms.page.help_layout'            => 'Chave de um layout para envolver esta página. Em branco = layout do tema.',
     'cms.page.card_seo'               => 'SEO e cabeçalho',
     'cms.page.label_seo_title'        => 'Título SEO',
-    'cms.page.help_seo_title'         => 'Substitui %s e %s nesta página. Em branco = o título da página.',
+    'cms.page.help_seo_title' => 'Substitui %1$s e %2$s nesta página. Em branco = o título da página.',
     'cms.page.label_og_image'         => 'Imagem de compartilhamento',
     'cms.page.help_og_image'          => 'A %s usada quando esta página é compartilhada. Em branco = o padrão do site.',
     'cms.page.choose_image'           => 'Escolher imagem',
@@ -140,7 +140,7 @@ return [
     'cms.page.help_meta_description'  => 'Trecho do resultado de busca e %s (≈160 caracteres).',
     'cms.page.label_head_html'        => 'HTML do cabeçalho',
     'cms.page.head_html_hint'         => '— é executado em %s',
-    'cms.page.help_head_html'         => '%s / %s / %s / %s brutos, exibidos tal como estão. Escritos pelo administrador (confiável).',
+    'cms.page.help_head_html' => '%1$s / %2$s / %3$s / %4$s brutos, exibidos tal como estão. Escritos pelo administrador (confiável).',
     'cms.page.label_body_scripts'     => 'Scripts do corpo',
     'cms.page.body_scripts_hint'      => '— é executado antes de %s',
     'cms.page.help_body_scripts'      => '%s bruto, carregado no final da página.',
@@ -164,7 +164,7 @@ return [
 
     // ---- Menus list ----
     'cms.menu.list_heading'  => 'Menus',
-    'cms.menu.list_subtitle' => 'Menus de navegação personalizados — reutilizáveis por qualquer tema via %s, o shortcode %s, ou %s.',
+    'cms.menu.list_subtitle' => 'Menus de navegação personalizados — reutilizáveis por qualquer tema via %1$s, o shortcode %2$s, ou %3$s.',
     'cms.menu.new_menu'      => 'Novo menu',
     'cms.menu.col_menu'      => 'Menu',
     'cms.menu.col_source'    => 'Origem',
@@ -173,7 +173,7 @@ return [
     // ---- Menu builder ----
     'cms.menu.new_heading'          => 'Novo menu',
     'cms.menu.edit_heading'         => 'Menu: %s',
-    'cms.menu.builder_subtitle'     => 'Renderize em qualquer lugar com %s ou %s.',
+    'cms.menu.builder_subtitle' => 'Renderize em qualquer lugar com %1$s ou %2$s.',
     'cms.menu.all_menus'            => 'Todos os menus',
     'cms.menu.theme_alert'          => 'Este menu vem do %s ativo. Edite-o e sua primeira alteração será salva como uma substituição que substitui a versão do tema — até então, o menu do tema permanece intacto.',
     'cms.menu.theme_word'           => 'tema',

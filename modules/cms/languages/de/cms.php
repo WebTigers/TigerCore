@@ -132,7 +132,7 @@ return [
     'cms.page.help_layout'            => 'Schlüssel eines Layouts, das diese Seite umschließt. Leer = Theme-Layout.',
     'cms.page.card_seo'               => 'SEO &amp; Head',
     'cms.page.label_seo_title'        => 'SEO-Titel',
-    'cms.page.help_seo_title'         => 'Überschreibt %s und %s für diese Seite. Leer = der Seitentitel.',
+    'cms.page.help_seo_title' => 'Überschreibt %1$s und %2$s für diese Seite. Leer = der Seitentitel.',
     'cms.page.label_og_image'         => 'Vorschaubild',
     'cms.page.help_og_image'          => 'Das %s, das beim Teilen dieser Seite verwendet wird. Leer = Standard der Website.',
     'cms.page.choose_image'           => 'Bild auswählen',
@@ -140,7 +140,7 @@ return [
     'cms.page.help_meta_description'  => 'Suchergebnis-Snippet &amp; %s (≈160 Zeichen).',
     'cms.page.label_head_html'        => 'Head-HTML',
     'cms.page.head_html_hint'         => '— läuft in %s',
-    'cms.page.help_head_html'         => 'Rohes %s / %s / %s / %s, wortgetreu ausgegeben. Vom Administrator verfasst (vertrauenswürdig).',
+    'cms.page.help_head_html' => 'Rohes %1$s / %2$s / %3$s / %4$s, wortgetreu ausgegeben. Vom Administrator verfasst (vertrauenswürdig).',
     'cms.page.label_body_scripts'     => 'Body-Skripte',
     'cms.page.body_scripts_hint'      => '— läuft vor %s',
     'cms.page.help_body_scripts'      => 'Rohes %s, geladen am Ende der Seite.',
@@ -164,7 +164,7 @@ return [
 
     // ---- Menus list ----
     'cms.menu.list_heading'  => 'Menüs',
-    'cms.menu.list_subtitle' => 'Benutzerdefinierte Navigationsmenüs — von jedem Theme wiederverwendbar über %s, den %s-Shortcode oder %s.',
+    'cms.menu.list_subtitle' => 'Benutzerdefinierte Navigationsmenüs — von jedem Theme wiederverwendbar über %1$s, den %2$s-Shortcode oder %3$s.',
     'cms.menu.new_menu'      => 'Neues Menü',
     'cms.menu.col_menu'      => 'Menü',
     'cms.menu.col_source'    => 'Quelle',
@@ -173,7 +173,7 @@ return [
     // ---- Menu builder ----
     'cms.menu.new_heading'          => 'Neues Menü',
     'cms.menu.edit_heading'         => 'Menü: %s',
-    'cms.menu.builder_subtitle'     => 'Überall rendern mit %s oder %s.',
+    'cms.menu.builder_subtitle' => 'Überall rendern mit %1$s oder %2$s.',
     'cms.menu.all_menus'            => 'Alle Menüs',
     'cms.menu.theme_alert'          => 'Dieses Menü stammt vom aktiven %s. Bearbeiten Sie es, und Ihre erste Änderung wird als Überschreibung gespeichert, die die Version des Themes ersetzt — bis dahin bleibt das Theme-Menü unberührt.',
     'cms.menu.theme_word'           => 'Theme',

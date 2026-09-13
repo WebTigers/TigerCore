@@ -132,7 +132,7 @@ return [
     'cms.page.help_layout'            => 'Clave de una plantilla que envuelve esta página. En blanco = plantilla del tema.',
     'cms.page.card_seo'               => 'SEO y encabezado',
     'cms.page.label_seo_title'        => 'Título SEO',
-    'cms.page.help_seo_title'         => 'Sustituye %s y %s en esta página. En blanco = el título de la página.',
+    'cms.page.help_seo_title' => 'Sustituye %1$s y %2$s en esta página. En blanco = el título de la página.',
     'cms.page.label_og_image'         => 'Imagen para compartir',
     'cms.page.help_og_image'          => 'La %s que se usa al compartir esta página. En blanco = la predeterminada del sitio.',
     'cms.page.choose_image'           => 'Elegir imagen',
@@ -140,7 +140,7 @@ return [
     'cms.page.help_meta_description'  => 'Fragmento de resultado de búsqueda y %s (≈160 caracteres).',
     'cms.page.label_head_html'        => 'HTML de encabezado',
     'cms.page.head_html_hint'         => '— se ejecuta en %s',
-    'cms.page.help_head_html'         => '%s / %s / %s / %s sin procesar, se muestran tal cual. Escritos por el administrador (de confianza).',
+    'cms.page.help_head_html' => '%1$s / %2$s / %3$s / %4$s sin procesar, se muestran tal cual. Escritos por el administrador (de confianza).',
     'cms.page.label_body_scripts'     => 'Scripts del cuerpo',
     'cms.page.body_scripts_hint'      => '— se ejecuta antes de %s',
     'cms.page.help_body_scripts'      => '%s sin procesar, cargado al final de la página.',
@@ -164,7 +164,7 @@ return [
 
     // ---- Menus list ----
     'cms.menu.list_heading'  => 'Menús',
-    'cms.menu.list_subtitle' => 'Menús de navegación personalizados — reutilizables por cualquier tema mediante %s, el shortcode %s, o %s.',
+    'cms.menu.list_subtitle' => 'Menús de navegación personalizados — reutilizables por cualquier tema mediante %1$s, el shortcode %2$s, o %3$s.',
     'cms.menu.new_menu'      => 'Nuevo menú',
     'cms.menu.col_menu'      => 'Menú',
     'cms.menu.col_source'    => 'Origen',
@@ -173,7 +173,7 @@ return [
     // ---- Menu builder ----
     'cms.menu.new_heading'          => 'Nuevo menú',
     'cms.menu.edit_heading'         => 'Menú: %s',
-    'cms.menu.builder_subtitle'     => 'Represéntalo en cualquier lugar con %s o %s.',
+    'cms.menu.builder_subtitle' => 'Represéntalo en cualquier lugar con %1$s o %2$s.',
     'cms.menu.all_menus'            => 'Todos los menús',
     'cms.menu.theme_alert'          => 'Este menú proviene del %s activo. Edítalo y tu primer cambio se guardará como una sustitución que reemplaza la versión del tema — hasta entonces el menú del tema queda intacto.',
     'cms.menu.theme_word'           => 'tema',
