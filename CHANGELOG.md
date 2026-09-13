@@ -6,6 +6,10 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.6.0] — 2026-09-13
+
+**In-app messaging: the platform can now tell operators things.**
+
 ### Added
 
 - **The `message` module — in-app messaging (TIGER-114).** App → admins is the primary surface and is
