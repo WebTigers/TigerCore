@@ -29,9 +29,9 @@ return [
     'schedule.day.saturday'  => 'Saturday',
 
     // Cadence summaries (%s placeholders: frequency, day/time)
-    'schedule.summary.daily'   => '%s at %s',
-    'schedule.summary.weekly'  => '%s on %s at %s',
-    'schedule.summary.monthly' => '%s on day %s at %s',
+    'schedule.summary.daily' => '%1$s at %2$s',
+    'schedule.summary.weekly' => '%1$s on %2$s at %3$s',
+    'schedule.summary.monthly' => '%1$s on day %2$s at %3$s',
 
     // Run outcome badges
     'schedule.outcome.ok'      => 'Success',

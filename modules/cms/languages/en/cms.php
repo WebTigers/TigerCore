@@ -134,7 +134,7 @@ return [
     'cms.page.help_layout'            => 'Key of a layout to wrap this page. Blank = theme layout.',
     'cms.page.card_seo'               => 'SEO & head',
     'cms.page.label_seo_title'        => 'SEO title',
-    'cms.page.help_seo_title'         => 'Overrides %s and %s for this page. Blank = the page title.',
+    'cms.page.help_seo_title' => 'Overrides %1$s and %2$s for this page. Blank = the page title.',
     'cms.page.label_og_image'         => 'Share image',
     'cms.page.help_og_image'          => 'The %s used when this page is shared. Blank = the site default.',
     'cms.page.choose_image'           => 'Choose image',
@@ -142,7 +142,7 @@ return [
     'cms.page.help_meta_description'  => 'Search-result snippet & %s (≈160 chars).',
     'cms.page.label_head_html'        => 'Head HTML',
     'cms.page.head_html_hint'         => '— runs in %s',
-    'cms.page.help_head_html'         => 'Raw %s / %s / %s / %s, output verbatim. Admin-authored (trusted).',
+    'cms.page.help_head_html' => 'Raw %1$s / %2$s / %3$s / %4$s, output verbatim. Admin-authored (trusted).',
     'cms.page.label_body_scripts'     => 'Body scripts',
     'cms.page.body_scripts_hint'      => '— runs before %s',
     'cms.page.help_body_scripts'      => 'Raw %s, loaded at the end of the page.',
@@ -166,7 +166,7 @@ return [
 
     // ---- Menus list ----
     'cms.menu.list_heading'  => 'Menus',
-    'cms.menu.list_subtitle' => 'Custom navigation menus — reusable by any theme via %s, the %s shortcode, or %s.',
+    'cms.menu.list_subtitle' => 'Custom navigation menus — reusable by any theme via %1$s, the %2$s shortcode, or %3$s.',
     'cms.menu.new_menu'      => 'New Menu',
     'cms.menu.col_menu'      => 'Menu',
     'cms.menu.col_source'    => 'Source',
@@ -175,7 +175,7 @@ return [
     // ---- Menu builder ----
     'cms.menu.new_heading'          => 'New Menu',
     'cms.menu.edit_heading'         => 'Menu: %s',
-    'cms.menu.builder_subtitle'     => 'Render anywhere with %s or %s.',
+    'cms.menu.builder_subtitle' => 'Render anywhere with %1$s or %2$s.',
     'cms.menu.all_menus'            => 'All menus',
     'cms.menu.theme_alert'          => 'This menu comes from the active %s. Edit it and your first change is saved as an override that replaces the theme\'s version — until then the theme menu is untouched.',
     'cms.menu.theme_word'           => 'theme',

@@ -8,6 +8,29 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ### Changed
 
+- **Strings that take two or more arguments now use numbered placeholders** (`%1$s`, `%2$d`), so a
+  translator can reorder them. The whole tree was sequential `%s` — 389 occurrences, zero numbered —
+  which locks every language into English word order. That is not a preference: it is a defect that
+  surfaces only in the languages nobody on the team reads, and only when a translation needs to say
+  "#2 of 3" where English says "3 steps — #2". The single-argument strings (255 of them) are untouched;
+  there is nothing to reorder. Nine keys across cms, schedule and system, in every locale.
+
+- **`Tiger.t()` fills numbered placeholders**, and `%%` as a literal percent — matching PHP's `sprintf`,
+  which is what `$this->t()` already used server-side. A numbered placeholder used to render literally
+  in the browser. Strictly additive; sequential `%s` still fills in order.
+
+### Added
+
+- **`tests/Unit/I18n/PlaceholderTest`** fails the build on a multi-placeholder string that is not
+  numbered, on numbering with gaps (`%1$s %3$s` silently drops an argument), and on a locale whose
+  placeholder *set* differs from English — by set, not order, since reordering is the point. Verified
+  by mutation: each of those three is caught, and a genuinely reordered translation is allowed.
+
+- **`tests/js/tiger.i18n.test.js`** and a `javascript` CI job. `Tiger.t()` is the one function every
+  module's JavaScript goes through, and it had no tests at all. Twelve now, including that a missing
+  argument leaves the placeholder visible rather than printing "undefined". Seven fail against the
+  previous implementation.
+
 - **Footer legal links no longer depend on a config key somebody remembers to set.** Publish a page at
   `privacy` or `terms` and the footer links it; publish nothing and nothing renders, which is what a
   customer install with no legal pages needs. `tiger.footer.privacy_url` / `.terms_url` still override,

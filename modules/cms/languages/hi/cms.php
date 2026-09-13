@@ -132,7 +132,7 @@ return [
     'cms.page.help_layout'            => 'इस पेज को लपेटने के लिए किसी लेआउट की कुंजी। खाली = थीम लेआउट।',
     'cms.page.card_seo'               => 'SEO और head',
     'cms.page.label_seo_title'        => 'SEO शीर्षक',
-    'cms.page.help_seo_title'         => 'इस पेज के लिए %s और %s को ओवरराइड करता है। खाली = पेज का शीर्षक।',
+    'cms.page.help_seo_title' => 'इस पेज के लिए %1$s और %2$s को ओवरराइड करता है। खाली = पेज का शीर्षक।',
     'cms.page.label_og_image'         => 'शेयर इमेज',
     'cms.page.help_og_image'          => 'इस पेज को शेयर करने पर उपयोग होने वाली %s। खाली = साइट डिफ़ॉल्ट।',
     'cms.page.choose_image'           => 'इमेज चुनें',
@@ -140,7 +140,7 @@ return [
     'cms.page.help_meta_description'  => 'खोज-परिणाम स्निपेट और %s (≈160 वर्ण)।',
     'cms.page.label_head_html'        => 'Head HTML',
     'cms.page.head_html_hint'         => '— %s में चलता है',
-    'cms.page.help_head_html'         => 'कच्चा %s / %s / %s / %s, हूबहू आउटपुट। व्यवस्थापक द्वारा लिखित (विश्वसनीय)।',
+    'cms.page.help_head_html' => 'कच्चा %1$s / %2$s / %3$s / %4$s, हूबहू आउटपुट। व्यवस्थापक द्वारा लिखित (विश्वसनीय)।',
     'cms.page.label_body_scripts'     => 'Body स्क्रिप्ट',
     'cms.page.body_scripts_hint'      => '— %s से पहले चलता है',
     'cms.page.help_body_scripts'      => 'कच्चा %s, पेज के अंत में लोड किया गया।',
@@ -164,7 +164,7 @@ return [
 
     // ---- Menus list ----
     'cms.menu.list_heading'  => 'मेन्यू',
-    'cms.menu.list_subtitle' => 'कस्टम नेविगेशन मेन्यू — किसी भी थीम द्वारा %s, %s शॉर्टकोड, या %s के माध्यम से पुन: प्रयोज्य।',
+    'cms.menu.list_subtitle' => 'कस्टम नेविगेशन मेन्यू — किसी भी थीम द्वारा %1$s, %2$s शॉर्टकोड, या %3$s के माध्यम से पुन: प्रयोज्य।',
     'cms.menu.new_menu'      => 'नया मेन्यू',
     'cms.menu.col_menu'      => 'मेन्यू',
     'cms.menu.col_source'    => 'स्रोत',
@@ -173,7 +173,7 @@ return [
     // ---- Menu builder ----
     'cms.menu.new_heading'          => 'नया मेन्यू',
     'cms.menu.edit_heading'         => 'मेन्यू: %s',
-    'cms.menu.builder_subtitle'     => '%s या %s के साथ कहीं भी रेंडर करें।',
+    'cms.menu.builder_subtitle' => '%1$s या %2$s के साथ कहीं भी रेंडर करें।',
     'cms.menu.all_menus'            => 'सभी मेन्यू',
     'cms.menu.theme_alert'          => 'यह मेन्यू सक्रिय %s से आता है। इसे संपादित करें और आपका पहला परिवर्तन एक अधिरोहण के रूप में सहेजा जाता है जो थीम के संस्करण को प्रतिस्थापित करता है — तब तक थीम मेन्यू अछूता रहता है।',
     'cms.menu.theme_word'           => 'थीम',
