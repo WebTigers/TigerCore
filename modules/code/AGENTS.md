@@ -1,5 +1,11 @@
 # AGENTS.md — working on the `code` module (Tiger Code / the Code Area)
 
+> **Step 0 — check core before you build.** Before writing any mechanism, grep
+> [`../../CAPABILITIES.md`](../../CAPABILITIES.md) — a generated, CI-checked index of every `Tiger_*` class and module.
+> Core probably already has it. TigerImage once reimplemented `Tiger_View_Helper_I18n` by hand because this
+> hop was skipped, and lost a property core had designed in. **Assume a capability exists until you have
+> grepped the index and confirmed it doesn't.**
+
 Instructions for an AI assistant (or a new contributor) working on Tiger's **code** module. For
 platform conventions — the `/api` service pattern, forms, ACL, models — read the root **AGENTS.md**
 (`read.guide` with no module). This file is the module-specific layer; match the surrounding style.
