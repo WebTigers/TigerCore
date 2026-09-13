@@ -6,6 +6,40 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+### Added
+
+- **The `message` module — in-app messaging (TIGER-114).** App → admins is the primary surface and is
+  always on: a module that needs to tell an operator something calls `Tiger_Message::toAdmins()` and it
+  lands in every admin's inbox with the header bell lit. Person → person is the optional second surface
+  and is OFF until `tiger.message.user_to_user = 1` — most sites are not a social network and should not
+  silently become one. Inbox / archive / sent, compose with an org-scoped recipient picker, block a sender,
+  all on the **/account** surface (every member has an inbox). Seven locales.
+
+  The rules live in the service, not the screen, because `/api` is what an agent drives: org-scoped
+  recipients ("unknown", never "forbidden" — existence is private too); admins may always compose, others
+  only when enabled; blocks are applied per recipient at send time and are **silent** (the send reports
+  success); system messages ignore blocks; you cannot block admin-or-higher **in this org** (role lives
+  on `org_user`; seniority from the live ACL chain); read/archive/delete touch only the caller's copy;
+  only a recipient or the sender may read — same org is not enough, and an admin cannot read a message
+  not addressed to them. Twenty integration tests; ten policy mutations all fail.
+
+- **`Tiger_Admin_Header` items take a `badge`** — an int or, preferably, a callable resolved at render
+  after the ACL filter, so a count is computed only for the signed-in user and only for an item they can
+  see. Fail-soft: a throwing badge renders nothing rather than a broken header. The hardcoded demo bell
+  in the PUMA admin header (a fake "3" and two invented alerts) is gone; the messages module's real bell
+  replaced it through the registry.
+
+- **`Tiger_Model_OrgUser::searchMembers()`** — active members of ONE org by name or email, for a recipient
+  picker. Scoped on purpose: a picker that completes names across tenants is a directory leak.
+
+- **`tests/Unit/Routing/ModuleRoutesIniShapeTest`** — a module `routes.ini` written as bare `routes.*`
+  parses fine, matches nothing and errors nowhere, because the ingester reads
+  `resources.router.routes.*`. Now a build failure.
+
+### Changed
+
+- Migrations 0047–0049: `message`, `message_recipient`, `message_block`.
+
 ## [1.5.23] — 2026-09-13
 
 ### Changed

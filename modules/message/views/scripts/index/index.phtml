@@ -1,0 +1,91 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * The inbox (TIGER-114). One screen; the inbox / archive / sent filter is a URL param the JS reads.
+ * Rows are fetched from /api and rendered by message.inbox.js; opening a message loads it into the
+ * reading pane and marks it read through the same service an agent would use.
+ */
+$view    = (string) $this->listView;
+$maySend = !empty($this->maySend);
+
+$this->i18n([
+    'noMessages'    => 'message.list.empty',
+    'from'          => 'message.list.from',
+    'system'        => 'message.list.system',
+    'read'          => 'message.action.mark_read',
+    'unread'        => 'message.action.mark_unread',
+    'archive'       => 'message.action.archive',
+    'unarchive'     => 'message.action.unarchive',
+    'delete'        => 'message.action.delete',
+    'reply'         => 'message.action.reply',
+    'block'         => 'message.action.block_sender',
+    'deleteTitle'   => 'message.confirm.delete_title',
+    'deleteBody'    => 'message.confirm.delete_body',
+    'blockTitle'    => 'message.confirm.block_title',
+    'blockBody'     => 'message.confirm.block_body',
+    'confirm'       => 'message.action.confirm',
+    'to'            => 'message.view.to',
+    'loadFailed'    => 'message.error.load_failed',
+    'actionFailed'  => 'message.error.action_failed',
+]);
+?>
+<div class="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-4">
+    <div>
+        <h1 class="h3 mb-1"><i class="fa-solid fa-envelope me-2"></i><?= $this->escape($this->t('message.nav.label')) ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->escape($this->t('message.list.subtitle')) ?></p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="/message/blocked" class="btn btn-outline-secondary"><i class="fa-solid fa-user-slash me-2"></i><?= $this->escape($this->t('message.blocked.title')) ?></a>
+        <?php if ($maySend): ?>
+            <a href="/message/compose" class="btn btn-primary"><i class="fa-solid fa-pen-to-square me-2"></i><?= $this->escape($this->t('message.compose.title')) ?></a>
+        <?php endif; ?>
+    </div>
+</div>
+
+<div id="msg-feedback"></div>
+
+<ul class="nav nav-tabs mb-3">
+    <?php foreach (['inbox' => 'message.list.inbox', 'archived' => 'message.list.archived', 'sent' => 'message.list.sent'] as $key => $label): ?>
+        <li class="nav-item">
+            <a class="nav-link <?= $view === $key ? 'active' : '' ?>" href="/message<?= $key === 'inbox' ? '' : '/view/' . $key ?>">
+                <?= $this->escape($this->t($label)) ?>
+                <?php if ($key === 'inbox'): ?><span class="badge rounded-pill text-bg-danger ms-1 d-none" id="msg-unread-badge"></span><?php endif; ?>
+            </a>
+        </li>
+    <?php endforeach; ?>
+</ul>
+
+<div class="row g-3" id="msg-root" data-view="<?= $this->escape($view) ?>" data-may-send="<?= $maySend ? '1' : '0' ?>">
+    <div class="col-lg-5">
+        <div class="list-group" id="msg-list" aria-live="polite"></div>
+        <p class="text-body-secondary text-center py-5 d-none" id="msg-empty"></p>
+    </div>
+    <div class="col-lg-7">
+        <div class="card h-100" id="msg-reader">
+            <div class="card-body d-flex align-items-center justify-content-center text-body-secondary" id="msg-reader-empty">
+                <?= $this->escape($this->t('message.view.select')) ?>
+            </div>
+            <div class="card-body d-none" id="msg-reader-body"></div>
+        </div>
+    </div>
+</div>
+
+<?php // In-app modal, never a browser dialog — house rule. ?>
+<div class="modal fade" id="msg-confirm" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="msg-confirm-title"></h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= $this->escape($this->t('core.common.close')) ?>"></button>
+            </div>
+            <div class="modal-body"><p class="mb-0" id="msg-confirm-body"></p></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?= $this->escape($this->t('message.action.cancel')) ?></button>
+                <button type="button" class="btn btn-danger" id="msg-confirm-ok"></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="<?= $this->escape($this->asset('/_modules/message/js/message.inbox.js')) ?>" defer></script>

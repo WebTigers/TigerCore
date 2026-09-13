@@ -1,0 +1,71 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/** Messages module — Klingon strings (English fallback, as the other modules ship it) (TIGER-114). */
+return [
+    'message.header.label'            => 'Messages',
+    'message.nav.label'               => 'Messages',
+
+    'message.list.subtitle'           => 'Messages from the platform, and from people in your organization.',
+    'message.list.inbox'              => 'Inbox',
+    'message.list.archived'           => 'Archived',
+    'message.list.sent'               => 'Sent',
+    'message.list.empty'              => 'No messages here.',
+    'message.list.from'               => 'From',
+    'message.list.system'             => 'Tiger',
+    'message.view.select'             => 'Select a message to read it.',
+    'message.view.to'                 => 'To:',
+
+    'message.compose.title'           => 'New message',
+    'message.compose.subtitle'        => 'Send a message to one or more people in your organization.',
+    'message.compose.to'              => 'To',
+    'message.compose.to_help'         => 'Start typing a name to add a recipient.',
+    'message.compose.search_hint'     => 'Search people…',
+    'message.compose.no_matches'      => 'No one matches that.',
+    'message.compose.remove_recipient'=> 'Remove recipient',
+    'message.compose.subject'         => 'Subject',
+    'message.compose.body'            => 'Message',
+    'message.compose.sending'         => 'Sending…',
+
+    'message.blocked.title'           => 'Blocked',
+    'message.blocked.subtitle'        => 'People you no longer receive messages from. They are not told.',
+    'message.blocked.empty'           => 'You have not blocked anyone.',
+    'message.blocked.since'           => 'since %s',
+
+    'message.action.mark_read'        => 'Mark read',
+    'message.action.mark_unread'      => 'Mark unread',
+    'message.action.archive'          => 'Archive',
+    'message.action.unarchive'        => 'Move to inbox',
+    'message.action.delete'           => 'Delete',
+    'message.action.reply'            => 'Reply',
+    'message.action.block_sender'     => 'Block sender',
+    'message.action.unblock'          => 'Unblock',
+    'message.action.confirm'          => 'Confirm',
+    'message.action.cancel'           => 'Cancel',
+    'message.action.send'             => 'Send',
+
+    'message.confirm.delete_title'    => 'Delete this message?',
+    'message.confirm.delete_body'     => 'It is removed from your inbox only. Other recipients keep their copy.',
+    'message.confirm.block_title'     => 'Block this sender?',
+    'message.confirm.block_body'      => 'You will no longer receive their messages. They will not be told.',
+
+    'message.sent'                    => 'Message sent.',
+    'message.marked_read'             => 'Marked as read.',
+    'message.marked_unread'           => 'Marked as unread.',
+    'message.archived'                => 'Message archived.',
+    'message.unarchived'              => 'Moved to inbox.',
+    'message.deleted'                 => 'Message deleted.',
+    'message.blocked'                 => 'Sender blocked.',
+    'message.unblocked'               => 'Unblocked.',
+
+    'message.error.load_failed'       => 'Could not load messages.',
+    'message.error.action_failed'     => 'That did not work. Try again.',
+    'message.error.send_failed'       => 'The message could not be sent.',
+    'message.error.not_found'         => 'That message is not available.',
+    'message.error.sending_disabled'  => 'Sending messages is not enabled on this site.',
+    'message.error.no_recipients'     => 'Choose at least one recipient.',
+    'message.error.too_many_recipients'=> 'Too many recipients for one message.',
+    'message.error.unknown_recipient' => 'One of the recipients is not a member of your organization.',
+    'message.error.cannot_block'      => 'That person cannot be blocked.',
+    'message.error.cannot_block_admin'=> 'Administrators cannot be blocked.',
+];

@@ -1,0 +1,25 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/** People I've blocked (TIGER-114). Listed and unblocked through /api. */
+$this->i18n([
+    'none'         => 'message.blocked.empty',
+    'unblock'      => 'message.action.unblock',
+    'since'        => 'message.blocked.since',
+    'loadFailed'   => 'message.error.load_failed',
+    'actionFailed' => 'message.error.action_failed',
+]);
+?>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1"><i class="fa-solid fa-user-slash me-2"></i><?= $this->escape($this->t('message.blocked.title')) ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->escape($this->t('message.blocked.subtitle')) ?></p>
+    </div>
+    <a href="/message" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left me-2"></i><?= $this->escape($this->t('message.nav.label')) ?></a>
+</div>
+
+<div id="msg-feedback"></div>
+<div class="list-group" id="msg-blocked" aria-live="polite"></div>
+<p class="text-body-secondary text-center py-5 d-none" id="msg-blocked-empty"></p>
+
+<script src="<?= $this->escape($this->asset('/_modules/message/js/message.blocked.js')) ?>" defer></script>

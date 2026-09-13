@@ -116,4 +116,37 @@ class Tiger_Model_OrgUser extends Tiger_Model_Table
     {
         return $this->fetchAll($this->activeSelect()->where('org_id = ?', $orgId));
     }
+
+    /**
+     * Active members of an org whose name or email matches — a recipient picker's query (TIGER-114).
+     *
+     * Scoped to ONE org on purpose: a picker that could complete names across tenants is a directory
+     * leak. Returns display fields only, never the row wholesale.
+     *
+     * @param  string $orgId
+     * @param  string $term   what the user typed; empty returns the first page alphabetically
+     * @param  int    $limit
+     * @return array<int,array{user_id:string,name:string,role:string}>
+     */
+    public function searchMembers($orgId, $term, $limit = 10)
+    {
+        $select = $this->select()
+            ->setIntegrityCheck(false)
+            ->from(['ou' => $this->_name], ['user_id', 'role'])
+            ->join(['u' => 'user'], 'u.user_id = ou.user_id', ['name' => new Zend_Db_Expr('COALESCE(u.username, u.email)')])
+            ->where('ou.org_id = ?', (string) $orgId)
+            ->where('ou.status = ?', self::STATUS_ACTIVE)
+            ->where('ou.deleted = 0')
+            ->where('u.deleted = 0')
+            ->order('name ASC')
+            ->limit(max(1, min(50, (int) $limit)));
+
+        $term = trim((string) $term);
+        if ($term !== '') {
+            // Escape LIKE metacharacters so a typed "%" matches a percent sign, not everything.
+            $like = $this->getAdapter()->quote('%' . addcslashes($term, '%_\\') . '%');
+            $select->where("(u.username LIKE $like OR u.email LIKE $like)");
+        }
+        return $this->fetchAll($select)->toArray();
+    }
 }

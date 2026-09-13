@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**202 classes** across **33 capabilities** · **20 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**206 classes** across **33 capabilities** · **21 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -301,6 +301,9 @@
 - **Tiger_Model_Comment** `@api` — the one comment/review store (migration 0045).  ·  `library/Tiger/Model/Comment.php`
 - **Tiger_Model_CommentAggregate** `@api` — the denormalized per-subject rollup (migration 0046).  ·  `library/Tiger/Model/CommentAggregate.php`
 - **Tiger_Model_Menu** `@api` — Menu — custom navigation menus (see migration 0017).  ·  `library/Tiger/Model/Menu.php`
+- **Tiger_Model_Message** `@api` — the message body store (migration 0047, TIGER-114).  ·  `library/Tiger/Model/Message.php`
+- **Tiger_Model_MessageBlock** `@api` — one user muting another, within an org (migration 0049).  ·  `library/Tiger/Model/MessageBlock.php`
+- **Tiger_Model_MessageRecipient** `@api` — who received a message, and what they did with it (0048).  ·  `library/Tiger/Model/MessageRecipient.php`
 - **Tiger_Model_Session** `@api` — Session — gateway for the DB session store (see migration 0010).  ·  `library/Tiger/Model/Session.php`
 - **Tiger_Model_Table** `@api` — Base table-gateway for Tiger models.  ·  `library/Tiger/Model/Table.php`
 - **Tiger_Uuid** `@api` — UUID generation for Tiger primary keys.  ·  `library/Tiger/Uuid.php`
@@ -309,6 +312,7 @@
 
 - **Tiger_Comment** `@api` — the subject registry and policy gate for comments, ratings and reviews.  ·  `library/Tiger/Comment.php`
 - **Tiger_Comment_Spam** `@api` — the spam-check registry, and the first checker: the in-platform AI agent.  ·  `library/Tiger/Comment/Spam.php`
+- **Tiger_Message** `@api` — the platform's way of telling people things (TIGER-114).  ·  `library/Tiger/Message.php`
 
 ## Modules (`modules/*` — activatable features)
 
@@ -324,6 +328,7 @@
 - **Identity** (`identity`, plugin)  ·  services: Identity  ·  `modules/identity`
 - **Mcp** (`mcp`, module)  ·  services: Settings  ·  `modules/mcp`
 - **Media** (`media`, plugin)  ·  services: Media, Settings  ·  `modules/media`
+- **Messages** (`message`, app)  ·  services: Message  ·  `modules/message`
 - **Profile** (`profile`, plugin)  ·  services: Address, Avatar, Base, Contact, Org, OrgAddress, OrgContact, OrgLogo, Security, User  ·  `modules/profile`
 - **Register** (`register`, plugin)  ·  services: Registration, Status  ·  `modules/register`
 - **Schedule** (`schedule`, developer)  ·  services: Schedule  ·  `modules/schedule`
