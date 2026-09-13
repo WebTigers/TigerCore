@@ -6,6 +6,14 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.23] — 2026-09-13
+
+### Changed
+
+- Every bundled module's `AGENTS.md` now opens with Step 0: grep `CAPABILITIES.md` before building
+  anything. The root `AGENTS.md` had said so since line 18, but a module's file only pointed at it — one
+  hop away — and that hop is where it got lost. Docs only; no runtime change.
+
 ## [1.5.22] — 2026-09-13
 
 **Numbered placeholders, so translators can reorder — and footer legal links that find their own pages.**
