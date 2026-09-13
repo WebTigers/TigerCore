@@ -6,6 +6,10 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.5.22] — 2026-09-13
+
+**Numbered placeholders, so translators can reorder — and footer legal links that find their own pages.**
+
 ### Changed
 
 - **Strings that take two or more arguments now use numbered placeholders** (`%1$s`, `%2$d`), so a
