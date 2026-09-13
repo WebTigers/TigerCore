@@ -59,7 +59,10 @@ $nav = $this->nav ?? array_merge([
         // `exact`: /system/modules is a PREFIX of /system/modules/add, so a prefix match would light
         // Manage up on the Add screen too — two active items reads as a bug.
         ['key' => 'modules_manage', 'label' => 'core.nav.modules_manage', 'href' => '/system/modules', 'match' => '/system/modules', 'exact' => true, 'resource' => 'System_ModulesController'],
-        ['key' => 'modules_update', 'label' => 'system.nav.updates',       'href' => '/system/updates', 'match' => '/system/updates', 'resource' => 'System_UpdatesController'],
+        // Badge = pending updates from the last check. pendingCached() reads a summary file and NEVER
+        // fetches — this runs on every admin page, and an unreachable GitHub must not hang the menu.
+        ['key' => 'modules_update', 'label' => 'system.nav.updates',       'href' => '/system/updates', 'match' => '/system/updates', 'resource' => 'System_UpdatesController',
+         'badge' => static fn () => class_exists('Tiger_Update_Checker') ? Tiger_Update_Checker::pendingCached() : 0],
     ]],
 ], Tiger_Admin_Nav::items(), [
     ['key' => 'settings',  'label' => 'core.nav.settings','icon' => 'fa-gear',         'children' => Tiger_Admin_Settings::pages()],
@@ -151,6 +154,15 @@ $render = function ($items, $depth = 0, $group = 'root') use (&$render, $allowed
             $html .= '<i class="fa-solid ' . htmlspecialchars($item['icon'] ?? 'fa-circle') . ' fa-fw"></i>';
         }
         $html .= '<span class="tiger-nav-label">' . htmlspecialchars($t($item['label'])) . '</span>';
+        // Badge: a leaf's own count, or for a parent the SUM over its visible children — the point of
+        // a badge is to be seen before the submenu is opened. Resolved AFTER the ACL filter above, so a
+        // count is never computed for an item this user cannot see. Zero renders nothing.
+        $badge = $children
+            ? array_sum(array_map([Tiger_Admin_Badge::class, 'resolve'], $children))
+            : Tiger_Admin_Badge::resolve($item);
+        if ($badge > 0) {
+            $html .= '<span class="badge rounded-pill text-bg-danger tiger-nav-badge tiger-nav-label">' . Tiger_Admin_Badge::label($badge) . '</span>';
+        }
         if ($children) { $html .= '<i class="fa-solid fa-angle-down tiger-nav-caret tiger-nav-label"></i>'; }
         $html .= '</a>';
         if ($children) {

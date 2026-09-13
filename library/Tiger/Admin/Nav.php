@@ -21,7 +21,11 @@
  *       'match'    => '/docs/admin/help',          // path prefix that marks it active (default: href)
  *       'resource' => 'Docs_AdminController',      // ACL resource — the item hides if denied
  *       'order'    => 90,                          // sort weight among registered items (lower first)
+ *       'badge'    => fn () => $pendingCount,      // optional: int or callable → count pill (Tiger_Admin_Badge)
  *   ]);
+ *
+ * A parent (toggle) shows the SUM of its visible children's badges, so a count is never hidden
+ * inside a collapsed submenu — the whole point of a badge is to be seen before you open the menu.
  *
  * @api
  */
@@ -49,6 +53,7 @@ class Tiger_Admin_Nav
             'match'    => $item['href'],
             'resource' => null,
             'order'    => 100,
+            'badge'    => null,
         ];
     }
 
@@ -74,6 +79,7 @@ class Tiger_Admin_Nav
                 'icon'     => $p['icon'],
                 'resource' => $p['resource'],
                 'order'    => $p['order'],
+                'badge'    => $p['badge'] ?? null,
             ];
         }, $items);
     }

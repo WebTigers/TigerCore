@@ -84,14 +84,7 @@ class Tiger_Admin_Header
      */
     public static function badgeCount(array $item)
     {
-        $b = $item['badge'] ?? null;
-        if ($b === null) { return 0; }
-        try {
-            $n = is_callable($b) ? $b() : $b;
-            return max(0, (int) $n);
-        } catch (Throwable $e) {
-            return 0;   // a badge must never be the reason the header fails to render
-        }
+        return Tiger_Admin_Badge::resolve($item);
     }
 
     /** Reset the registry (tests). @return void */

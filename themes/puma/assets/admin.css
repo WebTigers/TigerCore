@@ -428,3 +428,22 @@ body.avatar-drop-active::after {
     left: calc(100% - .35rem);
     font-size: .6rem;
 }
+
+/* ---- sidebar badges (Tiger_Admin_Nav `badge`) --------------------------------------------------
+ * The count pill on a nav item — pending updates, and whatever a module registers. Sits before the
+ * caret on a parent so a collapsed submenu still shows the sum. Hidden with the labels when the
+ * sidebar is collapsed to icons, like the caret. */
+.tiger-nav-badge {
+    margin-left: auto;
+    font-size: .65rem;
+    line-height: 1.2;
+}
+/* Only a caret that FOLLOWS a badge gives up its auto margin; a parent with no badge is untouched. */
+.tiger-nav-badge + .tiger-nav-caret { margin-left: .4rem; }
+
+/* ---- Updates screen (system module) — moved out of inline style= (house rule) ----------------- */
+.updates-notes   { white-space: pre-wrap; max-height: 20rem; overflow: auto; }
+.updates-log     { white-space: pre-wrap; max-height: 24rem; }
+.updates-prewrap { white-space: pre-wrap; }
+/* A settled row keeps a fixed-width mark so rows do not jog when the checkbox becomes an icon. */
+#updates-list .update-mark { min-width: 1rem; }

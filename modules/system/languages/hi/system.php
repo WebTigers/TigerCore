@@ -401,6 +401,11 @@ return [
     'system.js.drop_label' => 'अपनी मॉड्यूल .zip यहाँ छोड़ें',
     'system.js.drop_sublabel' => 'आपके मॉड्यूल फ़ोल्डर में अनपैक की गई',
     'system.nav.label' => 'सिस्टम',
+    // Row states on the Updates screen (TIGER-113)
+    'system.updates.state_done'    => 'हो गया',
+    'system.updates.state_failed'  => 'विफल',
+    'system.updates.state_manual'  => 'मैन्युअल',
+    'system.updates.state_current' => 'अब नवीनतम',
     'system.nav.updates' => 'अपडेट',
     'system.nav.acl' => 'ACL सिम्युलेटर',
     'system.nav.logs' => 'लॉग',

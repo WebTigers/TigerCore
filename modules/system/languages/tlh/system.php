@@ -360,4 +360,9 @@ return [
     'system.js.license_confirm' => 'Install',
     'system.js.drop_label' => 'Drop your module .zip',
     'system.js.drop_sublabel' => 'unpacked into your modules folder',
+    // Row states on the Updates screen (TIGER-113)
+    'system.updates.state_done'    => 'Done',
+    'system.updates.state_failed'  => 'Failed',
+    'system.updates.state_manual'  => 'Manual',
+    'system.updates.state_current' => 'Now current',
 ];

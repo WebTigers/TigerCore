@@ -43,4 +43,27 @@ class System_Bootstrap extends Zend_Application_Module_Bootstrap
             'order'    => 17,
         ]);
     }
+
+    /**
+     * Keep the Updates badge honest (TIGER-112).
+     *
+     * The badge on Modules > Updates reads a summary the last full check wrote; it never checks for
+     * itself, because it renders on every admin page. Without this job the summary is only refreshed
+     * when someone opens the Updates screen, and a badge that lights up only after you have already
+     * looked is not a badge. Daily is enough — release cadence does not justify hitting GitHub from
+     * every install more often — and the summary keeps for two days, so a missed run does not blank it.
+     */
+    protected function _initUpdateCheckJob()
+    {
+        if (!class_exists('Tiger_Schedule') || !class_exists('Tiger_Update_Checker')) { return; }
+
+        Tiger_Schedule::register([
+            'key'     => 'system.update_check',
+            'label'   => 'Check for Tiger and module updates',
+            'every'   => Tiger_Schedule::DAILY,
+            'at'      => '03:30',
+            'run'     => static function () { Tiger_Update_Checker::all(true); },
+            'managed' => false,
+        ]);
+    }
 }
