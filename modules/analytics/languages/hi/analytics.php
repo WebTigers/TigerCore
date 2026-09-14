@@ -46,6 +46,16 @@ return [
     'analytics.oauth_secret_keep'      => '•••••• (बनाए रखने के लिए खाली छोड़ें)',
 
     'analytics.view_dashboard'         => 'डैशबोर्ड देखें',
+    // OAuth verification requirements (TIGER-117/118)
+    'analytics.connect_google' => 'Google के साथ जारी रखें',
+    'analytics.disconnected' => 'Google Analytics से डिस्कनेक्ट किया गया। Google पर प्राधिकरण निरस्त कर दिया गया।',
+    'analytics.disconnected_not_revoked' => 'इस साइट से डिस्कनेक्ट किया गया, लेकिन प्राधिकरण निरस्त करने के लिए Google से संपर्क नहीं हो सका। आप इसे myaccount.google.com/permissions पर हटा सकते हैं।',
+    'analytics.gdata.title' => 'कनेक्ट करने से आपके Google डेटा के साथ क्या होता है',
+    'analytics.gdata.scope' => 'आपकी Google Analytics रिपोर्टों तक केवल-पढ़ने की पहुँच — analytics.readonly स्कोप, और कुछ नहीं।',
+    'analytics.gdata.where' => 'रिपोर्टें यह साइट सीधे Google से लाती है और केवल आपके व्यवस्थापकों को दिखाती है।',
+    'analytics.gdata.retain' => 'WebTigers आपका एनालिटिक्स डेटा न संग्रहीत करता है न देखता है; कनेक्शन सेवा केवल टोकन का आदान-प्रदान करती है।',
+    'analytics.gdata.revoke' => 'यहाँ किसी भी समय डिस्कनेक्ट करें, या अपने Google खाते में पहुँच हटाएँ।',
+    'analytics.gdata.policy_link' => 'हम Google उपयोगकर्ता डेटा को कैसे संभालते हैं — गोपनीयता नीति',
     'analytics.disconnect'             => 'डिस्कनेक्ट करें',
     'analytics.connect'                => 'Google Analytics कनेक्ट करें',
     'analytics.connect_hint'           => 'आपकी सेटिंग्स सहेजता है, फिर अधिकृत करने के लिए Google खोलता है।',

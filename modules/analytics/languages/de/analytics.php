@@ -46,6 +46,16 @@ return [
     'analytics.oauth_secret_keep'      => '•••••• (leer lassen, um es zu behalten)',
 
     'analytics.view_dashboard'         => 'Dashboard ansehen',
+    // OAuth verification requirements (TIGER-117/118)
+    'analytics.connect_google' => 'Weiter mit Google',
+    'analytics.disconnected' => 'Von Google Analytics getrennt. Die Autorisierung wurde bei Google widerrufen.',
+    'analytics.disconnected_not_revoked' => 'Von dieser Website getrennt, aber Google war nicht erreichbar, um die Autorisierung zu widerrufen. Sie können sie unter myaccount.google.com/permissions entfernen.',
+    'analytics.gdata.title' => 'Was die Verbindung mit Ihren Google-Daten macht',
+    'analytics.gdata.scope' => 'Nur-Lese-Zugriff auf Ihre Google-Analytics-Berichte — der Bereich analytics.readonly und sonst nichts.',
+    'analytics.gdata.where' => 'Berichte werden von dieser Website direkt bei Google abgerufen und nur Ihren Administratoren angezeigt.',
+    'analytics.gdata.retain' => 'WebTigers speichert Ihre Analysedaten nicht und sieht sie nicht; der Verbindungsdienst tauscht nur Tokens aus.',
+    'analytics.gdata.revoke' => 'Trennen Sie hier jederzeit, oder entziehen Sie den Zugriff in Ihrem Google-Konto.',
+    'analytics.gdata.policy_link' => 'Wie wir Google-Nutzerdaten behandeln — Datenschutzerklärung',
     'analytics.disconnect'             => 'Trennen',
     'analytics.connect'                => 'Google Analytics verbinden',
     'analytics.connect_hint'           => 'Speichert Ihre Einstellungen und öffnet dann Google zur Autorisierung.',
