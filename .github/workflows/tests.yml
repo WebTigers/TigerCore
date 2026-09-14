@@ -58,6 +58,8 @@ jobs:
           for f in themes/puma/assets/js/*.js; do node --check "$f"; done
       - name: Tiger.t() contract
         run: node tests/js/tiger.i18n.test.js
+      - name: TigerButton busy state
+        run: node tests/js/tiger.button.test.js
 
   # Needs a database — one PHP version is enough; the schema, not the interpreter, is under test.
   integration:
