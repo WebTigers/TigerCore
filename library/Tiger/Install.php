@@ -224,6 +224,18 @@ class Tiger_Install
             if (is_dir($modulesDir)) { $links['_modules'] = $modulesDir; }
         }
 
+        // Everything ELSE Tiger publishes under <root>/public — a theme's asset base (`_greymist`,
+        // linked there by Tiger_Theme::activate()), or any module that publishes its own `_<x>` — must
+        // reach the docroot too, or the site references assets the web server cannot see. On the
+        // split layout the docroot mirrors every `_*` entry of <root>/public; co-located it already is.
+        if (realpath($webroot) !== realpath($root . '/public')) {
+            foreach (glob($root . '/public/_*') ?: [] as $entry) {
+                $name = basename($entry);
+                if (isset($links[$name]) || !is_dir($entry)) { continue; }
+                $links[$name] = is_link($entry) ? (string) readlink($entry) : $entry;
+            }
+        }
+
         $made = [];
         foreach ($links as $name => $target) {
             if (!is_dir($target)) {
@@ -264,6 +276,34 @@ class Tiger_Install
             $made[$name] = $target;
         }
         return $made;
+    }
+
+    /**
+     * Publish ONE asset directory at <webroot>/<name>: a symlink when the host allows it, else a
+     * marked copy (refreshed on republish). The unit linkPublicAssets() applies to each entry; a theme
+     * activation uses it for the theme's own asset base.
+     *
+     * @param  string $webroot the dir the entry is created in
+     * @param  string $name    the entry name (e.g. `_greymist`)
+     * @param  string $target  the real asset directory
+     * @return bool   true if linked, false if copied
+     * @throws RuntimeException when the entry is a user's real directory, or neither link nor copy worked
+     */
+    public static function publishOne($webroot, $name, $target)
+    {
+        $link = rtrim((string) $webroot, '/') . '/' . $name;
+        if (!is_dir($target)) { throw new RuntimeException("publishOne: asset target not found: {$target}"); }
+        if (is_link($link)) { @unlink($link); }
+        elseif (is_dir($link)) {
+            if (!is_file($link . '/' . self::ASSET_COPY_MARKER)) { throw new RuntimeException("publishOne: refusing to replace a real directory: {$link}"); }
+            self::_rrmdir($link);
+        } elseif (file_exists($link)) { @unlink($link); }
+        if (static::_canSymlink() && @symlink($target, $link)) { return true; }
+        self::_rcopy($target, $link);
+        if (!is_dir($link)) { throw new RuntimeException("publishOne: could neither link nor copy {$target} -> {$link}"); }
+        @file_put_contents($link . '/' . self::ASSET_COPY_MARKER,
+            "Published by Tiger because symlink() is unavailable on this host.\n" . "Managed automatically — do not edit; it is replaced on update.\n");
+        return false;
     }
 
     /**

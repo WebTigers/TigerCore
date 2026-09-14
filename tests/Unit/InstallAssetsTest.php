@@ -179,6 +179,58 @@ final class InstallAssetsTest extends UnitTestCase
             $this->assertSame('user content', file_get_contents($this->webroot . '/_theme/mine.txt'));
         }
     }
+
+    /**
+     * A theme's asset base (`public/_greymist`, put there by Tiger_Theme::activate()) — and anything
+     * else Tiger publishes under <root>/public — must reach a SPLIT docroot, or the activated theme's
+     * CSS 404s. Found on a real cPanel account: the theme rendered unstyled after a one-click install.
+     */
+    #[Test]
+    public function it_mirrors_every_published_public_entry_into_a_split_docroot(): void
+    {
+        @mkdir($this->root . '/application/modules/theme-grey-mist/assets/css', 0775, true);
+        file_put_contents($this->root . '/application/modules/theme-grey-mist/assets/css/grey.css', '.grey{}');
+        @mkdir($this->root . '/public', 0775, true);
+        symlink($this->root . '/application/modules/theme-grey-mist/assets', $this->root . '/public/_greymist');
+        @mkdir($this->root . '/public/_other/x', 0775, true);                  // a module's own publish, a real dir
+        file_put_contents($this->root . '/public/_other/x/o.js', '1');
+        file_put_contents($this->root . '/public/notes.txt', 'ignored');       // not an _entry
+
+        $made = Tiger_Install::linkPublicAssets($this->webroot, $this->root, 'puma');
+        $this->assertArrayHasKey('_greymist', $made);
+        $this->assertArrayHasKey('_other', $made);
+        $this->assertFileExists($this->webroot . '/_greymist/css/grey.css');
+        $this->assertFileExists($this->webroot . '/_other/x/o.js');
+        $this->assertFileDoesNotExist($this->webroot . '/notes.txt');
+
+        // Copy mode too — a real directory with the marker, refreshed on a second run.
+        $copied = NoSymlinkInstall::linkPublicAssets($this->webroot, $this->root, 'puma');
+        $this->assertArrayHasKey('_greymist', $copied);
+        $this->assertFalse(is_link($this->webroot . '/_greymist'));
+        $this->assertFileExists($this->webroot . '/_greymist/' . Tiger_Install::ASSET_COPY_MARKER);
+    }
+
+    #[Test]
+    public function it_does_not_mirror_when_the_docroot_is_public_itself(): void
+    {
+        @mkdir($this->root . '/public/_greymist', 0775, true);
+        $made = Tiger_Install::linkPublicAssets($this->root . '/public', $this->root, 'puma');
+        $this->assertArrayNotHasKey('_greymist', $made, 'co-located: a link onto itself would loop');
+    }
+
+    #[Test]
+    public function publish_one_links_or_copies_a_single_entry_and_respects_a_users_directory(): void
+    {
+        $target = $this->root . '/vendor/webtigers/tiger-core/themes/puma/assets';
+        $this->assertTrue(Tiger_Install::publishOne($this->webroot, '_x', $target));
+        $this->assertTrue(is_link($this->webroot . '/_x'));
+        $this->assertFalse(NoSymlinkInstall::publishOne($this->webroot, '_x', $target), 'copied');
+        $this->assertFileExists($this->webroot . '/_x/css/default.css');
+        $this->assertFileExists($this->webroot . '/_x/' . Tiger_Install::ASSET_COPY_MARKER);
+        @mkdir($this->webroot . '/_mine', 0775, true); file_put_contents($this->webroot . '/_mine/keep', '1');
+        $this->expectException(RuntimeException::class);
+        Tiger_Install::publishOne($this->webroot, '_mine', $target);
+    }
 }
 
 /** Forces the copy path — the only way to reach it on a dev machine that allows symlinks. */

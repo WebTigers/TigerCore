@@ -279,16 +279,23 @@ class Tiger_Theme
         return $base . '/public';
     }
 
-    /** Symlink a theme's assets/ to public/<assetBase> (copy fallback where symlinks are blocked). */
+    /**
+     * Publish a theme's assets/ at public/<assetBase> — a symlink, or a marked COPY where symlink()
+     * is disabled (the copy used to land under _modules/<slug>, which is not where the theme's HTML
+     * points). On the split layout, where the web server's docroot is not <root>/public, the same
+     * entry is published into the docroot too, or the theme's CSS 404s the moment it is activated.
+     */
     protected static function _linkAssets($slug, $base, $area)
     {
         $root   = ($area === 'app' && defined('APPLICATION_PATH')) ? APPLICATION_PATH : TIGER_CORE_PATH;
         $assets = $root . '/modules/' . $slug . '/assets';
         if (!is_dir($assets)) { return; }
-        $link = self::publicDir() . '/' . ltrim((string) $base, '/');
-        if (is_link($link)) { @unlink($link); }
-        if (!(function_exists('symlink') && @symlink($assets, $link)) && !is_dir($link)) {
-            Tiger_Module_Installer::publishAssets($slug);   // best-effort; symlink is the norm on cPanel
+        $name = ltrim((string) $base, '/');
+        if ($name === '' || strpos($name, '/') !== false || $name[0] !== '_') { return; }   // an asset base is one `_x` segment
+        try { Tiger_Install::publishOne(self::publicDir(), $name, $assets); } catch (Throwable $e) { /* a user's dir of that name wins */ }
+        $doc = isset($_SERVER['DOCUMENT_ROOT']) ? rtrim((string) $_SERVER['DOCUMENT_ROOT'], '/') : '';
+        if ($doc !== '' && is_dir($doc) && realpath($doc) !== realpath(self::publicDir())) {
+            try { Tiger_Install::publishOne($doc, $name, $assets); } catch (Throwable $e) { /* same */ }
         }
     }
 
