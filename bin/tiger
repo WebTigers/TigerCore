@@ -88,6 +88,12 @@ $cmd = isset($argv[1]) ? $argv[1] : 'help';
 switch ($cmd) {
     case 'migrate':
         (new Tiger_Db_Migrator(tiger_db(), tiger_migration_paths()))->migrate($log);
+        // Module assets ride along with migrate because it is the one step every deploy already runs.
+        // A bundled module added by a core update needs its public/_modules link, and until this it
+        // only got one when someone ran module:activate by hand (TIGER-123). Idempotent.
+        foreach (Tiger_Module_Installer::publishAllAssets() as $slug) {
+            $log("  published assets: {$slug}");
+        }
         break;
 
     case 'schedule:run':
@@ -169,6 +175,10 @@ switch ($cmd) {
             $made = Tiger_Install::linkPublicAssets($webroot, APPLICATION_ROOT, $theme);
             foreach ($made as $name => $target) {
                 echo "  \xE2\x9C\x93 {$webroot}/{$name} -> {$target}\n";
+            }
+            // …and every module's assets into _modules, so link:assets leaves module JS served (TIGER-123).
+            foreach (Tiger_Module_Installer::publishAllAssets() as $slug) {
+                echo "  \xE2\x9C\x93 _modules/{$slug}\n";
             }
         } catch (Throwable $e) {
             fwrite(STDERR, "  link:assets failed: " . $e->getMessage() . "\n");
