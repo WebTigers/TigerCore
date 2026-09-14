@@ -552,13 +552,62 @@ class Tiger_Module_Installer
     protected static function _publishAssets($slug, $moduleDir)
     {
         $assets = $moduleDir . '/assets';
-        if (!is_dir($assets)) { return; }
+        if (!is_dir($assets)) { return false; }
         $base = self::publicModulesDir();
-        if (!is_dir($base) && !@mkdir($base, 0775, true) && !is_dir($base)) { return; }
+        if (!is_dir($base) && !@mkdir($base, 0775, true) && !is_dir($base)) { return false; }
 
         $link = $base . '/' . $slug;
+        // Already published to the right place: leave it. publishAllAssets() runs on every migrate,
+        // and re-linking dozens of modules each deploy is churn for nothing. (A COPY is re-made — it
+        // is a snapshot and the only way to refresh it is to copy again.)
+        if (is_link($link) && realpath((string) readlink($link)) === realpath($assets)) { return false; }
         if (is_link($link)) { @unlink($link); } elseif (is_dir($link)) { self::_rrmdir($link); }
-        if (!@symlink($assets, $link)) { self::_rcopy($assets, $link); }   // copy where symlinks aren't allowed
+        if (!(function_exists('symlink') && @symlink($assets, $link))) { self::_rcopy($assets, $link); }   // copy where symlinks aren't allowed
+        return true;
+    }
+
+    /**
+     * Publish every module's assets — bundled and app — that is not deactivated (TIGER-123).
+     *
+     * Bundled core modules are opt-OUT (active by default), so there is no activation moment at which
+     * publishAssets() would naturally run for them; until this, a bundled module with an assets/ dir
+     * had no public/_modules/<slug> link on a fresh or upgraded install until someone ran
+     * `module:activate <slug>` by hand, and every one of its <script src> tags 404'd. Called from
+     * `tiger migrate` (the step every deploy runs), the web core updater, and link:assets.
+     *
+     * Idempotent: a link already pointing at the right assets dir is left alone. App modules shadow
+     * bundled ones of the same slug, as everywhere else. Fail-soft on the inactive lookup: no DB means
+     * "publish everything", which is the fresh-install case.
+     *
+     * @param  string[]|null $inactive slugs to skip; null = ask Tiger_Model_Module
+     * @param  string[]|null $roots    module dirs to scan; null = the app root then the core root
+     * @return string[] the slugs whose link was created or refreshed this call
+     */
+    public static function publishAllAssets(?array $inactive = null, ?array $roots = null)
+    {
+        if ($inactive === null) {
+            try { $inactive = class_exists('Tiger_Model_Module') ? (new Tiger_Model_Module())->inactiveSlugs() : []; }
+            catch (Throwable $e) { $inactive = []; }
+        }
+        $skip = array_flip(array_map('strval', $inactive));
+        $seen = [];
+        $done = [];
+        foreach ($roots ?? self::_moduleRoots() as $root) {       // app root first: it shadows core
+            foreach (glob($root . '/*/assets', GLOB_ONLYDIR) ?: [] as $assets) {
+                $slug = basename(dirname($assets));
+                // A sane directory name only. NOT _validSlug(): that throws on the reserved platform
+                // slugs (system, access, default) because they may not be INSTALLED over — but their
+                // assets must certainly be published.
+                if (isset($seen[$slug]) || isset($skip[$slug]) || !preg_match('/^[a-z0-9][a-z0-9_-]*$/i', $slug)) { continue; }
+                $seen[$slug] = true;
+                try {
+                    if (self::_publishAssets($slug, dirname($assets))) { $done[] = $slug; }
+                } catch (Throwable $e) {
+                    // one module's bad assets dir must not stop the rest
+                }
+            }
+        }
+        return $done;
     }
 
     /**

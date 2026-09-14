@@ -243,6 +243,14 @@ class Tiger_Update_Core
         // framework assets forever, silently, with updated PHP behind them. Fail-soft: the code is
         // already updated and healthy, so a publish problem is reported, never a rollback.
         try {
+            // New bundled modules arriving with this core need their public link, in symlink mode too —
+            // republishAssets() below only acts in copy mode (TIGER-123).
+            try {
+                $published = Tiger_Module_Installer::publishAllAssets();
+                $add('modules', true, $published ? 'Module assets published: ' . implode(', ', $published) : 'Module assets already current.');
+            } catch (Throwable $e) {
+                $add('modules', false, 'Module asset publish issue (code is updated — review): ' . $e->getMessage());
+            }
             $assets = Tiger_Install::republishAssets($root);
             if ($assets['republished']) {
                 $add('assets', true, 'Re-published copied assets (this host blocks symlink()).');

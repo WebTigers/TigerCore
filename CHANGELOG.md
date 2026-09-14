@@ -6,6 +6,22 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **Bundled modules' assets are published automatically** (TIGER-123). Core modules are opt-out, so
+  nothing ever activated them, and a bundled module with an `assets/` dir had no `public/_modules/<slug>`
+  link on a fresh or upgraded install until someone ran `module:activate <slug>` by hand — every one of
+  its `<script src>` tags 404'd meanwhile. `Tiger_Module_Installer::publishAllAssets()` now runs from
+  `tiger migrate` (the step every deploy already runs), from the web core updater after its migrate
+  step, and from `link:assets`. Idempotent: a link already pointing at the right place is left alone,
+  and a deactivated module stays unpublished.
+
+- **`linkPublicAssets()` manages the docroot's `_modules` link on the split layout**, so a copy-mode
+  host refreshes it on republish like `_tiger` and `_theme`. Skipped on the co-located layout, where
+  the docroot *is* `<root>/public` and the link would point at itself. An unmarked `_modules` copy left
+  by the pre-TIGER-123 installer is left alone rather than thrown on — a throw there would have broken
+  `link:assets` and every core update on those hosts.
+
 ## [1.6.1] — 2026-09-13
 
 **Updates you can see coming, and rows that tell you what happened.**

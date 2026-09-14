@@ -189,6 +189,10 @@ class Tiger_Install
      *   - split (cPanel / shared): webroot = ~/public_html, app in <root> above the docroot
      * Idempotent: an existing symlink/file at the link path is replaced; a REAL directory there
      * is never clobbered (throws). Callable from `bin/tiger link:assets` and the web installer.
+ *
+ * This LINKS the three published dirs; it does not fill `_modules`. Callers that want module
+ * assets served follow it with `Tiger_Module_Installer::publishAllAssets()` — kept separate so this
+ * stays a pure function of ($webroot, $root) with no reach into the module registry (TIGER-123).
      *
      * @param string $webroot docroot dir where the links live (e.g. <root>/public or ~/public_html)
      * @param string $root     application root (holds vendor/)
@@ -211,6 +215,15 @@ class Tiger_Install
             '_theme' => $core . '/themes/' . preg_replace('/[^a-z0-9_-]/i', '', (string) $theme) . '/assets',
         ];
 
+        // Published module assets live in <root>/public/_modules (Tiger_Module_Installer). On the SPLIT
+        // layout the docroot needs a link to that dir; on the co-located layout the docroot IS
+        // <root>/public, and a link there would point at itself — so it is skipped (TIGER-123).
+        $modulesDir = $root . '/public/_modules';
+        if (realpath($webroot) !== realpath($root . '/public')) {
+            if (!is_dir($modulesDir)) { @mkdir($modulesDir, 0775, true); }
+            if (is_dir($modulesDir)) { $links['_modules'] = $modulesDir; }
+        }
+
         $made = [];
         foreach ($links as $name => $target) {
             if (!is_dir($target)) {
@@ -223,6 +236,11 @@ class Tiger_Install
                 // A real directory is normally the user's and is never clobbered — EXCEPT one we
                 // published ourselves in copy mode, which carries our marker and must be refreshed.
                 if (!is_file($link . '/' . self::ASSET_COPY_MARKER)) {
+                    // `_modules` is the one exception: installs set up before TIGER-123 have an UNMARKED
+                    // copy the old installer made. It is ours, but it cannot be told from a user's
+                    // directory, so it is left alone rather than thrown on — a throw here would break
+                    // link:assets and every core update on those hosts.
+                    if ($name === '_modules') { continue; }
                     throw new RuntimeException("linkPublicAssets: refusing to replace a real directory: {$link}");
                 }
                 self::_rrmdir($link);

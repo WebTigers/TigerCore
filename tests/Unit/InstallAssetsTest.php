@@ -122,6 +122,50 @@ final class InstallAssetsTest extends UnitTestCase
         $this->assertNull($r['error']);
     }
 
+    /**
+     * On the SPLIT layout the docroot gets a `_modules` link to <root>/public/_modules — where
+     * Tiger_Module_Installer publishes — so module JS is served from ~/public_html (TIGER-123).
+     */
+    #[Test]
+    public function on_a_split_layout_the_docroot_gets_a_modules_link(): void
+    {
+        $made = Tiger_Install::linkPublicAssets($this->webroot, $this->root, 'puma');
+
+        $this->assertArrayHasKey('_modules', $made);
+        $this->assertSame($this->root . '/public/_modules', $made['_modules']);
+        $this->assertDirectoryExists($this->root . '/public/_modules', 'the publish target is created so the link has somewhere to point');
+        $this->assertTrue(is_link($this->webroot . '/_modules') || is_dir($this->webroot . '/_modules'));
+    }
+
+    /** Co-located: the docroot IS <root>/public, so a `_modules` link there would point at itself. */
+    #[Test]
+    public function on_a_colocated_layout_no_self_referential_modules_link_is_made(): void
+    {
+        @mkdir($this->root . '/public', 0775, true);
+        $made = Tiger_Install::linkPublicAssets($this->root . '/public', $this->root, 'puma');
+
+        $this->assertArrayNotHasKey('_modules', $made);
+        $this->assertFalse(is_link($this->root . '/public/_modules'), 'never a link to itself');
+    }
+
+    /**
+     * An install set up before TIGER-123 has an UNMARKED `_modules` copy the old installer made. It is
+     * ours but indistinguishable from a user's directory, so it is left alone — a throw here would break
+     * link:assets and every core update on those hosts.
+     */
+    #[Test]
+    public function a_legacy_unmarked_modules_directory_is_left_alone_not_thrown_on(): void
+    {
+        @mkdir($this->webroot . '/_modules/oldmod', 0775, true);
+        file_put_contents($this->webroot . '/_modules/oldmod/x.js', '//');
+
+        $made = Tiger_Install::linkPublicAssets($this->webroot, $this->root, 'puma');
+
+        $this->assertArrayHasKey('_tiger', $made, 'the rest of the wiring still happens');
+        $this->assertArrayNotHasKey('_modules', $made, 'the legacy copy was skipped, not replaced');
+        $this->assertFileExists($this->webroot . '/_modules/oldmod/x.js', 'and not touched');
+    }
+
     #[Test]
     public function it_refuses_to_replace_a_real_directory_it_did_not_publish(): void
     {

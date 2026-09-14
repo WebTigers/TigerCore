@@ -229,6 +229,59 @@ final class InstallerLifecycleTest extends IntegrationTestCase
         }
     }
 
+    /**
+     * publishAllAssets() — every module with an assets/ dir gets its public link, without anyone
+     * naming it (TIGER-123). Bundled modules are opt-out, so nothing ever activated them; until this,
+     * a module added by a core update had no link until someone ran module:activate by hand.
+     */
+    #[Test]
+    public function publishAllAssetsLinksEveryModuleThatHasAssets(): void
+    {
+        $this->plantModule('w4all_a', ['module.json' => json_encode(['slug' => 'w4all_a']), 'assets/a.js' => "//a\n"]);
+        $this->plantModule('w4all_b', ['module.json' => json_encode(['slug' => 'w4all_b']), 'assets/b.js' => "//b\n"]);
+        $this->plantModule('w4all_c', ['module.json' => json_encode(['slug' => 'w4all_c'])]);   // no assets/ dir
+        $this->installed = array_merge($this->installed, ['w4all_a', 'w4all_b', 'w4all_c']);
+
+        $done = Tiger_Module_Installer::publishAllAssets([], [APPLICATION_PATH . '/modules']);
+
+        $this->assertContains('w4all_a', $done);
+        $this->assertContains('w4all_b', $done);
+        $this->assertNotContains('w4all_c', $done, 'a module with no assets/ has nothing to publish');
+        $this->assertFileExists(APPLICATION_ROOT . '/public/_modules/w4all_a/a.js');
+        $this->assertFileExists(APPLICATION_ROOT . '/public/_modules/w4all_b/b.js');
+        $this->assertFalse(file_exists(APPLICATION_ROOT . '/public/_modules/w4all_c'));
+    }
+
+    /** It runs on every migrate, so a second pass must be a no-op — no churn, nothing re-linked. */
+    #[Test]
+    public function publishAllAssetsIsIdempotent(): void
+    {
+        $this->plantModule('w4idem', ['module.json' => json_encode(['slug' => 'w4idem']), 'assets/x.css' => "x{}\n"]);
+        $this->installed[] = 'w4idem';
+
+        $first  = Tiger_Module_Installer::publishAllAssets([], [APPLICATION_PATH . '/modules']);
+        $link   = APPLICATION_ROOT . '/public/_modules/w4idem';
+        $inode  = @fileinode($link);
+        $second = Tiger_Module_Installer::publishAllAssets([], [APPLICATION_PATH . '/modules']);
+
+        $this->assertContains('w4idem', $first);
+        $this->assertNotContains('w4idem', $second, 'already pointing at the right place: left alone');
+        $this->assertSame($inode, @fileinode($link), 'the link was not recreated');
+    }
+
+    /** A deactivated module's assets are not served — deactivate unpublishes, and this must not undo that. */
+    #[Test]
+    public function publishAllAssetsSkipsDeactivatedModules(): void
+    {
+        $this->plantModule('w4off', ['module.json' => json_encode(['slug' => 'w4off']), 'assets/off.js' => "//\n"]);
+        $this->installed[] = 'w4off';
+
+        $done = Tiger_Module_Installer::publishAllAssets(['w4off'], [APPLICATION_PATH . '/modules']);
+
+        $this->assertNotContains('w4off', $done);
+        $this->assertFalse(file_exists(APPLICATION_ROOT . '/public/_modules/w4off'), 'a deactivated module stays unpublished');
+    }
+
     #[Test]
     public function publishAndUnpublishAssetsManageThePublicLink(): void
     {
