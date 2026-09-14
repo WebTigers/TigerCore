@@ -6,6 +6,19 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.7.1] — 2026-09-14
+
+### Fixed
+
+- **An activated theme's assets now reach a split docroot** (found by the first one-click cPanel
+  install: Grey Mist rendered unstyled because `/_greymist/*` 404'd). `Tiger_Install::linkPublicAssets()`
+  mirrors every `_*` entry Tiger publishes under `<root>/public` — a theme's asset base, a module's own
+  publish — into the docroot when the docroot is not `<root>/public`; `Tiger_Theme::activate()` also
+  publishes into the request's document root directly. Co-located installs are unchanged.
+- **Theme assets on a `symlink()`-disabled host are copied to the theme's asset base** (`public/_greymist`),
+  not to `_modules/<slug>` where nothing references them. New `Tiger_Install::publishOne()` is the
+  one link-or-copy unit both paths use.
+
 ## [1.7.0] — 2026-09-14
 
 **One theme-activation authority, and the headless install path documented.**
