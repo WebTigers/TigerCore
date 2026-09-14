@@ -6,10 +6,13 @@ runs anywhere. **Check these *before* you install:** most are one-time cPanel/`p
 and the [web installer's pre-flight](#pre-flight) will verify them for you and tell you exactly
 what to change if something's short.
 
-Two install paths, same requirements:
+Three install paths, same requirements:
 
-- **Composer** (shell hosts / dev): `composer create-project webtigers/tiger my-app --stability=beta`
-- **No-shell / cPanel** (roadmap): a pre-built vendored ZIP + a browser web installer.
+- **Composer** (shell hosts / dev): `composer create-project webtigers/tiger my-app`
+- **No-shell / cPanel**: the pre-built vendored ZIP + the browser [web installer](https://github.com/WebTigers/TigerInstall).
+- **Headless** (packaging front-ends — a WHM plugin, Softaculous, a provisioning script): the
+  [headless installer](https://github.com/WebTigers/TigerHeadless) — one JSON spec in, one JSON result
+  out, no human at a browser. See [Headless install](#headless) below.
 
 ---
 
@@ -116,6 +119,38 @@ a write test) and shows **pass / warning / fail** per item — with the exact va
 where. You fix any shortfalls in cPanel / `php.ini` **before** the install proceeds, so you never
 get a half-finished install that breaks on the first upload or the first module. This document is
 the source of truth those checks are generated from.
+
+---
+
+## Headless install <a id="headless"></a>
+
+The web installer is for a person; **`tiger-headless`** ([WebTigers/TigerHeadless](https://github.com/WebTigers/TigerHeadless))
+is for a program. A WHM plugin, a Softaculous package, or a provisioning script has the database
+credentials and the admin details in hand and wants a result code — it does not want to drive a
+wizard. There is **one install**, not several: the headless installer calls the same Tiger authorities
+the web installer and `bin/tiger` do (`Tiger_Install`, `Tiger_Db_Migrator` over
+`Tiger_Module_Installer::migrationPaths()`, `Tiger_Module_Installer`, `Tiger_Theme::activate()`), so a
+front-end never re-implements a migration, an owner record, or an asset link.
+
+```
+tiger-headless install --spec=spec.json      # or --spec=- to read it from stdin
+```
+
+The spec names the pre-created database, the app root and docroot, the site URL, the admin, and
+optionally a locale, Directory modules and a theme. The result is JSON on stdout — every step named
+with its outcome, the admin URL on success, the failing step on failure — and the exit code is honest
+(`0` ok · `1` a step failed · `2` invalid spec). A re-run after a failure resumes from the failed step;
+a re-run after success is a no-op that says so. The docroot front controller is written **last**, so a
+half-finished install is never web-reachable.
+
+**Layout is not negotiable by accident.** The default keeps the app **above the docroot** (this
+document's security story against `wp-config.php`); a caller that genuinely cannot express that opts
+in to the `docroot` layout explicitly, and the result says which layout was used.
+
+`upgrade`, `backup`, `restore` and `status` verbs wrap `Tiger_Update_Core` and `Tiger_Backup` the same
+way, so a packaging front-end gets every lifecycle verb from one binary. The requirements on this
+page apply unchanged — the headless `requirements` step checks the same things the web pre-flight does,
+plus that the database accepts the supplied credentials, before anything is extracted.
 
 ---
 

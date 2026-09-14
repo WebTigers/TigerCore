@@ -222,6 +222,77 @@ class Tiger_Theme
     }
 
     /**
+     * Make an installed theme the active one (THEMES.md §5a): write `tiger.theme` (global scope — one
+     * active theme per scope) and link its assets to its `assetBase` (copied where symlink() is blocked).
+     * No module.active flag, no build, no deploy. The ONE authority — the Modules admin and the headless
+     * installer both call this rather than each writing the config key their own way.
+     *
+     * @param  string $slug the theme's module slug (e.g. `theme-grey-mist`)
+     * @return array{slug:string,key:string,asset_base:string}
+     * @throws RuntimeException when no theme with that slug is on disk
+     */
+    public static function activate($slug)
+    {
+        $d = self::_discovered($slug);
+        $key  = (string) ($d['key'] ?? preg_replace('/^theme-/', '', $slug));
+        $base = ((string) ($d['asset_base'] ?? '')) !== '' ? (string) $d['asset_base'] : '/_' . $key;
+        (new Tiger_Model_Config())->set(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.theme', $key);
+        self::_linkAssets($slug, $base, (string) ($d['area'] ?? 'app'));
+        return ['slug' => $slug, 'key' => $key, 'asset_base' => $base];
+    }
+
+    /**
+     * Deactivate a theme: clear `tiger.theme` back to the platform base theme — but only if THIS theme
+     * is the active one, so deactivating a theme that is not active changes nothing.
+     *
+     * @param  string $slug the theme's module slug
+     * @return bool whether the config was cleared
+     */
+    public static function deactivate($slug)
+    {
+        $d   = self::_discovered($slug);
+        $key = (string) ($d['key'] ?? preg_replace('/^theme-/', '', $slug));
+        $cfg = new Tiger_Model_Config();
+        if ($cfg->get(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.theme') === $key) {
+            $cfg->set(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.theme', '');
+            return true;
+        }
+        return false;
+    }
+
+    /** The discovery row for a theme slug, or throw. */
+    protected static function _discovered($slug)
+    {
+        $rows = Tiger_Module_Discovery::all();
+        $d    = $rows[$slug] ?? null;
+        if (!$d || (string) ($d['type'] ?? '') !== 'theme') {
+            throw new RuntimeException("No installed theme with slug \"{$slug}\".");
+        }
+        return $d;
+    }
+
+    /** The docroot-facing public dir — PUBLIC_PATH when booted, else derived from the app root (CLI/tests). */
+    protected static function publicDir()
+    {
+        if (defined('PUBLIC_PATH')) { return rtrim(PUBLIC_PATH, '/'); }
+        $base = defined('APPLICATION_ROOT') ? rtrim(APPLICATION_ROOT, '/') : rtrim(getcwd(), '/');
+        return $base . '/public';
+    }
+
+    /** Symlink a theme's assets/ to public/<assetBase> (copy fallback where symlinks are blocked). */
+    protected static function _linkAssets($slug, $base, $area)
+    {
+        $root   = ($area === 'app' && defined('APPLICATION_PATH')) ? APPLICATION_PATH : TIGER_CORE_PATH;
+        $assets = $root . '/modules/' . $slug . '/assets';
+        if (!is_dir($assets)) { return; }
+        $link = self::publicDir() . '/' . ltrim((string) $base, '/');
+        if (is_link($link)) { @unlink($link); }
+        if (!(function_exists('symlink') && @symlink($assets, $link)) && !is_dir($link)) {
+            Tiger_Module_Installer::publishAssets($slug);   // best-effort; symlink is the norm on cPanel
+        }
+    }
+
+    /**
      * The active theme's SCOPE (THEMES.md §5d): `'site'` (default — the theme provides the chrome for
      * the whole public site, CMS pages included, the WordPress model) or `'content'` (the theme styles
      * ONLY its own shipped pages; the rest of the site — CMS pages, the home page, the default menu —
