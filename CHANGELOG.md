@@ -6,6 +6,28 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.7.0] — 2026-09-14
+
+**One theme-activation authority, and the headless install path documented.**
+
+### Added
+
+- **`Tiger_Theme::activate($slug)` / `deactivate($slug)`** (TIGER-124). Making a theme active — the
+  `tiger.theme` config write plus the `public/<assetBase>` link with the copy fallback — lived only
+  inside the Modules admin service, so a non-interactive caller had to re-implement it. It is now a
+  library seam the service and the headless installer both call. `ThemeActivateTest` covers the link,
+  idempotent re-activation over a stale link, and that deactivating a theme that is not active changes
+  nothing.
+- **INSTALL.md — Headless install.** The third install path: `tiger-headless` (WebTigers/TigerHeadless),
+  the non-interactive authority behind the WHM plugin, Softaculous and any provisioning script.
+
+### Fixed
+
+- **Release tags must be `v<semver>`.** `Tiger_Update_Core::resolveRelease()` fetches
+  `/releases/tags/v<version>`, so a bare `1.6.3` tag published a vendored ZIP that neither the admin
+  "Update core" button nor the headless `upgrade` verb could find. 1.6.3 and 1.6.4 were re-tagged, and
+  the release workflow now refuses a malformed tag before building anything.
+
 ## [1.6.4] — 2026-09-14
 
 ### Fixed

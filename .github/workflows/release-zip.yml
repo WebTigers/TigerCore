@@ -16,8 +16,26 @@ permissions:
   contents: write
 
 jobs:
+  # A release tag MUST be v<semver>. Tiger_Update_Core::resolveRelease() fetches
+  # /releases/tags/v<version>, so a bare "1.6.3" tag publishes a ZIP nothing can find — the admin
+  # "Update core" button and the headless upgrade verb both report "no release with a vendored
+  # bundle" while the asset sits right there. (It happened; two releases had to be re-tagged.)
+  tag-format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assert the release tag is v<semver>
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if ! printf '%s' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$'; then
+            echo "::error::Release tag '$TAG' must be v<major>.<minor>.<patch> (e.g. v1.6.4) — the updater resolves releases by that exact form."
+            exit 1
+          fi
+          echo "✓ tag $TAG"
+
   # The gate: run the full smoke matrix against the released tag before anything is attached.
   smoke:
+    needs: tag-format
     permissions:
       contents: read
     uses: ./.github/workflows/smoke.yml
@@ -25,7 +43,7 @@ jobs:
       ref: ${{ github.event.release.tag_name }}
 
   vendored-zip:
-    needs: smoke                # skipped (→ no ZIP attached) if smoke fails
+    needs: smoke                # skipped (→ no ZIP attached) if smoke fails or the tag is malformed
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
