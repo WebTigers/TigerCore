@@ -267,6 +267,25 @@ class AuthController extends Tiger_Controller_Action
     }
 
     /**
+     * GET /auth/magic/id/<challenge>/t/<token> — redeem a one-time magic link and land in the
+     * admin. Minted by something that owns the install (the headless installer's `login` verb,
+     * a hosting panel's "Log in" button); never by a web request. A bad/used/expired link goes to
+     * the normal sign-in page with nothing to learn from.
+     *
+     * @return void
+     */
+    public function magicAction()
+    {
+        $auth     = new Tiger_Service_Authentication();
+        $identity = $auth->redeemMagicLink((string) $this->getParam('id'), (string) $this->getParam('t'));
+        if (!$identity) {
+            $this->redirect('/auth/login');
+            return;
+        }
+        $this->redirect($this->_roleHome($identity));
+    }
+
+    /**
      * GET /auth/security -> the "Two-factor authentication" management screen, in the
      * admin shell. Shows enrollment (QR + manual key + confirm) or, once enabled, the
      * recovery-code count + a disable control. Signed-in users only.

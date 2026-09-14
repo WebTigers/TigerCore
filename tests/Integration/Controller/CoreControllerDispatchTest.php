@@ -103,6 +103,28 @@ final class CoreControllerDispatchTest extends ControllerTestCase
     }
 
     #[Test]
+    public function the_auth_magic_action_signs_in_and_lands_in_the_admin_or_falls_back_to_login(): void
+    {
+        // A bad link: no identity, straight to the sign-in page, nothing to learn from.
+        $this->dispatchAction(AuthController::class, 'magic', ['id' => 'nope', 't' => 'nope'], 'GET');
+        $this->assertSame('/auth/login', $this->redirectLocation());
+        $this->assertFalse(\Zend_Auth::getInstance()->hasIdentity());
+
+        // A real one, minted the way the headless `login` verb does it.
+        \Zend_Registry::set('Zend_Config', new \Zend_Config(['tiger' => ['crypto' => ['key' => 'ERERERERERERERERERERERERERERERERERERERERERE='], 'security' => ['pepper' => 'cGVwcGVyLUEtMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=']]], true));
+        $uid = (new \Tiger_Model_User())->insert(['email' => 'magic-' . bin2hex(random_bytes(4)) . '@example.test', 'status' => 'active']);
+        $org = (new \Tiger_Model_Org())->insert(['name' => 'Magic Org', 'slug' => 'magic-' . bin2hex(random_bytes(4))]);
+        (new \Tiger_Model_OrgUser())->insert(['org_id' => $org, 'user_id' => $uid, 'role' => 'admin', 'status' => 'active']);
+        $link = (new \Tiger_Service_Authentication())->issueMagicLink($uid);
+        preg_match('#/id/([^/]+)/t/([0-9a-f]+)$#', $link['path'], $m);
+
+        $this->dispatchAction(AuthController::class, 'magic', ['id' => $m[1], 't' => $m[2]], 'GET');
+        $this->assertSame('/admin', $this->redirectLocation(), 'an admin lands in the admin');
+        $this->assertTrue(\Zend_Auth::getInstance()->hasIdentity());
+        $this->assertSame($uid, \Zend_Auth::getInstance()->getIdentity()->user_id);
+    }
+
+    #[Test]
     public function the_index_controller_renders_a_static_marketing_action_without_error(): void
     {
         // vibeAction just sets up a static page (no DB, no forward). With rendering off, the harness

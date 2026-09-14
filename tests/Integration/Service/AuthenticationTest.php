@@ -287,6 +287,55 @@ final class AuthenticationTest extends IntegrationTestCase
         $this->assertFalse((new Tiger_Service_Authentication())->verifyLoginCode($email, '246800'), 'single-use: the same code cannot be replayed');
     }
 
+    // ----- magic-link login (the hosting panel's "Log in" button) -------------------------
+
+    #[Test]
+    public function a_magic_link_signs_the_user_in_once_and_is_audited(): void
+    {
+        $email = $this->email();
+        $uid   = (new Tiger_Model_User())->insert(['email' => $email, 'status' => 'active']);
+        $this->makeOrgMembership($uid, 'admin');
+
+        $link = $this->auth->issueMagicLink($uid);
+        $this->assertMatchesRegularExpression('#^/auth/magic/id/[0-9a-f-]{36}/t/[0-9a-f]{64}$#', $link['path']);
+        $this->assertSame(120, $link['expires_in']);
+        preg_match('#/id/([^/]+)/t/([0-9a-f]+)$#', $link['path'], $m);
+
+        $identity = $this->auth->redeemMagicLink($m[1], $m[2]);
+        $this->assertIsObject($identity);
+        $this->assertSame($uid, $identity->user_id);
+        $this->assertSame('admin', $identity->role);
+        $this->assertTrue($this->auth->isAuthenticated());
+        $this->assertSame(1, $this->auditCount($uid, Tiger_Model_Login::RESULT_SUCCESS));
+
+        $this->assertFalse((new Tiger_Service_Authentication())->redeemMagicLink($m[1], $m[2]), 'single-use: a replay fails');
+    }
+
+    #[Test]
+    public function a_magic_link_refuses_a_wrong_token_an_expired_link_and_an_inactive_user(): void
+    {
+        $uid = (new Tiger_Model_User())->insert(['email' => $this->email(), 'status' => 'active']);
+        $link = $this->auth->issueMagicLink($uid);
+        preg_match('#/id/([^/]+)/t/([0-9a-f]+)$#', $link['path'], $m);
+        $this->assertFalse($this->auth->redeemMagicLink($m[1], str_repeat('0', 64)), 'wrong token');
+        $this->assertFalse($this->auth->redeemMagicLink('not-a-uuid', $m[2]), 'malformed id');
+        $this->assertGreaterThan(0, $this->auditCount(null, Tiger_Model_Login::RESULT_FAILURE, 'magic-link'), 'failures are audited');
+
+        // Issuing again invalidates the earlier link (one live link per user).
+        $link2 = $this->auth->issueMagicLink($uid);
+        $this->assertFalse($this->auth->redeemMagicLink($m[1], $m[2]), 'the first link is dead once a second is minted');
+
+        // Expired: issue with a TTL already in the past.
+        $expired = $this->auth->issueMagicLink($uid, -1);
+        preg_match('#/id/([^/]+)/t/([0-9a-f]+)$#', $expired['path'], $x);
+        $this->assertFalse($this->auth->redeemMagicLink($x[1], $x[2]), 'expired');
+
+        // Inactive user: nothing is minted.
+        $off = (new Tiger_Model_User())->insert(['email' => $this->email(), 'status' => 'suspended']);
+        $this->assertNull($this->auth->issueMagicLink($off));
+        $this->assertFalse($this->auth->isAuthenticated());
+    }
+
     #[Test]
     public function requesting_a_login_code_is_a_silent_noop_for_unknown_or_inactive_users(): void
     {

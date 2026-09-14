@@ -6,6 +6,18 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.8.0] — 2026-09-14
+
+### Added
+
+- **Magic-link login** — `Tiger_Service_Authentication::issueMagicLink($userId)` mints a one-time,
+  2-minute, single-use sign-in URL (`/auth/magic/id/<challenge>/t/<token>`; only the token's hash is
+  stored, on the existing `auth_challenge` substrate) and `redeemMagicLink()` consumes it into a
+  session, audited like any login. Minted only by something that already owns the install — the
+  headless installer's `login` verb, a hosting panel's "Log in" button — never by a web request.
+  This is what lets TigerWHM's Admin button sign the account holder straight into their site, the
+  way WP Toolkit's does.
+
 ## [1.7.1] — 2026-09-14
 
 ### Fixed
