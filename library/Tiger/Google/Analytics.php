@@ -32,6 +32,7 @@ class Tiger_Google_Analytics
     const SCOPE     = 'https://www.googleapis.com/auth/analytics.readonly';
     const AUTH_URL  = 'https://accounts.google.com/o/oauth2/v2/auth';
     const TOKEN_URL = 'https://oauth2.googleapis.com/token';
+    const REVOKE_URL = 'https://oauth2.googleapis.com/revoke';
     const DATA_URL  = 'https://analyticsdata.googleapis.com/v1beta/properties/%s:runReport';
     const CACHE_TTL = 1800;   // 30 min — GA data isn't real-time and the API is quota-limited
 
@@ -130,11 +131,45 @@ class Tiger_Google_Analytics
     }
 
     /** Forget the OAuth connection (drop the refresh token). Client creds + property id stay. */
+    /**
+     * Disconnect: REVOKE the grant at Google, then forget the token (TIGER-117).
+     *
+     * Forgetting alone — the previous behaviour — only made this install unable to use the grant; it
+     * stayed live in the user's Google account until they found it under myaccount.google.com/permissions.
+     * A person who clicks Disconnect reasonably believes they have withdrawn access, and the published
+     * privacy policy says so. Google's verification review requires the policy to match actual practice.
+     *
+     * Revocation needs only the token itself — no client secret — so the install calls Google directly
+     * in either mode; no broker endpoint is involved. FAIL-SOFT: if Google is unreachable the local
+     * token is still cleared, because leaving someone unable to disconnect would be worse. The outcome
+     * is returned so the screen can say which of the two things happened.
+     *
+     * @return array{revoked:bool} whether Google confirmed the revocation
+     */
     public static function disconnect()
     {
+        $revoked = false;
+        $refresh = self::_refreshToken();
+        if ($refresh !== '') {
+            // Google returns 200 on success and on an already-invalid token; _http() yields null for
+            // anything non-2xx or unreachable. Either way we go on to clear locally.
+            $res = self::_http(static::_revokeUrl(), [
+                'method'  => 'POST',
+                'headers' => ['Content-Type: application/x-www-form-urlencoded'],
+                'body'    => http_build_query(['token' => $refresh]),
+            ]);
+            $revoked = ($res !== null);
+        }
         (new Tiger_Model_Config())->set(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.analytics.oauth.refresh_token_enc', '');
         self::$_access = null;
         @unlink(self::_cacheFile());
+        return ['revoked' => $revoked];
+    }
+
+    /** Google's revocation endpoint. A seam: tests point it at a dead port to exercise the fail-soft path. */
+    protected static function _revokeUrl()
+    {
+        return self::REVOKE_URL;
     }
 
     // =====================================================================================

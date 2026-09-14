@@ -48,6 +48,16 @@ return [
     'analytics.oauth_secret_keep'      => '•••••• (leave blank to keep)',
 
     'analytics.view_dashboard'         => 'View dashboard',
+    // OAuth verification requirements (TIGER-117/118)
+    'analytics.connect_google' => 'Continue with Google',
+    'analytics.disconnected' => 'Disconnected from Google Analytics. The authorization was revoked with Google.',
+    'analytics.disconnected_not_revoked' => 'Disconnected from this site, but Google could not be reached to revoke the authorization. You can remove it at myaccount.google.com/permissions.',
+    'analytics.gdata.title' => 'What connecting does with your Google data',
+    'analytics.gdata.scope' => 'Read-only access to your Google Analytics reports — the analytics.readonly scope, and nothing else.',
+    'analytics.gdata.where' => 'Reports are fetched by this site directly from Google and shown only to your administrators.',
+    'analytics.gdata.retain' => 'WebTigers does not store or see your analytics data; the connection service only exchanges tokens.',
+    'analytics.gdata.revoke' => 'Disconnect at any time here, or remove access in your Google Account.',
+    'analytics.gdata.policy_link' => 'How we handle Google user data — Privacy Policy',
     'analytics.disconnect'             => 'Disconnect',
     'analytics.connect'                => 'Connect Google Analytics',
     'analytics.connect_hint'           => 'Saves your settings, then opens Google to authorize.',

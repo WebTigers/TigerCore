@@ -145,8 +145,14 @@ class Analytics_AdminController extends Tiger_Controller_Admin_Action
     {
         $this->_helper->layout()->disableLayout();
         $this->_helper->viewRenderer->setNoRender(true);
-        Tiger_Google_Analytics::disconnect();
-        $this->_flash('Disconnected from Google Analytics.', 'success');
+        // Two different outcomes, said differently: "we revoked it" and "we could not reach Google to
+        // revoke it — here is where you can" are not the same message (TIGER-117).
+        $out = Tiger_Google_Analytics::disconnect();
+        if (!empty($out['revoked'])) {
+            $this->_flash($this->view->t('analytics.disconnected'), 'success');
+        } else {
+            $this->_flash($this->view->t('analytics.disconnected_not_revoked'), 'alert');
+        }
         $this->_redirect('/analytics/admin');
     }
 

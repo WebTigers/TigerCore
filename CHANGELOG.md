@@ -6,6 +6,34 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.6.3] — 2026-09-14
+
+**Google Analytics connect flow brought in line with Google's OAuth branding and privacy guidelines.**
+
+### Added
+
+- **In-product Google-data notice** on the Analytics settings screen (TIGER-118). Before the connect
+  button, the screen now states the single scope requested (`analytics.readonly`), where the data goes
+  (rendered in the install's own dashboard — the WebTigers broker never sees or stores report data),
+  how long the connection lasts, how to revoke it, and links the privacy policy. Nine new
+  `analytics.*` keys in all seven locales.
+
+### Changed
+
+- **"Continue with Google" button follows Google's sign-in branding guidelines** (TIGER-118): the
+  supplied four-colour G mark as inline SVG on a neutral button, Roboto with a system fallback, light
+  and dark variants, hover/press states — replacing the `btn-primary` with a third-party icon-font
+  glyph. The remaining icon-font Google marks on the analytics screens were swapped for neutral icons.
+
+### Fixed
+
+- **Disconnect revokes the Google token** (TIGER-117). `Tiger_Google_Analytics::disconnect()` now
+  POSTs the refresh token to Google's revocation endpoint before clearing it locally, so a disconnect
+  ends Google's grant instead of only forgetting it on our side. Fail-soft: if Google is unreachable
+  the local token is still cleared and the screen reports that the grant should be revoked from the
+  Google Account permissions page. `DisconnectRevokeTest` exercises both paths, including a real 200
+  from a local HTTP server.
+
 ## [1.6.2] — 2026-09-13
 
 **Module assets publish themselves.**

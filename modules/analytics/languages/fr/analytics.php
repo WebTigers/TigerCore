@@ -46,6 +46,16 @@ return [
     'analytics.oauth_secret_keep'      => '•••••• (laissez vide pour conserver)',
 
     'analytics.view_dashboard'         => 'Voir le tableau de bord',
+    // OAuth verification requirements (TIGER-117/118)
+    'analytics.connect_google' => 'Continuer avec Google',
+    'analytics.disconnected' => 'Déconnecté de Google Analytics. L\'autorisation a été révoquée auprès de Google.',
+    'analytics.disconnected_not_revoked' => 'Déconnecté de ce site, mais Google n\'a pas pu être joint pour révoquer l\'autorisation. Vous pouvez la retirer sur myaccount.google.com/permissions.',
+    'analytics.gdata.title' => 'Ce que la connexion fait de vos données Google',
+    'analytics.gdata.scope' => 'Accès en lecture seule à vos rapports Google Analytics — le périmètre analytics.readonly, et rien d\'autre.',
+    'analytics.gdata.where' => 'Les rapports sont récupérés par ce site directement auprès de Google et affichés uniquement à vos administrateurs.',
+    'analytics.gdata.retain' => 'WebTigers ne stocke ni ne voit vos données d\'analyse ; le service de connexion n\'échange que des jetons.',
+    'analytics.gdata.revoke' => 'Déconnectez-vous ici à tout moment, ou retirez l\'accès dans votre compte Google.',
+    'analytics.gdata.policy_link' => 'Comment nous traitons les données utilisateur Google — Politique de confidentialité',
     'analytics.disconnect'             => 'Déconnecter',
     'analytics.connect'                => 'Connecter Google Analytics',
     'analytics.connect_hint'           => 'Enregistre vos paramètres, puis ouvre Google pour autoriser.',
