@@ -6,6 +6,10 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.6.2] — 2026-09-13
+
+**Module assets publish themselves.**
+
 ### Fixed
 
 - **Bundled modules' assets are published automatically** (TIGER-123). Core modules are opt-out, so
