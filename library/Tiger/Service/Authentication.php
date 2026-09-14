@@ -376,6 +376,60 @@ class Tiger_Service_Authentication
         return $this->_finishLogin($user, $identifier, 'otp');
     }
 
+    // ----- magic-link login (a hosting panel's "Log in" button) ---------------
+    //
+    // A one-time, short-lived URL that signs a KNOWN user in without a password. The issuer
+    // is something that already owns the install — the headless installer running as the
+    // account user, a hosting panel — never a request from the web. The token travels only in
+    // the URL; only its hash is stored (auth_challenge, type magic_link), single-use, TTL'd,
+    // attempt-limited. Same substrate as the email code login, minus the email.
+
+    const MAGIC_TTL = 120;
+
+    /**
+     * Mint a magic-link login for a user. Returns the PATH to redeem it (the caller knows the
+     * host), or null if the user cannot sign in.
+     *
+     * @param  string $userId
+     * @param  int    $ttl seconds (default 2 minutes — long enough to click, not to forward)
+     * @return array{path:string,expires_in:int}|null
+     */
+    public function issueMagicLink($userId, $ttl = self::MAGIC_TTL)
+    {
+        $user = (new Tiger_Model_User())->findById((string) $userId);
+        if (!$user || $user->status !== 'active') { return null; }
+        $model = new Tiger_Model_AuthChallenge();
+        $model->invalidateActive($user->user_id, 'magic_link');   // one live link per user
+        $token = bin2hex(random_bytes(32));
+        $id    = $model->issue($user->user_id, 'magic_link', $token, (int) $ttl);
+        return ['path' => '/auth/magic/id/' . rawurlencode($id) . '/t/' . $token, 'expires_in' => (int) $ttl];
+    }
+
+    /**
+     * Redeem a magic link: consume the challenge and establish the session. Returns the
+     * identity, or false (missing, used, expired, wrong token — all the same to the caller).
+     *
+     * @param  string $challengeId
+     * @param  string $token
+     * @return object|false
+     */
+    public function redeemMagicLink($challengeId, $token)
+    {
+        $model = new Tiger_Model_AuthChallenge();
+        $row   = (preg_match('/^[0-9a-f-]{36}$/', (string) $challengeId) && preg_match('/^[0-9a-f]{64}$/', (string) $token))
+            ? $model->redeem((string) $challengeId, (string) $token) : null;
+        if (!$row || $row->type !== 'magic_link' || !$row->user_id) {
+            $this->_recordLogin(Tiger_Model_Login::RESULT_FAILURE, 'magic-link', null, null, 'magic');
+            return false;
+        }
+        $user = (new Tiger_Model_User())->findById((string) $row->user_id);
+        if (!$user || $user->status !== 'active') {
+            $this->_recordLogin(Tiger_Model_Login::RESULT_FAILURE, 'magic-link', (string) $row->user_id, null, 'magic');
+            return false;
+        }
+        return $this->_finishLogin($user, (string) $user->email, 'magic');
+    }
+
     // ----- two-factor authentication (TOTP authenticator app) ----------------
     //
     // A confirmed TOTP factor turns login into two steps: password (login(), which
