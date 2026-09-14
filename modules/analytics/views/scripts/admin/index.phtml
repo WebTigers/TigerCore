@@ -163,7 +163,7 @@ $mode = ($this->ga['mode'] === 'byo') ? 'byo' : 'broker';
                                     <path fill="none" d="M0 0h48v48H0z"></path>
                                 </svg>
                             </span>
-                            <span class="gsi-material-button-contents"><?= $this->escape($this->t('analytics.connect_google')) ?></span>
+                            <span class="gsi-material-button-contents" data-tg-busy-host><?= $this->escape($this->t('analytics.connect_google')) ?></span>
                         </span>
                     </button>
                     <span class="text-body-secondary"><?= $this->t('analytics.connect_hint') ?></span>

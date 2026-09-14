@@ -6,6 +6,16 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.6.4] — 2026-09-14
+
+### Fixed
+
+- **"Continue with Google" busy state no longer breaks the button's layout.** `TigerButton` prepends a
+  spinner to buttons without a FontAwesome icon; on the Google button that landed outside the flex
+  content wrapper and pushed the label onto a second line while the settings saved. Buttons can now
+  name where the spinner goes with `data-tg-busy-host`; the Google button hosts it after its label.
+  First tests for `tiger.button.js` (`tests/js/tiger.button.test.js`, in the `javascript` CI job).
+
 ## [1.6.3] — 2026-09-14
 
 **Google Analytics connect flow brought in line with Google's OAuth branding and privacy guidelines.**

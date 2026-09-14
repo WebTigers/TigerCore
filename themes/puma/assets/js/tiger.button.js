@@ -16,6 +16,10 @@
  *   <i class="fa-solid fa-floppy-disk me-2" data-ajax="fa-solid fa-cloud-arrow-up"></i>
  * Non-FontAwesome classes (spacing like me-2) are preserved across the swap.
  *
+ * Buttons whose icon is NOT FontAwesome (a brand mark as inline SVG, say) can name where the
+ * temporary spinner goes with data-tg-busy-host on a descendant; it is appended there, inside
+ * the button's own layout, instead of being prepended to the button and breaking that layout.
+ *
  * Convention: buttons are always <button type="button"> (Tiger never page-POSTs a form),
  * so a busy button never accidentally submits.
  */
@@ -48,11 +52,19 @@
             if (ic.dataset.default == null) { ic.dataset.default = ic.className; }
             ic.className = faSwap(ic.dataset.default, ic.dataset.ajax || SPINNER);
         } else {
-            // Text-only button — inject a temporary spinner so there's still visible feedback.
+            // No FontAwesome icon — inject a temporary spinner so there's still visible feedback.
+            // Into the declared host (appended, after its label) when the button names one;
+            // otherwise prepended to the button itself.
+            var host = btn.querySelector('[data-tg-busy-host]');
             var spin = document.createElement('i');
-            spin.className = SPINNER + (btn.textContent.trim() ? ' me-2' : '');
             spin.setAttribute('data-tg-injected', '1');
-            btn.insertBefore(spin, btn.firstChild);
+            if (host) {
+                spin.className = SPINNER + (host.textContent.trim() ? ' ms-2' : '');
+                host.appendChild(spin);
+            } else {
+                spin.className = SPINNER + (btn.textContent.trim() ? ' me-2' : '');
+                btn.insertBefore(spin, btn.firstChild);
+            }
         }
     }
 
