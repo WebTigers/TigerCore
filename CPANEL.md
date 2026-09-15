@@ -71,7 +71,10 @@ directory the installer is uploaded into (§5).
 | Tiger on **another domain** on the account | same screen | `public_html/<domain>` |
 
 Adding the domain needs an **authenticated cPanel session** — the same column as creating a database.
-Accept the document root cPanel proposes unless there is a reason not to.
+**Untick "Share document root (…/public_html) with '<main domain>'"** — checked by default on cPanel
+138+, and irreversible once the domain exists; left checked, the new domain serves the main site's
+folder. Then accept the document root cPanel proposes (`public_html/app` or
+`public_html/app.example.com`, version-dependent) unless there is a reason not to.
 
 A subdomain of a domain already on the account needs no DNS work; it is served from the existing zone.
 A separate domain must be registered with nameservers already pointing here — run the `dig +short A`
