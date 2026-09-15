@@ -33,6 +33,7 @@ final class McpControllerTest extends ControllerTestCase
     protected function tearDown(): void
     {
         if ($this->origConfig !== null) { Zend_Registry::set('Zend_Config', $this->origConfig); }
+        foreach (['HTTP_AUTHORIZATION', 'REDIRECT_HTTP_AUTHORIZATION', 'HTTP_SEC_FETCH_SITE', 'HTTP_ORIGIN', 'CONTENT_TYPE', 'HTTP_CONTENT_TYPE'] as $k) { unset($_SERVER[$k]); }
         parent::tearDown();
     }
 
@@ -97,6 +98,56 @@ final class McpControllerTest extends ControllerTestCase
         $this->assertSame('object', $schema['type']);
         $this->assertArrayHasKey('title', $schema['properties'], 'the Cms_Form_Page fields are typed into the schema');
         $this->assertArrayHasKey('slug', $schema['properties']);
+    }
+
+    /** A presented Bearer that does not verify is 401 — never a silent downgrade to the guest surface (TIGER-138). */
+    #[Test]
+    public function an_invalid_bearer_is_401_not_guest(): void
+    {
+        $this->enableMcp();
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer tgr_deadbeefdead_' . str_repeat('0', 48);
+        [$code, $out] = $this->post(['jsonrpc' => '2.0', 'id' => 7, 'method' => 'tools/list']);
+        $this->assertSame(401, $code);
+        $this->assertSame(7, $out['id']);
+        $this->assertStringContainsString('not valid', $out['error']['message']);
+        $this->assertArrayNotHasKey('result', $out, 'no tool list for a bad key');
+    }
+
+    /** Apache/FPM may surface the header only as REDIRECT_HTTP_AUTHORIZATION (the .htaccess rewrite-env fallback). */
+    #[Test]
+    public function the_authorization_header_is_read_from_the_redirect_env_too(): void
+    {
+        $this->enableMcp();
+        $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] = 'Bearer tgr_deadbeefdead_' . str_repeat('0', 48);
+        [$code] = $this->post(['jsonrpc' => '2.0', 'id' => 8, 'method' => 'tools/list']);
+        $this->assertSame(401, $code, 'the token was SEEN (and refused) — it did not vanish into the guest path');
+    }
+
+    /** A session (cookie) identity is honoured only from its own origin: the CSRF shape is refused (F4). */
+    #[Test]
+    public function a_cross_site_request_on_a_session_is_403(): void
+    {
+        $this->enableMcp();
+        $this->loginAs('admin');
+        $_SERVER['HTTP_SEC_FETCH_SITE'] = 'cross-site';
+        [$code, $out] = $this->post(['jsonrpc' => '2.0', 'id' => 9, 'method' => 'tools/list']);
+        $this->assertSame(403, $code);
+        $this->assertStringContainsString('own origin', $out['error']['message']);
+
+        $_SERVER['HTTP_SEC_FETCH_SITE'] = 'same-origin';
+        [$code, $out] = $this->post(['jsonrpc' => '2.0', 'id' => 10, 'method' => 'tools/list']);
+        $this->assertSame(200, $code);
+        $this->assertNotEmpty($out['result']['tools'], 'the same admin, same-origin, is served');
+    }
+
+    /** JSON-RPC is JSON: a text/plain body (the enctype a cross-site form can send) is 415. */
+    #[Test]
+    public function a_non_json_content_type_is_415(): void
+    {
+        $this->enableMcp();
+        $_SERVER['CONTENT_TYPE'] = 'text/plain';
+        [$code] = $this->post(['jsonrpc' => '2.0', 'id' => 11, 'method' => 'tools/list']);
+        $this->assertSame(415, $code);
     }
 }
 

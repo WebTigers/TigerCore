@@ -231,6 +231,29 @@ abstract class Tiger_Service_Service
         return $acl->isAllowed($role, $resource, $privilege);
     }
 
+    /**
+     * "Is the caller an admin (or a role that inherits admin)?" — the question _isAdmin() does NOT
+     * answer. _isAdmin() asks whether the role is ALLOWED ON THIS SERVICE; on a service granted to
+     * guests (comments, search, signup) every caller is. A method that is admin-only inside a
+     * public service must ask THIS.
+     *
+     * @return bool
+     */
+    protected function _isAtLeastAdmin()
+    {
+        $identity = Zend_Auth::getInstance()->getIdentity();
+        $role     = (string) ($identity->role ?? '');
+        if ($role === '') { return false; }
+        if ($role === 'admin') { return true; }
+        if (!Zend_Registry::isRegistered('Zend_Acl')) { return false; }
+        try {
+            $acl = Zend_Registry::get('Zend_Acl');
+            return $acl->hasRole($role) && $acl->hasRole('admin') && $acl->inheritsRole($role, 'admin');
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
     // ----- data / transactions ----------------------------------------------
 
     /** The default DB adapter, or a clear failure if none is configured. */

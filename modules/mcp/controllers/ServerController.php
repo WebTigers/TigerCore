@@ -53,6 +53,15 @@ class Mcp_ServerController extends Zend_Controller_Action
             return;
         }
 
+        // JSON-RPC is JSON. Refusing any other Content-Type also closes the classic text/plain-form
+        // CSRF: a cross-site <form enctype="text/plain"> cannot send application/json.
+        $ct = strtolower((string) $this->getRequest()->getHeader('Content-Type'));
+        if ($ct !== '' && strpos($ct, 'application/json') === false) {
+            $resp->setHttpResponseCode(415);
+            $this->_emit(['jsonrpc' => '2.0', 'id' => null, 'error' => ['code' => -32700, 'message' => 'Content-Type must be application/json']]);
+            return;
+        }
+
         $msg = json_decode($this->_rawBody(), true);
         if (!is_array($msg)) {
             $resp->setHttpResponseCode(400);
@@ -60,7 +69,24 @@ class Mcp_ServerController extends Zend_Controller_Action
             return;
         }
 
+        // A Bearer that is presented but does not verify is 401 — never a silent downgrade to guest.
+        // A client with a bad key must learn it is bad, not receive the public tool list and wonder.
+        $bearer = $this->_bearer();
+        if ($bearer !== null && (new Tiger_Service_Authentication())->identityFromToken($bearer) === null) {
+            $resp->setHttpResponseCode(401);
+            $resp->setHeader('WWW-Authenticate', 'Bearer realm="Tiger MCP"', true);
+            $this->_emit(['jsonrpc' => '2.0', 'id' => $msg['id'] ?? null, 'error' => ['code' => -32001, 'message' => 'Unauthorized: the Bearer token is not valid']]);
+            return;
+        }
+
         $identity = $this->_identity();
+        // A session (cookie) identity is honoured only for a same-origin request. A cross-site POST
+        // that rides the admin's cookie — the CSRF shape — is a guest here, whatever the cookie says.
+        if ($bearer === null && $identity !== null && !$this->_sameOrigin()) {
+            $resp->setHttpResponseCode(403);
+            $this->_emit(['jsonrpc' => '2.0', 'id' => $msg['id'] ?? null, 'error' => ['code' => -32002, 'message' => 'Forbidden: a session may only call /mcp from its own origin; use a Bearer token']]);
+            return;
+        }
         $role     = ($identity && !empty($identity->role)) ? (string) $identity->role : 'guest';
 
         // Resolve the token's MCP policy (scope + read-only + org-scoping + metering key). null for a
@@ -90,7 +116,7 @@ class Mcp_ServerController extends Zend_Controller_Action
      */
     protected function _identity()
     {
-        $h = (string) $this->getRequest()->getHeader('Authorization');
+        $h = Tiger_Ajax_ServiceFactory::authorizationHeader($this->getRequest());
         if (preg_match('/^\s*Bearer\s+(\S+)/i', $h, $m)) {
             $id = (new Tiger_Service_Authentication())->identityFromToken($m[1]);
             if ($id !== null) {
@@ -117,11 +143,35 @@ class Mcp_ServerController extends Zend_Controller_Action
     protected function _tokenPolicy($identity)
     {
         if ($identity === null) { return [null, '']; }
-        $h = (string) $this->getRequest()->getHeader('Authorization');
+        $h = Tiger_Ajax_ServiceFactory::authorizationHeader($this->getRequest());
         if (!preg_match('/^\s*Bearer\s+tgr_([a-f0-9]{12})_/i', $h, $m)) { return [null, '']; }
         $prefix = $m[1];
         $credId = (new Tiger_Model_UserCredential())->credentialIdByPrefix($prefix);
         return [Tiger_Mcp_Token::config((string) $credId), $prefix];
+    }
+
+    /** The presented Bearer token (verified or not), or null when the request carries none. */
+    protected function _bearer()
+    {
+        $h = Tiger_Ajax_ServiceFactory::authorizationHeader($this->getRequest());
+        return preg_match('/^\s*Bearer\s+(\S+)/i', $h, $m) ? $m[1] : null;
+    }
+
+    /**
+     * Is this a same-origin request? Browsers say so themselves: Sec-Fetch-Site (same-origin / none)
+     * on every modern cross-site-capable request, Origin on every cross-origin POST. A request with
+     * neither header is not a browser (curl with a cookie jar, a test) and is taken at face value.
+     */
+    protected function _sameOrigin()
+    {
+        $req  = $this->getRequest();
+        $site = strtolower((string) $req->getHeader('Sec-Fetch-Site'));
+        if ($site !== '') { return in_array($site, ['same-origin', 'none'], true); }
+        $origin = (string) $req->getHeader('Origin');
+        if ($origin === '' || $origin === 'null') { return $origin === ''; }
+        $host = strtolower((string) ($req->getHttpHost() ?: ($_SERVER['HTTP_HOST'] ?? '')));
+        return strtolower((string) parse_url($origin, PHP_URL_HOST)) === preg_replace('/:\d+$/', '', $host)
+            && (parse_url($origin, PHP_URL_PORT) === null || (string) parse_url($origin, PHP_URL_PORT) === (string) ($req->getServer('SERVER_PORT') ?? ''));
     }
 
     /**

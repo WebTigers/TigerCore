@@ -290,8 +290,29 @@ class Tiger_Ajax_ServiceFactory
     /** The Bearer token from the Authorization header, or null. */
     protected function _bearerToken()
     {
-        $h = (string) $this->_request->getHeader('Authorization');
+        $h = self::authorizationHeader($this->_request);
         return preg_match('/^\s*Bearer\s+(\S+)/i', $h, $m) ? $m[1] : null;
+    }
+
+    /**
+     * The request's Authorization header, wherever the server put it. Apache drops it for CGI /
+     * FastCGI / PHP-FPM unless told otherwise (`CGIPassAuth On`, in public/.htaccess since the
+     * skeleton's 1.0.21); the rewrite-env fallback there surfaces it as REDIRECT_HTTP_AUTHORIZATION;
+     * some SAPIs only expose it through apache_request_headers(). One reader for /api and /mcp.
+     *
+     * @param  Zend_Controller_Request_Abstract|null $request
+     * @return string '' when absent
+     */
+    public static function authorizationHeader($request = null)
+    {
+        $h = '';
+        if ($request !== null && method_exists($request, 'getHeader')) { $h = (string) $request->getHeader('Authorization'); }
+        if ($h === '') { $h = (string) ($_SERVER['HTTP_AUTHORIZATION'] ?? ''); }
+        if ($h === '') { $h = (string) ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? ''); }
+        if ($h === '' && function_exists('apache_request_headers')) {
+            foreach ((array) apache_request_headers() as $k => $v) { if (strcasecmp((string) $k, 'Authorization') === 0) { $h = (string) $v; break; } }
+        }
+        return $h;
     }
 
     /**

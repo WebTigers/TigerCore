@@ -6,6 +6,36 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.8.1] — 2026-09-15
+
+Findings from an AI-driven install test of the web installer on a shared cPanel host (TIGER-138).
+
+### Security
+
+- **Comment moderation was open to anyone once comments were enabled.** `Comment_Service_Comment`
+  is granted to guests (anyone may post), and its admin-only methods gated on `_isAdmin()` — which
+  asks "is this role allowed on this service", true for a guest there. `moderate`, `datatable` and
+  deleting/editing someone else's comment now use the new `Tiger_Service_Service::_isAtLeastAdmin()`
+  (admin, or a role that inherits admin). The suite's own tests had been moderating as a plain
+  `user` and passing. Every other service that uses bare `_isAdmin()` is admin/superadmin-granted,
+  where it means what it says.
+- **`/mcp` cookie sessions are honoured only from the site's own origin.** A cross-site POST riding
+  the admin's cookie (Sec-Fetch-Site not same-origin/none, or a foreign Origin) is 403; a
+  non-JSON Content-Type is 415 (closes the text/plain-form CSRF shape). Bearer clients are unaffected.
+
+### Fixed
+
+- **Bearer tokens never reached `/mcp` or `/api` on PHP-FPM hosts.** Apache drops the Authorization
+  header for CGI/FastCGI/FPM unless told otherwise, so a valid token degraded silently to the guest
+  surface (the headless-agent story was dead on every shared host). The skeleton's `public/.htaccess`
+  (1.0.21) now passes it through (`CGIPassAuth On`, with a rewrite-env fallback); Tiger reads the
+  header from `HTTP_AUTHORIZATION`, `REDIRECT_HTTP_AUTHORIZATION` and `apache_request_headers()`
+  (`Tiger_Ajax_ServiceFactory::authorizationHeader()`, one reader for both endpoints).
+- **A Bearer that does not verify is 401** on `/mcp` (`WWW-Authenticate: Bearer`), never a silent
+  downgrade to guest — a client with a bad key learns it is bad.
+- Comment admin methods answer "not allowed" BEFORE the feature flag, so an outsider is never told
+  the feature is off instead.
+
 ## [1.8.0] — 2026-09-14
 
 ### Added
