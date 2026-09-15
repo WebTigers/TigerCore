@@ -179,9 +179,9 @@ class Comment_Service_Comment extends Tiger_Service_Service
 
         $userId = (string) ($this->_user_id ?? '');
         $mine   = $userId !== '' && (string) $row->user_id === $userId;
-        if (!$mine && !$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$mine && !$this->_isAtLeastAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
 
-        if ($mine && !$this->_isAdmin() && (time() - strtotime((string) $row->created_at)) > Tiger_Comment::editWindow()) {
+        if ($mine && !$this->_isAtLeastAdmin() && (time() - strtotime((string) $row->created_at)) > Tiger_Comment::editWindow()) {
             $this->_error('comment.error.edit_window'); return;
         }
 
@@ -219,8 +219,9 @@ class Comment_Service_Comment extends Tiger_Service_Service
      */
     public function moderate(array $params): void
     {
+        // Authorization BEFORE the feature flag: "not allowed" must never be masked by "not enabled".
+        if (!$this->_isAtLeastAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
         if (!$this->_enabled()) { return; }
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
 
         $status = (string) ($params['status'] ?? '');
         if (!in_array($status, Tiger_Model_Comment::STATUSES, true)) { $this->_error('comment.error.bad_status'); return; }
@@ -256,7 +257,7 @@ class Comment_Service_Comment extends Tiger_Service_Service
 
         $userId = (string) ($this->_user_id ?? '');
         $mine   = $userId !== '' && (string) $row->user_id === $userId;
-        if (!$mine && !$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$mine && !$this->_isAtLeastAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
 
         try {
             $this->_transaction(function () use ($model, $row) {
@@ -278,8 +279,8 @@ class Comment_Service_Comment extends Tiger_Service_Service
      */
     public function datatable(array $params): void
     {
+        if (!$this->_isAtLeastAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
         if (!$this->_enabled()) { return; }
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
 
         $dt     = $this->_dtParams();
         $status = (string) ($params['status'] ?? Tiger_Model_Comment::STATUS_PENDING);

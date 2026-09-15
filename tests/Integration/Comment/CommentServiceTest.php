@@ -179,6 +179,7 @@ final class CommentServiceTest extends IntegrationTestCase
 
         $row = (new Tiger_Model_Comment())->byStatus(Tiger_Model_Comment::STATUS_PENDING, 5)[0];
 
+        $this->loginAs('admin');   // moderation is an admin's act
         $svc = new Comment_Service_Comment();
         $svc->moderate(['comment_id' => $row['comment_id'], 'status' => Tiger_Model_Comment::STATUS_APPROVED]);
 
@@ -226,6 +227,47 @@ final class CommentServiceTest extends IntegrationTestCase
         $this->assertSame(1, (int) $svc->getResponse()->result, 'a vendor may reply, just not rate');
     }
 
+    /**
+     * The service is granted to GUESTS (anyone may post), so "allowed on this service" is not "is an
+     * admin". Moderation, the moderation grid and deleting someone else's comment are admin acts —
+     * refused to a signed-in user and to a guest — and refused BEFORE the feature flag speaks, so
+     * "not allowed" is never disguised as "not enabled" (TIGER-138).
+     */
+    #[Test]
+    public function moderation_is_refused_to_a_user_and_a_guest_and_before_the_feature_flag(): void
+    {
+        $this->loginAs('user');
+        $this->post(['rating' => 2]);
+        $row = (new Tiger_Model_Comment())->byStatus(Tiger_Model_Comment::STATUS_PENDING, 5)[0];
+
+        $svc = new Comment_Service_Comment();
+        $svc->moderate(['comment_id' => $row['comment_id'], 'status' => Tiger_Model_Comment::STATUS_APPROVED]);
+        $this->assertSame(0, (int) $svc->getResponse()->result, 'a plain user cannot moderate');
+        $this->assertSame(Tiger_Model_Comment::STATUS_PENDING, (new Tiger_Model_Comment())->findById($row['comment_id'])->status, 'and nothing changed');
+
+        $svc = new Comment_Service_Comment();
+        $svc->datatable([]);
+        $this->assertSame(0, (int) $svc->getResponse()->result, 'nor read the moderation grid');
+
+        $this->logout();
+        $svc = new Comment_Service_Comment();
+        $svc->delete(['comment_id' => $row['comment_id']]);
+        $this->assertSame(0, (int) $svc->getResponse()->result, 'a guest cannot delete another\'s comment');
+        $this->assertNotNull((new Tiger_Model_Comment())->findById($row['comment_id']));
+
+        // Feature flag OFF: an outsider is still told "not allowed", not "not enabled".
+        $this->enable(false);
+        $this->loginAs('admin');
+        $svc = new Comment_Service_Comment();
+        $svc->moderate(['comment_id' => $row['comment_id'], 'status' => Tiger_Model_Comment::STATUS_APPROVED]);
+        $notEnabled = json_encode($svc->getResponse()->messages);   // what an ADMIN hears when the feature is off
+        $this->logout();
+        $svc = new Comment_Service_Comment();
+        $svc->moderate(['comment_id' => $row['comment_id'], 'status' => Tiger_Model_Comment::STATUS_APPROVED]);
+        $this->assertSame(0, (int) $svc->getResponse()->result);
+        $this->assertNotSame($notEnabled, json_encode($svc->getResponse()->messages), 'authorization answers before the feature flag: a guest is not told the feature is off');
+    }
+
     #[Test]
     public function a_guest_is_refused_unless_guests_are_allowed(): void
     {
@@ -255,9 +297,11 @@ final class CommentServiceTest extends IntegrationTestCase
         $this->post([]);
         $row = (new Tiger_Model_Comment())->byStatus(Tiger_Model_Comment::STATUS_PENDING, 5)[0];
 
+        $this->loginAs('admin');
         $svc = new Comment_Service_Comment();
         $svc->moderate(['comment_id' => $row['comment_id'], 'status' => Tiger_Model_Comment::STATUS_APPROVED]);
 
+        $this->logout();
         $svc = new Comment_Service_Comment();
         $svc->list(['subject' => 'test.thing:t1']);
         $comment = ((array) $svc->getResponse()->data)['comments'][0];
@@ -274,6 +318,7 @@ final class CommentServiceTest extends IntegrationTestCase
         $this->post(['rating' => 5]);
         $row = (new Tiger_Model_Comment())->byStatus(Tiger_Model_Comment::STATUS_PENDING, 5)[0];
 
+        $this->loginAs('admin');
         $svc = new Comment_Service_Comment();
         $svc->moderate(['comment_id' => $row['comment_id'], 'status' => Tiger_Model_Comment::STATUS_APPROVED]);
         $this->assertSame(1, (new Tiger_Model_CommentAggregate())->forSubject('test.thing', 't1')['rating_count']);
