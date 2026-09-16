@@ -30,6 +30,22 @@ return [
     'agent.settings.how.body1'    => 'Der Agent handelt <strong>als Sie</strong> — er kann nie mehr tun, als Ihre Rolle erlaubt. Lesevorgänge laufen von selbst; Änderungen werden zuerst zu Ihrer Genehmigung angezeigt.',
     'agent.settings.how.body2'    => '<strong>Bringen Sie Ihr eigenes Konto mit:</strong> der Schlüssel, den Sie einfügen, gehört Ihnen, wird auf diesem Server verschlüsselt gespeichert und nie geteilt. Ihr KI-Anbieter rechnet direkt mit Ihnen ab.',
 
+    // Agent registry (multiple named agents)
+    'agent.agents.add' => 'Agent hinzufügen',
+    'agent.agents.name' => 'Name',
+    'agent.agents.name.ph' => 'z. B. Support-Assistent',
+    'agent.agents.default' => 'Standard',
+    'agent.agents.enabled' => 'Aktiviert',
+    'agent.agents.persona' => 'Persona',
+    'agent.agents.persona.ph' => 'Optional – wie sich dieser Agent verhalten soll und was er weiß.',
+    'agent.agents.delete' => 'Löschen',
+    'agent.agents.empty' => 'Noch keine Agenten. Fügen Sie einen hinzu, um ein KI-Konto zu verbinden.',
+    'agent.agents.default_name' => 'Standard',
+    'agent.agents.saved' => 'Agent gespeichert.',
+    'agent.agents.deleted' => 'Agent gelöscht.',
+    'agent.agents.error.not_found' => 'Diesen Agenten gibt es nicht mehr.',
+    'agent.agents.error.crypto' => 'Schlüssel kann nicht gespeichert werden – Verschlüsselung ist nicht konfiguriert (tiger.crypto.key).',
+
     // Aside modes
     'agent.mode.ask'              => 'Fragen',
     'agent.mode.auto'            => 'Auto',
@@ -115,6 +131,10 @@ return [
     'agent.js.models_live' => 'Live aus Ihrem Konto.',
     'agent.js.models_static' => 'Gängige Modelle — verbinden Sie einen Schlüssel für die Live-Liste.',
     'agent.js.settings_saved' => 'Einstellungen gespeichert.',
+    'agent.js.agent_saved' => 'Agent gespeichert.',
+    'agent.js.agent_deleted' => 'Agent gelöscht.',
+    'agent.js.confirm_delete' => 'Diesen Agenten löschen? Das kann nicht rückgängig gemacht werden.',
+    'agent.js.name_required' => 'Geben Sie dem Agenten zuerst einen Namen.',
     'agent.js.network_error' => 'Netzwerkfehler — bitte versuchen Sie es erneut.',
     'agent.js.connection_saved' => 'Verbindung gespeichert.',
     'agent.js.remove_connection_title' => 'Verbindung entfernen',

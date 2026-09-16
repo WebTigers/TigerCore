@@ -30,6 +30,22 @@ return [
     'agent.settings.how.body1'    => 'एजेंट <strong>आपके रूप में</strong> काम करता है — यह कभी भी आपकी भूमिका की अनुमति से अधिक नहीं कर सकता। पढ़ने के काम अपने आप चलते हैं; बदलाव पहले आपकी मंज़ूरी के लिए दिखाए जाते हैं।',
     'agent.settings.how.body2'    => '<strong>अपना खुद का अकाउंट लाएँ:</strong> आप जो कुंजी पेस्ट करते हैं वह आपकी है, इस सर्वर पर एन्क्रिप्टेड संग्रहित होती है और कभी साझा नहीं की जाती। आपका AI प्रदाता आपसे सीधे शुल्क लेता है।',
 
+    // Agent registry (multiple named agents)
+    'agent.agents.add' => 'एजेंट जोड़ें',
+    'agent.agents.name' => 'नाम',
+    'agent.agents.name.ph' => 'जैसे, सहायता सहायक',
+    'agent.agents.default' => 'डिफ़ॉल्ट',
+    'agent.agents.enabled' => 'सक्षम',
+    'agent.agents.persona' => 'व्यक्तित्व',
+    'agent.agents.persona.ph' => 'वैकल्पिक — यह एजेंट कैसा व्यवहार करे और क्या जानता हो।',
+    'agent.agents.delete' => 'हटाएँ',
+    'agent.agents.empty' => 'अभी कोई एजेंट नहीं। AI खाता जोड़ने के लिए एक जोड़ें।',
+    'agent.agents.default_name' => 'डिफ़ॉल्ट',
+    'agent.agents.saved' => 'एजेंट सहेजा गया।',
+    'agent.agents.deleted' => 'एजेंट हटाया गया।',
+    'agent.agents.error.not_found' => 'वह एजेंट अब मौजूद नहीं है।',
+    'agent.agents.error.crypto' => 'कुंजी सहेजी नहीं जा सकती — एन्क्रिप्शन कॉन्फ़िगर नहीं है (tiger.crypto.key)।',
+
     // Aside modes
     'agent.mode.ask'              => 'पूछें',
     'agent.mode.auto'            => 'ऑटो',
@@ -115,6 +131,10 @@ return [
     'agent.js.models_live' => 'आपके अकाउंट से लाइव।',
     'agent.js.models_static' => 'सामान्य मॉडल — लाइव सूची के लिए एक कुंजी कनेक्ट करें।',
     'agent.js.settings_saved' => 'सेटिंग्स सहेजी गईं।',
+    'agent.js.agent_saved' => 'एजेंट सहेजा गया।',
+    'agent.js.agent_deleted' => 'एजेंट हटाया गया।',
+    'agent.js.confirm_delete' => 'इस एजेंट को हटाएँ? इसे पूर्ववत नहीं किया जा सकता।',
+    'agent.js.name_required' => 'पहले एजेंट को एक नाम दें।',
     'agent.js.network_error' => 'नेटवर्क त्रुटि — कृपया फिर से प्रयास करें।',
     'agent.js.connection_saved' => 'कनेक्शन सहेजा गया।',
     'agent.js.remove_connection_title' => 'कनेक्शन हटाएँ',

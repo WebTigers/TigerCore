@@ -30,6 +30,22 @@ return [
     'agent.settings.how.body1'    => 'El agente actúa <strong>como tú</strong> — nunca puede hacer más de lo que tu rol permite. Las lecturas se ejecutan solas; los cambios se muestran primero para tu aprobación.',
     'agent.settings.how.body2'    => '<strong>Trae tu propia cuenta:</strong> la clave que pegas es tuya, se almacena cifrada en este servidor y nunca se comparte. Tu proveedor de IA te factura directamente.',
 
+    // Agent registry (multiple named agents)
+    'agent.agents.add' => 'Añadir agente',
+    'agent.agents.name' => 'Nombre',
+    'agent.agents.name.ph' => 'p. ej. Asistente de soporte',
+    'agent.agents.default' => 'Predeterminado',
+    'agent.agents.enabled' => 'Activado',
+    'agent.agents.persona' => 'Personalidad',
+    'agent.agents.persona.ph' => 'Opcional: cómo debe comportarse este agente y qué sabe.',
+    'agent.agents.delete' => 'Eliminar',
+    'agent.agents.empty' => 'Aún no hay agentes. Añade uno para conectar una cuenta de IA.',
+    'agent.agents.default_name' => 'Predeterminado',
+    'agent.agents.saved' => 'Agente guardado.',
+    'agent.agents.deleted' => 'Agente eliminado.',
+    'agent.agents.error.not_found' => 'Ese agente ya no existe.',
+    'agent.agents.error.crypto' => 'No se puede guardar la clave: el cifrado no está configurado (tiger.crypto.key).',
+
     // Aside modes
     'agent.mode.ask'              => 'Preguntar',
     'agent.mode.auto'            => 'Auto',
@@ -115,6 +131,10 @@ return [
     'agent.js.models_live' => 'En vivo desde tu cuenta.',
     'agent.js.models_static' => 'Modelos comunes — conecta una clave para la lista en vivo.',
     'agent.js.settings_saved' => 'Configuración guardada.',
+    'agent.js.agent_saved' => 'Agente guardado.',
+    'agent.js.agent_deleted' => 'Agente eliminado.',
+    'agent.js.confirm_delete' => '¿Eliminar este agente? No se puede deshacer.',
+    'agent.js.name_required' => 'Primero ponle un nombre al agente.',
     'agent.js.network_error' => 'Error de red — inténtalo de nuevo.',
     'agent.js.connection_saved' => 'Conexión guardada.',
     'agent.js.remove_connection_title' => 'Quitar conexión',

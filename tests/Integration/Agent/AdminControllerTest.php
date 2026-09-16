@@ -17,11 +17,11 @@ use Zend_Translate;
 /**
  * Agent_AdminController — the TigerAgent settings screen shell (Wave 6).
  *
- * A thin admin controller: it prefills the settings form from live config and hands the view the
- * provider roster + the connected/enabled/crypto-ready flags; the actual save is the `/api` call to
- * Agent_Service_Settings (covered by SettingsServiceTest). We dispatch `indexAction` with rendering
- * off (ControllerTestCase) and assert the view vars the `.phtml` reads — the branch/assignment logic,
- * not the markup.
+ * A thin admin controller: it hands the view the agent REGISTRY (a card per agent, or — while the
+ * registry is empty — one seed card prefilled from the legacy default) plus the provider roster and
+ * the mode ceiling; the actual CRUD is the `/api` call to Agent_Service_Agents (covered by
+ * AgentsServiceTest). We dispatch `indexAction` with rendering off (ControllerTestCase) and assert
+ * the view vars the `.phtml` reads — the branch/assignment logic, not the markup.
  */
 #[CoversClass(Agent_AdminController::class)]
 final class AdminControllerTest extends ControllerTestCase
@@ -54,7 +54,7 @@ final class AdminControllerTest extends ControllerTestCase
     }
 
     #[Test]
-    public function index_prefills_the_form_and_exposes_the_settings_view_model(): void
+    public function index_exposes_the_registry_view_model(): void
     {
         $this->loginAs('admin');
         $this->dispatchAction(Agent_AdminController::class, 'index', [], 'GET');
@@ -62,23 +62,22 @@ final class AdminControllerTest extends ControllerTestCase
         $view = $this->controller()->view;
 
         $this->assertStringContainsString('AI Agent', (string) $view->title, 'the title runs through the translator');
-        $this->assertInstanceOf(\Agent_Form_Settings::class, $view->form, 'the settings form is handed to the view');
+        $this->assertInstanceOf(\Agent_Form_Settings::class, $view->form, 'a form (for its CSRF token) is handed to the view');
 
         // The provider roster the dropdown renders is the live factory options.
         $this->assertSame(Tiger_Agent_Provider_Factory::options(), $view->providers);
         $this->assertArrayHasKey('anthropic', (array) $view->providers);
 
-        // Prefill + capability flags the view branches on.
-        $this->assertSame('anthropic', $view->provider, 'defaults to anthropic with no stored provider');
-        $this->assertNotSame('', (string) $view->model, 'a default model is offered');
-        $this->assertIsBool($view->enabled);
-        $this->assertIsBool($view->connected);
+        // The agent cards + governance flags the view branches on.
+        $this->assertIsArray($view->agents);
+        $this->assertNotEmpty($view->agents, 'an empty registry still renders one seed card');
         $this->assertIsBool($view->cryptoReady);
         $this->assertContains($view->modeMax, ['ask', 'auto', 'yolo']);
+        $this->assertNotSame('', (string) $view->defaultProvider);
     }
 
     #[Test]
-    public function index_reflects_stored_provider_and_model_config(): void
+    public function an_empty_registry_seeds_one_card_from_the_legacy_default(): void
     {
         Zend_Registry::set('Zend_Config', new Zend_Config([
             'tiger' => ['agent' => ['provider' => 'openai', 'model' => 'gpt-4o']],
@@ -86,8 +85,10 @@ final class AdminControllerTest extends ControllerTestCase
         $this->loginAs('admin');
         $this->dispatchAction(Agent_AdminController::class, 'index', [], 'GET');
 
-        $view = $this->controller()->view;
-        $this->assertSame('openai', $view->provider, 'the stored provider is surfaced');
-        $this->assertSame('gpt-4o', $view->model, 'the stored model is surfaced');
+        $seed = $this->controller()->view->agents[0];
+        $this->assertSame('', $seed['agent_id'], 'the seed card has no row id yet');
+        $this->assertSame('openai', $seed['provider'], 'the seed reflects the legacy provider');
+        $this->assertSame('gpt-4o', $seed['model'], 'the seed reflects the legacy model');
+        $this->assertTrue($seed['is_default'], 'the seed is the default so the first save writes it');
     }
 }

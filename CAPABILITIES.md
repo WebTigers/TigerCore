@@ -319,7 +319,7 @@
 ## Modules (`modules/*` — activatable features)
 
 - **Access** (`access`, plugin)  ·  services: Org, User  ·  `modules/access`
-- **Agent** (`agent`, app)  ·  services: Agent, Mcp, Settings, Skills  ·  `modules/agent`
+- **Agent** (`agent`, app)  ·  services: Agent, Agents, Mcp, Settings, Skills  ·  `modules/agent`
 - **Ally** (`ally`, plugin)  ·  services: Scan  ·  `modules/ally`
 - **Analytics** (`analytics`, app)  ·  services: Analytics, Reports  ·  `modules/analytics`
 - **Backup** (`backup`, app)  ·  services: Backup  ·  `modules/backup`

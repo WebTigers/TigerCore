@@ -30,6 +30,22 @@ return [
     'agent.settings.how.body1'    => 'The agent acts <strong>as you</strong> — it can never do more than your role permits. Reads run on their own; changes are shown for your approval first.',
     'agent.settings.how.body2'    => '<strong>Bring your own account:</strong> the key you paste is yours, stored encrypted on this server and never shared. Your AI provider bills you directly.',
 
+    // Agent registry (multiple named agents)
+    'agent.agents.add'            => 'Add Agent',
+    'agent.agents.name'          => 'Name',
+    'agent.agents.name.ph'       => 'e.g. Support Assistant',
+    'agent.agents.default'       => 'Default',
+    'agent.agents.enabled'       => 'Enabled',
+    'agent.agents.persona'       => 'Persona',
+    'agent.agents.persona.ph'    => 'Optional — how this agent should behave and what it knows.',
+    'agent.agents.delete'        => 'Delete',
+    'agent.agents.empty'         => 'No agents yet. Add one to connect an AI account.',
+    'agent.agents.default_name'  => 'Default',
+    'agent.agents.saved'         => 'Agent saved.',
+    'agent.agents.deleted'       => 'Agent deleted.',
+    'agent.agents.error.not_found' => 'That agent no longer exists.',
+    'agent.agents.error.crypto'  => 'Can’t store the key — encryption isn’t configured (tiger.crypto.key).',
+
     // Aside modes
     'agent.mode.ask'              => 'Ask',
     'agent.mode.auto'            => 'Auto',
@@ -115,6 +131,10 @@ return [
     'agent.js.models_live' => 'Live from your account.',
     'agent.js.models_static' => 'Common models — connect a key for the live list.',
     'agent.js.settings_saved' => 'Settings saved.',
+    'agent.js.agent_saved' => 'Agent saved.',
+    'agent.js.agent_deleted' => 'Agent deleted.',
+    'agent.js.confirm_delete' => 'Delete this agent? This can’t be undone.',
+    'agent.js.name_required' => 'Give the agent a name first.',
     'agent.js.network_error' => 'Network error — please try again.',
     'agent.js.connection_saved' => 'Connection saved.',
     'agent.js.remove_connection_title' => 'Remove connection',

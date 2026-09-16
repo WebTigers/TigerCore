@@ -1,0 +1,78 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * One agent card in the registry screen. Rendered server-side per existing agent and reused as the
+ * JS clone template for "Add Agent". Inputs are addressed by CLASS (not id) so the template can be
+ * cloned without duplicate ids; checkboxes/radios nest their label so a click toggles with no `for`.
+ *
+ * Vars: $this->a (agent array), $this->providers (key => label).
+ */
+$t = static fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
+$a = $this->a;
+?>
+<div class="card agent-card mb-3" data-agent-id="<?= $this->escape($a['agent_id']) ?>">
+    <div class="card-body">
+        <div class="row g-3 align-items-center mb-3">
+            <div class="col">
+                <input type="text" class="form-control agent-name" value="<?= $this->escape($a['name']) ?>"
+                       placeholder="<?= $this->escape($t('agent.agents.name.ph')) ?>" aria-label="<?= $this->escape($t('agent.agents.name')) ?>">
+            </div>
+            <div class="col-auto">
+                <label class="form-check-label d-inline-flex align-items-center gap-1">
+                    <input type="radio" name="agent-default" class="form-check-input agent-default mt-0" <?= !empty($a['is_default']) ? 'checked' : '' ?>>
+                    <?= $this->escape($t('agent.agents.default')) ?>
+                </label>
+            </div>
+            <div class="col-auto">
+                <label class="form-check-label form-switch d-inline-flex align-items-center gap-1">
+                    <input type="checkbox" role="switch" class="form-check-input agent-enabled mt-0" <?= !empty($a['enabled']) ? 'checked' : '' ?>>
+                    <?= $this->escape($t('agent.agents.enabled')) ?>
+                </label>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label"><?= $this->escape($t('agent.settings.provider')) ?></label>
+                <select class="form-select agent-provider">
+                    <?php foreach ($this->providers as $key => $label): ?>
+                        <option value="<?= $this->escape($key) ?>" <?= $key === $a['provider'] ? 'selected' : '' ?>><?= $this->escape($label) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label"><?= $this->escape($t('agent.settings.model')) ?></label>
+                <div class="input-group">
+                    <select class="form-select agent-model">
+                        <option value="<?= $this->escape($a['model']) ?>"><?= $this->escape($a['model']) ?></option>
+                    </select>
+                    <button type="button" class="btn btn-outline-secondary agent-model-refresh" title="<?= $this->escape($t('agent.settings.model.refresh')) ?>" aria-label="<?= $this->escape($t('agent.settings.model.refresh')) ?>">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
+                <div class="form-text agent-model-hint"></div>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <label class="form-label"><?= $this->escape($t('agent.settings.key')) ?></label>
+            <input type="password" class="form-control agent-key" autocomplete="off"
+                   placeholder="<?= $this->escape($t('agent.settings.key.ph')) ?>" aria-label="<?= $this->escape($t('agent.settings.key')) ?>">
+            <div class="form-text">
+                <span class="text-success agent-connected" <?= empty($a['connected']) ? 'hidden' : '' ?>><i class="fa-solid fa-circle-check me-1"></i><?= $this->escape($t('agent.settings.connected')) ?></span>
+                <span class="text-body-secondary agent-disconnected" <?= empty($a['connected']) ? '' : 'hidden' ?>><?= $this->escape($t('agent.settings.disconnected')) ?></span>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <label class="form-label"><?= $this->escape($t('agent.agents.persona')) ?></label>
+            <textarea class="form-control agent-persona" rows="2" placeholder="<?= $this->escape($t('agent.agents.persona.ph')) ?>"><?= $this->escape($a['persona']) ?></textarea>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-3">
+            <button type="button" class="btn btn-outline-danger agent-delete"><i class="fa-solid fa-trash me-2"></i><?= $this->escape($t('agent.agents.delete')) ?></button>
+            <button type="button" class="btn btn-primary agent-save"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->escape($t('agent.settings.save')) ?></button>
+        </div>
+    </div>
+</div>
