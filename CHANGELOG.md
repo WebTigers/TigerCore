@@ -6,6 +6,19 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.8.3] — 2026-09-16
+
+### Fixed
+
+- **A stale session cookie 500'd the site under the DB session handler too** (1.8.2 covered only the
+  files handler). The real cause is broader: cPanel leaves PHP's `session.use_strict_mode` off, so a
+  client-supplied unknown session id is accepted as-is — the files handler then reads a foreign,
+  unreadable file, and either handler can leave a phantom id that a later `regenerateId()` rejects.
+  The bootstrap now enables `session.use_strict_mode` before starting (PHP mints a fresh id for any
+  unknown one, the standard defence), keeps the unreadable-files guard as a belt, and retries once
+  with a clean id if start still throws — so a returning visitor with any stale cookie is a guest,
+  never a 500. Verified on a live cPanel install under both the DB and files handlers (TIGER-138).
+
 ## [1.8.2] — 2026-09-16
 
 ### Fixed

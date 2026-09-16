@@ -662,8 +662,25 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
         }
 
         if (!Zend_Session::isStarted()) {
-            if (!$useDb) { self::dropUnreadableSessionId(); }
-            Zend_Session::start();
+            // A session id the BROWSER still carries can be one this process cannot use: cPanel's shared
+            // session directory after an account is deleted and recreated (the files handler's file
+            // belongs to the old uid; every returning visitor to the domain hits it), or any unknown id
+            // a client presents. Strict mode is the standard defence — PHP rejects an uninitialised id
+            // and mints a fresh one itself, so nothing reads the foreign file and no phantom id survives
+            // to trip a later regenerate. cPanel leaves it off; turn it on. (Belt: drop a provably
+            // unreadable files id too, for a SAPI where strict mode is disabled outright.)
+            @ini_set('session.use_strict_mode', '1');
+            self::dropUnreadableSessionId();
+            try {
+                Zend_Session::start();
+            } catch (Zend_Session_Exception $e) {
+                // Last resort: forget the presented id entirely and start clean, so a visitor is a guest,
+                // never a 500. (Regenerate needs an active session, so clear the cookie + reset the id.)
+                error_log('Tiger session: start failed (' . $e->getMessage() . '); starting a clean session');
+                if (!headers_sent()) { @setcookie(session_name(), '', ['expires' => 1, 'path' => '/']); }
+                unset($_COOKIE[session_name()]);
+                if (session_status() !== PHP_SESSION_ACTIVE) { session_id(bin2hex(random_bytes(16))); Zend_Session::start(); }
+            }
         }
     }
 
