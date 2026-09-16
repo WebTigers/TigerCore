@@ -6,6 +6,19 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.8.2] — 2026-09-16
+
+### Fixed
+
+- **A stale session cookie no longer 500s the site.** With PHP's files handler, a `PHPSESSID` the
+  browser still carries can name a file this process cannot read — cPanel's shared session directory
+  after an account is deleted and recreated (the file belongs to the old uid, and every returning
+  visitor to the domain hits it). `session_start()` failed, and because PHP defines `SID` even on a
+  failed start there is no retry through `Zend_Session`. The bootstrap now checks the presented id's
+  file first and starts under a fresh id when it exists but is unreadable
+  (`Tiger_Application_Bootstrap::dropUnreadableSessionId()`), logging the drop. Found by the second
+  outside install round (TIGER-138).
+
 ## [1.8.1] — 2026-09-15
 
 Findings from an AI-driven install test of the web installer on a shared cPanel host (TIGER-138).

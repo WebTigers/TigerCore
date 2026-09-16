@@ -124,4 +124,30 @@ final class BootstrapHelpersTest extends UnitTestCase
         }
         $this->assertContains(TIGER_CORE_PATH . '/core/languages/en/core.php', $files, 'the core language file leads the cascade');
     }
+
+    /**
+     * A presented session id whose file cannot be read (cPanel's shared session dir after an account is
+     * recreated) must be dropped BEFORE session_start — PHP defines SID even on a failed start, so there
+     * is no retry afterwards. A readable file, a missing file, or a malformed id are left alone.
+     */
+    #[Test]
+    public function an_unreadable_presented_session_file_is_dropped_before_start(): void
+    {
+        $dir = sys_get_temp_dir() . '/tiger-sess-' . bin2hex(random_bytes(4)); mkdir($dir, 0700);
+        $log = ini_set('error_log', $dir . '/error.log');   // the guard logs what it dropped; keep that off the test output
+        try {
+            $bad = str_repeat('b', 26); file_put_contents("$dir/sess_$bad", 'x'); chmod("$dir/sess_$bad", 0000);
+            $this->assertTrue(Tiger_Application_Bootstrap::dropUnreadableSessionId($bad, '5;' . $dir), 'unreadable → dropped ("N;/path" form parsed)');
+            $this->assertTrue(Tiger_Application_Bootstrap::dropUnreadableSessionId($bad, '5;0600;' . $dir), '"N;mode;/path" form parsed');
+            $good = str_repeat('c', 26); file_put_contents("$dir/sess_$good", 'x');
+            $this->assertFalse(Tiger_Application_Bootstrap::dropUnreadableSessionId($good, $dir), 'readable → kept');
+            $this->assertFalse(Tiger_Application_Bootstrap::dropUnreadableSessionId(str_repeat('d', 26), $dir), 'no such file → kept (PHP creates it)');
+            $this->assertFalse(Tiger_Application_Bootstrap::dropUnreadableSessionId('../../etc/passwd', $dir), 'junk never reaches the filesystem');
+            $this->assertFalse(Tiger_Application_Bootstrap::dropUnreadableSessionId('', $dir));
+            $this->assertStringContainsString('not readable', (string) file_get_contents($dir . '/error.log'), 'the drop is logged');
+        } finally {
+            ini_set('error_log', (string) $log);
+            @chmod("$dir/sess_$bad", 0600); array_map('unlink', glob("$dir/sess_*") ?: []); @unlink($dir . '/error.log'); @rmdir($dir);
+        }
+    }
 }

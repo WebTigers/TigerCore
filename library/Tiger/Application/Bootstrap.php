@@ -662,8 +662,35 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
         }
 
         if (!Zend_Session::isStarted()) {
+            if (!$useDb) { self::dropUnreadableSessionId(); }
             Zend_Session::start();
         }
+    }
+
+    /**
+     * With PHP's files handler, a session id the browser still carries can name a file this process
+     * cannot read — cPanel's shared session directory after an account is deleted and recreated (the
+     * file belongs to the old uid; every returning visitor hits it), a save_path that changed hands, a
+     * corrupt file. session_start() then fails, and because PHP defines SID even on failure there is no
+     * retry through Zend_Session. So look first: if the presented id's file exists and is unreadable,
+     * start under a fresh id — the visitor is a guest either way, and a guest must never see a 500.
+     *
+     * @param  string|null $sid  the presented id (default: the session cookie)
+     * @param  string|null $path session.save_path (default: the ini value)
+     * @return bool true when the presented id was dropped
+     */
+    public static function dropUnreadableSessionId($sid = null, $path = null)
+    {
+        $sid = (string) ($sid ?? ($_COOKIE[session_name()] ?? ''));
+        if ($sid === '' || !preg_match('/^[A-Za-z0-9,-]{1,128}$/', $sid)) { return false; }
+        $path = (string) ($path ?? ini_get('session.save_path'));
+        if ($path === '') { $path = sys_get_temp_dir(); }
+        if (strpos($path, ';') !== false) { $path = substr($path, strrpos($path, ';') + 1); }   // "N;/path" and "N;mode;/path" forms
+        $file = rtrim($path, '/') . '/sess_' . $sid;
+        if (!is_file($file) || is_readable($file)) { return false; }
+        error_log('Tiger session: the presented session file is not readable (' . $file . '); starting a new session');
+        if (session_status() !== PHP_SESSION_ACTIVE) { session_id(bin2hex(random_bytes(16))); }
+        return true;
     }
 
     /** True when this request carries a Tiger personal access token (stateless mode). */
