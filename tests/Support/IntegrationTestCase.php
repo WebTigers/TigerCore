@@ -6,6 +6,7 @@ namespace Tiger\Tests\Support;
 
 use PHPUnit\Framework\TestCase;
 use Tiger_Acl_Acl;
+use Tiger_Agent;
 use Tiger_Db_Migrator;
 use Tiger_Model_Table;
 use Zend_Auth;
@@ -53,6 +54,7 @@ abstract class IntegrationTestCase extends TestCase
         // Clean per-test static context on the base model, then isolate the test in a transaction.
         Tiger_Model_Table::setActor(null);
         Tiger_Model_Table::setOrg('');
+        Tiger_Agent::reset();               // agent facade memoizes the default per request
         $this->db->beginTransaction();
     }
 

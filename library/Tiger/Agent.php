@@ -44,13 +44,116 @@ class Tiger_Agent
     const MODES = ['ask' => 0, 'auto' => 1, 'yolo' => 2];
 
     /**
-     * Whether the agent feature is switched on for this install.
+     * Per-request memo of the resolved default agent, keyed by org scope. Cleared implicitly by
+     * process end; a save in the settings service should call reset() so the next read is fresh.
+     *
+     * @var array<string,array>
+     */
+    private static $_defaultMemo = [];
+
+    /**
+     * Identity of the Zend_Config instance the memo was built against. The config object is stable
+     * for the life of a request, so the memo holds across a request; when it is swapped (a settings
+     * save rebuilds it, or a test seeds a fresh one) the memo self-invalidates. @var int
+     */
+    private static $_memoConfigId = -1;
+
+    /**
+     * The DEFAULT agent for the current scope, as a normalized array. Reads through the registry
+     * (Tiger_Model_Agent): the current org's default, else the global default. While the table is
+     * empty — or before the DB is even booted — it falls back to the legacy `tiger.agent.*` config
+     * keys, so an install that has never opened the multi-agent UI behaves exactly as the old
+     * singleton did. The first save in the settings screen writes a real Default row.
+     *
+     * @return array{id:?string,name:string,provider:string,model:string,api_key_enc:string,enabled:bool}
+     */
+    public static function default()
+    {
+        $cfgId = Zend_Registry::isRegistered('Zend_Config')
+            ? spl_object_id(Zend_Registry::get('Zend_Config'))
+            : 0;
+        if ($cfgId !== self::$_memoConfigId) {
+            self::$_defaultMemo = [];
+            self::$_memoConfigId = $cfgId;
+        }
+
+        $org = self::currentOrg();
+        if (array_key_exists($org, self::$_defaultMemo)) {
+            return self::$_defaultMemo[$org];
+        }
+
+        $agent = null;
+        try {
+            $row = (new Tiger_Model_Agent())->defaultForOrg($org);
+            if ($row) {
+                $agent = self::fromRow($row);
+            }
+        } catch (Throwable $e) {
+            // DB not booted, or the agent table doesn't exist yet — fall through to legacy config.
+        }
+        if ($agent === null) {
+            $agent = self::fromLegacyConfig();
+        }
+
+        return self::$_defaultMemo[$org] = $agent;
+    }
+
+    /**
+     * One registered agent by id, scoped to the current org, as a normalized array — or null.
+     * TigerRoundtable uses this to seat a specific registered agent.
+     *
+     * @param  string $agentId
+     * @return array{id:string,name:string,provider:string,model:string,api_key_enc:string,enabled:bool}|null
+     */
+    public static function get($agentId)
+    {
+        try {
+            $row = (new Tiger_Model_Agent())->findForOrg(self::currentOrg(), $agentId);
+            return $row ? self::fromRow($row) : null;
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Every registered agent in the current scope, default first — the roster the settings UI and
+     * TigerRoundtable draw from. Empty while the registry is unused (the legacy default is implicit,
+     * reachable via default(), and not listed as a row until it is saved).
+     *
+     * @return array<int,array{id:string,name:string,provider:string,model:string,api_key_enc:string,enabled:bool}>
+     */
+    public static function all()
+    {
+        try {
+            $out = [];
+            foreach ((new Tiger_Model_Agent())->allForOrg(self::currentOrg()) as $row) {
+                $out[] = self::fromRow($row);
+            }
+            return $out;
+        } catch (Throwable $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Forget the memoized default (call after a settings save so the next read reflects it).
+     *
+     * @return void
+     */
+    public static function reset()
+    {
+        self::$_defaultMemo = [];
+        self::$_memoConfigId = -1;
+    }
+
+    /**
+     * Whether the agent feature is switched on for this install — i.e. the default agent is enabled.
      *
      * @return bool
      */
     public static function isEnabled()
     {
-        return self::config(self::CFG_ENABLED) === '1';
+        return (bool) self::default()['enabled'];
     }
 
     /**
@@ -92,7 +195,7 @@ class Tiger_Agent
      */
     public static function provider()
     {
-        $p = (string) self::config(self::CFG_PROVIDER);
+        $p = (string) self::default()['provider'];
         return $p !== '' ? $p : 'anthropic';
     }
 
@@ -103,7 +206,7 @@ class Tiger_Agent
      */
     public static function model()
     {
-        $m = (string) self::config(self::CFG_MODEL);
+        $m = (string) self::default()['model'];
         if ($m !== '') {
             return $m;
         }
@@ -117,7 +220,7 @@ class Tiger_Agent
      */
     public static function apiKey()
     {
-        $blob = (string) self::config(self::CFG_KEY_ENC);
+        $blob = (string) self::default()['api_key_enc'];
         if ($blob === '') {
             return '';
         }
@@ -182,6 +285,53 @@ class Tiger_Agent
     }
 
     // ----- internals ---------------------------------------------------------
+
+    /**
+     * Normalize a registry row into the shape default()/get()/all() return.
+     *
+     * @param  Zend_Db_Table_Row_Abstract $row
+     * @return array{id:string,name:string,provider:string,model:string,api_key_enc:string,enabled:bool}
+     */
+    protected static function fromRow($row)
+    {
+        return [
+            'id'          => (string) $row->agent_id,
+            'name'        => (string) $row->name,
+            'provider'    => (string) $row->provider,
+            'model'       => (string) $row->model,
+            'api_key_enc' => (string) $row->api_key_enc,
+            'enabled'     => (int) $row->enabled === 1,
+        ];
+    }
+
+    /**
+     * The default agent synthesized from the legacy singleton config keys — the exact behavior the
+     * facade had before the registry existed, so an empty table changes nothing.
+     *
+     * @return array{id:null,name:string,provider:string,model:string,api_key_enc:string,enabled:bool}
+     */
+    protected static function fromLegacyConfig()
+    {
+        return [
+            'id'          => null,
+            'name'        => 'Default',
+            'provider'    => (string) self::config(self::CFG_PROVIDER),
+            'model'       => (string) self::config(self::CFG_MODEL),
+            'api_key_enc' => (string) self::config(self::CFG_KEY_ENC),
+            'enabled'     => self::config(self::CFG_ENABLED) === '1',
+        ];
+    }
+
+    /**
+     * The org scope the registry resolves against — the current tenant, or '' for platform/global.
+     *
+     * @return string
+     */
+    protected static function currentOrg()
+    {
+        $org = Tiger_Model_Table::org();
+        return $org === null ? '' : (string) $org;
+    }
 
     /**
      * Read a value from the merged config cascade (Zend_Config in the registry).
