@@ -65,6 +65,33 @@ class Agent_Service_Settings extends Tiger_Service_Service
     }
 
     /**
+     * Save ONLY the install-wide auto-mode ceiling (governance) — the per-agent provider/model/key
+     * now live in the registry (Agent_Service_Agents), so this must not touch the legacy config keys
+     * that the registry falls back to while it is empty.
+     *
+     * @param  array $params mode_max
+     * @return void
+     */
+    public function mode(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+
+        $modeMax = (string) ($params['mode_max'] ?? '');
+        if (!isset(Tiger_Agent::MODES[$modeMax])) { $modeMax = 'auto'; }
+
+        try {
+            $this->_transaction(function () use ($modeMax) {
+                (new Tiger_Model_Config())->set(
+                    Tiger_Model_Config::SCOPE_GLOBAL, '', Tiger_Agent::CFG_MODE_MAX, $modeMax
+                );
+            });
+            $this->_success(['mode_max' => $modeMax], 'agent.settings.saved');
+        } catch (Throwable $e) {
+            $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
+        }
+    }
+
+    /**
      * List a provider's selectable models for the settings dropdown — LIVE from the provider when a
      * key is available (a just-typed `api_key`, else the stored one), else the curated static
      * fallback. So the selector reflects what the account can actually use, with or without a key.

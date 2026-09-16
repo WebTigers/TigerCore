@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**207 classes** across **33 capabilities** · **21 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**208 classes** across **33 capabilities** · **21 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -296,6 +296,7 @@
 ### Data layer (base)
 
 - **Tiger_Db_Migrator** `@api` — a tiny, dependency-free schema migration runner.  ·  `library/Tiger/Db/Migrator.php`
+- **Tiger_Model_Agent** `@api` — the agent registry table gateway (migration 0050, TIGER-151).  ·  `library/Tiger/Model/Agent.php`
 - **Tiger_Model_AgentConversation** `@api` — a TigerAgent chat thread (see migration 0034).  ·  `library/Tiger/Model/AgentConversation.php`
 - **Tiger_Model_AgentMessage** `@api` — one message in an agent conversation (see migration 0035).  ·  `library/Tiger/Model/AgentMessage.php`
 - **Tiger_Model_AgentRun** `@api` — one turn's execution + control record (see migration 0036).  ·  `library/Tiger/Model/AgentRun.php`
@@ -318,7 +319,7 @@
 ## Modules (`modules/*` — activatable features)
 
 - **Access** (`access`, plugin)  ·  services: Org, User  ·  `modules/access`
-- **Agent** (`agent`, app)  ·  services: Agent, Mcp, Settings, Skills  ·  `modules/agent`
+- **Agent** (`agent`, app)  ·  services: Agent, Agents, Mcp, Settings, Skills  ·  `modules/agent`
 - **Ally** (`ally`, plugin)  ·  services: Scan  ·  `modules/ally`
 - **Analytics** (`analytics`, app)  ·  services: Analytics, Reports  ·  `modules/analytics`
 - **Backup** (`backup`, app)  ·  services: Backup  ·  `modules/backup`

@@ -30,6 +30,22 @@ return [
     'agent.settings.how.body1'    => 'L’agent agit <strong>en tant que vous</strong> — il ne peut jamais faire plus que ce que votre rôle permet. Les lectures s’exécutent seules ; les modifications sont d’abord présentées pour votre approbation.',
     'agent.settings.how.body2'    => '<strong>Apportez votre propre compte :</strong> la clé que vous collez est la vôtre, stockée chiffrée sur ce serveur et jamais partagée. Votre fournisseur IA vous facture directement.',
 
+    // Agent registry (multiple named agents)
+    'agent.agents.add' => 'Ajouter un agent',
+    'agent.agents.name' => 'Nom',
+    'agent.agents.name.ph' => 'ex. : Assistant support',
+    'agent.agents.default' => 'Par défaut',
+    'agent.agents.enabled' => 'Activé',
+    'agent.agents.persona' => 'Persona',
+    'agent.agents.persona.ph' => 'Facultatif — comment cet agent doit se comporter et ce qu’il sait.',
+    'agent.agents.delete' => 'Supprimer',
+    'agent.agents.empty' => 'Aucun agent pour l’instant. Ajoutez-en un pour connecter un compte IA.',
+    'agent.agents.default_name' => 'Par défaut',
+    'agent.agents.saved' => 'Agent enregistré.',
+    'agent.agents.deleted' => 'Agent supprimé.',
+    'agent.agents.error.not_found' => 'Cet agent n’existe plus.',
+    'agent.agents.error.crypto' => 'Impossible d’enregistrer la clé — le chiffrement n’est pas configuré (tiger.crypto.key).',
+
     // Aside modes
     'agent.mode.ask'              => 'Demander',
     'agent.mode.auto'            => 'Auto',
@@ -115,6 +131,10 @@ return [
     'agent.js.models_live' => 'En direct depuis votre compte.',
     'agent.js.models_static' => 'Modèles courants — connectez une clé pour la liste en direct.',
     'agent.js.settings_saved' => 'Paramètres enregistrés.',
+    'agent.js.agent_saved' => 'Agent enregistré.',
+    'agent.js.agent_deleted' => 'Agent supprimé.',
+    'agent.js.confirm_delete' => 'Supprimer cet agent ? Cette action est irréversible.',
+    'agent.js.name_required' => 'Donnez d’abord un nom à l’agent.',
     'agent.js.network_error' => 'Erreur réseau — veuillez réessayer.',
     'agent.js.connection_saved' => 'Connexion enregistrée.',
     'agent.js.remove_connection_title' => 'Supprimer la connexion',
