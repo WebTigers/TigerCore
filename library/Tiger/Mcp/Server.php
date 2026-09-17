@@ -94,6 +94,7 @@ class Tiger_Mcp_Server
                     'name'        => self::toolName((string) $module, (string) $op['service'], (string) $op['method']),
                     'description' => (string) ($op['summary'] ?? ''),
                     'inputSchema' => $schemas[$key] ?? ['type' => 'object'],   // typed from the Form, else permissive
+                    'annotations' => self::_annotations((string) $op['method']),
                 ];
             }
         }
@@ -147,6 +148,51 @@ class Tiger_Mcp_Server
     public static function toolName($module, $service, $method)
     {
         return $module . '__' . $service . '__' . $method;
+    }
+
+    /**
+     * Verbs whose write DESTROYS/removes state (a subset of the mutations). Used only to set
+     * `destructiveHint`; everything not read-only and not here is a non-destructive write (create/save/
+     * update). Kept deliberately conservative — a wrong `false` is worse than a missing one.
+     */
+    const DESTRUCTIVE_VERBS = ['delete', 'remove', 'destroy', 'purge', 'drop', 'wipe', 'discard',
+                               'revoke', 'uninstall', 'prune', 'sweep', 'reset', 'cancel'];
+
+    /**
+     * Write verbs that are IDEMPOTENT — repeating with the same args lands the same state (delete twice
+     * = still gone; set/update to X = still X). create/add/generate/send are NOT (each call adds one).
+     */
+    const IDEMPOTENT_WRITE_VERBS = ['delete', 'remove', 'set', 'update', 'save', 'put', 'enable',
+                                    'disable', 'activate', 'deactivate', 'promote', 'restore', 'discard'];
+
+    /**
+     * MCP tool annotations for a method, derived from the SAME read/write verb classification the ACL +
+     * the agent Forge already use (Tiger_Ajax_ServiceFactory::READ_VERBS, fail-closed) — so a client can
+     * gate mechanically (e.g. an automation ceiling that auto-runs reads but pauses on `destructiveHint`)
+     * instead of pattern-matching the description. Read = read-only + idempotent; a write is flagged
+     * destructive/idempotent from the verb sets above. `openWorldHint` is left unset: most tools act on
+     * the install's own data (closed world) but a few reach a provider (image generate, analytics), and
+     * a wrong `false` would over-assert — omitting lets the client keep the safe default.
+     *
+     * @param  string $method the service method (the tool's verb)
+     * @return array{title:string,readOnlyHint:bool,idempotentHint:bool,destructiveHint?:bool}
+     */
+    protected static function _annotations($method)
+    {
+        $verb = strtolower((string) $method);
+        $read = in_array($verb, Tiger_Ajax_ServiceFactory::READ_VERBS, true);
+
+        $a = [
+            'title'        => ucfirst($verb),
+            'readOnlyHint' => $read,
+        ];
+        if ($read) {
+            $a['idempotentHint'] = true;
+        } else {
+            $a['destructiveHint'] = in_array($verb, self::DESTRUCTIVE_VERBS, true);
+            $a['idempotentHint']  = in_array($verb, self::IDEMPOTENT_WRITE_VERBS, true);
+        }
+        return $a;
     }
 
     /**

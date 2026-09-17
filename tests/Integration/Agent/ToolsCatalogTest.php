@@ -52,6 +52,22 @@ final class ToolsCatalogTest extends IntegrationTestCase
     }
 
     #[Test]
+    public function aGuestSeesOnlyThePublicCommentMethodsNotTheAdminOnes(): void
+    {
+        // TIGER-142: the comment service used to be a BLANKET guest allow, so its admin methods
+        // (moderate/datatable/delete) were advertised to anonymous callers in /api + MCP tools/list.
+        // Now the ACL is privilege-scoped: guest gets list/post only.
+        $this->loginAs('guest');
+        $methods = array_column(Tiger_Agent_Tools::catalog('guest')['comment'] ?? [], 'method');
+
+        $this->assertContains('list', $methods, 'a guest may read a thread');
+        $this->assertContains('post', $methods, 'a guest may post a comment/rating');
+        foreach (['moderate', 'datatable', 'delete', 'edit'] as $adminOrOwner) {
+            $this->assertNotContains($adminOrOwner, $methods, "a guest must not be shown comment/$adminOrOwner");
+        }
+    }
+
+    #[Test]
     public function systemPromptOverTheLiveAclProducesAUsablePrompt(): void
     {
         $this->loginAs('developer');
