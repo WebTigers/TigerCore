@@ -6,6 +6,24 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.11.0] — 2026-09-17
+
+### Added
+
+- **Enums in the tool schema** — the Form→schema mapper (`/api/openapi` + MCP `tools/list`) now emits a
+  JSON-Schema `enum` from an `InArray` validator (including a `select`'s auto-registered one). So
+  `cms__page__save.status` advertises `draft|published|archived`, `type` its four values, an image
+  `size` its three, etc. — a client picks a valid value instead of guessing, and an invalid call is
+  impossible rather than merely refused. Fail-soft.
+
+### Fixed
+
+- **Clean float JSON regardless of the host php.ini.** A cPanel box was found running
+  `serialize_precision = 100`, under which `json_encode(0.04)` emits `0.0400000000000000008326…` — the
+  full binary expansion of every float in every `/api` response (money read as noise; a float cap
+  compared against a noisy value drifts). `Tiger_Application::boot()` now forces `serialize_precision =
+  -1` (PHP's modern default, shortest round-trippable form → `"0.04"`) via a seam-able `tuneRuntime()`.
+
 ## [1.10.0] — 2026-09-17
 
 ### Added

@@ -62,6 +62,20 @@ final class ApplicationTest extends UnitTestCase
     }
 
     #[Test]
+    public function tune_runtime_forces_clean_float_serialization(): void
+    {
+        $orig = ini_get('serialize_precision');
+        try {
+            @ini_set('serialize_precision', '100');           // a bad host default (json emits noise)
+            $this->call($this->app(), 'tuneRuntime');
+            $this->assertSame('-1', (string) ini_get('serialize_precision'), 'forced to the modern default');
+            $this->assertSame('{"x":0.04}', json_encode(['x' => 0.04]), 'a float now serializes cleanly');
+        } finally {
+            @ini_set('serialize_precision', (string) $orig);
+        }
+    }
+
+    #[Test]
     public function normalize_proxy_applies_the_forwarded_client_and_https(): void
     {
         $_SERVER['HTTP_X_FORWARDED_FOR']   = '203.0.113.7, 10.0.0.1, 10.0.0.2';   // client is leftmost

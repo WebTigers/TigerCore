@@ -116,6 +116,7 @@ class Tiger_Application
      */
     public function boot()
     {
+        $this->tuneRuntime();
         $this->normalizeProxy();   // no-op under CLI (no X-Forwarded-* headers present)
         $this->defineConstants();
         $this->setIncludePath();
@@ -123,6 +124,25 @@ class Tiger_Application
 
         $application = new Zend_Application(APPLICATION_ENV, $this->buildConfig());
         return $application->bootstrap();   // runs _init* (incl. _initDb); does NOT dispatch
+    }
+
+    /**
+     * Force runtime ini that a bad host default must not be allowed to break.
+     *
+     * `serialize_precision = -1` (PHP's modern default: the shortest round-trippable form, so
+     * `json_encode(0.04)` → `"0.04"`). Some hosts still ship a legacy value — a cPanel box was found on
+     * `100` — under which `json_encode` emits the full binary expansion
+     * (`0.04` → `0.0400000000000000008326…`) of EVERY float in EVERY `/api` response: money reads as
+     * noise, and a float cap compared against a noisy value drifts. `-1` is strictly better for a JSON
+     * API, so an install is never at the mercy of the host's php.ini.
+     *
+     * @return void
+     */
+    protected function tuneRuntime()
+    {
+        if ((string) ini_get('serialize_precision') !== '-1') {
+            @ini_set('serialize_precision', '-1');
+        }
     }
 
     /**

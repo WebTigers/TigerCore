@@ -234,6 +234,16 @@ class Tiger_OpenApi_Generator
         if (method_exists($el, 'getLabel') && ($label = $el->getLabel()) !== null && $label !== '') {
             $s['description'] = (string) $label;
         }
+        // A closed set (an InArray validator) becomes a JSON-Schema `enum`, so a client knows the exact
+        // accepted values (a page status is draft|published|archived; an image size is one of three) —
+        // it can pick a valid one instead of guessing, and an invalid call is impossible, not just
+        // refused. Fail-soft: any reflection hiccup just leaves the property un-enumerated.
+        try {
+            if (method_exists($el, 'getValidator') && ($iv = $el->getValidator('InArray'))
+                && method_exists($iv, 'getHaystack') && is_array($h = $iv->getHaystack()) && $h) {
+                $s['enum'] = array_values($h);
+            }
+        } catch (Throwable $e) { /* leave un-enumerated */ }
         return $s;
     }
 
