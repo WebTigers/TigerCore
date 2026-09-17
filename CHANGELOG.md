@@ -6,6 +6,41 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.10.0] — 2026-09-17
+
+### Added
+
+- **MCP tool annotations** — `tools/list` now carries `readOnlyHint` / `destructiveHint` /
+  `idempotentHint` on every tool, derived from the same read/write verb classification the ACL and
+  the agent Forge already use (`Tiger_Ajax_ServiceFactory::READ_VERBS`, fail-closed). A client can
+  gate on risk mechanically (an automation ceiling that auto-runs reads but pauses on
+  `destructiveHint`) instead of pattern-matching the description. `openWorldHint` is left unset (a
+  few tools reach a provider; a wrong `false` would over-assert).
+
+### Fixed
+
+- **Comment `tools/list` leak (TIGER-142):** the comment service was a *blanket* guest ACL grant, so
+  its admin methods (`moderate`/`datatable`) and owner methods (`edit`/`delete`) were advertised to
+  anonymous callers in `/api` + MCP `tools/list`. Execution was already gated in-service
+  (`_isAtLeastAdmin()`/ownership) — this closes the discovery leak by privilege-scoping the ACL
+  (guest: `list`/`post`; user+: `edit`/`delete`; admin+: `moderate`/`datatable`).
+- **Analytics broker default host:** `Tiger_Google_Analytics::DEFAULT_BROKER_BASE` still pointed at
+  the retired `connect.webtigers.com` (the broker moved to `oauth.webtigers.com`). Live installs
+  carry the config override, but a *fresh* one-click broker install with no override would fail at
+  Connect — newly reachable now that the OAuth app is verified/public (TIGER-116).
+
+## [1.9.0] — 2026-09-16
+
+### Added
+
+- **Agent registry (TIGER-151):** the `agent` table + `Tiger_Model_Agent` +
+  `Tiger_Agent::default()`/`get()`/`all()`, so TigerAgent can host **multiple** named agents per org
+  (each its own persona/provider/model/BYO key), one marked default — the foundation TigerRoundtable
+  seats registered agents from. Exact back-compat: an empty registry falls back to the legacy
+  `tiger.agent.*` config, so an install that never opens the new UI behaves as the old singleton.
+  Adds the `Agent_Service_Agents` CRUD + the multi-agent settings card UI (Add Agent, per-card
+  Save/Delete, one default).
+
 ## [1.8.3] — 2026-09-16
 
 ### Fixed
