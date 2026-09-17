@@ -22,6 +22,7 @@ namespace {
                     ['text',     'note',   []],
                     ['checkbox', 'active', []],
                     ['password', 'secret', []],
+                    ['text',     'status', ['validators' => [['InArray', false, [['draft', 'published', 'archived']]]]]],
                     ['text',     'csrf',   []],   // must be excluded by the _csrf/csrf guard
                 ];
             }
@@ -157,6 +158,7 @@ namespace Tiger\Tests\Unit\OpenApi {
             $this->assertSame('boolean', $props['active']['type'], 'a checkbox → boolean');
             $this->assertSame('string',  $props['secret']['type']);
             $this->assertSame('password', $props['secret']['format'], 'a password element → format:password');
+            $this->assertSame(['draft', 'published', 'archived'], $props['status']['enum'], 'an InArray validator → a JSON-Schema enum');
 
             $this->assertContains('title', $schema['required']);
             $this->assertNotContains('note', $schema['required']);
