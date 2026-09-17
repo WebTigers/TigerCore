@@ -72,7 +72,7 @@ final class AnalyticsTest extends UnitTestCase
     public function broker_base_defaults_and_strips_a_trailing_slash(): void
     {
         $this->setConfig(['tiger' => []]);
-        $this->assertSame('https://connect.webtigers.com', Tiger_Google_Analytics::brokerBase());
+        $this->assertSame('https://oauth.webtigers.com', Tiger_Google_Analytics::brokerBase());
 
         $this->setConfig(['tiger' => ['analytics' => ['connect' => ['base_url' => 'https://broker.example/']]]]);
         $this->assertSame('https://broker.example', Tiger_Google_Analytics::brokerBase());
