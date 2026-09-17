@@ -98,6 +98,18 @@ final class McpControllerTest extends ControllerTestCase
         $this->assertSame('object', $schema['type']);
         $this->assertArrayHasKey('title', $schema['properties'], 'the Cms_Form_Page fields are typed into the schema');
         $this->assertArrayHasKey('slug', $schema['properties']);
+
+        // Every tool carries machine-readable MCP annotations (readOnly/destructive/idempotent), so a
+        // client can gate on risk instead of parsing the description (a save is a non-destructive write).
+        $save = $byName['cms__page__save']['annotations'];
+        $this->assertFalse($save['readOnlyHint'], 'save mutates');
+        $this->assertFalse($save['destructiveHint'], 'save is not destructive');
+        if (isset($byName['cms__page__datatable'])) {
+            $this->assertTrue($byName['cms__page__datatable']['annotations']['readOnlyHint'], 'datatable is read-only');
+        }
+        if (isset($byName['cms__page__delete'])) {
+            $this->assertTrue($byName['cms__page__delete']['annotations']['destructiveHint'], 'delete is destructive');
+        }
     }
 
     /** A presented Bearer that does not verify is 401 — never a silent downgrade to the guest surface (TIGER-138). */

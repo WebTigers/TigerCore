@@ -123,4 +123,40 @@ final class McpServerTest extends UnitTestCase
         $this->assertNull(Tiger_Mcp_Server::parseToolName('onlytwo__parts'));
         $this->assertNull(Tiger_Mcp_Server::parseToolName(''));
     }
+
+    /** Call the protected static _annotations() for a method verb. */
+    private function annotations(string $method): array
+    {
+        $m = new \ReflectionMethod(Tiger_Mcp_Server::class, '_annotations');
+        return $m->invoke(null, $method);
+    }
+
+    #[Test]
+    public function annotations_flag_reads_as_read_only_and_idempotent(): void
+    {
+        foreach (['list', 'get', 'datatable', 'search'] as $verb) {
+            $a = $this->annotations($verb);
+            $this->assertTrue($a['readOnlyHint'], "$verb is read-only");
+            $this->assertTrue($a['idempotentHint'], "$verb is idempotent");
+            $this->assertArrayNotHasKey('destructiveHint', $a, 'destructiveHint is meaningless for a read');
+        }
+    }
+
+    #[Test]
+    public function annotations_flag_writes_destructive_and_idempotent_from_the_verb(): void
+    {
+        $delete = $this->annotations('delete');           // a destructive, idempotent write
+        $this->assertFalse($delete['readOnlyHint']);
+        $this->assertTrue($delete['destructiveHint'], 'delete removes state');
+        $this->assertTrue($delete['idempotentHint'], 'delete twice = still gone');
+
+        $save = $this->annotations('save');               // a non-destructive, idempotent write
+        $this->assertFalse($save['readOnlyHint']);
+        $this->assertFalse($save['destructiveHint'], 'save does not destroy');
+        $this->assertTrue($save['idempotentHint']);
+
+        $create = $this->annotations('create');           // a non-destructive, NON-idempotent write
+        $this->assertFalse($create['destructiveHint']);
+        $this->assertFalse($create['idempotentHint'], 'each create adds one');
+    }
 }
