@@ -8,7 +8,7 @@
  * Auth has **two modes**, chosen by `tiger.analytics.oauth.mode`:
  *
  *  - **broker** (default) — one-click "Connect with Google" via the WebTigers-hosted OAuth broker
- *    (`connect.webtigers.com`, see the TigerConnect Lambda). The install never registers a Google
+ *    (`oauth.webtigers.com`, see the TigerOAuth Lambda). The install never registers a Google
  *    Cloud project: it bounces the admin to the broker, which runs the consent flow with WebTigers'
  *    own OAuth client and hands the **refresh token** back over a single-use, PKCE-bound handoff.
  *    The install stores that refresh token (encrypted) and mints access tokens through the broker's
@@ -38,7 +38,7 @@ class Tiger_Google_Analytics
 
     const MODE_BROKER = 'broker';   // one-click via the WebTigers broker (default)
     const MODE_BYO    = 'byo';      // bring-your-own Google OAuth client
-    const DEFAULT_BROKER_BASE = 'https://connect.webtigers.com';
+    const DEFAULT_BROKER_BASE = 'https://oauth.webtigers.com';
 
     /** @var string|null memoized access token for this request */
     private static $_access = null;
