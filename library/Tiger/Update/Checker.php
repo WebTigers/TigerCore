@@ -77,6 +77,30 @@ class Tiger_Update_Checker
     }
 
     /**
+     * Recompute the badge's pending count from the CURRENT installed state — call this right AFTER an
+     * update is applied, so the menu badge drops the item immediately instead of lingering.
+     *
+     * `System_Service_Updates::apply()` checks (which writes pending.json via all()) BEFORE it installs,
+     * so the recorded count reflects the pre-apply world; nothing rewrote it afterward, so the badge kept
+     * the stale number until the Updates page was revisited and re-checked. (Beau: "the update bug
+     * persists even after the update runs — you have to return to the update page before it goes away.")
+     *
+     * This rebuilds pending.json in-process with NO network: modules() reads each installed version FRESH
+     * from the `module` table — which the installer has just bumped (Tiger_Module_Installer::install) — while
+     * the remote `latest` is served from the warm file cache the apply just used. So a just-updated module
+     * now diffs equal and leaves the count at once. The one thing it can't drop in-process is a just-applied
+     * CORE update: core() reads the compiled `Tiger_Version::VERSION` constant, still the old value until the
+     * PHP process recycles — so a core update clears on the next request regardless. Modules clear now.
+     *
+     * @return int the recomputed pending count
+     */
+    public static function refreshPending()
+    {
+        self::all();   // rebuilds pending.json from fresh-installed vs cached-latest — no forced re-check
+        return self::pendingCached();
+    }
+
+    /**
      * Only the items with a pending update.
      *
      * @param  bool $refresh bypass the cache

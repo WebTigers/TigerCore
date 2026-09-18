@@ -151,6 +151,32 @@ final class CheckerTest extends UnitTestCase
         $this->assertSame(0, Tiger_Update_Checker::pendingCached());
     }
 
+    /**
+     * refreshPending() recomputes the badge count from the CURRENT state, overwriting a stale summary —
+     * the post-apply rebuild that stops the badge lingering after an update runs (System_Service_Updates
+     * ::apply → refreshPending). In the unit harness all() is just the core descriptor, which is enough
+     * to prove the recompute both clears and re-raises the count.
+     */
+    #[Test]
+    public function refreshPendingRecomputesTheBadgeFromCurrentState(): void
+    {
+        $this->wrote[] = $this->pendingFile();
+
+        // A stale summary claims 5 pending, but core is up to date → the recompute must clear it to 0.
+        UpdateCheckerProbe::writePending([['slug' => 'x', 'update' => true], ['slug' => 'y', 'update' => true]]);
+        touch($this->pendingFile(), time());
+        file_put_contents($this->pendingFile(), json_encode(['count' => 5, 'at' => time()]));
+        $this->assertSame(5, Tiger_Update_Checker::pendingCached(), 'the stale count is what the badge would show');
+
+        $this->primeCache('core', Tiger_Version::VERSION);              // installed == latest → nothing pending
+        $this->assertSame(0, Tiger_Update_Checker::refreshPending(), 'recompute clears the just-updated item');
+        $this->assertSame(0, Tiger_Update_Checker::pendingCached(), 'and the badge reads the rewritten summary');
+
+        // And it re-raises when something genuinely IS stale, so it never masks a real pending update.
+        $this->primeCache('core', '99.0.0');
+        $this->assertSame(1, Tiger_Update_Checker::refreshPending(), 'a newer core is counted again');
+    }
+
     // ---- _cached : read-through ------------------------------------------------
 
     #[Test]
