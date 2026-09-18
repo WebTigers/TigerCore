@@ -33,6 +33,7 @@ final class McpControllerTest extends ControllerTestCase
     protected function tearDown(): void
     {
         if ($this->origConfig !== null) { Zend_Registry::set('Zend_Config', $this->origConfig); }
+        \Tiger_Log::reset();
         foreach (['HTTP_AUTHORIZATION', 'REDIRECT_HTTP_AUTHORIZATION', 'HTTP_SEC_FETCH_SITE', 'HTTP_ORIGIN', 'CONTENT_TYPE', 'HTTP_CONTENT_TYPE'] as $k) { unset($_SERVER[$k]); }
         parent::tearDown();
     }
@@ -41,7 +42,11 @@ final class McpControllerTest extends ControllerTestCase
     {
         $arr = $this->origConfig ? $this->origConfig->toArray() : [];
         $arr['tiger']['mcp']['enabled'] = 1;
+        // A real tools/call dispatch writes a Tiger_Log line to the default (errorlog) sink, which the
+        // strict-output suite flags as risky. Point logging at the null sink for the test.
+        $arr['tiger']['log']['writer'] = 'null';
         Zend_Registry::set('Zend_Config', new Zend_Config($arr, true));
+        \Tiger_Log::reset();
     }
 
     private function post(array $msg): array
@@ -160,6 +165,26 @@ final class McpControllerTest extends ControllerTestCase
         $_SERVER['CONTENT_TYPE'] = 'text/plain';
         [$code] = $this->post(['jsonrpc' => '2.0', 'id' => 11, 'method' => 'tools/list']);
         $this->assertSame(415, $code);
+    }
+
+    #[Test]
+    public function a_session_tools_call_to_a_csrf_form_service_is_not_rejected_by_csrf(): void
+    {
+        // Round-4 B1: cms__page__save / blog__post__save failed over MCP with "security token expired"
+        // because a SESSION-cookie dispatch was not flagged CSRF-exempt (only the Bearer + org-token
+        // paths were), while the money-spending image generate — a CSRF-less form — went through. A
+        // tools/call is a JSON-RPC dispatch, never a cross-site form POST (the action already proved
+        // application/json + same-origin), so it must be CSRF-exempt. Cms_Form_Page carries a CSRF
+        // token — a full valid page payload (the report's exact repro) proves the write lands.
+        $this->enableMcp();
+        $this->loginAs('admin');
+        [$code, $out] = $this->post(['jsonrpc' => '2.0', 'id' => 7, 'method' => 'tools/call',
+            'params' => ['name' => 'cms__page__save', 'arguments' => ['title' => 'MCP CSRF probe', 'slug' => 'mcp-csrf-probe-' . bin2hex(random_bytes(3)), 'type' => 'page', 'format' => 'html', 'status' => 'draft', 'locale' => 'en', 'body' => '<p>x</p>']]]);
+
+        $this->assertSame(200, $code);
+        $this->assertArrayHasKey('result', $out, 'a session same-origin admin call is dispatched, not refused');
+        $this->assertFalse($out['result']['isError'] ?? true,
+            'the write succeeds — no CSRF "security token expired" rejection over MCP');
     }
 }
 

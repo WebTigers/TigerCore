@@ -194,6 +194,16 @@ class Mcp_ServerController extends Zend_Controller_Action
             return $this->_denied($tool, $prefix, 'rate_limited', 'Rate limit exceeded for this token.');
         }
 
+        // A tools/call is a JSON-RPC dispatch, NEVER a cross-site browser form POST — so it is CSRF-exempt,
+        // exactly like the in-app agent's Forge and the Bearer-token /api path. The Bearer and org-scoped
+        // paths already get this flag inside ServiceFactory (token → stateless); the SESSION-cookie path
+        // did not, so cms/blog writes (services with a Tiger_Form CSRF token) were refused "security token
+        // expired" over MCP even though the money-spending image generate — a form without CSRF — went
+        // through (TigerImage round-4 B1). It is safe here because the action already proved this request
+        // is application/json (415 otherwise) AND same-origin for a session identity (403 otherwise) — the
+        // two things classic form-CSRF cannot forge — before ever reaching this dispatch.
+        Zend_Registry::set('tiger.auth.stateless', true);
+
         $req = new Zend_Controller_Request_Http();
         $req->setParam('svc_module', $module);
         $req->setParam('svc_service', $service);

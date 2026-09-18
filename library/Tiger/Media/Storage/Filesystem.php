@@ -30,7 +30,21 @@ class Tiger_Media_Storage_Filesystem implements Tiger_Media_Storage_Interface
     public function __construct(array $config)
     {
         $base = defined('APPLICATION_ROOT') ? rtrim(APPLICATION_ROOT, '/') : rtrim(getcwd(), '/');
-        $this->_publicRoot  = $this->_absolute($base, $config['public_root']  ?? 'public/_media');
+
+        // PUBLIC files are served by the web server, so they must live under the REAL served docroot —
+        // which on a split cPanel layout (symlinks off) is ~/public_html, NOT <app>/public. A runtime
+        // write to <app>/public/_media never reaches that docroot's mirrored copy and 404s (round-4 B2),
+        // so a RELATIVE public_root resolves against the served docroot. The legacy default carried a
+        // `public/` prefix (app-relative); strip it so `public/_media` and `_media` both mean
+        // "<docroot>/_media". An ABSOLUTE public_root is an explicit operator choice, honoured as-is.
+        // PRIVATE files live OUTSIDE any docroot, so they still resolve against the app root.
+        $publicRoot = (string) ($config['public_root'] ?? '_media');
+        $servedRoot = ($publicRoot !== '' && $publicRoot[0] === '/')
+            ? ''   // absolute → _absolute ignores the base
+            : (class_exists('Tiger_Install') ? Tiger_Install::servedPublicRoot($base) : $base . '/public');
+        if (strncmp($publicRoot, 'public/', 7) === 0) { $publicRoot = substr($publicRoot, 7); }
+
+        $this->_publicRoot  = $this->_absolute($servedRoot, $publicRoot);
         $this->_privateRoot = $this->_absolute($base, $config['private_root'] ?? 'storage/media');
         $this->_publicUrl   = rtrim((string) ($config['public_url'] ?? '/_media'), '/');
     }
