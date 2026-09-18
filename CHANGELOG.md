@@ -6,6 +6,27 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.11.2] — 2026-09-18
+
+### Fixed
+
+- **MCP content writes no longer fail with "security token expired."** A `tools/call` over `/mcp` is a
+  JSON-RPC dispatch, never a cross-site browser form POST — the endpoint already refuses anything but
+  `application/json` (415) and honours a session cookie only same-origin (403) — so it is CSRF-exempt,
+  like the in-app agent's Forge and the Bearer-token `/api` path. The Bearer and org-scoped-token paths
+  were already flagged stateless inside `ServiceFactory`; the **session-cookie** MCP path was not, so
+  `cms__page__save` / `blog__post__save` (services whose `Tiger_Form` carries a CSRF token) were refused
+  while the CSRF-less image `generate` went through. `Mcp_ServerController::_dispatchTool()` now marks
+  the dispatch CSRF-exempt uniformly. (TigerImage round-4 B1.)
+- **Promoted / uploaded media no longer 404 on a split-docroot cPanel host.** The filesystem disk wrote
+  PUBLIC files to `APPLICATION_ROOT/public/_media`, but on a split cPanel layout (symlinks off) the
+  served docroot is `~/public_html`, populated by a deploy-time copy — so a *runtime* write never reached
+  it and every served URL 404'd (while the bytes existed app-side). A relative `public_root` now resolves
+  against the **real served docroot**, discovered at runtime from `$_SERVER['DOCUMENT_ROOT']` and validated
+  by the published `_tiger` marker (`Tiger_Install::servedPublicRoot()`), falling back to `<app>/public`
+  when co-located or off a web request — so existing installs are fixed with no config change. An absolute
+  `public_root` remains an explicit operator override. (TigerImage round-4 B2.)
+
 ## [1.11.1] — 2026-09-18
 
 ### Fixed

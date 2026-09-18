@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\Test;
 use ReflectionProperty;
 use RuntimeException;
 use Tiger\Tests\Support\UnitTestCase;
+use Tiger_Install;
 use Tiger_Media_Storage_Filesystem;
 
 /**
@@ -16,8 +17,9 @@ use Tiger_Media_Storage_Filesystem;
  *   - `stream()` opens a real read handle (and throws cleanly on a missing file);
  *   - the write-failure arms of `put()` (an unreadable source) and the dir-creation guard;
  *   - `size()` reports 0 for a missing key;
- *   - `_absolute()` resolves a RELATIVE configured root under APPLICATION_ROOT, and an all-defaults
- *     config lands on the documented public/private roots + public URL.
+ *   - root resolution: a relative PUBLIC root resolves under the served docroot (split-docroot aware,
+ *     round-4 B2), a relative PRIVATE root under APPLICATION_ROOT, an absolute one is honoured as-is,
+ *     and an all-defaults config lands on the documented public/private roots + public URL.
  */
 #[CoversClass(Tiger_Media_Storage_Filesystem::class)]
 final class FilesystemMoreTest extends UnitTestCase
@@ -131,13 +133,59 @@ final class FilesystemMoreTest extends UnitTestCase
     // ---- _absolute() root resolution ------------------------------------------------------------
 
     #[Test]
-    public function a_relative_configured_root_hangs_off_the_application_root(): void
+    public function a_relative_public_root_hangs_off_the_served_docroot_and_private_off_the_app_root(): void
     {
+        // A PUBLIC root is served by the web server, so a relative one resolves against the served
+        // docroot (Tiger_Install::servedPublicRoot — <app>/public co-located, ~/public_html on a split
+        // cPanel layout). A PRIVATE root is outside any docroot, so it still hangs off the app root.
         $a = new Tiger_Media_Storage_Filesystem(['public_root' => 'var/media-pub', 'private_root' => 'var/media-priv']);
         $pub  = (new ReflectionProperty($a, '_publicRoot'))->getValue($a);
         $priv = (new ReflectionProperty($a, '_privateRoot'))->getValue($a);
-        $this->assertSame(rtrim(APPLICATION_ROOT, '/') . '/var/media-pub', $pub);
+        $this->assertSame(rtrim(Tiger_Install::servedPublicRoot(APPLICATION_ROOT), '/') . '/var/media-pub', $pub);
         $this->assertSame(rtrim(APPLICATION_ROOT, '/') . '/var/media-priv', $priv);
+    }
+
+    #[Test]
+    public function a_split_docroot_reroots_public_files_to_the_served_dir(): void
+    {
+        // The round-4 B2 fix: on a split cPanel layout the served docroot (DOCUMENT_ROOT, carrying the
+        // published `_tiger` marker) is NOT <app>/public, so a runtime public write must land there or
+        // it 404s. Simulate a genuine split docroot and assert the public root follows DOCUMENT_ROOT
+        // while the private root stays under the app root. The legacy `public/` default prefix is also
+        // stripped so `public/_media` and `_media` both mean "<docroot>/_media".
+        $docroot = sys_get_temp_dir() . '/ti-split-docroot-' . bin2hex(random_bytes(4));
+        @mkdir($docroot . '/_tiger', 0775, true);           // the marker servedPublicRoot() trusts
+        $orig = $_SERVER['DOCUMENT_ROOT'] ?? null;
+        $_SERVER['DOCUMENT_ROOT'] = $docroot;
+        try {
+            $a = new Tiger_Media_Storage_Filesystem(['public_root' => 'public/_media', 'private_root' => 'storage/media']);
+            $this->assertSame($docroot . '/_media', (new ReflectionProperty($a, '_publicRoot'))->getValue($a),
+                'public files reroute to the served docroot, legacy public/ prefix stripped');
+            $this->assertSame(rtrim(APPLICATION_ROOT, '/') . '/storage/media',
+                (new ReflectionProperty($a, '_privateRoot'))->getValue($a), 'private stays under the app root');
+        } finally {
+            if ($orig === null) { unset($_SERVER['DOCUMENT_ROOT']); } else { $_SERVER['DOCUMENT_ROOT'] = $orig; }
+            @rmdir($docroot . '/_tiger');
+            @rmdir($docroot);
+        }
+    }
+
+    #[Test]
+    public function an_absolute_public_root_is_honoured_as_is_even_with_a_split_docroot(): void
+    {
+        // An operator's explicit absolute path wins over docroot resolution.
+        $docroot = sys_get_temp_dir() . '/ti-split-abs-' . bin2hex(random_bytes(4));
+        @mkdir($docroot . '/_tiger', 0775, true);
+        $orig = $_SERVER['DOCUMENT_ROOT'] ?? null;
+        $_SERVER['DOCUMENT_ROOT'] = $docroot;
+        try {
+            $a = new Tiger_Media_Storage_Filesystem(['public_root' => '/srv/pinned/_media']);
+            $this->assertSame('/srv/pinned/_media', (new ReflectionProperty($a, '_publicRoot'))->getValue($a));
+        } finally {
+            if ($orig === null) { unset($_SERVER['DOCUMENT_ROOT']); } else { $_SERVER['DOCUMENT_ROOT'] = $orig; }
+            @rmdir($docroot . '/_tiger');
+            @rmdir($docroot);
+        }
     }
 
     #[Test]

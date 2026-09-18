@@ -326,6 +326,37 @@ class Tiger_Install
     }
 
     /**
+     * The docroot the WEB SERVER actually serves — where a runtime-written PUBLIC asset must land to be
+     * reachable. Normally `<root>/public`; on a SPLIT cPanel layout it's the separate docroot
+     * (`~/public_html`) that a deploy-time copy mirrors `<root>/public/_*` into (symlinks off).
+     *
+     * Static assets are published to the split docroot at deploy/update time (linkPublicAssets), but
+     * anything written at RUNTIME under `<root>/public` — a promoted media file, a generated skin —
+     * never reaches that mirror and 404s (TigerImage round-4 B2). So a runtime public writer resolves
+     * its base through here instead of assuming `<root>/public`.
+     *
+     * `$_SERVER['DOCUMENT_ROOT']` is the web server's own authority on this (set by Apache/LiteSpeed,
+     * untouched by the ALB proxy headers), but it is trusted ONLY when it is genuinely OUR served
+     * docroot — it carries the published `_tiger` asset dir — and differs from the co-located path.
+     * Otherwise (CLI, a test, an unexpected server) it falls back to `<root>/public`, the current
+     * behaviour, so nothing changes on a normal install or off a web request.
+     *
+     * @param  string $appRoot the application root (holds vendor/ + public/)
+     * @return string absolute path to the served public docroot
+     */
+    public static function servedPublicRoot($appRoot)
+    {
+        $appRoot   = rtrim((string) $appRoot, '/');
+        $colocated = $appRoot . '/public';
+        $docroot   = isset($_SERVER['DOCUMENT_ROOT']) ? rtrim((string) $_SERVER['DOCUMENT_ROOT'], '/') : '';
+        if ($docroot !== '' && is_dir($docroot) && is_dir($docroot . '/_tiger')
+            && realpath($docroot) !== realpath($colocated)) {
+            return $docroot;                 // split docroot (cPanel): the real served dir
+        }
+        return $colocated;                   // co-located, CLI, or undeterminable
+    }
+
+    /**
      * Refresh published assets after vendor/ changes. A NO-OP on a symlinked install (the link already
      * points at the new files) — so this is safe and cheap to call unconditionally after any update.
      * On a copy-mode install it re-copies, which is the only thing that stops a host without
