@@ -6,6 +6,19 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.11.1] — 2026-09-18
+
+### Fixed
+
+- **The Updates badge clears the moment a module update runs.** The menu badge reads `pending.json`
+  (`Tiger_Update_Checker::pendingCached()`, never a fetch), but `System_Service_Updates::apply()` only
+  wrote that summary *before* installing (while re-resolving the pending index), so it kept the
+  pre-apply count until the Updates page was reopened and re-checked. `apply()` now calls the new
+  `Tiger_Update_Checker::refreshPending()` after the apply loop: it recomputes from the now-current
+  installed versions (the installer bumps the `module` row synchronously) against the warm remote cache
+  — no network — so a just-updated module drops off the badge immediately. (A core update still clears
+  next request, not in-process: `Tiger_Version::VERSION` is a compiled constant.)
+
 ## [1.11.0] — 2026-09-17
 
 ### Added

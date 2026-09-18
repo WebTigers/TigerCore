@@ -72,6 +72,15 @@ class System_Service_Updates extends Tiger_Service_Service
             $results[] = $res;
         }
         $this->_recordHistory($results, $index);
+
+        // Rebuild the badge's pending count from the now-current installed versions, so the menu badge
+        // drops a just-updated module immediately. Without this, apply() only ever wrote pending.json
+        // BEFORE installing (the re-resolve above), leaving the pre-apply count on the badge until the
+        // Updates page was reopened and re-checked. No network — it reads the freshly-bumped module
+        // versions against the warm remote cache. (A core update still clears next request: the version
+        // constant is compiled in — see Tiger_Update_Checker::refreshPending.)
+        Tiger_Update_Checker::refreshPending();
+
         $this->_success(['results' => $results], 'system.update.done');
     }
 

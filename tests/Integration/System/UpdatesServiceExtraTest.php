@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use System_Service_Updates;
 use Tiger\Tests\Support\IntegrationTestCase;
+use Tiger_Update_Checker;
 
 // System_Service_Updates resolves via the harness module autoloader (tests/bootstrap.php).
 
@@ -45,6 +46,7 @@ final class UpdatesServiceExtraTest extends IntegrationTestCase
         if ($this->coreCacheFile !== '') {
             if ($this->coreCacheOrig !== null) { @file_put_contents($this->coreCacheFile, $this->coreCacheOrig); }
             else { @unlink($this->coreCacheFile); }
+            @unlink(dirname($this->coreCacheFile) . '/pending.json');   // written by apply()'s badge refresh
         }
         parent::tearDown();
     }
@@ -115,6 +117,26 @@ final class UpdatesServiceExtraTest extends IntegrationTestCase
         $this->assertSame(1, (int) $res->result, $this->messages($res));
         $slugs = array_map(static fn ($r) => $r['slug'], $res->data['results']);
         $this->assertSame(['ghost-a', 'ghost-b'], $slugs, 'both CSV items were dispatched');
+    }
+
+    #[Test]
+    public function apply_refreshes_the_menu_badge_count_after_running(): void
+    {
+        // Post-condition guard: after apply() returns, the badge summary pending.json must reflect the
+        // current state, not a stale one. apply() explicitly rebuilds it (refreshPending) so the count
+        // is correct however the pending index is (re)built internally — the real bug (a module whose
+        // installed version the installer bumped mid-apply) needs a live install and is unit-tested on
+        // Tiger_Update_Checker::refreshPending; here core is seeded low and nothing is pending → 0.
+        $pendingFile = dirname($this->coreCacheFile) . '/pending.json';
+        @file_put_contents($pendingFile, json_encode(['count' => 5, 'at' => time()]));
+        $this->assertSame(5, Tiger_Update_Checker::pendingCached(), 'the stale count is what the badge would show pre-fix');
+
+        $this->loginAs('superadmin');
+        $res = $this->dispatch(['action' => 'apply', 'items' => 'no-such-module']);
+        $this->assertSame(1, (int) $res->result, $this->messages($res));
+
+        $this->assertSame(0, Tiger_Update_Checker::pendingCached(),
+            'apply() rebuilt pending.json from the current state — the badge clears immediately');
     }
 
     // ---- history() -------------------------------------------------------------------------------
