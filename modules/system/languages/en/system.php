@@ -124,11 +124,12 @@ return [
     'system.updates.update'         => 'Update',
     'system.updates.log'            => 'Update log',
     'system.updates.history'        => 'Update history',
-    'system.updates.col_when'       => 'When',
+    'system.updates.col_date'       => 'Date',
     'system.updates.col_item'       => 'Item',
     'system.updates.col_kind'       => 'Kind',
     'system.updates.col_version'    => 'Version',
-    'system.updates.col_outcome'    => 'Outcome',
+    'system.updates.col_result'     => 'Result',
+    'system.updates.col_log'        => 'Log',
     'system.updates.log_link'       => 'log',
 
     // ---- Modules list view -----------------------------------------------------------------

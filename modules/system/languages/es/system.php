@@ -122,11 +122,12 @@ return [
     'system.updates.update'         => 'Actualizar',
     'system.updates.log'            => 'Registro de actualización',
     'system.updates.history'        => 'Historial de actualizaciones',
-    'system.updates.col_when'       => 'Cuándo',
+    'system.updates.col_date'       => 'Fecha',
     'system.updates.col_item'       => 'Elemento',
     'system.updates.col_kind'       => 'Tipo',
     'system.updates.col_version'    => 'Versión',
-    'system.updates.col_outcome'    => 'Resultado',
+    'system.updates.col_result'     => 'Resultado',
+    'system.updates.col_log'        => 'Registro',
     'system.updates.log_link'       => 'registro',
 
     // ---- Modules list view -----------------------------------------------------------------
