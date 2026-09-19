@@ -745,8 +745,9 @@ class System_Service_Modules extends Tiger_Service_Service
 
         try {
             $r = Tiger_Module_Installer::installFromUrl($url, $ref !== '' ? $ref : null, ['force' => !empty($params['force'])]);
-            $this->_success($r, 'system.module.installed', '/system/modules');
+            $this->_success($r, !empty($r['updated']) ? 'system.module.updated' : 'system.module.installed', '/system/modules');
         } catch (Throwable $e) {
+            if ($e->getCode() === Tiger_Module_Installer::E_ALREADY_INSTALLED) { $this->_error('system.error.module_exists'); return; }
             $this->_error('system.error.install_failed');
         }
     }
@@ -777,8 +778,9 @@ class System_Service_Modules extends Tiger_Service_Service
 
         try {
             $r = Tiger_Module_Installer::installFromUpload($f['tmp_name'], ['force' => !empty($params['force'])]);
-            $this->_success($r, 'system.module.installed', '/system/modules');
+            $this->_success($r, !empty($r['updated']) ? 'system.module.updated' : 'system.module.installed', '/system/modules');
         } catch (Throwable $e) {
+            if ($e->getCode() === Tiger_Module_Installer::E_ALREADY_INSTALLED) { $this->_error('system.error.module_exists'); return; }
             $this->_error('system.error.install_failed');
         }
     }

@@ -21,6 +21,14 @@ class Tiger_Module_Installer
     const RESERVED = ['default', 'system', 'access', 'core', 'tiger', 'zend', 'application', 'library', 'public'];
 
     /**
+     * Exception code for "this module's key is already installed and the upload isn't a newer version, and
+     * `force` wasn't passed" — a distinct, recoverable outcome (the caller re-uploads a newer build or
+     * removes it first), NOT a generic failure. A silent no-op here is the B2 bug (TIGER-169): the service
+     * catches this code and returns a specific, actionable message instead of `install_failed`.
+     */
+    const E_ALREADY_INSTALLED = 409;
+
+    /**
      * Install (or update, with opts[force]) a module from a public GitHub URL.
      *
      * @param  string      $repoUrl a GitHub repo URL or "org/repo" slug
@@ -189,9 +197,33 @@ class Tiger_Module_Installer
                 throw new RuntimeException("Module '{$slug}' declares a licensed pricing model but arrived unsigned — refusing to install.");
             }
 
-            $target = self::modulesDir() . '/' . $slug;
-            if (is_dir($target) && empty($opts['force'])) {
-                throw new RuntimeException("Module '{$slug}' is already installed (pass force to update).");
+            $target   = self::modulesDir() . '/' . $slug;
+            $isUpdate = !empty($opts['force']);   // an explicit force is always an update-in-place
+            if (is_dir($target) && !$isUpdate) {
+                // The key is already installed. Rather than the old silent no-op (B2/TIGER-169), decide
+                // explicitly: a STRICTLY-NEWER upload updates in place (the iterate/upgrade loop), and
+                // anything else is refused with a NAMED, recoverable reason (E_ALREADY_INSTALLED) so the
+                // caller learns exactly what to do instead of an indistinguishable "install failed".
+                $installedVer = null;
+                try {
+                    $row = (new Tiger_Model_Module())->bySlug($slug);
+                    $installedVer = ($row && $row->version !== null) ? (string) $row->version : null;
+                } catch (Throwable $e) {
+                    // no readable row (a stray dir, or the DB is unavailable) — fall through to the refusal
+                }
+                $uploadedVer = isset($manifest['version']) ? (string) $manifest['version'] : null;
+                if ($uploadedVer !== null && $installedVer !== null && version_compare($uploadedVer, $installedVer, '>')) {
+                    $isUpdate = true;   // a newer build → update in place
+                } else {
+                    $detail = ($installedVer !== null) ? " (installed: {$installedVer})" : '';
+                    $why    = ($uploadedVer !== null && $installedVer !== null)
+                        ? " The uploaded package is {$uploadedVer}, which is not newer."
+                        : '';
+                    throw new RuntimeException(
+                        "Module '{$slug}' is already installed{$detail}.{$why} Upload a newer version to update it, or remove it first.",
+                        self::E_ALREADY_INSTALLED
+                    );
+                }
             }
             if (!is_dir(self::modulesDir()) && !@mkdir(self::modulesDir(), 0775, true) && !is_dir(self::modulesDir())) {
                 throw new RuntimeException('application/modules is not writable.');
@@ -233,7 +265,7 @@ class Tiger_Module_Installer
             ]);
 
             return ['slug' => $slug, 'name' => $manifest['name'] ?? $slug, 'version' => $manifest['version'] ?? null,
-                    'ref' => $provenance['ref'] ?? null, 'dependencies' => $deps];
+                    'ref' => $provenance['ref'] ?? null, 'dependencies' => $deps, 'updated' => $isUpdate];
         } finally {
             self::_rrmdir($parent);
         }

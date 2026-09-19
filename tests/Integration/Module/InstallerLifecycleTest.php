@@ -81,26 +81,48 @@ final class InstallerLifecycleTest extends IntegrationTestCase
         $this->assertSame('1.0.0', (string) $row->version);
         $this->assertSame(1, (int) $row->active);
         $this->assertSame(Tiger_Model_Module::SOURCE_UPLOAD, $row->source);
+        $this->assertFalse($r['updated'], 'a first install is not an update');
     }
 
+    /**
+     * TIGER-169 (B2): re-uploading an already-installed key must NEVER be a silent no-op. The same or an
+     * older version without `force` is refused with the recoverable E_ALREADY_INSTALLED code (the service
+     * turns that into a specific message); a strictly NEWER upload updates in place with no force (the
+     * iterate/upgrade loop); and `force` always updates.
+     */
     #[Test]
-    public function reinstallingWithoutForceIsRefusedButForceUpdatesInPlace(): void
+    public function reinstallingIsExplicit_NoisyNotSilent(): void
     {
         $this->installFixture('w4force', ['version' => '1.0.0']);
 
-        // Same slug again, no force → the already-installed guard fires.
-        $tar = $this->makeModulePackage('w4force', ['version' => '1.1.0']);
+        // Same version, no force → refused with the NAMED, recoverable code — not a silent no-op or a
+        // generic failure. The existing install is untouched.
         try {
-            Tiger_Module_Installer::installFromUpload($tar);
-            $this->fail('a second install without force should throw');
+            Tiger_Module_Installer::installFromUpload($this->makeModulePackage('w4force', ['version' => '1.0.0']));
+            $this->fail('re-uploading the same version without force should throw');
         } catch (RuntimeException $e) {
+            $this->assertSame(Tiger_Module_Installer::E_ALREADY_INSTALLED, $e->getCode(), 'a distinct, recoverable code');
             $this->assertStringContainsString('already installed', $e->getMessage());
         }
+        $this->assertSame('1.0.0', (string) (new Tiger_Model_Module())->bySlug('w4force')->version, 'unchanged after a refusal');
 
-        // With force → the update lands and the recorded version moves.
-        $r = Tiger_Module_Installer::installFromUpload($this->makeModulePackage('w4force', ['version' => '1.1.0']), ['force' => true]);
+        // An OLDER upload is also refused (never a downgrade-by-accident).
+        try {
+            Tiger_Module_Installer::installFromUpload($this->makeModulePackage('w4force', ['version' => '0.9.0']));
+            $this->fail('an older version without force should throw');
+        } catch (RuntimeException $e) {
+            $this->assertSame(Tiger_Module_Installer::E_ALREADY_INSTALLED, $e->getCode());
+        }
+
+        // A strictly NEWER upload updates in place WITHOUT force (the B2 iterate/upgrade loop).
+        $r = Tiger_Module_Installer::installFromUpload($this->makeModulePackage('w4force', ['version' => '1.1.0']));
         $this->assertSame('1.1.0', $r['version']);
+        $this->assertTrue($r['updated'], 'a newer upload is flagged as an update');
         $this->assertSame('1.1.0', (string) (new Tiger_Model_Module())->bySlug('w4force')->version);
+
+        // force still updates (e.g. deliberately reinstalling the same version).
+        $r2 = Tiger_Module_Installer::installFromUpload($this->makeModulePackage('w4force', ['version' => '1.1.0']), ['force' => true]);
+        $this->assertTrue($r2['updated']);
     }
 
     #[Test]
