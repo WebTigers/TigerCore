@@ -6,6 +6,20 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.12.0] — 2026-09-19
+
+### Added
+
+- **Installed agent Skills are now tracked by the updater.** `Tiger_Update_Checker` gained a `skills()`
+  arm that joins `all()`, so the Modules ▸ Updates screen and the menu badge now cover skills alongside
+  core and modules, and `System_Service_Updates` can update one (a re-install pull). A skill has **no
+  version** — the Agent Skills format is `name` + `description` only — so staleness is **content-addressed**:
+  the git-blob-sha digest of the installed files (`Tiger_Agent_Skills::localDigest`) versus the same digest
+  of the repo's current tree (`treeDigest`, from one cached git-trees call per repo). Because the local
+  blob id is recomputed the same way git does, it needs **no stored hash and no migration** — skills
+  installed before this shipped are tracked as-is. A skill with no trackable upstream is skipped, and an
+  unreachable repo never flags an update (fail-safe, like the module check).
+
 ## [1.11.3] — 2026-09-19
 
 ### Changed

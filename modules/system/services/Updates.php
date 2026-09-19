@@ -183,6 +183,32 @@ class System_Service_Updates extends Tiger_Service_Service
             return ['slug' => $u['slug'], 'name' => $u['name'], 'ok' => true, 'advisory' => true, 'log' => $log];
         }
 
+        // Skill — a content pull: re-install the skill's files from its upstream (idempotent; the same
+        // path a fresh install takes). No version to bump — the new files ARE the update, and the
+        // content-addressed check (Tiger_Update_Checker::skills) then sees the digests match.
+        if ($u['type'] === 'skill') {
+            try {
+                $step('resolve', true, "{$u['name']} — refreshing from {$u['repository']}"
+                    . (!empty($u['path']) ? "/{$u['path']}" : '') . " ({$u['ref']})");
+                Tiger_Agent_Skills::install([
+                    'source'      => $u['source'] ?? '',
+                    'sourceLabel' => $u['sourceLabel'] ?? '',
+                    'name'        => $u['name'],
+                    'repo'        => $u['repository'] ?? '',
+                    'ref'         => $u['ref'] ?: 'main',
+                    'path'        => $u['path'] ?? '',
+                    'url'         => $u['url'] ?? '',
+                ]);
+                $now = substr((string) Tiger_Agent_Skills::localDigest($u['slug']), 0, 7);
+                $step('done', true, "Updated to {$now}.");
+                return ['slug' => $u['slug'], 'name' => $u['name'], 'ok' => true, 'version' => $now, 'log' => $log];
+            } catch (Throwable $e) {
+                $step('error', false, $e->getMessage());
+                Tiger_Log::error('update.failed', ['item' => $u['slug'], 'error' => $e->getMessage()]);
+                return ['slug' => $u['slug'], 'name' => $u['name'], 'ok' => false, 'log' => $log];
+            }
+        }
+
         // Module — the real one-click, no-shell path.
         try {
             $step('resolve', true, "{$u['name']} {$u['installed']} → {$u['latest']}  ({$u['repository']})");

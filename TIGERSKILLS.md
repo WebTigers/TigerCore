@@ -195,6 +195,16 @@ The **Skills** screen is modeled on the Code Area (CODE.md §6): a list of insta
 source pack, an **active toggle**, a **View source** of the `SKILL.md` before activating), update badges from
 `Tiger_Update_Checker`, and the install≠activate≠update discipline. Built per [ADMIN.md](ADMIN.md).
 
+**Update tracking (built, core 1.12.0).** A skill has no version (`name` + `description` only), so the
+updater tracks it **content-addressed**: `Tiger_Update_Checker::skills()` diffs the git-blob-sha digest of
+the installed files (`Tiger_Agent_Skills::localDigest`) against the same digest of the repo's current tree
+(`treeDigest`, one cached git-trees call per repo), and it joins `all()` so skills share the Updates screen +
+menu badge with core and modules. The installed blob id is recomputed exactly as git does, so there's **no
+stored hash and no migration** — pre-existing installs are tracked as-is; applying an update re-installs
+(pulls) the skill's files. A skill with no trackable upstream is skipped; an unreachable repo never flags an
+update (fail-safe). *This is the answer to "other repos version their skills" — they don't; git commits/blobs
+are the only reliable signal, so we content-address instead of comparing versions.*
+
 ---
 
 ## 7. MCP — the sibling axis (and why it's thin)
