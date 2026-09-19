@@ -117,6 +117,7 @@ return [
     'system.updates.available_many' => '%d updates available',
     'system.updates.update_aria'    => 'Update %s',
     'system.updates.badge_platform' => 'platform',
+    'system.updates.badge_skill'    => 'skill',
     'system.updates.badge_manual'   => 'manual step',
     'system.updates.whats_new'      => 'What\'s new in %s',
     'system.updates.update'         => 'Update',
