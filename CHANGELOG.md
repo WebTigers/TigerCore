@@ -6,6 +6,15 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.12.2] — 2026-09-19
+
+### Changed
+
+- **Update history: the type is its own column.** The 1.12.1 skill badge sat inline next to the name,
+  so only skill rows carried a badge and the table read unevenly. The history table now has a **Kind**
+  column with a consistent badge on every row — *platform* (core), *module*, or *skill* — instead of a
+  lone inline badge. New i18n keys `system.updates.col_kind` + `system.updates.badge_module` in all locales.
+
 ## [1.12.1] — 2026-09-19
 
 ### Fixed
