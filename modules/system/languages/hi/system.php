@@ -12,6 +12,8 @@ return [
     'system.theme.activated'    => 'थीम सक्रिय की गई।',
     'system.theme.deactivated'  => 'थीम निष्क्रिय की गई — डिफ़ॉल्ट थीम पर वापस लौटा दिया गया।',
     'system.module.installed'   => 'मॉड्यूल इंस्टॉल और सक्रिय किया गया।',
+    'system.module.updated'     => 'मॉड्यूल अपडेट किया गया।',
+    'system.error.module_exists'       => 'यह मॉड्यूल पहले से इंस्टॉल है। इसे अपडेट करने के लिए नया संस्करण अपलोड करें, या पहले इसे हटाएँ।',
     'system.module.deleted'     => 'मॉड्यूल हटाया गया — इसकी फ़ाइलें और डेटा हटा दिए गए।',
     'system.error.protected'    => 'वह मॉड्यूल सुरक्षित है और इसे निष्क्रिय नहीं किया जा सकता।',
     'system.error.unknown'      => 'ऐसा कोई मॉड्यूल नहीं है।',
