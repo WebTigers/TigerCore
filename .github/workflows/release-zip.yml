@@ -1,67 +1,88 @@
-name: Attach vendored release ZIP
+name: Release on tag — build + attach the vendored ZIP
 
-# When a TigerCore release is published, build the pre-resolved vendored ZIP (Composer-resolved
-# vendor/ tree) and attach it — that's the artifact the no-shell updater (Tiger_Update_Core) swaps
-# in. Dependency resolution happens here in CI, so a shared host only downloads + unpacks.
+# A pushed v<semver> tag becomes a published GitHub Release WITH the pre-resolved vendored ZIP attached
+# (a Composer-resolved vendor/ tree) — the artifact the no-shell updater (Tiger_Update_Core) downloads +
+# atomically swaps into vendor/. Everything runs in ONE workflow off the TAG PUSH, which is a real event
+# that triggers workflows. We deliberately do NOT chain off `release: published`: a Release created by the
+# default GITHUB_TOKEN does not trigger other workflows (GitHub's recursion guard), so a tag→release→zip
+# chain silently drops the ZIP — which is exactly how 1.9.0..1.12.1 shipped with no updater artifact.
 #
-# GATED ON SMOKE: the vendored ZIP only builds + attaches if the smoke suite passes on the exact
-# released tag. A release that doesn't boot/migrate/serve gets no updater artifact (fails safe) and a
-# red release workflow. (Composer users are covered separately: main is smoke-green on every push, so
-# a tagged commit was already verified — see smoke.yml.)
+# Gated on smoke: the ZIP builds + attaches only if the smoke suite passes on the exact tag (a release
+# that doesn't boot/migrate/serve gets no updater artifact — fail-safe). workflow_dispatch (tag input)
+# re-builds/attaches for an existing tag+release.
+
 on:
-  release:
-    types: [published]
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build + attach the vendored ZIP for (e.g. v1.12.1)'
+        required: true
 
 permissions:
   contents: write
 
 jobs:
-  # A release tag MUST be v<semver>. Tiger_Update_Core::resolveRelease() fetches
-  # /releases/tags/v<version>, so a bare "1.6.3" tag publishes a ZIP nothing can find — the admin
-  # "Update core" button and the headless upgrade verb both report "no release with a vendored
-  # bundle" while the asset sits right there. (It happened; two releases had to be re-tagged.)
+  # The updater resolves /releases/tags/v<version>, so a bare "1.6.3" tag publishes a ZIP nothing can find.
   tag-format:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
     steps:
-      - name: Assert the release tag is v<semver>
+      - id: resolve
         env:
-          TAG: ${{ github.event.release.tag_name }}
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
         run: |
           if ! printf '%s' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$'; then
-            echo "::error::Release tag '$TAG' must be v<major>.<minor>.<patch> (e.g. v1.6.4) — the updater resolves releases by that exact form."
+            echo "::error::Tag '$TAG' must be v<major>.<minor>.<patch> (e.g. v1.6.4) — the updater resolves releases by that exact form."
             exit 1
           fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "✓ tag $TAG"
 
-  # The gate: run the full smoke matrix against the released tag before anything is attached.
+  # The gate: the full smoke matrix must pass on the exact tag before anything is published.
   smoke:
     needs: tag-format
     permissions:
       contents: read
     uses: ./.github/workflows/smoke.yml
     with:
-      ref: ${{ github.event.release.tag_name }}
+      ref: ${{ needs.tag-format.outputs.tag }}
 
-  vendored-zip:
-    needs: smoke                # skipped (→ no ZIP attached) if smoke fails or the tag is malformed
+  release:
+    needs: [tag-format, smoke]     # skipped (→ nothing published) if the tag is malformed or smoke fails
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.tag-format.outputs.tag }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}   # build from the exact released tag
+          ref: ${{ needs.tag-format.outputs.tag }}   # build + read notes from the exact tag
 
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
           tools: composer
 
-      - name: Build the vendored ZIP (from the release commit, no Packagist race)
-        env:
-          VERSION: ${{ github.event.release.tag_name }}
-        run: VERSION="${VERSION#v}" SOURCE_PATH="$(pwd)" bash bin/build-release-zip.sh
+      - name: Build the vendored ZIP (Composer-resolved off-box, no Packagist race)
+        run: VERSION="${TAG#v}" SOURCE_PATH="$(pwd)" bash bin/build-release-zip.sh
 
-      - name: Attach it to the release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        # --clobber so a re-run (or a hand-attached asset) is overwritten instead of failing on a dup.
-        run: gh release upload "${{ github.event.release.tag_name }}" dist/*.zip dist/*.zip.sha256 --clobber -R "${{ github.repository }}"
+      - name: Ensure the GitHub Release exists (idempotent; notes from the CHANGELOG section)
+        run: |
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "release $TAG already exists"
+          else
+            VER="${TAG#v}"
+            NOTES="$(awk -v v="$VER" '$0 ~ "^## \\["v"\\]" {f=1; next} /^## \[/{f=0} f' CHANGELOG.md)"
+            if [ -n "$NOTES" ]; then
+              printf '%s\n' "$NOTES" > /tmp/release-notes.md
+              gh release create "$TAG" -R "$GITHUB_REPOSITORY" --title "$TAG" --notes-file /tmp/release-notes.md
+            else
+              gh release create "$TAG" -R "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes
+            fi
+          fi
+
+      - name: Attach the vendored ZIP (--clobber so a re-run overwrites)
+        run: gh release upload "$TAG" dist/*.zip dist/*.zip.sha256 --clobber -R "$GITHUB_REPOSITORY"
