@@ -31,6 +31,19 @@ final class ToolsPromptTest extends UnitTestCase
     }
 
     #[Test]
+    public function theNewSiteGateIsAlwaysInThePrompt(): void
+    {
+        // Baked in regardless of role/capabilities/skills so an agent asked to "create a site" tiers the
+        // request (content on an existing theme → a new theme → a shareable module) instead of defaulting
+        // to a theme module — even when the tiger-design skill isn't loaded.
+        $prompt = Tiger_Agent_Tools::systemPrompt('manager', [], [], 'ask');
+        $this->assertStringContainsString('CREATING A NEW SITE', $prompt);
+        $this->assertStringContainsString('ASK the user', $prompt);
+        $this->assertStringContainsString('EXISTING installed theme', $prompt);
+        $this->assertStringContainsString('never make one module per site', $prompt);
+    }
+
+    #[Test]
     public function capabilitiesLineListsEachUnlockedTier(): void
     {
         $prompt = Tiger_Agent_Tools::systemPrompt('developer', [
