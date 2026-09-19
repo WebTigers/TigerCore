@@ -49,7 +49,8 @@ $pending = $this->pending ?? [];
                         <input type="checkbox" class="form-check-input mt-0 update-check" checked
                                aria-label="<?= $this->escape($this->t('system.updates.update_aria', $u['name'])) ?>">
                     </span>
-                    <i class="fa-solid fa-fw <?= $u['type'] === 'core' ? 'fa-cube text-primary' : 'fa-puzzle-piece text-body-secondary' ?>"></i>
+                    <?php $icon = $u['type'] === 'core' ? 'fa-cube text-primary' : ($u['type'] === 'skill' ? 'fa-graduation-cap text-body-secondary' : 'fa-puzzle-piece text-body-secondary'); ?>
+                    <i class="fa-solid fa-fw <?= $icon ?>"></i>
                     <div class="flex-grow-1">
                         <div class="fw-semibold">
                             <?= $this->escape($u['name']) ?>

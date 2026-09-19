@@ -47,8 +47,10 @@ class Tiger_Agent_Skills
                 'key'         => $key,
                 'name'        => $front['name'] ?? $key,
                 'description' => $front['description'] ?? '',
+                'source'      => (string) ($meta['source'] ?? ''),
                 'sourceLabel' => (string) ($meta['sourceLabel'] ?? ''),
                 'repo'        => (string) ($meta['repo'] ?? ''),
+                'ref'         => (string) ($meta['ref'] ?? '') ?: 'main',
                 'path'        => (string) ($meta['path'] ?? ''),   // canonical skill location (repo + path) — for catalog dedup
                 'url'         => (string) ($meta['url'] ?? ''),
                 'active'      => in_array($key, $active, true),
@@ -174,6 +176,92 @@ class Tiger_Agent_Skills
         $d = self::dir() . '/' . $key;
         if (is_dir($d)) { self::_rrmdir($d); }
         return true;
+    }
+
+    // ----- update tracking (content-addressed — a skill has no version) --------------------------
+
+    /**
+     * A content fingerprint of an INSTALLED skill's files, for comparison against the same skill's
+     * current state upstream. Each file is reduced to its **git blob object id** (`sha1("blob <len>\0
+     * <bytes>")`) — the exact value GitHub's tree API reports for the same blob — so a local digest and
+     * a {@see treeDigest} of the repo are directly comparable. Stateless (no stored hash), so it works
+     * for skills installed before update-tracking existed. Excludes our own `source.json`. '' if absent.
+     *
+     * @param  string $key the installed skill key
+     * @return string a sha256 over the file map, or ''
+     */
+    public static function localDigest($key)
+    {
+        $dir = self::dir() . '/' . self::_safeKey($key);
+        if ($dir === '/' || !is_dir($dir)) { return ''; }
+        $map  = [];
+        $walk = function ($d, $rel) use (&$walk, &$map) {
+            foreach (scandir($d) ?: [] as $f) {
+                if ($f === '.' || $f === '..') { continue; }
+                $p = $d . '/' . $f;
+                $r = ($rel === '' ? '' : $rel . '/') . $f;
+                if (is_dir($p) && !is_link($p)) { $walk($p, $r); continue; }
+                if ($rel === '' && $f === 'source.json') { continue; }   // our metadata, not part of the skill
+                $c = (string) @file_get_contents($p);
+                $map[$r] = sha1('blob ' . strlen($c) . "\0" . $c);       // the git blob object id
+            }
+        };
+        $walk($dir, '');
+        return self::_digest($map);
+    }
+
+    /**
+     * The skill folder's file listing from ONE git-trees call (the same call {@see install} makes), or
+     * null when it can't be fetched (so a transient outage isn't cached as "no upstream").
+     *
+     * @param  string $org
+     * @param  string $repo
+     * @param  string $ref
+     * @return array|null the tree nodes ([{path,type,sha,size}, …]), or null
+     */
+    public static function remoteTree($org, $repo, $ref)
+    {
+        $body = @Tiger_Module_Github::get('https://api.github.com/repos/' . $org . '/' . $repo
+            . '/git/trees/' . rawurlencode($ref) . '?recursive=1');
+        $tree = $body ? json_decode((string) $body, true) : null;
+        return (is_array($tree) && !empty($tree['tree']) && is_array($tree['tree'])) ? $tree['tree'] : null;
+    }
+
+    /**
+     * The same fingerprint as {@see localDigest}, computed from a git-trees listing — the blobs UNDER
+     * `$path`, keyed by their path relative to it, valued by each blob's git sha. Bounded identically to
+     * {@see install} (MAX_BYTES / MAX_FILES, same order) so it covers exactly the files that were installed.
+     *
+     * @param  array  $tree the tree nodes from {@see remoteTree}
+     * @param  string $path the skill's path within the repo
+     * @return string a sha256 over the file map, or ''
+     */
+    public static function treeDigest(array $tree, $path)
+    {
+        $prefix = trim((string) $path, '/');
+        $prefix = $prefix !== '' ? $prefix . '/' : '';
+        $map = [];
+        foreach ($tree as $node) {
+            if (($node['type'] ?? '') !== 'blob') { continue; }
+            $p = (string) ($node['path'] ?? '');
+            if ($prefix !== '' && strpos($p, $prefix) !== 0) { continue; }
+            if (($node['size'] ?? 0) > self::MAX_BYTES) { continue; }
+            $rel = $prefix !== '' ? substr($p, strlen($prefix)) : $p;
+            if ($rel === '' || strpos($rel, '..') !== false) { continue; }
+            $map[$rel] = (string) ($node['sha'] ?? '');
+            if (count($map) >= self::MAX_FILES) { break; }
+        }
+        return self::_digest($map);
+    }
+
+    /** Order-independent digest over a {relpath => blob-sha} map. '' if empty. */
+    protected static function _digest(array $map)
+    {
+        if (!$map) { return ''; }
+        ksort($map);
+        $parts = [];
+        foreach ($map as $rel => $sha) { $parts[] = $rel . ':' . $sha; }
+        return hash('sha256', implode("\n", $parts));
     }
 
     /** Filesystem/config-safe key (source + name). */

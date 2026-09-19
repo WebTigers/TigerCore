@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tiger\Tests\Support\IntegrationTestCase;
 use Tiger_Agent_Skills;
+use Tiger_Update_Checker;
 
 /**
  * The installed side of Agent Skills — Tiger_Agent_Skills (discover installed, the config active-set,
@@ -66,6 +67,64 @@ final class SkillsTest extends IntegrationTestCase
     private function call(string $action, array $params = []): object
     {
         return (new Agent_Service_Skills(['action' => $action] + $params))->getResponse();
+    }
+
+    #[Test]
+    public function local_and_tree_digests_match_for_identical_content(): void
+    {
+        // The update check is content-addressed (a skill has no version): an installed file's git-blob-sha
+        // must equal the sha the repo's tree reports for the same bytes, so "up to date" == "digests match".
+        $key   = 'anthropic-skills__demo';
+        $local = Tiger_Agent_Skills::localDigest($key);
+        $this->assertNotSame('', $local);
+
+        $md   = (string) file_get_contents($this->skillDir . '/SKILL.md');
+        $blob = sha1('blob ' . strlen($md) . "\0" . $md);          // the git blob object id for those bytes
+        $tree = [
+            ['path' => 'skills/demo/SKILL.md', 'type' => 'blob', 'sha' => $blob, 'size' => strlen($md)],
+            ['path' => 'skills/demo',          'type' => 'tree', 'sha' => 'ignored'],
+            ['path' => 'elsewhere/x.md',       'type' => 'blob', 'sha' => 'ignored', 'size' => 3],  // outside the path
+        ];
+        $this->assertSame($local, Tiger_Agent_Skills::treeDigest($tree, 'skills/demo'),
+            'identical content ⇒ identical digest ⇒ up to date');
+
+        $tree[0]['sha'] = sha1("blob 3\0new");                      // upstream changed
+        $this->assertNotSame($local, Tiger_Agent_Skills::treeDigest($tree, 'skills/demo'),
+            'a changed upstream blob ⇒ a different digest ⇒ an update');
+    }
+
+    #[Test]
+    public function the_updater_reports_a_skill_up_to_date_then_stale(): void
+    {
+        // Drive Tiger_Update_Checker::skills() fully offline by priming the git-tree cache (its ONE network
+        // call) for the seeded skill's repo. source.json has repo=anthropics/skills → ref=main, path=''.
+        $cacheDir  = dirname(APPLICATION_PATH) . '/var/cache/updates';
+        @mkdir($cacheDir, 0775, true);
+        $cacheFile = $cacheDir . '/skilltree-anthropics-skills-main.json';
+
+        $md    = (string) file_get_contents($this->skillDir . '/SKILL.md');
+        $blob  = sha1('blob ' . strlen($md) . "\0" . $md);
+        $prime = function ($sha) use ($cacheFile, $md) {
+            file_put_contents($cacheFile, json_encode(['v' => [
+                ['path' => 'SKILL.md', 'type' => 'blob', 'sha' => $sha, 'size' => strlen($md)],
+            ]]));
+        };
+
+        try {
+            // (a) upstream matches the installed bytes → not stale.
+            $prime($blob);
+            $rows = array_values(array_filter(Tiger_Update_Checker::skills(), fn($r) => $r['slug'] === 'anthropic-skills__demo'));
+            $this->assertCount(1, $rows, 'the installed skill is a checkable item');
+            $this->assertSame('skill', $rows[0]['type']);
+            $this->assertFalse($rows[0]['update'], 'identical content ⇒ up to date');
+
+            // (b) upstream changed → an update is flagged.
+            $prime(sha1("blob 5\0other"));
+            $rows = array_values(array_filter(Tiger_Update_Checker::skills(), fn($r) => $r['slug'] === 'anthropic-skills__demo'));
+            $this->assertTrue($rows[0]['update'], 'changed upstream ⇒ update available');
+        } finally {
+            @unlink($cacheFile);
+        }
     }
 
     #[Test]

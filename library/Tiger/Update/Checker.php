@@ -39,6 +39,9 @@ class Tiger_Update_Checker
         foreach (self::modules($refresh) as $m) {
             $out[] = $m;
         }
+        foreach (self::skills($refresh) as $s) {
+            $out[] = $s;
+        }
         self::_writePending($out);
         return $out;
     }
@@ -167,6 +170,68 @@ class Tiger_Update_Checker
                 $desc['license'] = Tiger_License_Checker::status($slug);
             }
             $out[] = $desc;
+        }
+        return $out;
+    }
+
+    /**
+     * Update descriptors for every installed agent Skill (TIGERSKILLS.md §3).
+     *
+     * A skill has NO version — the Agent Skills format is `name` + `description` only — so "is it stale?"
+     * can't be a version compare. Instead it's **content-addressed**: the git-blob-sha digest of the
+     * installed files ({@see Tiger_Agent_Skills::localDigest}) versus the same digest of the repo's
+     * current tree ({@see Tiger_Agent_Skills::treeDigest}). Different bytes → different digest → an update.
+     * Stateless, so a skill installed before this existed is tracked with no migration. One git-trees
+     * call per repo, file-cached like the module checks; a skill with no trackable upstream is skipped,
+     * and an unreachable repo never flags an update (fail-safe, like {@see modules}).
+     *
+     * @param  bool $refresh bypass the cache
+     * @return array<int,array>
+     */
+    public static function skills($refresh = false)
+    {
+        if (!class_exists('Tiger_Agent_Skills')) {
+            return [];
+        }
+        try {
+            $installed = Tiger_Agent_Skills::installed();
+        } catch (Throwable $e) {
+            return [];
+        }
+        $out = [];
+        foreach ($installed as $s) {
+            $repo   = (string) ($s['repo'] ?? '');
+            $parsed = $repo !== '' ? Tiger_Module_Github::parseRepo($repo) : null;
+            if (!$parsed) {
+                continue;   // a hand-made / no-upstream skill — nothing authoritative to diff against
+            }
+            $local = Tiger_Agent_Skills::localDigest($s['key']);
+            if ($local === '') {
+                continue;
+            }
+            $ref  = (string) ($s['ref'] ?? 'main') ?: 'main';
+            $path = (string) ($s['path'] ?? '');
+            // One tree fetch per repo+ref, cached — many skills from one repo share it.
+            $tree = self::_cached('skilltree-' . $parsed['org'] . '-' . $parsed['repo'] . '-' . $ref, $refresh,
+                static function () use ($parsed, $ref) {
+                    return Tiger_Agent_Skills::remoteTree($parsed['org'], $parsed['repo'], $ref);
+                });
+            $remote = is_array($tree) ? Tiger_Agent_Skills::treeDigest($tree, $path) : '';
+            $out[] = [
+                'type'        => 'skill',
+                'name'        => (string) ($s['name'] ?? $s['key']),
+                'slug'        => (string) $s['key'],
+                'installed'   => substr($local, 0, 7),
+                'latest'      => $remote !== '' ? substr($remote, 0, 7) : substr($local, 0, 7),
+                'update'      => $remote !== '' && $remote !== $local,
+                'method'      => 'skill',
+                'repository'  => $repo,
+                'ref'         => $ref,
+                'path'        => $path,
+                'source'      => (string) ($s['source'] ?? ''),
+                'sourceLabel' => (string) ($s['sourceLabel'] ?? ''),
+                'url'         => (string) ($s['url'] ?? ''),
+            ];
         }
         return $out;
     }
