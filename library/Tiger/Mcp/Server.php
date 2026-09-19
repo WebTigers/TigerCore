@@ -98,7 +98,121 @@ class Tiger_Mcp_Server
                 ];
             }
         }
+        foreach (self::_agentTools($role, $allowedModules) as $t) {
+            $tools[] = $t;   // the agent's own Scout/Forge surface (TIGER-168), when role + scope allow
+        }
         return ['tools' => $tools];
+    }
+
+    /**
+     * The agent's own Scout (read) + Forge (file-write) surface, exposed as MCP tools so an external client
+     * can drive the same "look at the code, then write a module file" loop the in-app aside runs — the MCP
+     * path for a sufficiently-scoped, superadmin-class token (TIGER-168 / TIGERMCP §0: reach, not new
+     * capability). These are NOT `/api` ops, so they carry their own names + typed schemas and route to
+     * `Tiger_Agent_Scout`/`Tiger_Agent_Forge` at the dispatch seam (the controller), not through the service
+     * factory.
+     *
+     * Two gates decide what is advertised, and they are the SAME authorities the executors enforce — so
+     * `tools/list` never lists a tool a `tools/call` would refuse:
+     *  - **Scope (opt-in):** the pseudo-module `agent` must be within the token's allow-list — a session /
+     *    full-surface token (`$allowedModules === null`) qualifies, but a curated token does not, because the
+     *    default set (`Tiger_Mcp_Token::DEFAULT_MODULES`) deliberately excludes `agent`. So a content token
+     *    never gets filesystem read/write; an admin widens a token to `agent` on purpose.
+     *  - **Role:** the very ACL resources/privileges `Tiger_Agent_Scout::_allowed` + `Tiger_Agent_Forge` check
+     *    — `Tiger_Agent_Scout`/`inventory` (admin+), `Tiger_Agent_Scout`/`read` (superadmin+), and
+     *    `Tiger_Agent_Forge`/`file` (superadmin+). `forge.file` is a write, so a read-only token still lists
+     *    it (mirroring how a write `/api` tool is listed) but the call is refused at dispatch.
+     *
+     * @param  string     $role
+     * @param  array|null $allowedModules
+     * @return array<int,array>
+     */
+    protected static function _agentTools($role, ?array $allowedModules)
+    {
+        if ($allowedModules !== null && !in_array('agent', $allowedModules, true)) {
+            return [];   // the token is not scoped to the agent surface
+        }
+        $reason = ['reason' => ['type' => 'string', 'description' => 'Why you are running this (for the audit log).']];
+        $read   = ['title' => 'Scout (read-only)', 'readOnlyHint' => true, 'idempotentHint' => true];
+        $tools  = [];
+
+        if (self::_aclAllows($role, 'Tiger_Agent_Scout', 'inventory')) {
+            $tools[] = [
+                'name'        => 'agent__scout__inventory',
+                'description' => 'Scout: the repo map — installed modules (and which carry an AGENTS.md guide), '
+                               . 'existing Code-Area snippets, the active theme\'s asset dirs + injection points, '
+                               . 'and the read/write roots. Cheap; run it first so you are not guessing.',
+                'inputSchema' => ['type' => 'object', 'properties' => $reason],
+                'annotations' => $read,
+            ];
+        }
+        if (self::_aclAllows($role, 'Tiger_Agent_Scout', 'read')) {
+            $tools[] = [
+                'name'        => 'agent__scout__tree',
+                'description' => 'Scout: list file/dir names under a path across the app modules + themes, and '
+                               . 'read-only into vendor/webtigers/tiger-core (to learn house style). Secrets are '
+                               . 'excluded and path-escape is refused.',
+                'inputSchema' => ['type' => 'object', 'properties' => [
+                    'path' => ['type' => 'string', 'description' => 'Scoped path (relative to the app root); empty = the read roots.'],
+                ] + $reason],
+                'annotations' => $read,
+            ];
+            $tools[] = [
+                'name'        => 'agent__scout__file',
+                'description' => 'Scout: read one file\'s contents (bounded to ' . Tiger_Agent_Scout::MAX_FILE_BYTES
+                               . ' bytes) from the readable surface. Secrets (local.ini, *.key, storage/) are excluded.',
+                'inputSchema' => ['type' => 'object', 'properties' => [
+                    'path' => ['type' => 'string', 'description' => 'The file path, relative to the app root.'],
+                ] + $reason, 'required' => ['path']],
+                'annotations' => $read,
+            ];
+            $tools[] = [
+                'name'        => 'agent__scout__grep',
+                'description' => 'Scout: search files AND Code-Area snippets for a string (does this already '
+                               . 'exist?). Bounded to ' . Tiger_Agent_Scout::MAX_GREP_HITS . ' hits.',
+                'inputSchema' => ['type' => 'object', 'properties' => [
+                    'query' => ['type' => 'string', 'description' => 'The literal string to search for.'],
+                    'path'  => ['type' => 'string', 'description' => 'Optional path to scope the search.'],
+                ] + $reason, 'required' => ['query']],
+                'annotations' => $read,
+            ];
+            $tools[] = [
+                'name'        => 'agent__scout__guide',
+                'description' => 'Scout: read a module\'s AGENTS.md (how to work on THAT module), or — with no '
+                               . 'module — the platform conventions. Read the guide before you touch the code.',
+                'inputSchema' => ['type' => 'object', 'properties' => [
+                    'module' => ['type' => 'string', 'description' => 'Module slug; omit for the platform conventions.'],
+                ] + $reason],
+                'annotations' => $read,
+            ];
+        }
+        if (self::_aclAllows($role, 'Tiger_Agent_Forge', 'file')) {
+            $tools[] = [
+                'name'        => 'agent__forge__file',
+                'description' => 'Forge: write a file into an app-owned module (sandboxed to application/modules '
+                               . '— never core/vendor). Use agent__scout__* to look first. Over MCP there is no '
+                               . 'approval UI, so the token\'s scope + this write being audited ARE the boundary.',
+                'inputSchema' => ['type' => 'object', 'properties' => [
+                    'path'     => ['type' => 'string', 'description' => 'Path under application/modules/.'],
+                    'contents' => ['type' => 'string', 'description' => 'The full file contents to write.'],
+                ] + $reason, 'required' => ['path', 'contents']],
+                'annotations' => ['title' => 'Forge: write module file', 'readOnlyHint' => false,
+                                  'destructiveHint' => false, 'idempotentHint' => true],
+            ];
+        }
+        return $tools;
+    }
+
+    /**
+     * ACL gate for an agent Scout/Forge privilege — the SAME check `Tiger_Agent_Scout::_allowed` /
+     * `Tiger_Agent_Forge::_aclAllows` make, so `tools/list` advertises exactly what a `tools/call` would run.
+     * Registry-safe (no ACL loaded, or the resource absent → false, like the executors).
+     */
+    protected static function _aclAllows($role, $resource, $privilege)
+    {
+        if (!Zend_Registry::isRegistered('Zend_Acl')) { return false; }
+        $acl = Zend_Registry::get('Zend_Acl');
+        return $acl->has($resource) && $acl->isAllowed($role, $resource, $privilege);
     }
 
     /**

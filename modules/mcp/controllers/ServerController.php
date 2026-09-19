@@ -95,8 +95,8 @@ class Mcp_ServerController extends Zend_Controller_Action
         $allowed = ($config !== null) ? (array) $config['modules'] : null;
         $orgIdentity = ($config !== null && !empty($config['org_scoped'])) ? $this->_orgIdentity($identity, $config) : null;
 
-        $out = Tiger_Mcp_Server::handle($msg, $role, function ($module, $service, $method, $args) use ($config, $prefix, $orgIdentity) {
-            return $this->_dispatchTool($module, $service, $method, (array) $args, $config, $prefix, $orgIdentity);
+        $out = Tiger_Mcp_Server::handle($msg, $role, function ($module, $service, $method, $args) use ($config, $prefix, $orgIdentity, $role) {
+            return $this->_dispatchTool($module, $service, $method, (array) $args, $config, $prefix, $orgIdentity, $role);
         }, $allowed);
 
         if ($out === null) {
@@ -179,9 +179,15 @@ class Mcp_ServerController extends Zend_Controller_Action
      * org-scoped token, else the token/session identity), and audit the outcome. Returns the /api envelope
      * (a denial is a `result=0` envelope the engine renders as an MCP error).
      */
-    protected function _dispatchTool($module, $service, $method, array $args, $config, $prefix, $orgIdentity)
+    protected function _dispatchTool($module, $service, $method, array $args, $config, $prefix, $orgIdentity, $role = 'guest')
     {
         $tool = $module . '__' . $service . '__' . $method;
+
+        // The agent surface (agent__scout__*, agent__forge__file) is not an /api op — it runs Scout/Forge
+        // in-process, with its own scope + read-only + role gating (TIGER-168).
+        if ($module === 'agent') {
+            return $this->_dispatchAgentTool($service, $method, $args, $config, $prefix, (string) $role);
+        }
 
         // Token policy (scope + read-only), then the soft rate limit. The service's own ACL still gates the
         // dispatch below regardless — this is an EXTRA, tighter fence on top.
@@ -221,6 +227,95 @@ class Mcp_ServerController extends Zend_Controller_Action
             'tool'       => $tool,
             'result'     => (int) ($env->result ?? 0),
         ]);
+        return $env;
+    }
+
+    /**
+     * Run one agent tool (Scout read / Forge file-write) in-process AS the caller's role (TIGER-168). Unlike
+     * an /api tool, this drives `Tiger_Agent_Scout`/`Tiger_Agent_Forge` directly — the same objects the in-app
+     * aside uses — so the ACL role-gating those classes enforce (inventory=admin+, tree/file/grep/guide +
+     * forge.file=superadmin+) is the real wall, and this method adds the token's fence on top:
+     *  - **scope** — the token must include the pseudo-module `agent` (a session / full-surface token does);
+     *  - **read-only** — only `forge.file` is a write, so it alone is refused on a read-only token; Scout reads
+     *    always pass (unlike the /api verb classification, the agent verbs aren't in READ_VERBS, so we decide
+     *    read-vs-write here explicitly rather than via `Tiger_Mcp_Token::denyReason`);
+     *  - **metering + audit** — the same soft rate limit + `Tiger_Log` line as every other tool call.
+     *
+     * There is no approval UI on the MCP path, so a Forge write is dispatched `approved=true` — the boundary is
+     * the deliberate `agent`+write token scope + the audit trail (TIGERMCP §5: no approval webhook).
+     */
+    protected function _dispatchAgentTool($service, $method, array $args, $config, $prefix, $role)
+    {
+        $tool    = 'agent__' . $service . '__' . $method;
+        $isForge = ($service === 'forge');
+
+        if ($config !== null) {
+            if (!Tiger_Mcp_Token::allowsModule($config, 'agent')) {
+                return $this->_denied($tool, $prefix, 'out_of_scope', 'This token is not scoped to the agent surface.');
+            }
+            if ($isForge && !empty($config['read_only'])) {
+                return $this->_denied($tool, $prefix, 'read_only', 'This token is read-only; it cannot write files.');
+            }
+        }
+        if ($prefix !== '' && !Tiger_Mcp_Token::meter($prefix)) {
+            return $this->_denied($tool, $prefix, 'rate_limited', 'Rate limit exceeded for this token.');
+        }
+
+        try {
+            if ($isForge) {
+                $entry = (new Tiger_Agent_Forge($role))->execute([
+                    'type'     => Tiger_Agent_Contract::ACTION_FILE,
+                    'path'     => (string) ($args['path'] ?? ''),
+                    'contents' => (string) ($args['contents'] ?? ''),
+                    'reason'   => (string) ($args['reason'] ?? 'MCP client'),
+                    'approved' => true,   // no approval UI over MCP — token scope + audit is the boundary
+                ]);
+            } else {
+                $action = $this->_scoutAction($method, $args);
+                if ($action === null) { return $this->_denied($tool, $prefix, 'unknown_tool', 'Unknown agent tool.'); }
+                $entry = (new Tiger_Agent_Scout($role))->execute($action);
+            }
+        } catch (Throwable $e) {
+            return $this->_denied($tool, $prefix, 'error', 'The agent tool failed.');
+        }
+
+        $status = (string) ($entry['status'] ?? 'error');
+        Tiger_Log::info('mcp.tools_call', ['token' => $prefix, 'tool' => $tool, 'agent' => true, 'status' => $status]);
+        return $this->_agentEnvelope($entry);
+    }
+
+    /** Build the normalized Scout action from the MCP tool method + arguments (null = unknown method). */
+    protected function _scoutAction($method, array $args)
+    {
+        $reason = (string) ($args['reason'] ?? 'MCP client');
+        switch ($method) {
+            case 'inventory': return ['type' => Tiger_Agent_Contract::READ_INVENTORY, 'reason' => $reason];
+            case 'tree':      return ['type' => Tiger_Agent_Contract::READ_TREE, 'path' => (string) ($args['path'] ?? ''), 'reason' => $reason];
+            case 'file':      return ['type' => Tiger_Agent_Contract::READ_FILE, 'path' => (string) ($args['path'] ?? ''), 'reason' => $reason];
+            case 'grep':      return ['type' => Tiger_Agent_Contract::READ_GREP, 'query' => (string) ($args['query'] ?? ''), 'path' => (string) ($args['path'] ?? ''), 'reason' => $reason];
+            case 'guide':     return ['type' => Tiger_Agent_Contract::READ_GUIDE, 'module' => preg_replace('/[^a-z0-9]/', '', strtolower((string) ($args['module'] ?? ''))), 'reason' => $reason];
+        }
+        return null;
+    }
+
+    /**
+     * Map an agent ledger entry {status, summary, feedback|detail} → the standard /api envelope, so the
+     * MCP engine renders it into content exactly like an /api result. A denied/error/proposed status is a
+     * failed call; anything else carries the heavy payload (Scout's `feedback`, Forge's `detail`) as data.
+     */
+    protected function _agentEnvelope(array $entry)
+    {
+        $status = (string) ($entry['status'] ?? 'error');
+        $env    = new Tiger_Model_ResponseObject();
+        $ok     = !in_array($status, ['denied', 'error', 'proposed'], true);
+        $env->result = $ok ? 1 : 0;
+        if ($ok) {
+            $env->data = [
+                'status' => $status,
+                'output' => $entry['feedback'] ?? ($entry['detail'] ?? ($entry['summary'] ?? '')),
+            ];
+        }
+        $env->messages[] = new Tiger_Model_MessageObject((string) ($entry['summary'] ?? ''), $ok ? 'info' : 'error');
         return $env;
     }
 
