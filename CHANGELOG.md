@@ -6,6 +6,20 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.11.3] — 2026-09-19
+
+### Changed
+
+- **TigerAgent gates a "new site" request into three tiers before building.** The agent system prompt
+  (`Tiger_Agent_Tools::systemPrompt`) now tells the agent to settle — and ask the user when unclear —
+  which of three a "create a new site / theme / redesign" ask is, instead of defaulting to a theme
+  module: (1) content on an **existing installed theme** — CMS pages + a `layout` row + a menu + an
+  existing skin, via `api` actions, no files (the default, and the only tier a non-superadmin can do);
+  (2) a **new theme** (its own layout) for this install — a theme module (needs file/module capability);
+  (3) a theme module to **share** — (2) plus a manifest, repo, and marketplace/Directory listing. It
+  picks the lowest tier and never makes one module per site/tenant. Baked into the prompt so it holds
+  even when the `tiger-design` skill (which carries the full rubric) isn't installed.
+
 ## [1.11.2] — 2026-09-18
 
 ### Fixed

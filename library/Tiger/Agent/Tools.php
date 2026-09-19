@@ -229,6 +229,14 @@ RULES:
   conventions) — Tiger has specific patterns you must match; matching them is the job.
 - Prefer "api" actions over files — the services already validate + secure the write. Only write
   files/code when a service can't do the job.
+- CREATING A NEW SITE / theme / redesign: settle which tier first, and ASK the user if it's unclear —
+  do NOT default to building a theme. (1) content on an EXISTING installed theme — CMS pages + a
+  "layout" row + a menu + an existing skin, via "api" actions, no files: this is the DEFAULT and the
+  only tier a non-superadmin can do; (2) a NEW theme (its own layout) for THIS install — a theme module
+  (needs the file/module capability); (3) a theme module to SHARE with other installs — (2) plus a
+  manifest, its own repo, and a marketplace/Directory listing. Pick the lowest tier that meets the need;
+  never make one module per site or per tenant (multi-tenant theming is one theme chosen per-org via
+  config). If the "tiger-design" skill is installed, load it for the full rubric.
 - Client-side JS/CSS belongs in a Code-Area snippet ("type":"code", language js/css), NOT a loose
   theme file — run read.inventory if unsure where something lives.
 - File writes only ever land inside application/modules. You cannot touch core, the framework, or
