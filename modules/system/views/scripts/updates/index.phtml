@@ -56,6 +56,8 @@ $pending = $this->pending ?? [];
                             <?= $this->escape($u['name']) ?>
                             <?php if ($u['type'] === 'core'): ?>
                                 <span class="badge text-bg-light border ms-1"><?= $this->t('system.updates.badge_platform') ?></span>
+                            <?php elseif ($u['type'] === 'skill'): ?>
+                                <span class="badge text-bg-light border ms-1"><?= $this->t('system.updates.badge_skill') ?></span>
                             <?php endif; ?>
                         </div>
                         <div class="small text-body-secondary">
@@ -112,8 +114,10 @@ $pending = $this->pending ?? [];
                     <tr>
                         <td class="ps-3 small text-body-secondary text-nowrap"><?= $this->escape($h['created_at']) ?></td>
                         <td>
-                            <i class="fa-solid fa-fw me-1 text-body-secondary <?= $h['item_type'] === 'core' ? 'fa-cube' : 'fa-puzzle-piece' ?>"></i>
+                            <?php $hicon = $h['item_type'] === 'core' ? 'fa-cube' : ($h['item_type'] === 'skill' ? 'fa-graduation-cap' : 'fa-puzzle-piece'); ?>
+                            <i class="fa-solid fa-fw me-1 text-body-secondary <?= $hicon ?>"></i>
                             <?= $this->escape($h['item_name'] ?: $h['item_slug']) ?>
+                            <?php if ($h['item_type'] === 'skill'): ?><span class="badge text-bg-light border ms-1"><?= $this->t('system.updates.badge_skill') ?></span><?php endif; ?>
                         </td>
                         <td class="small font-monospace text-body-secondary"><?= $this->escape($h['from_version']) ?> → <?= $this->escape($h['to_version']) ?></td>
                         <td><span class="badge <?= $badge ?>"><?= $this->escape($h['outcome']) ?></span></td>

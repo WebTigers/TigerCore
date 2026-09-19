@@ -6,6 +6,16 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.12.1] — 2026-09-19
+
+### Fixed
+
+- **The Updates screen now labels a skill as a skill.** A pending skill update rendered with the 🎓
+  icon but no type label, so at a glance it read like a module (and its `abc1234 → def5678` content
+  digests looked like odd versions). Both the pending list and the update history now carry a **skill**
+  badge (mirroring core's *platform* badge), and the history row uses the graduation-cap icon for
+  skills instead of the module puzzle-piece. New i18n key `system.updates.badge_skill` in all locales.
+
 ## [1.12.0] — 2026-09-19
 
 ### Added

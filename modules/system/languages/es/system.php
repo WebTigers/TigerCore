@@ -115,6 +115,7 @@ return [
     'system.updates.available_many' => '%d actualizaciones disponibles',
     'system.updates.update_aria'    => 'Actualizar %s',
     'system.updates.badge_platform' => 'plataforma',
+    'system.updates.badge_skill'    => 'habilidad',
     'system.updates.badge_manual'   => 'paso manual',
     'system.updates.whats_new'      => 'Novedades en %s',
     'system.updates.update'         => 'Actualizar',

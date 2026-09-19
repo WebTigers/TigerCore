@@ -115,6 +115,7 @@ return [
     'system.updates.available_many' => '%d अपडेट उपलब्ध',
     'system.updates.update_aria'    => '%s अपडेट करें',
     'system.updates.badge_platform' => 'प्लेटफ़ॉर्म',
+    'system.updates.badge_skill'    => 'कौशल',
     'system.updates.badge_manual'   => 'मैन्युअल चरण',
     'system.updates.whats_new'      => '%s में नया क्या है',
     'system.updates.update'         => 'अपडेट करें',
