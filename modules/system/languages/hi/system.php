@@ -122,11 +122,12 @@ return [
     'system.updates.update'         => 'अपडेट करें',
     'system.updates.log'            => 'अपडेट लॉग',
     'system.updates.history'        => 'अपडेट इतिहास',
-    'system.updates.col_when'       => 'कब',
+    'system.updates.col_date'       => 'तारीख़',
     'system.updates.col_item'       => 'आइटम',
     'system.updates.col_kind'       => 'प्रकार',
     'system.updates.col_version'    => 'संस्करण',
-    'system.updates.col_outcome'    => 'परिणाम',
+    'system.updates.col_result'     => 'परिणाम',
+    'system.updates.col_log'        => 'लॉग',
     'system.updates.log_link'       => 'लॉग',
 
     // ---- Modules list view -----------------------------------------------------------------

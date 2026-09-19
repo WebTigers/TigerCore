@@ -103,7 +103,7 @@ $pending = $this->pending ?? [];
         <table class="table table-sm mb-0 align-middle">
             <thead>
                 <tr class="text-body-secondary small">
-                    <th class="ps-3"><?= $this->t('system.updates.col_when') ?></th><th><?= $this->t('system.updates.col_item') ?></th><th><?= $this->t('system.updates.col_kind') ?></th><th><?= $this->t('system.updates.col_version') ?></th><th><?= $this->t('system.updates.col_outcome') ?></th><th></th>
+                    <th class="ps-3"><?= $this->t('system.updates.col_item') ?></th><th><?= $this->t('system.updates.col_kind') ?></th><th><?= $this->t('system.updates.col_date') ?></th><th><?= $this->t('system.updates.col_version') ?></th><th><?= $this->t('system.updates.col_result') ?></th><th class="pe-3 text-end"><?= $this->t('system.updates.col_log') ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -112,21 +112,22 @@ $pending = $this->pending ?? [];
                               'rolled_back' => 'text-bg-warning', 'advisory' => 'text-bg-secondary'][$h['outcome']] ?? 'text-bg-light';
                 ?>
                     <tr>
-                        <td class="ps-3 small text-body-secondary text-nowrap"><?= $this->escape($h['created_at']) ?></td>
                         <?php
                         $hicon = $h['item_type'] === 'core' ? 'fa-cube' : ($h['item_type'] === 'skill' ? 'fa-graduation-cap' : 'fa-puzzle-piece');
                         $hkind = ['core' => 'system.updates.badge_platform', 'skill' => 'system.updates.badge_skill'][$h['item_type']] ?? 'system.updates.badge_module';
                         ?>
-                        <td>
+                        <td class="ps-3">
                             <i class="fa-solid fa-fw me-1 text-body-secondary <?= $hicon ?>"></i>
                             <?= $this->escape($h['item_name'] ?: $h['item_slug']) ?>
                         </td>
                         <td><span class="badge text-bg-light border"><?= $this->t($hkind) ?></span></td>
+                        <td class="small text-body-secondary text-nowrap"><?= $this->escape($h['created_at']) ?></td>
                         <td class="small font-monospace text-body-secondary"><?= $this->escape($h['from_version']) ?> → <?= $this->escape($h['to_version']) ?></td>
                         <td><span class="badge <?= $badge ?>"><?= $this->escape($h['outcome']) ?></span></td>
                         <td class="pe-3 text-end">
-                            <?php if (!empty($h['log'])): ?>
-                                <button class="btn btn-sm btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#uh-<?= (int) $i ?>"><?= $this->t('system.updates.log_link') ?></button>
+                            <?php if (!empty($h['log'])): $ll = $this->escape($this->t('system.updates.log_link')); ?>
+                                <button class="btn btn-sm btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#uh-<?= (int) $i ?>"
+                                        aria-label="<?= $ll ?>" title="<?= $ll ?>"><i class="fa-solid fa-file-lines"></i></button>
                             <?php endif; ?>
                         </td>
                     </tr>

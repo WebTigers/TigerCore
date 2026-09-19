@@ -6,6 +6,16 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.12.3] — 2026-09-19
+
+### Changed
+
+- **Update history columns reordered + the log is an icon.** The history table now reads
+  **Item | Kind | Date | Version | Result | Log** (Item leads; "When"→"Date", "Outcome"→"Result"), and
+  the per-row "log" text link is a document icon under a proper **Log** column header. All headers are
+  translation keys populated in every locale (`col_date`/`col_result`/`col_log` added,
+  `col_when`/`col_outcome` retired).
+
 ## [1.12.2] — 2026-09-19
 
 ### Changed

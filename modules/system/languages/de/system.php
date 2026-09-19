@@ -122,11 +122,12 @@ return [
     'system.updates.update'         => 'Aktualisieren',
     'system.updates.log'            => 'Update-Protokoll',
     'system.updates.history'        => 'Update-Verlauf',
-    'system.updates.col_when'       => 'Wann',
+    'system.updates.col_date'       => 'Datum',
     'system.updates.col_item'       => 'Element',
     'system.updates.col_kind'       => 'Art',
     'system.updates.col_version'    => 'Version',
-    'system.updates.col_outcome'    => 'Ergebnis',
+    'system.updates.col_result'     => 'Ergebnis',
+    'system.updates.col_log'        => 'Protokoll',
     'system.updates.log_link'       => 'Protokoll',
 
     // ---- Modules list view -----------------------------------------------------------------

@@ -122,11 +122,12 @@ return [
     'system.updates.update'         => 'Mettre à jour',
     'system.updates.log'            => 'Journal de mise à jour',
     'system.updates.history'        => 'Historique des mises à jour',
-    'system.updates.col_when'       => 'Quand',
+    'system.updates.col_date'       => 'Date',
     'system.updates.col_item'       => 'Élément',
     'system.updates.col_kind'       => 'Type',
     'system.updates.col_version'    => 'Version',
-    'system.updates.col_outcome'    => 'Résultat',
+    'system.updates.col_result'     => 'Résultat',
+    'system.updates.col_log'        => 'Journal',
     'system.updates.log_link'       => 'journal',
 
     // ---- Modules list view -----------------------------------------------------------------
