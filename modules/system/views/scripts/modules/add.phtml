@@ -239,6 +239,15 @@ $this->i18n([
     'trustTitle' => 'system.js.trust_title',
     'trustTitleChanged' => 'system.js.trust_title_changed',
     'uploadFailed' => 'system.js.upload_failed',
+    'confirmInstallTitle' => 'system.js.confirm_install_title',
+    'confirmInstallBody' => 'system.js.confirm_install_body',
+    'confirmInstallOk' => 'system.js.confirm_install_ok',
+    'confirmUpdateTitle' => 'system.js.confirm_update_title',
+    'confirmUpdateOk' => 'system.js.confirm_update_ok',
+    'confirmInstallUploadTitle' => 'system.js.confirm_install_upload_title',
+    'confirmInstallUploadOk' => 'system.js.confirm_install_upload_ok',
+    'confirmRemoveMarketplaceTitle' => 'system.js.confirm_remove_marketplace_title',
+    'confirmRemoveMarketplaceOk' => 'system.js.confirm_remove_marketplace_ok',
 ]);
 ?>
 <script src="<?= $this->asset($this->themeAssets . '/vendor/tiger-lightbox/tiger-lightbox.js') ?>"></script>
@@ -352,13 +361,20 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function doInstall(repo, ref, isUpdate){
-        if (!confirm((isUpdate?'Update':'Install')+' this module? Its code will run in your app once active.')) return;
         var b=document.getElementById('mod-do');
-        TigerButton.run(b, function(){
-            return api('install',{url:repo,ref:ref,force:isUpdate?1:0});
-        }).then(function(res){
-            if (res.result===1){ window.location=res.redirect||'/system/modules'; return; }
-            modal.hide(); fb.innerHTML=''; (res.messages||[]).forEach(function(m){ TigerDOM.notify(fb, m.message, { type: m.class, replace: false }); }); window.scrollTo({top:0,behavior:'smooth'});
+        TigerModal.confirm({
+            title: isUpdate ? Tiger.t('confirmUpdateTitle') : Tiger.t('confirmInstallTitle'),
+            body: Tiger.t('confirmInstallBody'),
+            confirmLabel: isUpdate ? Tiger.t('confirmUpdateOk') : Tiger.t('confirmInstallOk'),
+            variant: 'primary'
+        }).then(function(ok){
+            if (!ok){ return; }
+            return TigerButton.run(b, function(){
+                return api('install',{url:repo,ref:ref,force:isUpdate?1:0});
+            }).then(function(res){
+                if (res.result===1){ window.location=res.redirect||'/system/modules'; return; }
+                modal.hide(); fb.innerHTML=''; (res.messages||[]).forEach(function(m){ TigerDOM.notify(fb, m.message, { type: m.class, replace: false }); }); window.scrollTo({top:0,behavior:'smooth'});
+            });
         }).catch(function(){});
     }
 
@@ -488,9 +504,16 @@ document.addEventListener('DOMContentLoaded', function () {
         dropzone.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileEl.click(); } });
         uploadBtn.addEventListener('click', function () {
             if (!staged) { TigerDOM.notify(fb, Tiger.t('chooseZip'), { type: 'alert' }); return; }
-            if (!confirm(Tiger.t('confirmInstallUpload'))) { return; }
-            uploadBtn.disabled = true;
-            up.start();
+            TigerModal.confirm({
+                title: Tiger.t('confirmInstallUploadTitle'),
+                body: Tiger.t('confirmInstallUpload'),
+                confirmLabel: Tiger.t('confirmInstallUploadOk'),
+                variant: 'primary'
+            }).then(function (ok) {
+                if (!ok) { return; }
+                uploadBtn.disabled = true;
+                up.start();
+            });
         });
     }
 
@@ -831,8 +854,16 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         srcList.querySelectorAll('[data-src-remove]').forEach(function(el){
             el.addEventListener('click', function(){
-                if (!confirm(Tiger.t('confirmRemoveMarketplace'))) return;
-                api('removeSource', { id: el.getAttribute('data-src-remove') }).then(handleSrcResp);
+                TigerModal.confirm({
+                    title: Tiger.t('confirmRemoveMarketplaceTitle'),
+                    body: Tiger.t('confirmRemoveMarketplace'),
+                    confirmLabel: Tiger.t('confirmRemoveMarketplaceOk'),
+                    variant: 'danger'
+                }).then(function(ok){
+                    if (!ok){ return; }
+                    TigerButton.run(el, function(){ return api('removeSource', { id: el.getAttribute('data-src-remove') }); })
+                        .then(handleSrcResp);
+                });
             });
         });
     }
