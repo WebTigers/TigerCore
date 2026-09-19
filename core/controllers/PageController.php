@@ -128,6 +128,19 @@ class PageController extends Tiger_Controller_Action
         if ($layout === 'none') {
             $this->_helper->layout()->disableLayout();
         } else {
+            // Per-page SEO for a theme content page. Unlike a CMS page (Seo_Plugin_Head keys off
+            // `cms_page_id`, which this dispatch never sets), a theme content page reaches the layout head
+            // with only the site() baseline — so feed the hint's title/description/image into the head
+            // registry here, the way the blog controller calls Seo_Service_Head for its own dispatch. The
+            // theme's layout MUST render through headTitle/headMeta/headLink for any of this to appear
+            // (THEMES.md §8). Skipped for `layout="none"` — that partial owns its own <head>.
+            if (class_exists('Seo_Service_Head')) {
+                Seo_Service_Head::forValues([
+                    'title'       => (string) ($meta['title'] ?? ''),
+                    'description' => (string) ($meta['description'] ?? ''),
+                    'image'       => (string) ($meta['image'] ?? ''),
+                ], $this->getRequest());
+            }
             // A theme's OWN pages always render in the theme's layout — even when the theme is
             // 'content'-scoped and the global site chrome is the base theme (see Bootstrap::_initTheme).
             if (is_dir($dir . '/layouts/scripts')) {

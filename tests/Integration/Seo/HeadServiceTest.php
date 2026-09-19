@@ -283,4 +283,50 @@ final class HeadServiceTest extends IntegrationTestCase
         $this->assertStringNotContainsString('Excerpt fallback', $meta, 'override did not overwrite a set value');
         $this->assertStringContainsString('Fallback Title', $title, 'override filled the blank title');
     }
+
+    // ----- forValues (per-page SEO for a row-less page: a theme content page) -------------------
+
+    #[Test]
+    public function for_values_emits_a_full_head_from_explicit_values(): void
+    {
+        Seo_Service_Head::forValues([
+            'title'       => 'Themed Contact',
+            'description' => 'Get in touch.',
+            'image'       => 'https://cdn.test/theme-share.png',   // an absolute URL (a theme asset)
+        ], $this->request('/contact'));
+
+        $head = $this->head();
+        $this->assertStringContainsString('Themed Contact', $this->view->headTitle()->toString());
+        $this->assertStringContainsString('name="description"', $head);
+        $this->assertStringContainsString('Get in touch.', $head);
+        $this->assertStringContainsString('og:title', $head);
+        $this->assertStringContainsString('og:type', $head);
+        $this->assertStringContainsString('website', $head);
+        $this->assertStringContainsString('https://cdn.test/theme-share.png', $head, 'the hint image URL is used as-is');
+        $this->assertStringContainsString('summary_large_image', $head, 'a resolved image → large card');
+        $this->assertStringContainsString('rel="canonical"', $head);
+        $this->assertStringContainsString('https://example.test/contact', $head, 'self-referencing canonical');
+    }
+
+    #[Test]
+    public function for_values_falls_back_to_the_site_image_and_a_plain_card_when_none_given(): void
+    {
+        $this->config(['seo' => ['og_image' => 'https://cdn.test/default.png'], 'site' => ['name' => 'Acme']]);
+        Seo_Service_Head::forValues([], $this->request('/about'));
+
+        $head = $this->head();
+        $this->assertStringContainsString('https://cdn.test/default.png', $head, 'site-wide og:image fallback');
+        $this->assertStringContainsString('og:site_name', $head);
+        $this->assertStringContainsString('Acme', $head);
+        $this->assertStringContainsString('rel="canonical"', $head, 'still self-references without per-page values');
+    }
+
+    #[Test]
+    public function for_values_without_a_request_emits_no_canonical_or_og_url(): void
+    {
+        Seo_Service_Head::forValues(['title' => 'No Request']);
+        $this->assertStringNotContainsString('rel="canonical"', $this->view->headLink()->toString());
+        $this->assertStringNotContainsString('og:url', $this->view->headMeta()->toString());
+        $this->assertStringContainsString('og:title', $this->view->headMeta()->toString(), 'the rest still emits');
+    }
 }
