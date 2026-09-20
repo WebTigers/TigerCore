@@ -12,6 +12,8 @@ return [
     'system.theme.activated'    => 'Tema ativado.',
     'system.theme.deactivated'  => 'Tema desativado — o tema padrão foi restaurado.',
     'system.module.installed'   => 'Módulo instalado e ativado.',
+    'system.module.updated'     => 'Módulo atualizado.',
+    'system.error.module_exists'       => 'Este módulo já está instalado. Envie uma versão mais recente para atualizá-lo, ou remova-o primeiro.',
     'system.module.deleted'     => 'Módulo excluído — seus arquivos e dados foram removidos.',
     'system.error.protected'    => 'Esse módulo é protegido e não pode ser desativado.',
     'system.error.unknown'      => 'Esse módulo não existe.',
