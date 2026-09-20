@@ -7,8 +7,10 @@ namespace Tiger\Tests\Integration\Analytics;
 use Analytics_Service_Reports;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use ReflectionProperty;
 use Tiger\Tests\Support\IntegrationTestCase;
 use Tiger_Crypto;
+use Tiger_Google_Analytics;
 use Zend_Config;
 use Zend_Registry;
 
@@ -30,7 +32,18 @@ final class ReportsServiceTest extends IntegrationTestCase
     protected function tearDown(): void
     {
         if ($this->cacheFile !== null && is_file($this->cacheFile)) { @unlink($this->cacheFile); }
+        // Clear the per-request statics + the HTTP seam so nothing bleeds into the next test.
+        (new ReflectionProperty(Tiger_Google_Analytics::class, '_transport'))->setValue(null, null);
+        (new ReflectionProperty(Tiger_Google_Analytics::class, '_access'))->setValue(null, null);
+        (new ReflectionProperty(Tiger_Google_Analytics::class, '_reconnect'))->setValue(null, false);
         parent::tearDown();
+    }
+
+    /** Install a fake HTTP transport returning [httpCode, body] for every hop (seam the tests use). */
+    private function setTransport(int $code, $body): void
+    {
+        (new ReflectionProperty(Tiger_Google_Analytics::class, '_transport'))
+            ->setValue(null, static fn ($url, array $opts) => [$code, $body]);
     }
 
     private function call(string $action, array $params = []): object
@@ -95,6 +108,39 @@ final class ReportsServiceTest extends IntegrationTestCase
 
         $this->assertSame(1, (int) $res->result, 'connected + cached → success');
         $this->assertSame($expected, $res->data['summary'], 'the cached summary is returned verbatim');
+    }
+
+    #[Test]
+    public function summary_surfaces_reconnect_required_when_the_grant_is_dead(): void
+    {
+        // Connected (property + stored refresh token), but the broker answers the token mint with
+        // 401 reconnect_required — the token expired or was revoked. The reporting service must say so,
+        // not fall back to the generic "couldn't load" that made a dead connection look like a mystery.
+        $this->connectGa();
+        $this->setTransport(401, json_encode(['error' => 'reconnect_required']));
+
+        $this->loginAs('admin');
+        $res = $this->call('summary', ['days' => 28, 'fresh' => 1]);   // fresh → skip cache, hit the mint
+
+        $this->assertSame(0, (int) $res->result);
+        $this->assertStringContainsString('analytics.reports.reconnect_required', json_encode($res->messages));
+        $this->assertStringNotContainsString('analytics.reports.error', json_encode($res->messages), 'not the generic error');
+        $this->assertSame('reconnect_required', $res->data['code'], 'a typed code the UI can act on');
+    }
+
+    #[Test]
+    public function summary_falls_back_to_the_generic_error_on_a_transient_outage(): void
+    {
+        // Fail-soft: a 500 (a real outage) is NOT a reconnect — it stays the generic, try-again error.
+        $this->connectGa();
+        $this->setTransport(500, 'upstream unavailable');
+
+        $this->loginAs('admin');
+        $res = $this->call('summary', ['days' => 28, 'fresh' => 1]);
+
+        $this->assertSame(0, (int) $res->result);
+        $this->assertStringContainsString('analytics.reports.error', json_encode($res->messages));
+        $this->assertStringNotContainsString('reconnect_required', json_encode($res->messages));
     }
 
     /** Make Tiger_Google_Analytics::isConnected() true (broker mode: crypto key + property + refresh token). */

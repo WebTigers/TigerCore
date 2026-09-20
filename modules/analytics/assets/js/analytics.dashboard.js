@@ -117,7 +117,13 @@
         });
     }
 
-    function note(msg) { TigerDOM.notify(document.getElementById('ga-feedback'), msg, { type: 'info' }); }
+    function note(msg, type) { TigerDOM.notify(document.getElementById('ga-feedback'), msg, { type: type || 'info' }); }
+
+    // The server localizes each response message; surface its text (falling back to a generic line).
+    function serverMessage(res, fallback) {
+        var m = res && res.messages && res.messages[0] && res.messages[0].message;
+        return m ? esc(m) : fallback;
+    }
 
     var fd = new URLSearchParams({ module: 'analytics', service: 'reports', method: 'summary', days: '28' });
     fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
@@ -128,6 +134,14 @@
                 if (!hasData(res.data.summary)) {
                     note('No traffic recorded in the last 28 days yet — new data usually appears within a day of connecting.');
                 }
+                return;
+            }
+            // The connection expired or was revoked (Google/broker 401 reconnect_required): don't bury it
+            // in the generic "no data" line — say so and link straight to the reconnect button (TIGER-115).
+            if (res && res.data && res.data.code === 'reconnect_required') {
+                render(zeroSummary());
+                note(serverMessage(res, 'Reconnect Google Analytics to resume reporting.')
+                    + ' <a href="/analytics/admin" class="alert-link">Reconnect</a>', 'alert');
                 return;
             }
             // Couldn't load — still render the zero scaffold, and explain calmly (with the usual cause).
