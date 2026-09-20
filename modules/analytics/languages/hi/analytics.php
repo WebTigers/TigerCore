@@ -9,6 +9,7 @@ return [
     'analytics.saved'                  => 'एनालिटिक्स सेटिंग्स सहेजी गईं।',
     'analytics.reports.not_connected'  => 'Google Analytics अभी तक कनेक्टेड नहीं है।',
     'analytics.reports.error'          => 'अभी Analytics डेटा लोड नहीं हो सका — कृपया थोड़ी देर में फिर से प्रयास करें।',
+    'analytics.reports.reconnect_required' => 'रिपोर्टिंग फिर से शुरू करने के लिए Google Analytics को फिर से कनेक्ट करें — कनेक्शन समाप्त हो गया या रद्द कर दिया गया।',
 
     // Settings screen
     'analytics.title'                  => 'एनालिटिक्स',

@@ -9,6 +9,7 @@ return [
     'analytics.saved'                  => 'Analytics-Einstellungen gespeichert.',
     'analytics.reports.not_connected'  => 'Google Analytics ist noch nicht verbunden.',
     'analytics.reports.error'          => 'Die Analytics-Daten konnten gerade nicht geladen werden — bitte versuchen Sie es in Kürze erneut.',
+    'analytics.reports.reconnect_required' => 'Verbinden Sie Google Analytics neu, um die Berichte fortzusetzen — die Verbindung ist abgelaufen oder wurde widerrufen.',
 
     // Settings screen
     'analytics.title'                  => 'Analytics',

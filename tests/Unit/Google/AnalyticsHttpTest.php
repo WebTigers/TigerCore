@@ -36,6 +36,7 @@ final class AnalyticsHttpTest extends UnitTestCase
     protected function tearDown(): void
     {
         $this->resetAccess();
+        $this->clearTransport();
         foreach ($this->wrote as $f) { @unlink($f); }
         parent::tearDown();
     }
@@ -43,6 +44,19 @@ final class AnalyticsHttpTest extends UnitTestCase
     private function resetAccess(): void
     {
         (new ReflectionProperty(Tiger_Google_Analytics::class, '_access'))->setValue(null, null);
+        (new ReflectionProperty(Tiger_Google_Analytics::class, '_reconnect'))->setValue(null, false);
+    }
+
+    /** Install a fake transport [httpCode, body] for every HTTP hop (the same seam $_access is reset by). */
+    private function setTransport(int $code, $body): void
+    {
+        (new ReflectionProperty(Tiger_Google_Analytics::class, '_transport'))
+            ->setValue(null, static fn ($url, array $opts) => [$code, $body]);
+    }
+
+    private function clearTransport(): void
+    {
+        (new ReflectionProperty(Tiger_Google_Analytics::class, '_transport'))->setValue(null, null);
     }
 
     /** A crypto key + a config array wiring a broker-mode connection (property + encrypted refresh token). */
@@ -107,6 +121,51 @@ final class AnalyticsHttpTest extends UnitTestCase
         $out = Tiger_Google_Analytics::summary($days);   // fresh=false → a fresh cache file is served as-is
         // The served value is the JSON round-trip of what's on disk (the class decodes it to assoc array).
         $this->assertSame(json_decode(json_encode($payload), true), $out);
+    }
+
+    // ---- reconnect_required : the broker says the stored grant is dead (TIGER-115) ----------------
+
+    #[Test]
+    public function access_token_flags_reconnect_on_a_broker_401_reconnect_required(): void
+    {
+        $this->connectBroker();
+        $this->setTransport(401, json_encode(['error' => 'reconnect_required']));
+
+        $this->assertSame('', Tiger_Google_Analytics::accessToken(), 'a dead grant yields no access token');
+        $this->assertTrue(Tiger_Google_Analytics::reconnectRequired(), 'the 401 reconnect_required is surfaced, not swallowed');
+    }
+
+    #[Test]
+    public function summary_flags_reconnect_when_the_grant_is_dead(): void
+    {
+        $this->connectBroker();
+        $this->setTransport(401, json_encode(['error' => 'reconnect_required']));
+
+        $this->assertNull(Tiger_Google_Analytics::summary(28, true), 'fresh bypasses the cache → hits the dead grant → null');
+        $this->assertTrue(Tiger_Google_Analytics::reconnectRequired());
+    }
+
+    #[Test]
+    public function a_transient_outage_is_not_a_reconnect(): void
+    {
+        // Fail-soft: a 500 (or a refused connection) must NOT masquerade as "reconnect" — the grant is fine.
+        $this->connectBroker();
+        $this->setTransport(500, 'upstream is having a moment');
+
+        $this->assertSame('', Tiger_Google_Analytics::accessToken());
+        $this->assertFalse(Tiger_Google_Analytics::reconnectRequired(), 'an outage stays a generic failure');
+    }
+
+    #[Test]
+    public function signals_reconnect_only_on_a_401(): void
+    {
+        $m = new \ReflectionMethod(Tiger_Google_Analytics::class, '_signalsReconnect');
+        $this->assertTrue($m->invoke(null, 401, ['error' => 'reconnect_required']));
+        $this->assertTrue($m->invoke(null, 401, ['error' => 'invalid_grant']));
+        $this->assertTrue($m->invoke(null, 401, null), 'a bare 401 on a token mint means the grant is gone');
+        $this->assertFalse($m->invoke(null, 500, ['error' => 'reconnect_required']), 'only a 401 counts');
+        $this->assertFalse($m->invoke(null, 0, false), 'a transport failure is not a reconnect');
+        $this->assertFalse($m->invoke(null, 200, ['access_token' => 'x']));
     }
 
     // ---- testConnection : the connected-but-no-token diagnosis -------------------

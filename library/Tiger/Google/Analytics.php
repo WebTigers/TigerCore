@@ -43,6 +43,21 @@ class Tiger_Google_Analytics
     /** @var string|null memoized access token for this request */
     private static $_access = null;
 
+    /**
+     * @var bool set for this request when a token mint saw the stored grant is dead — the broker's
+     * 401 `reconnect_required` (or an equivalent 401) — so the reporting side must ask the admin to
+     * reconnect rather than report a blank/generic failure. Read via reconnectRequired().
+     */
+    private static $_reconnect = false;
+
+    /**
+     * @var callable|null test seam for the low-level HTTP request: fn($url, array $opts): array{0:int,1:string|false}.
+     * When set (via reflection in the unit/integration tests, the same way $_access is reset), it replaces
+     * the curl call so the transport branches — including the broker's 401 reconnect_required — run
+     * without a real network round-trip. Always null in production.
+     */
+    private static $_transport = null;
+
     // =====================================================================================
     //  Connection state + config
     // =====================================================================================
@@ -293,17 +308,24 @@ class Tiger_Google_Analytics
         if (self::$_access !== null) {
             return (string) self::$_access;
         }
+        self::$_reconnect = false;
         $refresh = self::_refreshToken();
         if ($refresh === '') {
             return '';
         }
         if (self::mode() === self::MODE_BROKER) {
-            $res = self::_http(self::brokerBase() . '/google/token', [
+            // Keep the status + body: the broker answers a dead/expired grant with 401 reconnect_required,
+            // and swallowing that (old behaviour: _http() → null on non-2xx) is exactly why a disconnected
+            // connection looked like a mystery blank instead of an actionable "reconnect" (TIGER-115).
+            [$code, $body] = self::_request(self::brokerBase() . '/google/token', [
                 'method'  => 'POST',
                 'headers' => ['Content-Type: application/x-www-form-urlencoded'],
                 'body'    => http_build_query(['refresh_token' => $refresh]),
             ]);
-            $decoded = ($res !== null) ? json_decode($res, true) : null;
+            $decoded = ($body !== false && $body !== '') ? json_decode((string) $body, true) : null;
+            if (self::_signalsReconnect($code, $decoded)) {
+                self::$_reconnect = true;
+            }
             self::$_access = (is_array($decoded) && !empty($decoded['access_token'])) ? $decoded['access_token'] : '';
             return (string) self::$_access;
         }
@@ -315,6 +337,36 @@ class Tiger_Google_Analytics
         ]);
         self::$_access = (is_array($res) && !empty($res['access_token'])) ? $res['access_token'] : '';
         return (string) self::$_access;
+    }
+
+    /**
+     * True when the most recent token mint this request found the stored OAuth grant dead — the broker's
+     * 401 `reconnect_required` — so the connection is present but unusable and the admin must reconnect.
+     * Reporting reads this to show an actionable "reconnect" state instead of a blank/generic failure.
+     * (Only meaningful after an accessToken()/summary() attempt; false until then.)
+     */
+    public static function reconnectRequired()
+    {
+        return self::$_reconnect;
+    }
+
+    /**
+     * Classify a broker token response: does it say the stored grant is gone and a reconnect is needed?
+     * The broker returns HTTP 401 with `{error:"reconnect_required"}` when the refresh token has expired
+     * or been revoked; a bare 401 (or an invalid_grant error) means the same thing. Anything else — a
+     * transport failure (code 0), a 5xx outage, a 2xx — is NOT a reconnect (stay fail-soft).
+     *
+     * @param  int        $code    the HTTP status of the broker response
+     * @param  array|null $decoded the decoded JSON body (or null when unparseable)
+     * @return bool
+     */
+    private static function _signalsReconnect($code, $decoded)
+    {
+        if ((int) $code !== 401) {
+            return false;
+        }
+        $err = (is_array($decoded) && isset($decoded['error'])) ? (string) $decoded['error'] : '';
+        return $err === '' || in_array($err, ['reconnect_required', 'invalid_grant'], true);
     }
 
     // =====================================================================================
@@ -514,8 +566,24 @@ class Tiger_Google_Analytics
     /** Minimal HTTPS client (curl). Returns the body on 2xx, else null. */
     private static function _http($url, array $opts)
     {
+        [$code, $body] = self::_request($url, $opts);
+        return ($body !== false && $code >= 200 && $code < 300) ? $body : null;
+    }
+
+    /**
+     * Low-level HTTPS request (curl). Returns [httpCode, body] with the body KEPT regardless of status —
+     * so a caller that needs to read a non-2xx error (e.g. the broker's 401 reconnect_required) can,
+     * instead of losing it the way _http()'s 2xx-or-null contract does. Transport failure → [0, false].
+     *
+     * @return array{0:int,1:string|false}
+     */
+    private static function _request($url, array $opts)
+    {
+        if (self::$_transport !== null) {
+            return (self::$_transport)($url, $opts);   // test seam — never set in production
+        }
         if (!function_exists('curl_init')) {
-            return null;
+            return [0, false];
         }
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -530,7 +598,7 @@ class Tiger_Google_Analytics
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         // No curl_close(): since PHP 8.0 the handle is an object freed by refcount, so the call has
         // been a no-op, and 8.5 deprecates it. Letting $ch fall out of scope is the close.
-        return ($body !== false && $code >= 200 && $code < 300) ? $body : null;
+        return [$code, $body];
     }
 
     /** One minimal GA4 runReport for the connection test — returns [httpCode, body] (body KEPT on error). */

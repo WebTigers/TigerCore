@@ -10,6 +10,7 @@ return [
     'analytics.saved'                  => 'Analytics settings saved.',
     'analytics.reports.not_connected'  => 'Google Analytics is not connected yet.',
     'analytics.reports.error'          => 'Could not load Analytics data right now — please try again shortly.',
+    'analytics.reports.reconnect_required' => 'Reconnect Google Analytics to resume reporting — the connection expired or was revoked.',
 
     // Settings screen
     'analytics.title'                  => 'Analytics',

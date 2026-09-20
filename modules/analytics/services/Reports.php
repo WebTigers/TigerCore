@@ -29,6 +29,14 @@ class Analytics_Service_Reports extends Tiger_Service_Service
         $days = isset($params['days']) ? (int) $params['days'] : 28;
         $data = Tiger_Google_Analytics::summary($days, !empty($params['fresh']));
         if ($data === null) {
+            // The connection exists (isConnected passed) but the stored grant is dead — Google/the broker
+            // answered the token mint with 401 reconnect_required. Surface that as a distinct, actionable
+            // outcome (`code=reconnect_required`) so the UI can offer "Reconnect", instead of the generic
+            // "couldn't load" that made an expired connection look like a mystery (TIGER-115).
+            if (Tiger_Google_Analytics::reconnectRequired()) {
+                $this->_error('analytics.reports.reconnect_required', ['code' => 'reconnect_required']);
+                return;
+            }
             $this->_error('analytics.reports.error');
             return;
         }
