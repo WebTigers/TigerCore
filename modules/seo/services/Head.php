@@ -306,19 +306,49 @@ class Seo_Service_Head
      */
     public static function pageDefaults($key)
     {
+        return self::_ogDefaults('page', $key);
+    }
+
+    /**
+     * The authored OG defaults for a THEME content page, keyed by its slug —
+     * `tiger.seo.theme.<slug>.{title,description,image}`. The live-override complement to a theme
+     * `content/*.phtml` page's shipped `tiger:page` hint: the hint is a theme FILE (the base tier), so a
+     * `config` row overrides it per install/org with no deploy — the same file→DB cascade as menus.ini and
+     * every other config. A nested slug is flattened to a safe segment (`about/team` → `about-team`).
+     * `PageController::themeContentAction` merges this OVER the hint before handing values to forValues().
+     *
+     * @param  string $slug the theme content slug (the `content/<slug>.phtml` name, sans extension)
+     * @return array<string,string> the authored values that are set: title, description, image
+     */
+    public static function themeContentDefaults($slug)
+    {
+        return self::_ogDefaults('theme', $slug);
+    }
+
+    // -- internals -----------------------------------------------------------------------------------
+
+    /**
+     * Read authored OG defaults (title/description/image) from the config cascade at
+     * `tiger.seo.<prefix>.<key>.<field>` — an `.ini` base + a live `config` DB override, nothing new to
+     * persist. Returns only the fields that are actually set.
+     *
+     * @param  string $prefix 'page' (a row-less VIEW page, keyed by pageKey()) or 'theme' (a theme content slug)
+     * @param  string $key     the page/slug key (sanitised to a safe config segment)
+     * @return array<string,string>
+     */
+    private static function _ogDefaults($prefix, $key)
+    {
         $key = self::_keySegment((string) $key);
         if ($key === '') {
             return [];
         }
         $out = [];
         foreach (['title', 'description', 'image'] as $field) {
-            $v = trim((string) self::_config('seo.page.' . $key . '.' . $field, ''));
+            $v = trim((string) self::_config('seo.' . $prefix . '.' . $key . '.' . $field, ''));
             if ($v !== '') { $out[$field] = $v; }
         }
         return $out;
     }
-
-    // -- internals -----------------------------------------------------------------------------------
 
     /** Normalise one config-key segment: lowercase, [a-z0-9-] only ('' when nothing survives). */
     private static function _keySegment($seg)

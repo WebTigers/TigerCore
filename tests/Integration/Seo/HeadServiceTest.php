@@ -329,4 +329,35 @@ final class HeadServiceTest extends IntegrationTestCase
         $this->assertStringNotContainsString('og:url', $this->view->headMeta()->toString());
         $this->assertStringContainsString('og:title', $this->view->headMeta()->toString(), 'the rest still emits');
     }
+
+    // ----- themeContentDefaults (per-content-page config-tier OG) --------------------------------
+
+    #[Test]
+    public function theme_content_defaults_reads_the_per_slug_config(): void
+    {
+        $this->config(['seo' => ['theme' => ['about' => [
+            'title'       => 'About Acme',
+            'description' => 'Who we are.',
+            'image'       => 'https://cdn.test/about.png',
+        ]]]]);
+
+        $d = Seo_Service_Head::themeContentDefaults('about');
+        $this->assertSame('About Acme', $d['title']);
+        $this->assertSame('Who we are.', $d['description']);
+        $this->assertSame('https://cdn.test/about.png', $d['image']);
+    }
+
+    #[Test]
+    public function theme_content_defaults_returns_only_set_fields_and_flattens_a_nested_slug(): void
+    {
+        // A nested slug (about/team) is flattened to a safe config segment (about-team), and only the
+        // fields that are actually configured come back.
+        $this->config(['seo' => ['theme' => ['about-team' => ['title' => 'The Team']]]]);
+
+        $d = Seo_Service_Head::themeContentDefaults('about/team');
+        $this->assertSame(['title' => 'The Team'], $d, 'only set fields, and the nested slug resolved');
+
+        $this->assertSame([], Seo_Service_Head::themeContentDefaults('unconfigured'), 'nothing set → empty');
+        $this->assertSame([], Seo_Service_Head::themeContentDefaults(''), 'no slug → empty');
+    }
 }

@@ -135,11 +135,18 @@ class PageController extends Tiger_Controller_Action
             // theme's layout MUST render through headTitle/headMeta/headLink for any of this to appear
             // (THEMES.md §8). Skipped for `layout="none"` — that partial owns its own <head>.
             if (class_exists('Seo_Service_Head')) {
-                Seo_Service_Head::forValues([
+                // The shipped `tiger:page` hint is the base tier; a per-content-page `config` row
+                // (tiger.seo.theme.<slug>.*) is the live override that wins — the same file→DB cascade
+                // as menus.ini, so an operator retunes a theme page's social card with no deploy.
+                $seo = [
                     'title'       => (string) ($meta['title'] ?? ''),
                     'description' => (string) ($meta['description'] ?? ''),
                     'image'       => (string) ($meta['image'] ?? ''),
-                ], $this->getRequest());
+                ];
+                foreach (Seo_Service_Head::themeContentDefaults($slug) as $k => $v) {
+                    if ($v !== '') { $seo[$k] = $v; }
+                }
+                Seo_Service_Head::forValues($seo, $this->getRequest());
             }
             // A theme's OWN pages always render in the theme's layout — even when the theme is
             // 'content'-scoped and the global site chrome is the base theme (see Bootstrap::_initTheme).

@@ -479,6 +479,15 @@ A self-referencing canonical + `og:url` + `og:site_name` are always emitted. `la
 their whole document, so `forValues` is skipped for them. All of this still requires the layout to render
 the head registry (above) — that is the one thing a content page cannot supply for itself.
 
+**Overriding a content page's OG live — `config`, no deploy.** The hint lives in a theme *file* (the base
+tier), so it's overridden per install/org by a `config` row keyed on the slug —
+`tiger.seo.theme.<slug>.{title,description,image}` — the same file→DB cascade as `menus.ini`. An operator
+retunes a specific theme page's title/description/social image without editing the theme, and a set value
+**wins over the hint** (`themeContentAction` merges the config over the hint before it reaches the head).
+A nested slug flattens to a safe key (`about/team` → `tiger.seo.theme.about-team.*`). This is the theme
+sibling of the `tiger.seo.page.<key>.*` tier that shipped view pages (`/vibe`, `/agency`) use; the
+site-wide `tiger.seo.og_image` remains the final floor under both.
+
 ---
 
 ## 9. Rejected alternatives (so we don't relitigate)
