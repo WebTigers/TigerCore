@@ -1,0 +1,20 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * Unsubscribe result. ok=true → opted out; else the link was invalid.
+ */
+?>
+<div class="container py-5">
+<?php if ($this->ok): ?>
+    <div class="alert alert-success d-flex align-items-start gap-2" role="alert">
+        <i class="fa-solid fa-circle-check mt-1"></i>
+        <div><?= $this->escape($this->t('newsletter.unsubscribe.success')) ?></div>
+    </div>
+<?php else: ?>
+    <div class="alert alert-danger d-flex align-items-start gap-2" role="alert">
+        <i class="fa-solid fa-circle-exclamation mt-1"></i>
+        <div><?= $this->escape($this->t('newsletter.unsubscribe.invalid')) ?></div>
+    </div>
+<?php endif; ?>
+</div>
