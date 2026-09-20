@@ -117,6 +117,43 @@ final class McpControllerTest extends ControllerTestCase
         }
     }
 
+    /**
+     * TIGER-142: the tools/list DISCOVERY surface must equal AUTHORIZATION. The comment service used to be a
+     * blanket guest allow, so its admin methods (moderate/datatable) and owner methods (edit/delete) were
+     * ADVERTISED in an anonymous tools/list even though the in-service guard would refuse the call. The ACL is
+     * now privilege-scoped (guest: list/post only), so an anonymous caller — the controller resolves no
+     * identity to role "guest" and serves tools/list publicly — sees ONLY the public comment tools.
+     */
+    #[Test]
+    public function an_anonymous_tools_list_shows_only_the_public_comment_methods(): void
+    {
+        $this->enableMcp();   // no login → the controller resolves role "guest"
+        [$code, $out] = $this->post(['jsonrpc' => '2.0', 'id' => 42, 'method' => 'tools/list']);
+        $this->assertSame(200, $code, 'tools/list is public at the controller level');
+
+        $names = array_column($out['result']['tools'], 'name');
+        $this->assertContains('comment__comment__list', $names, 'a guest may read a thread');
+        $this->assertContains('comment__comment__post', $names, 'a guest may post a comment/rating');
+        foreach (['moderate', 'datatable', 'delete', 'edit'] as $adminOrOwner) {
+            $this->assertNotContains("comment__comment__{$adminOrOwner}", $names,
+                "an anonymous tools/list must not advertise comment/$adminOrOwner");
+        }
+    }
+
+    /** The counterpart: an admin DOES see the moderation tools — discovery tracks the role's real authority. */
+    #[Test]
+    public function an_admin_tools_list_includes_the_comment_moderation_tools(): void
+    {
+        $this->enableMcp();
+        $this->loginAs('admin');
+        [$code, $out] = $this->post(['jsonrpc' => '2.0', 'id' => 43, 'method' => 'tools/list']);
+        $this->assertSame(200, $code);
+
+        $names = array_column($out['result']['tools'], 'name');
+        $this->assertContains('comment__comment__moderate', $names, 'an admin sees the moderation action');
+        $this->assertContains('comment__comment__datatable', $names, 'an admin sees the moderation queue data');
+    }
+
     /** A presented Bearer that does not verify is 401 — never a silent downgrade to the guest surface (TIGER-138). */
     #[Test]
     public function an_invalid_bearer_is_401_not_guest(): void
