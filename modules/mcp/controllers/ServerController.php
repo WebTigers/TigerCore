@@ -254,7 +254,7 @@ class Mcp_ServerController extends Zend_Controller_Action
                 return $this->_denied($tool, $prefix, 'out_of_scope', 'This token is not scoped to the agent surface.');
             }
             if ($isForge && !empty($config['read_only'])) {
-                return $this->_denied($tool, $prefix, 'read_only', 'This token is read-only; it cannot write files.');
+                return $this->_denied($tool, $prefix, 'read_only', 'This token is read-only; it cannot write files or scaffold modules.');
             }
         }
         if ($prefix !== '' && !Tiger_Mcp_Token::meter($prefix)) {
@@ -263,13 +263,9 @@ class Mcp_ServerController extends Zend_Controller_Action
 
         try {
             if ($isForge) {
-                $entry = (new Tiger_Agent_Forge($role))->execute([
-                    'type'     => Tiger_Agent_Contract::ACTION_FILE,
-                    'path'     => (string) ($args['path'] ?? ''),
-                    'contents' => (string) ($args['contents'] ?? ''),
-                    'reason'   => (string) ($args['reason'] ?? 'MCP client'),
-                    'approved' => true,   // no approval UI over MCP — token scope + audit is the boundary
-                ]);
+                $action = $this->_forgeAction($method, $args);
+                if ($action === null) { return $this->_denied($tool, $prefix, 'unknown_tool', 'Unknown agent tool.'); }
+                $entry = (new Tiger_Agent_Forge($role))->execute($action);
             } else {
                 $action = $this->_scoutAction($method, $args);
                 if ($action === null) { return $this->_denied($tool, $prefix, 'unknown_tool', 'Unknown agent tool.'); }
@@ -282,6 +278,26 @@ class Mcp_ServerController extends Zend_Controller_Action
         $status = (string) ($entry['status'] ?? 'error');
         Tiger_Log::info('mcp.tools_call', ['token' => $prefix, 'tool' => $tool, 'agent' => true, 'status' => $status]);
         return $this->_agentEnvelope($entry);
+    }
+
+    /**
+     * Build the normalized Forge action from the MCP tool method + arguments (null = unknown method).
+     * `approved=true` because there is no approval UI over MCP — the token's `agent` scope + not-read-only +
+     * the audit line are the write boundary (TIGERMCP §5). Forge still self-gates by role (file=superadmin+,
+     * module=developer) and sandboxes to application/modules.
+     */
+    protected function _forgeAction($method, array $args)
+    {
+        $reason = (string) ($args['reason'] ?? 'MCP client');
+        switch ($method) {
+            case 'file':
+                return ['type' => Tiger_Agent_Contract::ACTION_FILE, 'approved' => true, 'reason' => $reason,
+                        'path' => (string) ($args['path'] ?? ''), 'contents' => (string) ($args['contents'] ?? '')];
+            case 'module':
+                return ['type' => Tiger_Agent_Contract::ACTION_MODULE, 'approved' => true, 'reason' => $reason,
+                        'name' => preg_replace('/[^a-z0-9]/', '', strtolower((string) ($args['name'] ?? '')))];
+        }
+        return null;
     }
 
     /** Build the normalized Scout action from the MCP tool method + arguments (null = unknown method). */

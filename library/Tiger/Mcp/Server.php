@@ -200,6 +200,20 @@ class Tiger_Mcp_Server
                                   'destructiveHint' => false, 'idempotentHint' => true],
             ];
         }
+        if (self::_aclAllows($role, 'Tiger_Agent_Forge', 'module')) {
+            $tools[] = [
+                'name'        => 'agent__forge__module',
+                'description' => 'Forge: scaffold a NEW app module (Bootstrap + a controller + an /api service '
+                               . '+ acl + views — the same output as `tiger make:module`), then fill it in with '
+                               . 'agent__forge__file. Iterate in place — never build code locally and re-upload a '
+                               . 'zip. The name must be a bare lowercase slug (no hyphens); refuses an existing one.',
+                'inputSchema' => ['type' => 'object', 'properties' => [
+                    'name' => ['type' => 'string', 'description' => 'Module slug — lowercase letters/digits, starts with a letter.'],
+                ] + $reason, 'required' => ['name']],
+                'annotations' => ['title' => 'Forge: scaffold module', 'readOnlyHint' => false,
+                                  'destructiveHint' => false, 'idempotentHint' => false],
+            ];
+        }
         return $tools;
     }
 

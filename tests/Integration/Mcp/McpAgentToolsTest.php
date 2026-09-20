@@ -74,6 +74,22 @@ final class McpAgentToolsTest extends ControllerTestCase
             $this->assertContains('agent__scout__' . $verb, $names, "superadmin sees scout.$verb");
         }
         $this->assertContains('agent__forge__file', $names, 'superadmin can write module files');
+        $this->assertNotContains('agent__forge__module', $names, 'scaffolding a whole module is developer-only');
+    }
+
+    #[Test]
+    public function a_developer_sees_the_module_scaffold_tool(): void
+    {
+        $names = $this->toolNames('developer');
+        $this->assertContains('agent__forge__file', $names, 'developer inherits file writes');
+        $this->assertContains('agent__forge__module', $names, 'the module scaffolder is developer-gated');
+
+        // Typed as a write with a required slug.
+        $out    = Tiger_Mcp_Server::handle(['id' => 1, 'method' => 'tools/list'], 'developer', fn() => null);
+        $byName = array_column($out['result']['tools'], null, 'name');
+        $schema = $byName['agent__forge__module']['inputSchema'];
+        $this->assertSame(['name'], $schema['required']);
+        $this->assertFalse($byName['agent__forge__module']['annotations']['readOnlyHint'], 'scaffolding writes');
     }
 
     #[Test]
@@ -155,6 +171,24 @@ final class McpAgentToolsTest extends ControllerTestCase
             ['path' => 'nope/should-not-write.php', 'contents' => '<?php'], $config, 'bbbbbbbbbbbb', null, 'superadmin');
         $this->assertSame(0, (int) $write->result, 'a read-only token cannot write files');
         $this->assertStringContainsString('read-only', strtolower($write->messages[0]->message));
+
+        // ...and neither can it scaffold a module (also a write) — refused before Forge, nothing created.
+        $scaffold = $this->dispatcher()->runTool('agent', 'forge', 'module',
+            ['name' => 'shouldnotexist'], $config, 'bbbbbbbbbbbb', null, 'developer');
+        $this->assertSame(0, (int) $scaffold->result, 'a read-only token cannot scaffold a module');
+        $this->assertDirectoryDoesNotExist(APPLICATION_PATH . '/modules/shouldnotexist');
+    }
+
+    #[Test]
+    public function forge_module_is_refused_for_a_non_developer_by_the_forge_role_gate(): void
+    {
+        // A superadmin is not a developer, so Forge itself refuses module scaffolding even when the token
+        // is agent-scoped and writable — defense in depth, and nothing is created.
+        $config = ['modules' => ['agent'], 'read_only' => false, 'org_scoped' => false, 'role' => 'superadmin', 'org_id' => ''];
+        $env = $this->dispatcher()->runTool('agent', 'forge', 'module',
+            ['name' => 'nevercreated'], $config, 'cccccccccccc', null, 'superadmin');
+        $this->assertSame(0, (int) $env->result, 'superadmin cannot scaffold a module (developer-only)');
+        $this->assertDirectoryDoesNotExist(APPLICATION_PATH . '/modules/nevercreated');
     }
 }
 
