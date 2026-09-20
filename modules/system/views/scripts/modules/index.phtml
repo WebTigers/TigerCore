@@ -159,6 +159,13 @@ $this->i18n([
     'deleteFailed' => 'system.js.delete_failed',
     'deleteUnavailable' => 'system.js.delete_unavailable',
     'networkError' => 'system.js.network_error',
+    'activateTitle' => 'system.js.activate_title',
+    'activateOk' => 'system.js.activate_ok',
+    'deactivateTitle' => 'system.js.deactivate_title',
+    'deactivateOk' => 'system.js.deactivate_ok',
+    'deactivateRequired' => 'system.js.deactivate_required',
+    'deactivateTheme' => 'system.js.deactivate_theme',
+    'deactivateConfirm' => 'system.js.deactivate_confirm',
 ]);
 ?>
 <script>
@@ -199,17 +206,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var method = btn.getAttribute('data-mod-toggle'), slug = btn.getAttribute('data-slug');
         var isTheme = btn.getAttribute('data-theme') === '1';
         var requiredBy = (btn.getAttribute('data-required-by') || '').split(',').filter(Boolean);
-        if (method === 'deactivate') {
-            var msg;
-            if (requiredBy.length) {
-                msg = 'This module is required by ' + requiredBy.join(', ') + ' to function. Deactivate anyway?';
-            } else if (isTheme) {
-                msg = 'Deactivate the "' + slug + '" theme? The public site reverts to the default theme.';
-            } else {
-                msg = 'Deactivate "' + slug + '"? Its routes stop working until you reactivate it. Nothing is deleted.';
-            }
-            if (!confirm(msg)) { return; }
-        }
+
         function send(extra) {
             var body = new URLSearchParams(Object.assign({ module: 'system', service: 'modules', method: method, slug: slug }, extra || {}));
             return TigerButton.run(btn, function () {
@@ -217,20 +214,47 @@ document.addEventListener('DOMContentLoaded', function () {
                     .then(function (r) { return r.json(); });
             });
         }
-        send().then(function (res) {
-            if (res.result === 1) { window.location.reload(); return; }
-            if (res.data && res.data.conflicts && res.data.conflicts.length) {
-                var names = res.data.conflicts.map(function (c) { return '"' + (c.name || c.slug) + '"'; }).join(', ');
-                if (confirm(Tiger.t('confirmActivate', slug, names))) {
-                    send({ confirm: '1' }).then(function (r2) {
-                        if (r2.result === 1) { window.location.reload(); return; }
-                        (r2.messages || []).forEach(function (m) { alert(m.message); });
-                    }).catch(function () {});
+        function run() {
+            send().then(function (res) {
+                if (res.result === 1) { window.location.reload(); return; }
+                if (res.data && res.data.conflicts && res.data.conflicts.length) {
+                    var names = res.data.conflicts.map(function (c) { return '"' + (c.name || c.slug) + '"'; }).join(', ');
+                    TigerModal.confirm({
+                        title: Tiger.t('activateTitle'),
+                        body: Tiger.t('confirmActivate', slug, names),
+                        confirmLabel: Tiger.t('activateOk'),
+                        variant: 'primary'
+                    }).then(function (ok) {
+                        if (!ok) { return; }
+                        send({ confirm: '1' }).then(function (r2) {
+                            if (r2.result === 1) { window.location.reload(); return; }
+                            (r2.messages || []).forEach(function (m) { TigerDOM.toast(m.message, { type: m.class || 'error' }); });
+                        }).catch(function () {});
+                    });
+                    return;
                 }
-                return;
+                (res.messages || []).forEach(function (m) { TigerDOM.toast(m.message, { type: m.class || 'error' }); });
+            }).catch(function () {});
+        }
+
+        if (method === 'deactivate') {
+            var body;
+            if (requiredBy.length) {
+                body = Tiger.t('deactivateRequired', requiredBy.join(', '));
+            } else if (isTheme) {
+                body = Tiger.t('deactivateTheme', slug);
+            } else {
+                body = Tiger.t('deactivateConfirm', slug);
             }
-            (res.messages || []).forEach(function (m) { alert(m.message); });
-        }).catch(function () {});
+            TigerModal.confirm({
+                title: Tiger.t('deactivateTitle'),
+                body: body,
+                confirmLabel: Tiger.t('deactivateOk'),
+                variant: 'warning'
+            }).then(function (ok) { if (ok) { run(); } });
+            return;
+        }
+        run();
     }
 
     /* ---- delete (nuclear): dependents block → toast; else type-to-confirm DANGER modal ---- */
