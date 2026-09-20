@@ -138,6 +138,14 @@ If the wildcard is listed but AutoSSL will not issue for it, that is expected on
 HTTP validation cannot prove control of a wildcard, so it needs DNS-based validation. The bare domain
 and `www` are what the install needs; note it and move on.
 
+**On a subdomain install, cover `www.<subdomain>` too.** Creating a subdomain (`app.example.com`) does
+**not** add `www.app.example.com` to the certificate, so a visitor who types the `www.` form — or a link
+that uses it — hits an uncovered name and the browser shows a security warning even though "AutoSSL
+succeeded" on the bare subdomain. In the same run, tick **both** `app.example.com` and
+`www.app.example.com` (plus the wildcard if listed), then confirm the served certificate lists the exact
+hostname you'll link to. This is the subdomain form of the wildcard point above: cover every name a
+visitor can reach, not just the one you typed into the installer.
+
 - **With a cPanel session:** do it.
 - **Without one:** hand the user those exact steps and wait. It is worth the pause.
 
@@ -236,6 +244,7 @@ idempotent from 1.0.3: a retry preserves existing secrets rather than regenerati
 | Checksum missing or mismatched | release-side problem, or a truncated download | retry once; if a published release genuinely ships no `.sha256`, **report it** — do not bypass. Manual upload is the human's deliberate trust decision about a ZIP they already hold, never a workaround |
 | Site renders unstyled | assets neither linked nor copied | confirm core ≥ 1.5.2; re-publish assets from the admin |
 | AutoSSL fails | domain does not resolve publicly | fix DNS first (§1), then re-run from the UI |
+| Browser warns, or the cert looks expired, though AutoSSL "succeeded" | the **SSL/TLS Status** page's listed expiry can lag the certificate actually being *served* (a stale cached cert, a re-issue that hasn't propagated, or a name the served cert doesn't cover) | trust the **served** chain, not the Status page — `echo \| openssl s_client -servername <host> -connect <host>:443 2>/dev/null \| openssl x509 -noout -dates -subject -ext subjectAltName`; if it's stale or missing the hostname, re-run AutoSSL and recheck the served cert (not just the page) |
 | Installer 404s **after the owner was created** | it self-deleted, as designed | the install finished — verify the site (§below) rather than re-uploading |
 
 ---
