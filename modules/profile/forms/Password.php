@@ -22,8 +22,28 @@ class Profile_Form_Password extends Tiger_Form
      */
     public function __construct($userId = null, $options = null)
     {
-        $this->_userId = $userId ?: null;   // set BEFORE parent ctor: init()->elements() reads it
+        // An explicit id wins (the submit path in Profile_Service_Security passes it). When none
+        // is given — which is exactly how the convenience/blur path builds this form, since
+        // Tiger_Service_Validate does a bare `new $class()` — fall back to the authenticated
+        // actor so reuse-prevention runs on blur with the SAME user context it has at submit.
+        // Resolve BEFORE the parent ctor: init()->elements() reads $this->_userId.
+        $this->_userId = $userId ?: self::_currentUserId();
         parent::__construct($options);
+    }
+
+    /**
+     * The authenticated actor's user id, or null when there's no identity (e.g. a guest, or a
+     * unit test with no session). Lets the convenience path scope reuse-prevention to the user
+     * whose password is being changed without the generic validate service having to know it.
+     *
+     * @return string|null the current user id, or null when unauthenticated
+     */
+    protected static function _currentUserId()
+    {
+        $identity = Zend_Auth::getInstance()->getIdentity();
+        return ($identity && isset($identity->user_id) && $identity->user_id !== '')
+            ? (string) $identity->user_id
+            : null;
     }
 
     /**
@@ -37,7 +57,10 @@ class Profile_Form_Password extends Tiger_Form
             ['password', 'new_password', [
                 'required'   => true,
                 'validators' => [new Tiger_Validate_Password($this->_userId)],
-                'attribs'    => ['class' => 'form-control', 'autocomplete' => 'new-password', 'data-tiger-strength' => '1', 'data-no-validate' => '1'],
+                // The live strength meter (data-tiger-strength) is a hint; the policy is the authority.
+                // NO data-no-validate here: TigerValidateJS must run the real policy (min-length + reuse)
+                // on blur too, so the min-length change and a reused password fail live, not only at submit.
+                'attribs'    => ['class' => 'form-control', 'autocomplete' => 'new-password', 'data-tiger-strength' => '1'],
             ]],
             ['password', 'confirm_password', [
                 'required'   => true,

@@ -11,8 +11,13 @@
 $ta = isset($this->themeAssets) && $this->themeAssets ? $this->themeAssets : '/_theme';
 ?>
 <script src="<?= $this->asset($ta . '/js/tiger.password-strength.js') ?>"></script>
+<!-- TigerValidateJS runs the REAL server-side policy (min-length + reuse-prevention) per field on
+     blur — the same checks Profile_Service_Security runs at submit — so a too-short or reused
+     password fails live instead of only on submit. This layout doesn't load it globally (only the
+     auth layout does), so pull it in here. -->
+<script src="<?= $this->asset($ta . '/js/tiger.validate.js') ?>"></script>
 
-<form id="profile-security-form" onsubmit="return false;" novalidate class="card">
+<form id="profile-security-form" data-tiger-validate data-module="profile" data-form="Password" onsubmit="return false;" novalidate class="card">
     <div class="card-body">
         <?= $this->passwordForm->getElement('_csrf') ?>
         <div class="row g-3">
