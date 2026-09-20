@@ -1,0 +1,43 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * The subscriber list. Rows load from Newsletter_Service_Subscribe::datatable over /api.
+ */
+$t = fn($k) => $this->t($k);
+?>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1"><?= $this->escape($t('newsletter.nav.label')) ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->escape($t('newsletter.admin.intro')) ?></p>
+    </div>
+    <div class="text-nowrap">
+        <select id="newsletter-status" class="form-select form-select-sm d-inline-block w-auto">
+            <option value=""><?= $this->escape($t('newsletter.status.all')) ?></option>
+            <?php foreach ($this->statuses as $s): ?>
+                <option value="<?= $this->escape($s) ?>"><?= $this->escape($t('newsletter.status.' . $s)) ?></option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+</div>
+
+<div id="newsletter-feedback"></div>
+
+<div class="card">
+    <div class="card-body">
+        <table id="newsletter-grid" class="table table-hover w-100">
+            <thead>
+            <tr>
+                <th><?= $this->escape($t('newsletter.col.email')) ?></th>
+                <th><?= $this->escape($t('newsletter.col.name')) ?></th>
+                <th><?= $this->escape($t('newsletter.col.status')) ?></th>
+                <th><?= $this->escape($t('newsletter.col.source')) ?></th>
+                <th><?= $this->escape($t('newsletter.col.date')) ?></th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="<?= $this->escape($this->asset('/_modules/newsletter/js/newsletter.admin.js')) ?>" defer></script>

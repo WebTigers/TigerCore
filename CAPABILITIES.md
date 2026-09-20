@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**208 classes** across **33 capabilities** · **21 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**208 classes** across **33 capabilities** · **22 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -331,6 +331,7 @@
 - **Mcp** (`mcp`, module)  ·  services: Settings  ·  `modules/mcp`
 - **Media** (`media`, plugin)  ·  services: Media, Settings  ·  `modules/media`
 - **Messages** (`message`, app)  ·  services: Message  ·  `modules/message`
+- **Newsletter** (`newsletter`, app)  ·  services: Audience, Render, Subscribe  ·  `modules/newsletter`
 - **Profile** (`profile`, plugin)  ·  services: Address, Avatar, Base, Contact, Org, OrgAddress, OrgContact, OrgLogo, Security, User  ·  `modules/profile`
 - **Register** (`register`, plugin)  ·  services: Registration, Status  ·  `modules/register`
 - **Schedule** (`schedule`, developer)  ·  services: Schedule  ·  `modules/schedule`
