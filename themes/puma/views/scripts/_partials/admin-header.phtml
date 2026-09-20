@@ -61,14 +61,43 @@ $allowed = function ($resource) use ($acl, $userRole) {
 
     <div class="tiger-header-spacer"></div>
 
-    <!-- Module-registered header actions (Tiger_Admin_Header) — ACL-filtered icon buttons. -->
+    <!-- Module-registered header actions (Tiger_Admin_Header) — ACL-filtered icon buttons. An item may
+         declare a `flyout` (Tiger_Admin_Header): the icon then opens a quick-view panel the client fills
+         over /api on open, instead of navigating. The panel is DECLARATIVE — the item names the endpoints
+         and its label KEYS; we resolve the keys here (active locale) and hand tiger.header-flyout.js the
+         already-translated strings on a data-* attribute, so this core theme partial imports no module. -->
     <?php foreach (Tiger_Admin_Header::items() as $hi): if (!$allowed($hi['resource'])) { continue; }
         // The badge is resolved AFTER the ACL filter, so a count is never computed for an item the user
         // cannot see. Zero renders nothing — a grey "0" is noise.
         $badge = Tiger_Admin_Header::badgeCount($hi);
         $label = $this->t($hi['label']);
         if ($badge > 0) { $label .= ' (' . $badge . ')'; }
+        $flyout = (is_array($hi['flyout'] ?? null) && !empty($hi['flyout']['endpoint'])) ? $hi['flyout'] : null;
     ?>
+        <?php if ($flyout):
+            $labels = [];
+            foreach ((array) ($flyout['labels'] ?? []) as $alias => $key) { $labels[$alias] = $this->t($key); }
+            $cfg = [
+                'endpoint' => $flyout['endpoint'] ?? null,
+                'action'   => $flyout['action'] ?? null,
+                'viewAll'  => $flyout['view_all'] ?? $hi['href'],
+                'labels'   => $labels,
+            ];
+        ?>
+        <div class="position-relative">
+            <button type="button" class="btn btn-link text-body position-relative px-2"
+                    data-tiger-flyout-toggle title="<?= $this->escape($label) ?>" aria-label="<?= $this->escape($label) ?>"
+                    aria-haspopup="true" aria-expanded="false">
+                <i class="fa-solid <?= $this->escape($hi['icon']) ?> fa-lg"></i>
+                <?php if ($badge > 0): ?>
+                    <span class="position-absolute translate-middle badge rounded-pill bg-danger admin-header-badge"><?= $badge > 99 ? '99+' : $badge ?></span>
+                <?php endif; ?>
+            </button>
+            <div class="card border shadow position-absolute end-0 mt-2" role="region"
+                 aria-label="<?= $this->escape($this->t($flyout['labels']['title'] ?? $hi['label'])) ?>"
+                 data-tiger-flyout="<?= $this->escape(json_encode($cfg, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?>"></div>
+        </div>
+        <?php else: ?>
         <a href="<?= $this->escape($hi['href']) ?>" class="btn btn-link text-body position-relative px-2"
            title="<?= $this->escape($label) ?>" aria-label="<?= $this->escape($label) ?>">
             <i class="fa-solid <?= $this->escape($hi['icon']) ?> fa-lg"></i>
@@ -76,6 +105,7 @@ $allowed = function ($resource) use ($acl, $userRole) {
                 <span class="position-absolute translate-middle badge rounded-pill bg-danger admin-header-badge"><?= $badge > 99 ? '99+' : $badge ?></span>
             <?php endif; ?>
         </a>
+        <?php endif; ?>
     <?php endforeach; ?>
 
     <!-- Language + theme switchers (shared partials, also used by the public header) -->

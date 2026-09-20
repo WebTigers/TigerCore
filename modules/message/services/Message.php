@@ -25,6 +25,7 @@ class Message_Service_Message extends Tiger_Service_Service
 {
     const PAGE_SIZE      = 50;
     const MAX_RECIPIENTS = 50;
+    const RECENT_LIMIT   = 20;
 
     /* ---- reading ------------------------------------------------------------------------- */
 
@@ -49,6 +50,24 @@ class Message_Service_Message extends Tiger_Service_Service
             'page'     => $page,
             'messages' => array_map([$this, '_summary'], $rows),
             'unread'   => (new Tiger_Model_MessageRecipient())->countUnread($this->_user_id),
+        ]);
+    }
+
+    /**
+     * The latest messages for the header FLY-OUT — a quick peek before the management page (TIGER-129).
+     *
+     * The caller's own newest ≤ RECENT_LIMIT undeleted, unarchived copies (read or unread), each in the
+     * list-row shape (title, preview, id, read/archived, timestamp), plus the unread count so the panel
+     * and the bell agree. Scoped to the signed-in user by the model finder; a guest is refused by
+     * _signedIn() and by the service's own ACL rule (allow `user`), never reaching another user's rows.
+     */
+    public function recent(array $params): void
+    {
+        if (!$this->_signedIn()) { return; }
+        $recipients = new Tiger_Model_MessageRecipient();
+        $this->_success([
+            'messages' => array_map([$this, '_summary'], $recipients->getRecent($this->_user_id, self::RECENT_LIMIT)),
+            'unread'   => $recipients->countUnread($this->_user_id),
         ]);
     }
 

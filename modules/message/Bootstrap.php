@@ -34,6 +34,26 @@ class Message_Bootstrap extends Zend_Application_Module_Bootstrap
                 $userId   = (string) ($identity->user_id ?? '');
                 return $userId === '' ? 0 : (new Tiger_Model_MessageRecipient())->countUnread($userId);
             },
+            // Clicking the bell opens a QUICK-VIEW fly-out of the latest 20 messages before the full
+            // management screen (TIGER-129): each row is a title + a short preview + an archive action,
+            // with a "view all" footer link to /message. Declarative and module-agnostic — the theme
+            // fills the panel over /api and translates the label KEYS below in the active locale.
+            'flyout'   => [
+                'endpoint' => ['module' => 'message', 'service' => 'message', 'method' => 'recent'],
+                'action'   => ['module' => 'message', 'service' => 'message', 'method' => 'archive'],
+                'view_all' => '/message',
+                'labels'   => [
+                    'title'        => 'message.flyout.title',
+                    'empty'        => 'message.flyout.empty',
+                    'view_all'     => 'message.flyout.view_all',
+                    'from'         => 'message.list.from',
+                    'system'       => 'message.list.system',
+                    'archive'      => 'message.action.archive',
+                    'archived'     => 'message.archived',
+                    'load_failed'  => 'message.error.load_failed',
+                    'action_failed'=> 'message.error.action_failed',
+                ],
+            ],
         ]);
     }
 }

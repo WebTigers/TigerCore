@@ -35,6 +35,29 @@ class Tiger_Model_MessageRecipient extends Tiger_Model_Table
     }
 
     /**
+     * The most recent messages, read or unread — what the header bell's FLY-OUT shows (TIGER-129).
+     *
+     * The quick view before the management page: a user's newest undeleted, unarchived copies, joined
+     * to the message and sender, newest first. Unlike getRecentUnread() this does NOT filter on
+     * read_at — the fly-out is a peek at the latest inbox, not just the unread ones, so an already-read
+     * message the user still wants to glance at (or archive) is here too. Archived copies are filed
+     * away and excluded, matching the inbox view.
+     *
+     * @param  string $userId
+     * @param  int    $limit
+     * @return array<int,array>
+     */
+    public function getRecent($userId, $limit = 20)
+    {
+        return $this->fetchAll(
+            $this->_inboxSelect($userId)
+                ->where('r.archived_at IS NULL')
+                ->order('m.created_at DESC')
+                ->limit((int) $limit)
+        )->toArray();
+    }
+
+    /**
      * The most recent UNREAD messages — what the header bell's dropdown shows.
      *
      * @param  string $userId

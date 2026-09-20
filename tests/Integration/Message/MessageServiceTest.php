@@ -273,6 +273,88 @@ final class MessageServiceTest extends IntegrationTestCase
         $this->assertSame(1, $this->call('unreadCount')['data']['unread'], 'archiving is filing, not reading');
     }
 
+    /* ---- the header fly-out (TIGER-129) ------------------------------------------------------- */
+
+    /** Give a message row a known created_at so ordering assertions are deterministic (no tie). */
+    private function backdate(string $messageId, string $when): void
+    {
+        $m = new Tiger_Model_Message();
+        $m->update(['created_at' => $when], $m->getAdapter()->quoteInto('message_id = ?', $messageId));
+    }
+
+    #[Test]
+    public function the_flyout_returns_my_latest_messages_newest_first(): void
+    {
+        $old = Tiger_Message::toAdmins(self::ORG, 'Oldest', 'a');
+        $mid = Tiger_Message::toAdmins(self::ORG, 'Middle', 'b');
+        $new = Tiger_Message::toAdmins(self::ORG, 'Newest', 'c');
+        $this->backdate($old, '2026-01-01 00:00:00');
+        $this->backdate($mid, '2026-01-02 00:00:00');
+        $this->backdate($new, '2026-01-03 00:00:00');
+
+        $this->login('u-admin', self::ORG, 'admin');
+        $res = $this->call('recent');
+        $this->assertSame(1, $res['result']);
+        $this->assertSame(['Newest', 'Middle', 'Oldest'], array_column($res['data']['messages'], 'subject'), 'newest first');
+        $this->assertSame(3, $res['data']['unread'], 'the panel carries the same unread total as the bell');
+        // The row shape the fly-out draws.
+        $first = $res['data']['messages'][0];
+        $this->assertArrayHasKey('message_id', $first);
+        $this->assertArrayHasKey('preview', $first);
+        $this->assertFalse($first['read'], 'unopened → unread');
+        $this->assertFalse($first['archived']);
+    }
+
+    #[Test]
+    public function the_flyout_caps_at_twenty(): void
+    {
+        for ($i = 0; $i < 22; $i++) { Tiger_Message::toAdmins(self::ORG, 'M' . $i, 'body ' . $i); }
+        $this->login('u-admin', self::ORG, 'admin');
+        $this->assertCount(20, $this->call('recent')['data']['messages'], 'the quick view is the latest 20, no more');
+    }
+
+    #[Test]
+    public function the_flyout_shows_read_messages_but_hides_archived(): void
+    {
+        $read  = Tiger_Message::toAdmins(self::ORG, 'Already read', 'x');
+        $filed = Tiger_Message::toAdmins(self::ORG, 'Filed away', 'y');
+        $plain = Tiger_Message::toAdmins(self::ORG, 'In the inbox', 'z');
+
+        $this->login('u-admin', self::ORG, 'admin');
+        $this->call('get', ['message_id' => $read]);        // opening marks it read
+        $this->call('archive', ['message_id' => $filed]);   // filing removes it from the peek
+
+        $subjects = array_column($this->call('recent')['data']['messages'], 'subject');
+        $this->assertContains('Already read', $subjects, 'the fly-out is a peek at the latest inbox, read ones included');
+        $this->assertContains('In the inbox', $subjects);
+        $this->assertNotContains('Filed away', $subjects, 'archived is filed, not shown');
+    }
+
+    #[Test]
+    public function the_flyout_is_denied_to_a_guest(): void
+    {
+        $this->login('', '', 'guest');
+        $res = $this->call('recent');
+        $this->assertSame(0, $res['result'], 'a signed-out caller gets nothing, not another user\'s messages');
+    }
+
+    #[Test]
+    public function archiving_flips_the_flag_on_my_copy_and_is_denied_to_a_guest(): void
+    {
+        $id = Tiger_Message::toAdmins(self::ORG, 'File me', 'x');
+        $r  = new Tiger_Model_MessageRecipient();
+        $this->assertNull($r->getCopy($id, 'u-admin')->archived_at, 'starts un-archived');
+
+        // A guest cannot archive.
+        $this->login('', '', 'guest');
+        $this->assertSame(0, $this->call('archive', ['message_id' => $id])['result']);
+
+        // The recipient can, and the flag flips on their own copy.
+        $this->login('u-admin', self::ORG, 'admin');
+        $this->assertSame(1, $this->call('archive', ['message_id' => $id])['result']);
+        $this->assertNotNull((new Tiger_Model_MessageRecipient())->getCopy($id, 'u-admin')->archived_at, 'archived_at is now set');
+    }
+
     #[Test]
     public function a_reply_must_be_to_a_message_you_received_or_sent(): void
     {

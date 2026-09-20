@@ -6,6 +6,10 @@ return [
     'message.header.label'            => 'Messages',
     'message.nav.label'               => 'Messages',
 
+    'message.flyout.title'            => 'Messages',
+    'message.flyout.empty'            => 'No messages yet.',
+    'message.flyout.view_all'         => 'View all messages',
+
     'message.list.subtitle'           => 'Messages from the platform, and from people in your organization.',
     'message.list.inbox'              => 'Inbox',
     'message.list.archived'           => 'Archived',

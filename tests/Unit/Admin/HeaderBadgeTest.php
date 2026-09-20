@@ -58,6 +58,19 @@ final class HeaderBadgeTest extends UnitTestCase
         $this->assertSame(0, Tiger_Admin_Header::badgeCount($this->item('b6')));
     }
 
+    #[Test]
+    public function a_flyout_descriptor_passes_through_and_defaults_to_none(): void
+    {
+        // An item that opts into a fly-out carries the descriptor to the theme untouched (TIGER-129).
+        $flyout = ['endpoint' => ['module' => 'message', 'service' => 'message', 'method' => 'recent'], 'view_all' => '/message'];
+        Tiger_Admin_Header::register(['key' => 'f1', 'label' => 'x', 'href' => '/x', 'flyout' => $flyout]);
+        $this->assertSame($flyout, $this->item('f1')['flyout']);
+
+        // A plain item has no fly-out, so the theme renders it as a link.
+        Tiger_Admin_Header::register(['key' => 'f2', 'label' => 'x', 'href' => '/x']);
+        $this->assertNull($this->item('f2')['flyout']);
+    }
+
     private function item(string $key): array
     {
         foreach (Tiger_Admin_Header::items() as $i) { if ($i['key'] === $key) { return $i; } }

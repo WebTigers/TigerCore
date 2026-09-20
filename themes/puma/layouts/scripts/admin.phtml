@@ -145,6 +145,10 @@ $_dtLang = [
 <script src="<?= $this->asset($this->themeAssets . '/js/tiger.dom.js') ?>"></script>
 <script src="<?= $this->asset($this->themeAssets . '/js/tiger.button.js') ?>"></script>
 <script src="<?= $this->asset($this->themeAssets . '/js/tiger.modal.js') ?>"></script>
+<!-- Header icon quick-view fly-out (Tiger_Admin_Header `flyout` items — the messages bell, TIGER-129).
+     Loads on every admin page because the header renders on every admin page; a no-op when no item
+     declared a flyout. After tiger.dom/button so its reveal + busy primitives are present. -->
+<script src="<?= $this->asset($this->themeAssets . '/js/tiger.header-flyout.js') ?>" defer></script>
 <!-- Reusable schedule control (data-schedule-form / data-schedule-run → schedule/setSchedule|runNow).
      Loaded globally so an embedded schedule-control (e.g. in Backup) works with zero per-page wiring. -->
 <script src="<?= $this->asset($this->themeAssets . '/js/tiger.schedule.js') ?>"></script>
