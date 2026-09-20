@@ -6,6 +6,47 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.13.0] — 2026-09-20
+
+### Added
+
+- **Newsletter module** (TIGER-79) — a free first-party `modules/newsletter`: consent-first subscriber
+  collection (`subscribe` stores *pending*, its own double-opt-in token/email), a `[newsletter_form]`
+  shortcode, and a `Tiger_Audience` segment (`newsletter:confirmed`) that feeds TigerList. It owns
+  collection, not consent policy or sending.
+- **Messages fly-out** (TIGER-129) — the admin-header messages icon opens a latest-20 preview panel
+  (title + 2-line preview + archive) before the full management page, via a generic, declarative
+  `Tiger_Admin_Header` `flyout` seam (no header fork, no inline JS/CSS).
+- **Agent Scout + Forge over MCP** (TIGER-168) — `agent__scout__{inventory,tree,file,grep,guide}` and
+  `agent__forge__{file,module}` on the MCP surface, opt-in on the token's `agent` scope and gated by the
+  same ACL the executors enforce (inventory admin+, reads/`file` superadmin+, `module` developer). An
+  external agent can scaffold + iterate a module in place instead of re-uploading a zip. `read.guide` now
+  points at TIGERAGENT/TIGERMCP/TIGERSKILLS.
+- **Per-content-page SEO for theme pages** (TIGER-170) — `Seo_Service_Head::forValues()` feeds a theme
+  `content/*.phtml` page's `tiger:page` hint into the head registry, plus a `tiger.seo.theme.<slug>.*`
+  config tier (live override of the hint). The theme head contract is documented (THEMES.md §8c).
+
+### Changed
+
+- **Module Manager UX** (TIGER-172) — busy state on mutating actions; native `confirm()`/`alert()`
+  replaced with `TigerModal`/`TigerDOM`.
+- **Module re-upload is explicit** (TIGER-169) — a strictly-newer upload updates in place; the same or an
+  older version is refused with a named, recoverable reason instead of a silent no-op / generic failure.
+- **MCP `tools/list` discovery is locked to the caller's real authority** (TIGER-142) — admin-only comment
+  methods (moderate/delete/datatable) are no longer advertised to guests; regression-guarded on the MCP
+  HTTP surface.
+- **Password policy runs in live validation** (TIGER-150) — reuse-prevention + minimum length now fire on
+  blur (convenience validation), not only at submit.
+- **GA reporting surfaces the broker's `reconnect_required`** (TIGER-115) — an expired/revoked connection
+  shows an actionable "reconnect" state with a link, instead of a generic no-data.
+- **cPanel TLS runbook** (TIGER-143/145) — `www.<subdomain>` coverage after a subdomain install, and
+  trusting the served certificate over the SSL/TLS Status page's expiry (CPANEL.md §3/§8).
+
+### Fixed
+
+- **Test determinism** (TIGER-104) — `UnitTestCase` no longer inherits a leaked process-global default
+  `Zend_Db` adapter, so `RegistryTest`/`DependencyTest` pass in a full-suite run, not only in isolation.
+
 ## [1.12.3] — 2026-09-19
 
 ### Changed
