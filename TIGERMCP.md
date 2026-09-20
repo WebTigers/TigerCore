@@ -147,6 +147,38 @@ to the token's set. This is the property most MCP servers lack.
    a deliberate grant — **no per-write approval webhook (decided):** token scope + audit is the boundary, and
    adding an out-of-band approval step would fight the point of a headless automation surface.
 
+### 5a. The agent surface — Scout (read) + Forge (file-write) over MCP (TIGER-168)
+
+An external client can also drive the in-app agent's own **Scout** (read the code) and **Forge** (write a
+module file) — the same objects the aside uses (TIGERAGENT §2a/§2b) — so a superadmin-class automation can run
+the *look-then-write* loop headlessly (build a theme module, scaffold a feature) the way a person does in the
+aside. These are **not** `/api` ops, so they carry their own names + typed schemas and route to
+`Tiger_Agent_Scout`/`Tiger_Agent_Forge` at the dispatch seam instead of the service factory:
+
+| Tool | Runs | Role |
+|---|---|---|
+| `agent__scout__inventory` | the repo map (modules, snippets, theme dirs, roots) | admin+ |
+| `agent__scout__tree` / `__file` / `__grep` / `__guide` | list / read (≤24KB) / search / read an AGENTS.md | superadmin+ |
+| `agent__forge__file` | write one file, sandboxed to `application/modules` (never core/`vendor`) | superadmin+ |
+| `agent__forge__module` | scaffold a whole app module (Bootstrap + controller + `/api` service + acl + views, à la `make:module`) | developer |
+
+So an external agent scaffolds a module then fills it in with `agent__forge__file` — iterating **in place**,
+never building code locally and re-uploading a zip.
+
+It stays inside §0 — reach, not new capability — via three gates, and the **advertise set equals the execute
+set** (nothing is listed that a call would refuse):
+
+- **Opt-in scope.** The tools appear only when the token includes the pseudo-module **`agent`** in its
+  allow-list. A session / full-surface token qualifies; a curated token does **not**, because
+  `Tiger_Mcp_Token::DEFAULT_MODULES` deliberately excludes `agent` — so no ordinary content token ever gains
+  filesystem read/write; an admin widens a token to `agent` on purpose.
+- **Role.** `tools/list` gates each tool through the very ACL the executors check (`Tiger_Agent_Scout`/
+  `inventory`+`read`, `Tiger_Agent_Forge`/`file` at superadmin+, `Tiger_Agent_Forge`/`module` at developer),
+  so Scout/Forge are the wall even if a call is forged.
+- **Read-only + audit.** The `agent__forge__*` tools are writes, so a read-only token keeps every Scout read
+  but is refused the write. There is no approval UI on the MCP path (as in §5), so a Forge write is dispatched
+  `approved=true` — the deliberate `agent`+write token scope + the `Tiger_Log` audit line **are** the boundary.
+
 ---
 
 ## 6. The stdio bridge — conform to what the community expects

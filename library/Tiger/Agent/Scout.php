@@ -370,7 +370,9 @@ class Tiger_Agent_Scout
         $body   = ($agents !== '' && is_file($agents)) ? $this->_readBounded($agents) : '(platform AGENTS.md not found)';
         $refs   = 'DEEPER REFERENCES (read.file to open, under vendor/webtigers/tiger-core/): '
                 . 'ARCHITECTURE.md (the why), CODE.md (Code Area), WEBSERVICES.md (the /api model), '
-                . 'ROUTING.md (URLs), ADMIN.md (admin screens), THEMES.md (theming).';
+                . 'ROUTING.md (URLs), ADMIN.md (admin screens), THEMES.md (theming), '
+                . 'TIGERAGENT.md (what YOU are — the Forge write tiers + these Scout read tools), '
+                . 'TIGERMCP.md (driving Tiger over MCP), TIGERSKILLS.md (installable agent Skills).';
         return "PLATFORM CONVENTIONS (AGENTS.md):\n\n" . $body . "\n\n" . $refs;
     }
 

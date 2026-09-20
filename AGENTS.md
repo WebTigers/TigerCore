@@ -9,6 +9,13 @@ paid modules (the open licensing protocol + the buyer-side client) read [MARKETP
 and for the *seller* side (list free / sell paid → Add Module, + the build status) read [SELLING.md](SELLING.md).
 Weighing whether to build on Tiger at all — or handed this repo cold — start with [WHY-TIGER.md](WHY-TIGER.md).
 
+**If you're an AI agent working *through* Tiger** (the in-app aside, or an external MCP client), read
+[TIGERAGENT.md](TIGERAGENT.md) — it's what you are: the Scout read tools (inventory / tree / file / grep /
+guide) and the Forge write tiers (`api` / `code` / **`file`** — write a module file in place — / **`module`**
+— scaffold a whole module), all gated by your ACL role. Do NOT build code locally and upload a zip to
+iterate: scaffold with Forge `module`, then write and re-write files directly with Forge `file`. For driving
+a Tiger install over MCP read [TIGERMCP.md](TIGERMCP.md); for installable know-how read [TIGERSKILLS.md](TIGERSKILLS.md).
+
 > This file documents TigerCore + app conventions. Tiger is designed to be read and written
 > largely by AI — so the docs live in the code. Match the surrounding style.
 
