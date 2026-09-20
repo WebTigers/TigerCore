@@ -20,7 +20,21 @@
  *       'resource' => 'Support_IndexController',     // ACL resource — hides if denied
  *       'order'    => 50,                            // sort weight (lower first)
  *       'badge'    => fn () => $unreadCount,         // optional: int or callable → red count pill; 0 = none
+ *       'flyout'   => [                              // optional: click opens a fly-out panel, not a link
+ *           'endpoint'    => ['module' => 'message', 'service' => 'message', 'method' => 'recent'],
+ *           'action'      => ['module' => 'message', 'service' => 'message', 'method' => 'archive'],
+ *           'view_all'    => '/message',             // footer "view all" href (falls back to `href`)
+ *           'labels'      => ['title' => 'message.flyout.title', 'empty' => 'message.flyout.empty', …],
+ *       ],
  *   ]);
+ *
+ * `flyout` (optional) turns the icon into a QUICK-VIEW panel instead of a plain link: the theme renders
+ * an anchored panel the client fills over `/api` on open — the latest rows, each with a per-row action
+ * and a "view all" footer link to the full screen. It is DECLARATIVE and module-agnostic: the item names
+ * the read endpoint, the per-row `action` endpoint, the `view_all` href, and the translation KEYS for its
+ * labels; the theme resolves those keys with the active locale and hands the client already-translated
+ * strings, so the core theme never imports a module class. `endpoint` is required for a fly-out; the rest
+ * are optional. An item with no `flyout` renders exactly as before.
  *
  * `badge` is a CALLABLE rather than a number because the header renders on every admin page: the
  * count must be computed at render, for the current user, and only if the item survived the ACL
@@ -48,7 +62,7 @@ class Tiger_Admin_Header
         if (empty($item['key']) || empty($item['label']) || empty($item['href'])) {
             return;
         }
-        self::$_items[$item['key']] = $item + ['icon' => 'fa-circle', 'resource' => null, 'order' => 100, 'badge' => null];
+        self::$_items[$item['key']] = $item + ['icon' => 'fa-circle', 'resource' => null, 'order' => 100, 'badge' => null, 'flyout' => null];
     }
 
     /**
@@ -72,6 +86,7 @@ class Tiger_Admin_Header
                 'resource' => $p['resource'],
                 'order'    => $p['order'],
                 'badge'    => $p['badge'] ?? null,
+                'flyout'   => $p['flyout'] ?? null,
             ];
         }, $items);
     }

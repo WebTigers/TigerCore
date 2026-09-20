@@ -5,6 +5,9 @@
 return [
     'message.header.label'              => 'Messages',
     'message.nav.label'                 => 'Messages',
+    'message.flyout.title'              => 'Messages',
+    'message.flyout.empty'              => 'Aucun message pour le moment.',
+    'message.flyout.view_all'           => 'Voir tous les messages',
     'message.list.subtitle'             => 'Messages de la plateforme et des personnes de votre organisation.',
     'message.list.inbox'                => 'Boîte de réception',
     'message.list.archived'             => 'Archivés',

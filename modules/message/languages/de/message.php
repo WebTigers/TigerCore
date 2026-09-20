@@ -5,6 +5,9 @@
 return [
     'message.header.label'              => 'Nachrichten',
     'message.nav.label'                 => 'Nachrichten',
+    'message.flyout.title'              => 'Nachrichten',
+    'message.flyout.empty'              => 'Noch keine Nachrichten.',
+    'message.flyout.view_all'           => 'Alle Nachrichten anzeigen',
     'message.list.subtitle'             => 'Nachrichten von der Plattform und von Personen in Ihrer Organisation.',
     'message.list.inbox'                => 'Posteingang',
     'message.list.archived'             => 'Archiviert',
