@@ -436,6 +436,58 @@ filename **prefix** (`about-*`, `blog-*`, `shop-*`, `index-*`) is a good *groupi
 layout a page needs — but confirm the actual header/footer per group before extracting, since the
 prefix isn't a clean 1:1 map (several prefixes share the inner-page chrome).
 
+### 8c. The SEO head contract — a layout MUST render through the head registry
+
+**This is a hard contract, and getting it wrong removes SEO from the whole site *silently*.** Tiger's
+`<head>` is a **registry**, not a string: TigerSEO (`Seo_Plugin_Head` → `Seo_Service_Head`, plus the
+`site()` baseline at postDispatch) contributes the title, meta description, robots, canonical, Open Graph,
+Twitter and JSON-LD into TigerZF's **`headTitle` / `headMeta` / `headLink`** placeholder containers. A
+theme's layout only *receives* any of that if it **renders those containers**. A layout that hardcodes
+`<title>` and emits a raw `pageHead` echo is **opted out of the entire head registry** — no title
+override, no description, no canonical, no social cards — and the operator gets **no signal** (the SEO
+admin still accepts and stores values). Every theme layout MUST include, in `<head>`:
+
+```php
+<?php if (!count($this->headTitle())) { $this->headTitle($this->title ?? ($this->siteName ?? 'Site')); } ?>
+<?= $this->headTitle() ?>
+<?= $this->headMeta() ?>
+<?= $this->headLink() ?>
+<?= $this->pageHead ?? '' ?>   <?php /* per-page raw <head> escape hatch (admin-authored) — AFTER the registry */ ?>
+```
+
+Seed `headTitle` from `$this->title`/`$this->siteName` only as a **fallback** (so a `<title>` always
+renders) — never a hardcoded literal, which would shadow the author's `seo_title`. The base **PUMA**
+layout (`themes/puma/layouts/scripts/layout.phtml`) is the worked example; copy its `<head>`, don't
+reinvent it. The shipped reference theme **Grey Mist** demonstrates the contract too.
+
+**Theme `content/` pages get per-page SEO from the hint.** A `content/*.phtml` page (§8a) dispatches
+through `themeContentAction`, not the CMS `PageDispatch`, so `Seo_Plugin_Head` (which keys off a CMS
+`cms_page_id`) never fires for it — only the site-level baseline would. So `themeContentAction` feeds the
+`tiger:page` hint's SEO into the head registry via `Seo_Service_Head::forValues()`. The hint therefore
+takes two optional SEO attributes alongside `title`:
+
+```html
+<!-- tiger:page layout="page" title="Contact Us" description="Reach the studio." image="42" -->
+```
+
+- `title` → the `<title>` + `og:title` (falls back to the friendly slug title).
+- `description` → the meta description + `og:description`.
+- `image` → `og:image`, as a **media-library id** (resolved to a real URL + dimensions) **or** an absolute
+  `http(s)` URL (a theme asset). Absent → the site-wide `tiger.seo.og_image` fallback.
+
+A self-referencing canonical + `og:url` + `og:site_name` are always emitted. `layout="none"` pages own
+their whole document, so `forValues` is skipped for them. All of this still requires the layout to render
+the head registry (above) — that is the one thing a content page cannot supply for itself.
+
+**Overriding a content page's OG live — `config`, no deploy.** The hint lives in a theme *file* (the base
+tier), so it's overridden per install/org by a `config` row keyed on the slug —
+`tiger.seo.theme.<slug>.{title,description,image}` — the same file→DB cascade as `menus.ini`. An operator
+retunes a specific theme page's title/description/social image without editing the theme, and a set value
+**wins over the hint** (`themeContentAction` merges the config over the hint before it reaches the head).
+A nested slug flattens to a safe key (`about/team` → `tiger.seo.theme.about-team.*`). This is the theme
+sibling of the `tiger.seo.page.<key>.*` tier that shipped view pages (`/vibe`, `/agency`) use; the
+site-wide `tiger.seo.og_image` remains the final floor under both.
+
 ---
 
 ## 9. Rejected alternatives (so we don't relitigate)

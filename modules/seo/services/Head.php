@@ -106,6 +106,70 @@ class Seo_Service_Head
     }
 
     /**
+     * Populate the head from EXPLICIT per-page values — the third entry point, for a public page that
+     * reaches the layout head but has **no `page` row**: a theme's `content/*.phtml` page
+     * (`PageController::themeContentAction`, values sourced from the `tiger:page` hint). `forRow()` is
+     * only reached for CMS pages + blog articles, so without this a theme-built site's pages could never
+     * carry a per-page title/description/social card — only the `site()` baseline. Author values win; the
+     * site baseline `site()` fills afterwards only touches what's still blank. Fail-soft.
+     *
+     * @param  array                                 $vals   {title?, description?, canonical?, image?} —
+     *                                                        `image` is a media id (resolved to a real URL +
+     *                                                        dimensions) OR an already-absolute http(s) URL
+     * @param  Zend_Controller_Request_Abstract|null $request for a self-referencing canonical / absolute URLs
+     * @return void
+     */
+    public static function forValues(array $vals, ?Zend_Controller_Request_Abstract $request = null)
+    {
+        $view = self::_view();
+        if (!$view) {
+            return;
+        }
+
+        $title = trim((string) ($vals['title'] ?? ''));
+        if ($title !== '') {
+            $view->headTitle()->set($title);
+        }
+        $desc = trim((string) ($vals['description'] ?? ''));
+        if ($desc !== '') {
+            $view->headMeta()->setName('description', $desc);
+        }
+
+        $canonical = trim((string) ($vals['canonical'] ?? ''));
+        if ($canonical === '' && $request) {
+            $canonical = self::_currentUrl($request);
+        }
+        if ($canonical !== '') {
+            $view->headLink(['rel' => 'canonical', 'href' => $canonical]);
+        }
+
+        $meta = $view->headMeta();
+        if ($title !== '') { $meta->setProperty('og:title', $title); }
+        if ($desc  !== '') { $meta->setProperty('og:description', $desc); }
+        $meta->setProperty('og:type', 'website');
+        $ogUrl = $canonical !== '' ? $canonical : ($request ? self::_currentUrl($request) : '');
+        if ($ogUrl !== '') { $meta->setProperty('og:url', $ogUrl); }
+        $siteName = trim((string) self::_config('site.name', ''));
+        if ($siteName !== '') { $meta->setProperty('og:site_name', $siteName); }
+
+        // og:image — a theme page's hint image, else the site-wide fallback. A hint value that is already
+        // an absolute URL is used as-is (a theme asset); anything else is treated as a media id + resolved.
+        $ref = trim((string) ($vals['image'] ?? ''));
+        $img = ($ref !== '' && preg_match('~^https?://~i', $ref)) ? ['url' => $ref] : self::_image($ref, $request);
+        if (!$img) {
+            $img = self::_image((string) self::_config('seo.og_image', ''), $request);
+        }
+        if ($img && ($img['url'] ?? '') !== '') {
+            $meta->setProperty('og:image', $img['url']);
+            if (!empty($img['width']))  { $meta->setProperty('og:image:width',  (string) $img['width']); }
+            if (!empty($img['height'])) { $meta->setProperty('og:image:height', (string) $img['height']); }
+            if (!empty($img['mime']))   { $meta->setProperty('og:image:type',   (string) $img['mime']); }
+            if (!empty($img['alt']))    { $meta->setProperty('og:image:alt',    (string) $img['alt']); }
+        }
+        $meta->setName('twitter:card', ($img && ($img['url'] ?? '') !== '') ? 'summary_large_image' : 'summary');
+    }
+
+    /**
      * Fill the SITE-level head baseline — the last-resort tier, so every public page has a usable social
      * card even when it isn't a CMS row. Only ever fills BLANKS: whatever a page already set (via forRow,
      * a blog article, or a view) always wins, so this can run late without clobbering anything.
@@ -242,19 +306,49 @@ class Seo_Service_Head
      */
     public static function pageDefaults($key)
     {
+        return self::_ogDefaults('page', $key);
+    }
+
+    /**
+     * The authored OG defaults for a THEME content page, keyed by its slug —
+     * `tiger.seo.theme.<slug>.{title,description,image}`. The live-override complement to a theme
+     * `content/*.phtml` page's shipped `tiger:page` hint: the hint is a theme FILE (the base tier), so a
+     * `config` row overrides it per install/org with no deploy — the same file→DB cascade as menus.ini and
+     * every other config. A nested slug is flattened to a safe segment (`about/team` → `about-team`).
+     * `PageController::themeContentAction` merges this OVER the hint before handing values to forValues().
+     *
+     * @param  string $slug the theme content slug (the `content/<slug>.phtml` name, sans extension)
+     * @return array<string,string> the authored values that are set: title, description, image
+     */
+    public static function themeContentDefaults($slug)
+    {
+        return self::_ogDefaults('theme', $slug);
+    }
+
+    // -- internals -----------------------------------------------------------------------------------
+
+    /**
+     * Read authored OG defaults (title/description/image) from the config cascade at
+     * `tiger.seo.<prefix>.<key>.<field>` — an `.ini` base + a live `config` DB override, nothing new to
+     * persist. Returns only the fields that are actually set.
+     *
+     * @param  string $prefix 'page' (a row-less VIEW page, keyed by pageKey()) or 'theme' (a theme content slug)
+     * @param  string $key     the page/slug key (sanitised to a safe config segment)
+     * @return array<string,string>
+     */
+    private static function _ogDefaults($prefix, $key)
+    {
         $key = self::_keySegment((string) $key);
         if ($key === '') {
             return [];
         }
         $out = [];
         foreach (['title', 'description', 'image'] as $field) {
-            $v = trim((string) self::_config('seo.page.' . $key . '.' . $field, ''));
+            $v = trim((string) self::_config('seo.' . $prefix . '.' . $key . '.' . $field, ''));
             if ($v !== '') { $out[$field] = $v; }
         }
         return $out;
     }
-
-    // -- internals -----------------------------------------------------------------------------------
 
     /** Normalise one config-key segment: lowercase, [a-z0-9-] only ('' when nothing survives). */
     private static function _keySegment($seg)
