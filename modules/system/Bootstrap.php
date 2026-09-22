@@ -20,20 +20,21 @@ class System_Bootstrap extends Zend_Application_Module_Bootstrap
             'resource' => 'System_SettingsController',
             'order'    => 20,
         ]);
-    }
-
-    /** Top-level "Updates" item — the WordPress-simple one-click updater (ACL-gated in the menu). */
-    protected function _initAdminNav()
-    {
-        // Updates lives under the Modules toggle (see the admin-menu core nav), not as a top-level item.
-        Tiger_Admin_Nav::register([
+        // ACL Simulator — a read-only "why am I locked out?" diagnostic. It's a tool, not a
+        // top-level destination, so it lives under Settings (superadmin+, ACL-gated in the menu).
+        Tiger_Admin_Settings::register([
             'key'      => 'system_acl',
             'label'    => 'system.nav.acl',
             'icon'     => 'fa-scale-balanced',
             'href'     => '/system/acl',
             'resource' => 'System_AclController',
-            'order'    => 16,
+            'order'    => 30,
         ]);
+    }
+
+    /** Top-level "Logs" item (ACL-gated in the menu; Updates lives under the Modules toggle). */
+    protected function _initAdminNav()
+    {
         Tiger_Admin_Nav::register([
             'key'      => 'system_logs',
             'label'    => 'system.nav.logs',

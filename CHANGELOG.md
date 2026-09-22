@@ -6,6 +6,15 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.13.2] — 2026-09-22
+
+### Changed
+
+- **ACL Simulator moved under Settings** — the read-only "why am I locked out?" diagnostic
+  (`/system/acl`) was a top-level sidebar item; it's a tool, not a destination, so it now registers
+  as a **Settings** sub-item (`Tiger_Admin_Settings`) instead of a top-level nav item
+  (`Tiger_Admin_Nav`). Superadmin+, ACL-gated in the menu as before.
+
 ## [1.13.1] — 2026-09-22
 
 ### Fixed
