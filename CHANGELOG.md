@@ -6,6 +6,15 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.13.4] — 2026-09-22
+
+### Changed
+
+- **Admin nav "prime band"** — a module-registered top-level item with `order < 10` now renders
+  **right under Dashboard** (before the core Content/Users/Modules block) instead of down in the
+  module block; everything at `order >= 10` is unchanged. Lets a signature feature that owns the
+  surface (e.g. TigerServer on a hosting box) sit at position 2 without hardcoding it in core.
+
 ## [1.13.3] — 2026-09-22
 
 ### Added

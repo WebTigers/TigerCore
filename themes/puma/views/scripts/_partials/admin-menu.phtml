@@ -53,8 +53,16 @@ if (class_exists('Tiger_Model_Module')) {
 // Each module-backed default item carries its owning module `slug`; the render skips it when that
 // module is deactivated (see $inactiveModules below) — the 1:1 invariant that Tiger_Admin_Nav::discover()
 // already gives the .ini path, mirrored here for the hardcoded core items.
+// Module-registered top-level items, split into a PRIME band (order < 10 — surfaces right under
+// Dashboard, for a signature feature that owns the surface, e.g. TigerServer on a hosting box) and
+// the normal block (order >= 10 — after the core items). Both stay ACL- + activation-gated below.
+$moduleItems = Tiger_Admin_Nav::items();
+$primeItems  = array_values(array_filter($moduleItems, static fn ($i) => (int) ($i['order'] ?? 100) < 10));
+$restItems   = array_values(array_filter($moduleItems, static fn ($i) => (int) ($i['order'] ?? 100) >= 10));
+
 $nav = $this->nav ?? array_merge([
     ['key' => 'dashboard', 'label' => $canAdmin ? 'core.nav.dashboard' : 'core.nav.account', 'href' => $homeHref, 'icon' => 'fa-gauge-high', 'match' => $homeHref],
+], $primeItems, [
     ['key' => 'content',   'label' => 'core.nav.content', 'href' => '/cms/page',       'icon' => 'fa-file-lines',      'match' => '/cms/page',      'resource' => 'Cms_PageController',    'module' => 'cms'],
     ['key' => 'articles',  'label' => 'core.nav.articles','href' => '/blog/post',      'icon' => 'fa-feather-pointed', 'match' => '/blog/post',     'resource' => 'Blog_PostController',   'module' => 'blog'],
     ['key' => 'menus',     'label' => 'core.nav.menus',   'href' => '/cms/menu',       'icon' => 'fa-bars',            'match' => '/cms/menu',      'resource' => 'Cms_MenuController',    'module' => 'cms'],
@@ -76,7 +84,7 @@ $nav = $this->nav ?? array_merge([
         ['key' => 'modules_update', 'label' => 'system.nav.updates',       'href' => '/system/updates', 'match' => '/system/updates', 'resource' => 'System_UpdatesController',
          'badge' => static fn () => class_exists('Tiger_Update_Checker') ? Tiger_Update_Checker::pendingCached() : 0],
     ]],
-], Tiger_Admin_Nav::items(), [
+], $restItems, [
     ['key' => 'settings',  'label' => 'core.nav.settings','icon' => 'fa-gear',         'children' => Tiger_Admin_Settings::pages()],
 ]);
 
