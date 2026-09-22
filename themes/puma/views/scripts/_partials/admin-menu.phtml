@@ -37,21 +37,33 @@ $role = ($idn && !empty($idn->role)) ? $idn->role : 'guest';
 $canAdmin = $acl && $acl->has('AdminController') ? $acl->isAllowed($role, 'AdminController') : false;
 $homeHref = $canAdmin ? '/admin' : '/account';
 
+// Module-activation gate for the hardcoded core items: a default nav item backed by a module (its
+// `module` slug) hides when that module is deactivated, so `module off ⇒ its sidebar item is gone`
+// holds for the core items too — not just the .ini-discovered ones (Tiger_Admin_Nav::discover()).
+// Read-only, memoized per request, and fail-soft (an error yields an empty set = nothing hidden).
+$inactiveModules = [];
+if (class_exists('Tiger_Model_Module')) {
+    try { $inactiveModules = (new Tiger_Model_Module())->inactiveSlugs(); } catch (Throwable $e) { $inactiveModules = []; }
+}
+
 // Core items, then any module-registered top-level items (Tiger_Admin_Nav), then Settings last.
 // Labels are TRANSLATION KEYS (core.nav.*), resolved through $this->t() in the render below — the same
 // keyed-label pattern the profile tabs already use. Module-registered items + Settings pages likewise
 // pass keys (a brand/literal falls through t() unchanged, so nothing breaks).
+// Each module-backed default item carries its owning module `slug`; the render skips it when that
+// module is deactivated (see $inactiveModules below) — the 1:1 invariant that Tiger_Admin_Nav::discover()
+// already gives the .ini path, mirrored here for the hardcoded core items.
 $nav = $this->nav ?? array_merge([
     ['key' => 'dashboard', 'label' => $canAdmin ? 'core.nav.dashboard' : 'core.nav.account', 'href' => $homeHref, 'icon' => 'fa-gauge-high', 'match' => $homeHref],
-    ['key' => 'content',   'label' => 'core.nav.content', 'href' => '/cms/page',       'icon' => 'fa-file-lines',      'match' => '/cms/page',      'resource' => 'Cms_PageController'],
-    ['key' => 'articles',  'label' => 'core.nav.articles','href' => '/blog/post',      'icon' => 'fa-feather-pointed', 'match' => '/blog/post',     'resource' => 'Blog_PostController'],
-    ['key' => 'menus',     'label' => 'core.nav.menus',   'href' => '/cms/menu',       'icon' => 'fa-bars',            'match' => '/cms/menu',      'resource' => 'Cms_MenuController'],
-    ['key' => 'media',     'label' => 'core.nav.media',   'href' => '/media',          'icon' => 'fa-photo-film',      'match' => '/media',         'resource' => 'Media_IndexController'],
+    ['key' => 'content',   'label' => 'core.nav.content', 'href' => '/cms/page',       'icon' => 'fa-file-lines',      'match' => '/cms/page',      'resource' => 'Cms_PageController',    'module' => 'cms'],
+    ['key' => 'articles',  'label' => 'core.nav.articles','href' => '/blog/post',      'icon' => 'fa-feather-pointed', 'match' => '/blog/post',     'resource' => 'Blog_PostController',   'module' => 'blog'],
+    ['key' => 'menus',     'label' => 'core.nav.menus',   'href' => '/cms/menu',       'icon' => 'fa-bars',            'match' => '/cms/menu',      'resource' => 'Cms_MenuController',    'module' => 'cms'],
+    ['key' => 'media',     'label' => 'core.nav.media',   'href' => '/media',          'icon' => 'fa-photo-film',      'match' => '/media',         'resource' => 'Media_IndexController', 'module' => 'media'],
     // Admin manages EVERYONE (Access_*); a user's own profile/org is self-service and lives on the
     // /account surface (Tiger_Account_Nav → the profile module), not here.
-    ['key' => 'users',     'label' => 'core.nav.users',   'href' => '/access/user',    'icon' => 'fa-users',    'match' => '/access/user',   'resource' => 'Access_UserController'],
-    ['key' => 'orgs',      'label' => 'core.nav.orgs',    'href' => '/access/org',     'icon' => 'fa-building',  'match' => '/access/org',    'resource' => 'Access_OrgController'],
-    ['key' => 'code',      'label' => 'core.nav.code',    'href' => '/code',           'icon' => 'fa-code',            'match' => '/code',          'resource' => 'Code_IndexController'],
+    ['key' => 'users',     'label' => 'core.nav.users',   'href' => '/access/user',    'icon' => 'fa-users',    'match' => '/access/user',   'resource' => 'Access_UserController', 'module' => 'access'],
+    ['key' => 'orgs',      'label' => 'core.nav.orgs',    'href' => '/access/org',     'icon' => 'fa-building',  'match' => '/access/org',    'resource' => 'Access_OrgController',  'module' => 'access'],
+    ['key' => 'code',      'label' => 'core.nav.code',    'href' => '/code',           'icon' => 'fa-code',            'match' => '/code',          'resource' => 'Code_IndexController',  'module' => 'code'],
     // Modules is a toggle (like Settings): Add New = the install screen, Manage = the module
     // manager, Updates = the update center.
     ['key' => 'modules',   'label' => 'core.nav.modules', 'icon' => 'fa-puzzle-piece', 'children' => [
@@ -110,7 +122,7 @@ $isActive = function ($item) use ($path) {
     return strpos($path, $m) === 0;
 };
 
-$render = function ($items, $depth = 0, $group = 'root') use (&$render, $allowed, $isActive, $overrideOrder, $t) {
+$render = function ($items, $depth = 0, $group = 'root') use (&$render, $allowed, $isActive, $overrideOrder, $t, $inactiveModules) {
     // Order siblings by the user's saved sort when present, else their natural incoming position —
     // so the default layout is untouched until someone drags. Position is the stable tiebreak.
     $ordered = [];
@@ -129,6 +141,8 @@ $render = function ($items, $depth = 0, $group = 'root') use (&$render, $allowed
     foreach ($ordered as $row) {
         $item = $row['it'];
         if (!$allowed($item)) { continue; }
+        // 1:1 with module activation: a deactivated module's item never renders (mirrors discover()).
+        if (!empty($item['module']) && in_array($item['module'], $inactiveModules, true)) { continue; }
 
         $hasChildKey = array_key_exists('children', $item);
         $children    = $hasChildKey ? array_values(array_filter($item['children'], $allowed)) : [];
