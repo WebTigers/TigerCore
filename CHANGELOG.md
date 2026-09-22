@@ -6,6 +6,17 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.13.1] — 2026-09-22
+
+### Fixed
+
+- **Admin nav 1:1 with module activation** (TIGER-194) — the admin sidebar's hardcoded core items
+  (Articles→`/blog`, Media→`/media`, Code→`/code`) were ACL-gated but not module-activation-gated, so a
+  deactivated `blog`/`media`/`code` module kept its sidebar item even though its routes 404'd (the ACL
+  check fails open for an unregistered resource). Each module-backed default item now carries its owning
+  `module` slug and is skipped when that slug is in `Tiger_Model_Module::inactiveSlugs()` — mirroring
+  `Tiger_Admin_Nav::discover()`. `module off ⇒ its sidebar item is gone`, for every bundled module.
+
 ## [1.13.0] — 2026-09-20
 
 ### Added
