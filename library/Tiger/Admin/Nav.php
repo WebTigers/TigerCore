@@ -38,19 +38,28 @@ class Tiger_Admin_Nav
     protected static $_loaded = false;
 
     /**
-     * Register (or replace, by key) a top-level nav item. Requires key, label, href.
+     * Register (or replace, by key) a top-level nav item. Requires key + label, and EITHER an
+     * `href` (a leaf link) OR a non-empty `children` array (a dropdown toggle — like the core
+     * Settings/Modules groups, but contributed by a module). A dropdown's children are ordinary
+     * nav-item arrays (`key`/`label`/`href`/`resource`/…); the sidebar renders them recursively,
+     * ACL-filtered, and drops the parent if no child is visible.
      *
-     * @param  array $item item definition (key, label, href, and optional icon/match/resource/order)
+     * @param  array $item item definition (key, label, then href OR children; optional icon/match/resource/order)
      * @return void
      */
     public static function register(array $item)
     {
-        if (empty($item['key']) || empty($item['label']) || empty($item['href'])) {
+        if (empty($item['key']) || empty($item['label'])) {
+            return;
+        }
+        // A parent with children is a toggle (no href needed); a leaf needs an href.
+        if (empty($item['href']) && empty($item['children'])) {
             return;
         }
         self::$_items[$item['key']] = $item + [
             'icon'     => 'fa-circle',
-            'match'    => $item['href'],
+            'href'     => $item['href'] ?? '#',
+            'match'    => $item['href'] ?? '',
             'resource' => null,
             'order'    => 100,
             'badge'    => null,
@@ -71,16 +80,22 @@ class Tiger_Admin_Nav
             return [$a['order'], $a['label']] <=> [$b['order'], $b['label']];
         });
         return array_map(static function ($p) {
-            return [
+            $out = [
                 'key'      => $p['key'],
                 'label'    => $p['label'],
-                'href'     => $p['href'],
-                'match'    => $p['match'],
+                'href'     => $p['href'] ?? '#',
+                'match'    => $p['match'] ?? '',
                 'icon'     => $p['icon'],
                 'resource' => $p['resource'],
                 'order'    => $p['order'],
                 'badge'    => $p['badge'] ?? null,
             ];
+            // Only carry `children` when there ARE children — the sidebar treats the mere presence
+            // of the key as "this is a toggle", so an empty/null one would wrongly drop the item.
+            if (!empty($p['children'])) {
+                $out['children'] = $p['children'];
+            }
+            return $out;
         }, $items);
     }
 
