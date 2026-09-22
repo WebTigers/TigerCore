@@ -6,6 +6,16 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.13.3] — 2026-09-22
+
+### Added
+
+- **Module-contributed nav dropdowns** — `Tiger_Admin_Nav::register()` now accepts an item with a
+  `children` array and no `href` (a toggle), so a module can add a top-level sidebar **dropdown**
+  the way the core Settings/Modules groups do — not just a single leaf link. `items()` carries the
+  `children` through to the recursive sidebar render, and only when there are children (a leaf never
+  gains a stray `children` key). Unlocks the TigerServer module's "TigerServer" dropdown.
+
 ## [1.13.2] — 2026-09-22
 
 ### Changed
