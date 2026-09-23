@@ -15,6 +15,11 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
   settings) all resolve to that tenant for the whole request. Exact-host match (lowercased, port
   stripped); a site's `www` and apex are separate rows. Unmapped hosts and single-site installs are
   unaffected (no site org resolved → global config, exactly as before). (TIGER-215)
+- **Multi-site — Sites admin (the host → org writer).** A **Sites** screen (Settings › Sites) +
+  `System_Service_Sites` (`/api`: datatable / save / delete) to map hostnames to the org whose site they
+  serve — the writer for the resolver above. A host is unique install-wide (apex + `www` are separate
+  entries); the org must exist. `Tiger_Model_SiteDomain` gains `datatable()` + `hostTaken()`. Admin+;
+  TigerServer/TigerPanel drive the same `/api`. (TIGER-215)
 
 ## [1.13.4] — 2026-09-22
 

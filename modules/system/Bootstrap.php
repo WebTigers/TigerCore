@@ -30,6 +30,16 @@ class System_Bootstrap extends Zend_Application_Module_Bootstrap
             'resource' => 'System_AclController',
             'order'    => 30,
         ]);
+        // Sites — the multi-site host -> org map (one install serving many public sites). Under Settings
+        // (ACL-gated in the menu); on a single-site install it's an empty list, harmless.
+        Tiger_Admin_Settings::register([
+            'key'      => 'system_sites',
+            'label'    => 'system.nav.sites',
+            'icon'     => 'fa-globe',
+            'href'     => '/system/sites',
+            'resource' => 'System_SitesController',
+            'order'    => 40,
+        ]);
     }
 
     /** Top-level "Logs" item (ACL-gated in the menu; Updates lives under the Modules toggle). */

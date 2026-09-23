@@ -1,0 +1,74 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * Sites — the multi-site host → org map. A DataTables grid sourced from /api
+ * (System_Service_Sites::datatable) + an "add a domain" form. No inline JS/CSS; the wiring is in
+ * /_modules/system/js/system.sites.js and localized strings ride the i18n carrier.
+ */
+$this->i18n([
+    'searchSites'   => 'system.sites.js.search',
+    'del'           => 'system.sites.js.delete',
+    'confirmDel'    => 'system.sites.js.confirm_delete',
+    'added'         => 'system.sites.js.added',
+    'netErr'        => 'system.sites.js.net_error',
+]);
+$t = fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
+?>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1"><i class="fa-solid fa-globe me-2"></i><?= $t('system.sites.title') ?></h1>
+        <p class="text-body-secondary mb-0"><?= $t('system.sites.subtitle') ?></p>
+    </div>
+</div>
+
+<div id="system-sites-feedback"></div>
+
+<?php if ($this->orgCount < 2): ?>
+<div class="alert alert-info"><i class="fa-solid fa-circle-info me-2"></i><?= $t('system.sites.need_orgs') ?></div>
+<?php endif; ?>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header fw-semibold"><i class="fa-solid fa-plus me-2"></i><?= $t('system.sites.add') ?></div>
+            <div class="card-body">
+                <form id="system-sites-form" onsubmit="return false;" novalidate>
+                    <?= $this->form->getElement('_csrf') ?>
+                    <?= $this->form->getElement('site_domain_id') ?>
+                    <div class="mb-3">
+                        <label class="form-label small" for="system-site-domain"><?= $t('system.sites.domain') ?></label>
+                        <?= $this->form->getElement('domain') ?>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small" for="system-site-org"><?= $t('system.sites.org') ?></label>
+                        <?= $this->form->getElement('org_id') ?>
+                    </div>
+                    <button type="button" id="system-sites-save" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus me-2"></i><?= $t('system.sites.add_btn') ?></button>
+                </form>
+                <p class="text-body-secondary small mt-3 mb-0"><?= $t('system.sites.add_hint') ?></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="system-sites-table" class="table table-hover align-middle" style="width:100%;">
+                        <thead>
+                            <tr>
+                                <th><?= $t('system.sites.col.domain') ?></th>
+                                <th><?= $t('system.sites.col.org') ?></th>
+                                <th><?= $t('system.sites.col.status') ?></th>
+                                <th><?= $t('system.sites.col.created') ?></th>
+                                <th class="text-end" data-orderable="false"><?= $t('system.sites.col.actions') ?></th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="<?= $this->escape($this->asset('/_modules/system/js/system.sites.js')) ?>" defer></script>

@@ -339,6 +339,6 @@
 - **Search** (`search`, plugin)  ·  services: Search  ·  `modules/search`
 - **SEO** (`seo`, app)  ·  services: Head, Pages, Schema, Social  ·  `modules/seo`
 - **Signup** (`signup`, plugin)  ·  services: Signup  ·  `modules/signup`
-- **System** (`system`, plugin)  ·  services: Acl, Dashboard, Logs, Modules, Nav, Settings, Updates  ·  `modules/system`
+- **System** (`system`, plugin)  ·  services: Acl, Dashboard, Logs, Modules, Nav, Settings, Sites, Updates  ·  `modules/system`
 - **Translations** (`translations`, app)  ·  services: Translation  ·  `modules/translations`
 
