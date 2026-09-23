@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**208 classes** across **33 capabilities** · **22 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**209 classes** across **33 capabilities** · **22 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -307,6 +307,7 @@
 - **Tiger_Model_MessageBlock** `@api` — one user muting another, within an org (migration 0049).  ·  `library/Tiger/Model/MessageBlock.php`
 - **Tiger_Model_MessageRecipient** `@api` — who received a message, and what they did with it (0048).  ·  `library/Tiger/Model/MessageRecipient.php`
 - **Tiger_Model_Session** `@api` — Session — gateway for the DB session store (see migration 0010).  ·  `library/Tiger/Model/Session.php`
+- **Tiger_Model_SiteDomain** `@api` — SiteDomain — the host → org map that makes one install serve many sites (see migration 0052).  ·  `library/Tiger/Model/SiteDomain.php`
 - **Tiger_Model_Table** `@api` — Base table-gateway for Tiger models.  ·  `library/Tiger/Model/Table.php`
 - **Tiger_Uuid** `@api` — UUID generation for Tiger primary keys.  ·  `library/Tiger/Uuid.php`
 
