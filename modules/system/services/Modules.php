@@ -134,6 +134,11 @@ class System_Service_Modules extends Tiger_Service_Service
         $discovered = Tiger_Module_Discovery::all();
         if (!isset($discovered[$slug])) { $this->_error('system.error.unknown'); return; }
 
+        // A module can declare itself always-on with `"protected": true` in its manifest (beyond the
+        // hardcoded core set above) — an install that must not run without it (e.g. TigerPanel inside a
+        // hosted account). It can be installed/updated, never deactivated.
+        if (!$on && !empty($discovered[$slug]['protected'])) { $this->_error('system.error.protected'); return; }
+
         try {
             $d = $discovered[$slug];
 

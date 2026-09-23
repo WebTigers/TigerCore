@@ -44,10 +44,12 @@ class System_ModulesController extends Tiger_Controller_Admin_Action
             $rowArr = $row ? $row->toArray() : [];
             if (!empty($rowArr['type']))     { $m['type']     = (string) $rowArr['type']; }
             if (!empty($rowArr['category'])) { $m['category'] = array_values(array_filter(explode(',', (string) $rowArr['category']))); }
+            // Protected = the hardcoded core set OR the module's manifest `"protected": true` (Discovery
+            // put that in $m). Set it on $m so it wins the union below (which keeps left-hand keys).
+            $m['protected'] = !empty($m['protected']) || in_array($slug, System_Service_Modules::PROTECTED, true);
             $modules[] = $m + [
                 'active'    => $active,
                 'source'    => $source,
-                'protected' => in_array($slug, System_Service_Modules::PROTECTED, true),
                 // Advisory: tested-version compat notice (never blocks) + who requires this module
                 // (drives the "required by X, Y — deactivate anyway?" confirm; empty for most).
                 'compat'      => Tiger_Module_Compat::check($m),
