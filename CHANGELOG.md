@@ -6,6 +6,14 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Modules: manifest-driven `protected` (always-on) flag.** A module that declares `"protected": true`
+  in its `module.json` can be installed and updated but **never deactivated** in the Module manager —
+  beyond the hardcoded core set (`default`/`system`/`access`) — for an install that must not run without
+  it (e.g. TigerPanel inside a hosted account). `Tiger_Module_Discovery` surfaces the flag; the Modules
+  screen marks the row protected and `System_Service_Modules` refuses to deactivate it.
+
 ## [1.14.0] — 2026-09-23
 
 ### Added

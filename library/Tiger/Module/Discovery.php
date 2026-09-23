@@ -14,7 +14,7 @@
 class Tiger_Module_Discovery
 {
     /**
-     * All modules on disk, keyed by slug: {slug, area, name, version, description, author, license, homepage, pricing, has_manifest}.
+     * All modules on disk, keyed by slug: {slug, area, name, version, description, author, license, homepage, pricing, protected, has_manifest}.
      *
      * @return array<string,array> module metadata rows keyed by slug (sorted)
      */
@@ -65,6 +65,10 @@ class Tiger_Module_Discovery
                     'license'      => (string) ($m['license'] ?? ''),
                     'homepage'     => (string) ($m['homepage'] ?? ''),
                     'pricing'      => $m['pricing']['model'] ?? null,
+                    // A module declaring `"protected": true` in its manifest can't be deactivated in the
+                    // Module manager — for an always-on module an install must not run without (e.g.
+                    // TigerPanel inside a hosted account). Beyond the hardcoded core protected set.
+                    'protected'    => !empty($m['protected']),
                     'asset_base'   => (string) ($m['assetBase'] ?? ''),       // themes: the public/_<x> symlink base
                     // Advisory compatibility metadata (min/max tested Tiger version) — passed through
                     // for Tiger_Module_Compat to interpret; legacy `requires.tiger` doubles as the min.

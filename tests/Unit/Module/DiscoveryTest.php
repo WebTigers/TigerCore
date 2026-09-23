@@ -184,6 +184,24 @@ final class DiscoveryTest extends UnitTestCase
     }
 
     #[Test]
+    public function protectedFlagPassesThroughFromTheManifest(): void
+    {
+        // `"protected": true` marks an always-on module the Module manager must refuse to deactivate.
+        $this->plantAppModule('fixprotected', [
+            'module.json'   => json_encode(['slug' => 'fixprotected', 'name' => 'Fix Protected', 'protected' => true]),
+            'Bootstrap.php' => "<?php\n",
+        ]);
+        $this->plantAppModule('fixnormal', [
+            'module.json'   => json_encode(['slug' => 'fixnormal', 'name' => 'Fix Normal']),
+            'Bootstrap.php' => "<?php\n",
+        ]);
+
+        $all = Tiger_Module_Discovery::all();
+        $this->assertTrue($all['fixprotected']['protected'], 'protected:true carries through');
+        $this->assertFalse($all['fixnormal']['protected'], 'absent -> false (deactivatable)');
+    }
+
+    #[Test]
     public function aBareDirWithNoModuleSignalsIsSkipped(): void
     {
         // A dir that is neither routed, a theme, nor carries a module.json is not a module at all.
