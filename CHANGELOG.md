@@ -6,6 +6,8 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.14.0] — 2026-09-23
+
 ### Added
 
 - **Multi-site — host → org resolver.** One Tiger install can serve many public sites, one per org,
