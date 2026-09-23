@@ -84,4 +84,70 @@ class Tiger_Model_SiteDomain extends Tiger_Model_Table
             $this->activeSelect()->where('org_id = ?', (string) $orgId)->order('created_at DESC')
         );
     }
+
+    /**
+     * Is a host already mapped (active, not deleted)? Optionally ignore one row (the one being edited).
+     *
+     * @param  string      $host      the request host (raw; normalized internally)
+     * @param  string|null $excludeId a site_domain_id to ignore
+     * @return bool
+     */
+    public function hostTaken($host, $excludeId = null)
+    {
+        $host = self::normalizeHost($host);
+        if ($host === '') {
+            return false;
+        }
+        $sel = $this->activeSelect()->where('domain = ?', $host);
+        if ($excludeId) {
+            $sel->where('site_domain_id <> ?', (string) $excludeId);
+        }
+        return $this->fetchRow($sel) !== null;
+    }
+
+    /**
+     * DataTables server-side source: host → org, with the org name joined for display.
+     *
+     * @param  array $opts search / orderCol / orderDir / offset / limit
+     * @return array       ['total' => int, 'filtered' => int, 'rows' => array]
+     */
+    public function datatable(array $opts)
+    {
+        $db     = $this->getAdapter();
+        $search = (string) ($opts['search'] ?? '');
+        $limit  = max(1, (int) ($opts['limit'] ?? 25));
+        $offset = max(0, (int) ($opts['offset'] ?? 0));
+
+        $orderCols = [0 => 'd.domain', 1 => 'org_name', 2 => 'd.status', 3 => 'd.created_at'];
+        $col = (int) ($opts['orderCol'] ?? -1);
+        $dir = (strtoupper((string) ($opts['orderDir'] ?? '')) === 'DESC') ? 'DESC' : 'ASC';
+        $orderSql = isset($orderCols[$col]) ? ($orderCols[$col] . ' ' . $dir) : 'd.domain ASC';
+
+        $scope    = function ($sel) { $sel->where('d.deleted = 0'); };
+        $searchFn = function ($sel) use ($db, $search) {
+            if ($search === '') { return; }
+            $like  = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $search) . '%';
+            $parts = [];
+            foreach (['d.domain', 'o.name'] as $c) { $parts[] = $db->quoteInto("$c LIKE ?", $like); }
+            $sel->where('(' . implode(' OR ', $parts) . ')');
+        };
+
+        $totalSel = $db->select()->from(['d' => $this->_name], ['c' => new Zend_Db_Expr('COUNT(*)')]);
+        $scope($totalSel);
+        $total = (int) $db->fetchOne($totalSel);
+
+        $filteredSel = $db->select()->from(['d' => $this->_name], ['c' => new Zend_Db_Expr('COUNT(*)')])
+            ->joinLeft(['o' => 'org'], 'o.org_id = d.org_id', []);
+        $scope($filteredSel); $searchFn($filteredSel);
+        $filtered = (int) $db->fetchOne($filteredSel);
+
+        $pageSel = $db->select()
+            ->from(['d' => $this->_name], ['site_domain_id', 'domain', 'org_id', 'status', 'created_at'])
+            ->joinLeft(['o' => 'org'], 'o.org_id = d.org_id', ['org_name' => 'o.name'])
+            ->order(new Zend_Db_Expr($orderSql))
+            ->limit($limit, $offset);
+        $scope($pageSel); $searchFn($pageSel);
+
+        return ['total' => $total, 'filtered' => $filtered, 'rows' => $db->fetchAll($pageSel)];
+    }
 }
