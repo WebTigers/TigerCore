@@ -6,6 +6,8 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.15.0] — 2026-09-23
+
 ### Added
 
 - **Modules: manifest-driven `protected` (always-on) flag.** A module that declares `"protected": true`
