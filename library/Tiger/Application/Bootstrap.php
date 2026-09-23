@@ -13,6 +13,9 @@
  */
 class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
 {
+    /** @var string|null org resolved from the request host (multi-site), cached for _initConfigs */
+    protected $_siteOrg = null;
+
     /**
      * Wire ZF1 paths. The default (module-less) namespace is served from the
      * tiger-core package; app modules come from resources.frontController.
@@ -717,9 +720,40 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
         return (bool) preg_match('/^\s*Bearer\s+tgr_/i', (string) $h);
     }
 
+    /**
+     * Resolve the PUBLIC site's org from the request Host (multi-site: one install, many sites).
+     *
+     * Looks the request Host up in `site_domain`; on a match it pins the site org
+     * (Tiger_Model_Org::setSiteOrgId) so CMS pages/redirects (PageDispatch) AND the org-scoped config
+     * tier (_initConfigs → theme / skin / home page / settings) resolve to that tenant for the whole
+     * request. No match — or no table / no Host / CLI — leaves the default site org untouched, so
+     * single-site installs are unaffected. Fail-open: a broken lookup never breaks the request. The
+     * resolved org id (or null) is cached on the bootstrap for _initConfigs to scope by.
+     *
+     * @return string|null the org id resolved from the host, or null when nothing matched
+     */
+    protected function _initSiteOrg()
+    {
+        if (PHP_SAPI === 'cli' || empty($_SERVER['HTTP_HOST']) || !class_exists('Tiger_Model_SiteDomain')) {
+            return $this->_siteOrg = null;
+        }
+        $this->bootstrap('db');
+        try {
+            $orgId = (new Tiger_Model_SiteDomain())->orgForHost((string) $_SERVER['HTTP_HOST']);
+        } catch (Throwable $e) {
+            $orgId = null;   // no table yet / DB hiccup — fall back to single-site behavior
+        }
+        if ($orgId !== null && $orgId !== '') {
+            Tiger_Model_Org::setSiteOrgId($orgId);
+            return $this->_siteOrg = $orgId;
+        }
+        return $this->_siteOrg = null;
+    }
+
     protected function _initConfigs()
     {
         $this->bootstrap('db');
+        $this->bootstrap('siteOrg');   // resolve host->org BEFORE the org-scoped config tier is folded
         $this->bootstrap('session');   // start the session (DB handler) BEFORE reading the identity
 
         $config = new Zend_Config($this->getOptions(), true);   // ini cascade base (modifiable)
@@ -734,8 +768,12 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
             foreach ($model->getForScope(Tiger_Model_Config::SCOPE_GLOBAL) as $row) {
                 $this->_setNestedConfig($config, $row->config_key, $row->config_value);
             }
-            $orgId = $this->_currentOrgId();
-            if ($orgId !== null) {
+            // Org tier: the authenticated user's org, else — for an anonymous PUBLIC visitor — the
+            // org resolved from the request host (_initSiteOrg). So a multi-site install serves each
+            // host its own tenant's theme/skin/home/settings, while an unmapped/single-site install is
+            // unchanged (no site org resolved -> null -> global only, exactly as before).
+            $orgId = $this->_currentOrgId() ?: $this->_siteOrg;
+            if ($orgId !== null && $orgId !== '') {
                 foreach ($model->getForScope(Tiger_Model_Config::SCOPE_ORG, $orgId) as $row) {
                     $this->_setNestedConfig($config, $row->config_key, $row->config_value);
                 }

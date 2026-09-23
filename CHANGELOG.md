@@ -6,6 +6,16 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Multi-site — host → org resolver.** One Tiger install can serve many public sites, one per org,
+  resolved by the request Host. A `site_domain` mapping (`Tiger_Model_SiteDomain`, migration 0052) binds
+  a hostname to a tenant; the bootstrap (`_initSiteOrg`) resolves the request Host early and pins the site
+  org, so CMS pages/redirects (PageDispatch) **and** the org-scoped config tier (theme, skin, home page,
+  settings) all resolve to that tenant for the whole request. Exact-host match (lowercased, port
+  stripped); a site's `www` and apex are separate rows. Unmapped hosts and single-site installs are
+  unaffected (no site org resolved → global config, exactly as before). (TIGER-215)
+
 ## [1.13.4] — 2026-09-22
 
 ### Changed
