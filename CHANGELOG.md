@@ -6,6 +6,18 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.15.1] — 2026-09-24
+
+### Fixed
+- **Self-update is now atomic + permission-safe** (`Tiger_Update_Composer`). A web-driven core update
+  that failed part-way (Composer could not delete a vendor file the web user didn't own) previously left
+  `vendor/webtigers/tiger-core` half-removed → a fatal on autoload → the whole site 500'd. Now: a **deep
+  writability preflight** walks the vendor tree and aborts cleanly *before* any change if the web user
+  can't replace it (naming the offending dir + a fix command); the target package is **staged aside** as a
+  rollback point before Composer runs (so Composer does a clean fresh install with nothing to delete); and
+  on any failure — or a "success" that left the package missing/incomplete — the previous version is
+  **restored**, so a failed update never breaks the site. (TIGER-225.)
+
 ## [1.15.0] — 2026-09-23
 
 ### Added
