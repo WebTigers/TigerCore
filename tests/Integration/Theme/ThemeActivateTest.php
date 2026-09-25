@@ -63,8 +63,8 @@ final class ThemeActivateTest extends IntegrationTestCase
     public function activate_writes_the_config_key_and_links_the_assets(): void
     {
         $out = Tiger_Theme::activate(self::SLUG);
-        $this->assertSame(['slug' => self::SLUG, 'key' => self::KEY, 'asset_base' => '/_' . self::KEY], $out);
-        $this->assertSame(self::KEY, $this->activeTheme());
+        $this->assertSame(['slug' => self::SLUG, 'key' => self::KEY, 'asset_base' => '/_' . self::KEY, 'default' => true], $out);
+        $this->assertSame(self::KEY, $this->activeTheme(), 'activate() defaults to making it the default site theme');
         $this->assertTrue(is_dir($this->link), 'assets reachable under public/_<key>');
         $this->assertFileExists($this->link . '/css/q9z.css');
     }
