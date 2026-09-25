@@ -35,8 +35,10 @@ class System_ModulesController extends Tiger_Controller_Admin_Action
         foreach (Tiger_Module_Discovery::all() as $slug => $m) {
             $row     = $installed[$slug] ?? null;
             $isTheme = ($m['type'] ?? 'module') === 'theme';
-            // A theme's active state is the tiger.theme config (its KEY, one per scope); a module's is its flag.
-            $active  = $isTheme ? ($activeTheme === ($m['key'] ?? $slug)) : ($row ? ((int) $row->active === 1) : true);
+            // Active is the module FLAG for everything now, themes included — multiple themes can be
+            // active at once. WHICH theme is the DEFAULT site theme is the separate `tiger.theme` config.
+            $active    = $row ? ((int) $row->active === 1) : true;
+            $isDefault = $isTheme && $activeTheme !== '' && $activeTheme === (string) ($m['key'] ?? $slug);
             $source  = $row ? $row->source : ($m['area'] === 'core' ? 'bundled' : 'custom');
             // Taxonomy resolution (AUTHORING.md): the value STORED at install (retained from the source
             // listing/manifest) wins; else the live manifest that Discovery read; else its default. Read
@@ -49,6 +51,7 @@ class System_ModulesController extends Tiger_Controller_Admin_Action
             $m['protected'] = !empty($m['protected']) || in_array($slug, System_Service_Modules::PROTECTED, true);
             $modules[] = $m + [
                 'active'    => $active,
+                'is_default' => $isDefault,
                 'source'    => $source,
                 // Advisory: tested-version compat notice (never blocks) + who requires this module
                 // (drives the "required by X, Y — deactivate anyway?" confirm; empty for most).

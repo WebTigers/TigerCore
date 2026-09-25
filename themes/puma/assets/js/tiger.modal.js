@@ -7,6 +7,7 @@
  * so a control's "are you sure?" or "name this thing" moment looks like the rest of the product.
  *
  *   TigerModal.confirm({ title, body, confirmLabel, cancelLabel, variant }) -> Promise<boolean>
+ *   TigerModal.confirm({ ..., checkbox: { label, checked } }) -> Promise<{ confirmed, checked }>
  *   TigerModal.prompt({ title, label, value, placeholder, help, confirmLabel, variant }) -> Promise<string|null>
  *   TigerModal.alert({ title, body, confirmLabel, variant }) -> Promise<void>
  *
@@ -29,7 +30,7 @@
     'use strict';
     if (typeof window.bootstrap === 'undefined' || !window.bootstrap.Modal) { return; }
 
-    var el = null, modal = null, resolver = null, mode = 'confirm';
+    var el = null, modal = null, resolver = null, mode = 'confirm', hasCheckbox = false;
 
     function q(sel) { return el.querySelector('[data-tm="' + sel + '"]'); }
 
@@ -57,6 +58,10 @@
           +       '<input type="text" class="form-control" data-tm="input" autocomplete="off">'
           +       '<div class="form-text" data-tm="help"></div>'
           +     '</div>'
+          +     '<div class="form-check d-none" data-tm="checkwrap">'
+          +       '<input class="form-check-input" type="checkbox" data-tm="check" id="tm-check">'
+          +       '<label class="form-check-label" for="tm-check" data-tm="checklabel"></label>'
+          +     '</div>'
           +   '</div>'
           +   '<div class="modal-footer">'
           +     '<button type="button" class="btn btn-light" data-tm="cancel" data-bs-dismiss="modal"></button>'
@@ -67,7 +72,7 @@
         modal = window.bootstrap.Modal.getOrCreateInstance(el);
 
         q('confirm').addEventListener('click', function () {
-            settle(mode === 'prompt' ? q('input').value : true);
+            settle(mode === 'prompt' ? q('input').value : (hasCheckbox ? { confirmed: true, checked: q('check').checked } : true));
             modal.hide();
         });
         q('input').addEventListener('keydown', function (e) {
@@ -75,7 +80,7 @@
         });
         // Any dismissal that isn't a confirm (Cancel, ✕, Esc, backdrop) resolves the cancel value.
         el.addEventListener('hidden.bs.modal', function () {
-            settle(mode === 'prompt' ? null : (mode === 'alert' ? undefined : false));
+            settle(mode === 'prompt' ? null : (mode === 'alert' ? undefined : (hasCheckbox ? { confirmed: false, checked: false } : false)));
         });
         el.addEventListener('shown.bs.modal', function () {
             if (mode === 'prompt') { var i = q('input'); i.focus(); i.select(); }
@@ -115,6 +120,15 @@
             help.classList.toggle('d-none', !opts.help);
         } else {
             field.classList.add('d-none');
+        }
+
+        // Optional checkbox (confirm only): { label, checked }. With it, confirm resolves
+        // { confirmed, checked } instead of a bare boolean; without it, behaviour is unchanged.
+        hasCheckbox = (kind === 'confirm' && opts.checkbox && typeof opts.checkbox === 'object');
+        q('checkwrap').classList.toggle('d-none', !hasCheckbox);
+        if (hasCheckbox) {
+            q('checklabel').textContent = opts.checkbox.label || '';
+            q('check').checked = !!opts.checkbox.checked;
         }
 
         return new Promise(function (resolve) { resolver = resolve; modal.show(); });

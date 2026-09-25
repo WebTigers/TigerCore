@@ -231,14 +231,19 @@ class Tiger_Theme
      * @return array{slug:string,key:string,asset_base:string}
      * @throws RuntimeException when no theme with that slug is on disk
      */
-    public static function activate($slug)
+    public static function activate($slug, $makeDefault = true)
     {
         $d = self::_discovered($slug);
         $key  = (string) ($d['key'] ?? preg_replace('/^theme-/', '', $slug));
         $base = ((string) ($d['asset_base'] ?? '')) !== '' ? (string) $d['asset_base'] : '/_' . $key;
-        (new Tiger_Model_Config())->set(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.theme', $key);
+        // Multiple themes can be active at once (their assets published, their layouts available); only
+        // ONE is the DEFAULT site theme (`tiger.theme`). Setting the default is opt-in, so activating a
+        // theme never hijacks the site — the Module manager's "make default" checkbox drives $makeDefault.
+        if ($makeDefault) {
+            (new Tiger_Model_Config())->set(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.theme', $key);
+        }
         self::_linkAssets($slug, $base, (string) ($d['area'] ?? 'app'));
-        return ['slug' => $slug, 'key' => $key, 'asset_base' => $base];
+        return ['slug' => $slug, 'key' => $key, 'asset_base' => $base, 'default' => (bool) $makeDefault];
     }
 
     /**

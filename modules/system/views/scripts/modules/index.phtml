@@ -105,6 +105,7 @@ $typeIcon = static function ($t) {
                         <td data-order="<?= $m['active'] ? 1 : 0 ?>">
                             <?php if ($m['active']): ?><span class="badge text-bg-success"><?= $this->t('system.modules.status_active') ?></span>
                             <?php else: ?><span class="badge text-bg-secondary"><?= $this->t('system.modules.status_inactive') ?></span><?php endif; ?>
+                            <?php if (!empty($m['is_default'])): ?><span class="badge text-bg-primary ms-1" title="<?= $this->escape($this->t('system.modules.default_theme_title')) ?>"><i class="fa-solid fa-star me-1"></i><?= $this->t('system.modules.default_theme') ?></span><?php endif; ?>
                         </td>
                         <td class="text-end text-nowrap">
                             <?php if ($m['protected']): ?>
@@ -112,7 +113,7 @@ $typeIcon = static function ($t) {
                             <?php elseif ($m['active']): ?>
                                 <button type="button" class="btn btn-sm btn-outline-warning" data-mod-toggle="deactivate" data-slug="<?= $this->escape($m['slug']) ?>" data-theme="<?= (($m['type'] ?? '') === 'theme') ? 1 : 0 ?>" data-required-by="<?= $this->escape(implode(',', array_values($m['required_by'] ?? []))) ?>"><i class="fa-solid fa-pause me-1"></i><?= $this->t('system.modules.deactivate') ?></button>
                             <?php else: ?>
-                                <button type="button" class="btn btn-sm btn-outline-success" data-mod-toggle="activate" data-slug="<?= $this->escape($m['slug']) ?>" data-theme="<?= (($m['type'] ?? '') === 'theme') ? 1 : 0 ?>"><i class="fa-solid fa-play me-1"></i><?= $this->t('system.modules.activate') ?></button>
+                                <button type="button" class="btn btn-sm btn-outline-success" data-mod-toggle="activate" data-slug="<?= $this->escape($m['slug']) ?>" data-theme="<?= (($m['type'] ?? '') === 'theme') ? 1 : 0 ?>" data-name="<?= $this->escape($m['name']) ?>" data-default-exists="<?= ($this->activeTheme ?? '') !== '' ? 1 : 0 ?>"><i class="fa-solid fa-play me-1"></i><?= $this->t('system.modules.activate') ?></button>
                             <?php endif; ?>
                             <?php $deletable = !$m['protected'] && (($m['area'] ?? '') !== 'core') && !$m['active']; ?>
                             <?php if ($deletable): ?>
@@ -166,8 +167,9 @@ $this->i18n([
     'deactivateRequired' => 'system.js.deactivate_required',
     'deactivateTheme' => 'system.js.deactivate_theme',
     'deactivateConfirm' => 'system.js.deactivate_confirm',
-    'activateThemeMultiTitle' => 'system.js.activate_theme_multi_title',
-    'activateThemeMulti' => 'system.js.activate_theme_multi',
+    'activateThemeTitle' => 'system.js.activate_theme_title',
+    'activateThemeBody' => 'system.js.activate_theme_body',
+    'activateThemeMakeDefault' => 'system.js.activate_theme_make_default',
 ]);
 ?>
 <script>
@@ -216,8 +218,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     .then(function (r) { return r.json(); });
             });
         }
-        function run() {
-            send().then(function (res) {
+        function run(extra) {
+            send(extra).then(function (res) {
                 if (res.result === 1) { window.location.reload(); return; }
                 if (res.data && res.data.conflicts && res.data.conflicts.length) {
                     var names = res.data.conflicts.map(function (c) { return '"' + (c.name || c.slug) + '"'; }).join(', ');
@@ -228,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         variant: 'primary'
                     }).then(function (ok) {
                         if (!ok) { return; }
-                        send({ confirm: '1' }).then(function (r2) {
+                        send(Object.assign({ confirm: '1' }, extra || {})).then(function (r2) {
                             if (r2.result === 1) { window.location.reload(); return; }
                             (r2.messages || []).forEach(function (m) { TigerDOM.toast(m.message, { type: m.class || 'error' }); });
                         }).catch(function () {});
@@ -257,23 +259,24 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        /* Activating a theme while another theme is already active is ALLOWED (a theme may be built to
-           coexist), but it can be unpredictable — surface a modal NOTICE first, then proceed on OK.
-           Active themes are the rows showing a Deactivate button tagged data-theme="1". */
+        /* Activating a THEME never deactivates another — multiple themes can be active at once (their
+           layouts stay available for pages to use). Offer a checkbox to also make this the DEFAULT site
+           theme; the default only switches when it's ticked. When nothing is the default yet, pre-tick it
+           so the first activated theme becomes the site theme. */
         if (isTheme) {
-            var otherActiveThemes = Array.prototype.filter.call(
-                document.querySelectorAll('[data-mod-toggle="deactivate"][data-theme="1"]'),
-                function (b) { return b.getAttribute('data-slug') !== slug; }
-            );
-            if (otherActiveThemes.length) {
-                TigerModal.confirm({
-                    title: Tiger.t('activateThemeMultiTitle'),
-                    body: Tiger.t('activateThemeMulti'),
-                    confirmLabel: Tiger.t('activateOk'),
-                    variant: 'primary'
-                }).then(function (ok) { if (ok) { run(); } });
-                return;
-            }
+            var themeName    = btn.getAttribute('data-name') || slug;
+            var noDefaultYet = btn.getAttribute('data-default-exists') === '0';
+            TigerModal.confirm({
+                title: Tiger.t('activateThemeTitle'),
+                body: Tiger.t('activateThemeBody', themeName),
+                confirmLabel: Tiger.t('activateOk'),
+                variant: 'primary',
+                checkbox: { label: Tiger.t('activateThemeMakeDefault', themeName), checked: noDefaultYet }
+            }).then(function (res) {
+                if (!res || !res.confirmed) { return; }
+                run(res.checked ? { make_default: '1' } : {});
+            });
+            return;
         }
         run();
     }
