@@ -29,8 +29,8 @@ use Zend_Session;
  * Drives the six default-namespace controllers (`core/controllers/*`) through the dispatch harness,
  * covering the ACTION branches the reference `CoreControllerDispatchTest` left untouched: every
  * AuthController action (login GET/redirect, logout, lock arm/unlock, forgot/reset/otp, security,
- * me, the TOTP endpoints), ApiController's openapi discovery gate, IndexController's home-page +
- * marketing actions, ErrorController's 404/500/403 classification, PageController's CMS + theme
+ * me, the TOTP endpoints), ApiController's openapi discovery gate, IndexController's home-page
+ * action, ErrorController's 404/500/403 classification, PageController's CMS + theme
  * dispatch, and AdminController's dashboard.
  *
  * View rendering stays OFF (the harness covers action LOGIC, not the .phtml). Actions that end in a
@@ -160,15 +160,6 @@ final class CoreControllerActionsTest extends ControllerTestCase
         $this->assertSame('page', $fwd['controller'], 'the home page dispatches through PageController');
         $this->assertSame('view', $fwd['action']);
         $this->assertFalse($fwd['dispatched'], 'a _forward re-queues the request for dispatch');
-    }
-
-    #[Test]
-    public function every_marketing_action_dispatches_cleanly(): void
-    {
-        foreach (['vibe', 'agency', 'developers', 'creators', 'hosting', 'features'] as $action) {
-            $res = $this->dispatchAction(IndexController::class, $action, [], 'GET');
-            $this->assertSame(200, $res->getHttpResponseCode(), "the /$action marketing page dispatches without error");
-        }
     }
 
     // ===== AuthController =====================================================

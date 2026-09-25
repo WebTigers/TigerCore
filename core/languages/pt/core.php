@@ -207,4 +207,10 @@ return [
     'core.mail.provider.help.microsoft_smtp'   => 'A Microsoft desativa o SMTP AUTH por padrão e está descontinuando a autenticação básica; pode ser necessário habilitá-la para esta caixa de correio.',
     'core.mail.provider.requires.aws_sdk'      => 'Este driver precisa do módulo do SDK da AWS (tiger-sdk-aws). Instale e ative-o, ou use o Amazon SES (SMTP).',
     'core.mail.provider.requires.generic'      => 'O driver deste provedor não está disponível nesta instalação.',
+
+    // --- Built-in home stub (IndexController::indexAction fallback — the neutral, brandable welcome) ---
+    'core.home.welcome'    => 'Bem-vindo a %s',
+    'core.home.ready'      => 'O seu site está pronto.',
+    'core.home.admin_hint' => 'Esta é a página inicial padrão. Defina a sua própria página inicial ou publique a sua primeira página no administrador.',
+    'core.home.admin_cta'  => 'Ir para o administrador',
 ];

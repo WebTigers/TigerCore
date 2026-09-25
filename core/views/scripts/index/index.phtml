@@ -2,78 +2,46 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
- * Public home page — a deliberately minimal Tiger placeholder for now (the full home gets designed
- * later). Rendered inside the PUMA public layout; Bootstrap + --bs-* tokens, so it restyles live with
- * the theme (light/dark) and the active skin. The real marketing lives on the Solutions pages
- * (/cms, /vibe, /agency, /developers, …) reachable from the header menu.
+ * The built-in home stub — a deliberately NEUTRAL, brandable welcome shown at "/" only when nothing
+ * else claims the front door: no ComingSoon holding page, no admin-chosen home page (a CMS page or a
+ * path), and no active theme `content/index.phtml`. See IndexController::indexAction for that chain.
+ *
+ * It carries NO product marketing (WebTigers' own marketing pages live in the private TigerMarketing
+ * module, which overrides this stub by setting the home page). A fresh install shows a clean "Welcome
+ * to <site name>", with a quiet next-step nudge visible only to a signed-in admin. Rendered inside the
+ * PUMA public layout — semantic Bootstrap + --bs-* tokens only, so it restyles live with theme + skin.
  */
-$this->title = 'Tiger — Stop building apps. Start shipping businesses. · The AI-native SaaS platform';
+$this->title = $this->siteName ?? 'Tiger';
+
+// Admin-only next-step nudge — the SAME identity + ACL check the public header uses (never a role-string
+// compare). Anonymous visitors see only the welcome; an operator gets a link into the admin.
+$identity = Zend_Auth::getInstance()->hasIdentity() ? Zend_Auth::getInstance()->getIdentity() : null;
+$acl      = Zend_Registry::isRegistered('Tiger_Acl') ? Zend_Registry::get('Tiger_Acl') : null;
+$role     = (is_object($identity) && !empty($identity->role)) ? $identity->role : 'guest';
+$canAdmin = $acl && $acl->has('AdminController') ? $acl->isAllowed($role, 'AdminController') : false;
 ?>
 <section class="py-5">
     <div class="container">
-        <div class="text-center py-lg-5" style="max-width: 760px; margin: 0 auto;">
+        <div class="text-center py-lg-5 mx-auto" style="max-width: 680px;">
             <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-primary-subtle text-primary mb-4" style="width:84px;height:84px;">
                 <i class="fa-solid fa-paw" style="font-size:2.5rem;"></i>
             </div>
-            <span class="rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">The AI-native SaaS platform</span>
-            <h1 class="display-4 fw-bold mb-3">Stop building apps. Start shipping businesses.</h1>
-            <p class="lead text-secondary mb-4">
-                Tell your AI what you want to sell — books, memberships, merch, a whole store — and Tiger
-                ships a real business you own <strong>100%</strong>. Live in minutes. No plugin hell, no
-                build step, no GPL — front-end agnostic, and built to be extended by your AI.
-            </p>
-            <div class="d-flex flex-wrap gap-2 justify-content-center">
-                <a href="/get-tiger" class="btn btn-primary btn-lg px-4">Get Started</a>
-                <a href="/why-tiger" class="btn btn-outline-primary btn-lg px-4">Why Tiger</a>
-                <a href="/how-it-works" class="btn btn-outline-primary btn-lg px-4">How It Works</a>
-                <a href="/docs" class="btn btn-outline-secondary btn-lg px-4">Read the Docs</a>
-                <a href="https://github.com/WebTigers/Tiger" class="btn btn-outline-primary btn-lg px-4" target="_blank" rel="noopener">
-                    <i class="fa-brands fa-github me-2"></i>View on GitHub
-                </a>
-            </div>
-            <p class="text-secondary mt-4 mb-0">
-                <i class="fa-solid fa-arrow-up me-1"></i>
-                Explore what Tiger's for under <strong>Solutions</strong> in the menu.
-            </p>
-        </div>
-    </div>
-</section>
+            <h1 class="display-5 fw-bold mb-3"><?= $this->t('core.home.welcome', $this->escape($this->siteName ?? 'Tiger')) ?></h1>
+            <p class="lead text-secondary mb-0"><?= $this->escape($this->t('core.home.ready')) ?></p>
 
-<!-- Tiger is free -->
-<section class="py-5 bg-body-tertiary">
-    <div class="container">
-        <div class="text-center mx-auto mb-5" style="max-width: 820px;">
-            <div class="text-primary text-uppercase fw-bold mb-3" style="letter-spacing:.14em;">Free · Open source · BSD-3</div>
-            <h2 class="display-4 fw-bold mb-4">Oh, and did we mention, <span class="text-primary">Tiger is FREE.</span></h2>
-            <p class="lead text-secondary mb-0">Tiger is open-source software under the permissive
-                <strong class="text-body-emphasis">BSD-3</strong> license. Download it, run it anywhere PHP and
-                a database run, build whatever you want on it, and keep everything you build — no license fees,
-                no lock-in, no strings.</p>
+            <?php if ($canAdmin): ?>
+                <div class="card border-0 shadow-sm mt-5 text-start mx-auto" style="max-width: 560px;">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <i class="fa-solid fa-wand-magic-sparkles fa-lg text-primary"></i>
+                        <div class="flex-grow-1">
+                            <p class="mb-0 text-body-secondary"><?= $this->escape($this->t('core.home.admin_hint')) ?></p>
+                        </div>
+                        <a href="/admin" class="btn btn-primary text-nowrap">
+                            <i class="fa-solid fa-gauge-high me-1"></i><?= $this->escape($this->t('core.home.admin_cta')) ?>
+                        </a>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
-
-        <div class="row g-4 justify-content-center mb-5 mx-auto" style="max-width: 980px;">
-            <div class="col-sm-6 col-lg-3 text-center">
-                <i class="fa-brands fa-github fa-2x text-primary mb-2"></i>
-                <div class="fw-semibold">Open source</div>
-                <div class="text-secondary">The whole framework, on GitHub. Fork it, read it, own it.</div>
-            </div>
-            <div class="col-sm-6 col-lg-3 text-center">
-                <i class="fa-solid fa-download fa-2x text-primary mb-2"></i>
-                <div class="fw-semibold">Run anywhere</div>
-                <div class="text-secondary">Any box with PHP and a database — a $5 VPS to a Raspberry Pi.</div>
-            </div>
-            <div class="col-sm-6 col-lg-3 text-center">
-                <i class="fa-solid fa-scale-balanced fa-2x text-primary mb-2"></i>
-                <div class="fw-semibold">BSD-3 licensed</div>
-                <div class="text-secondary">Use it, modify it, sell what you build — and keep every dollar.</div>
-            </div>
-            <div class="col-sm-6 col-lg-3 text-center">
-                <i class="fa-solid fa-puzzle-piece fa-2x text-primary mb-2"></i>
-                <div class="fw-semibold">Extend it your way</div>
-                <div class="text-secondary">Add premium paid commercial add-ons if you like — or build your own.</div>
-            </div>
-        </div>
-
-        <h3 class="text-center fw-bold mb-0">Tiger puts you in the <span class="text-primary">driver's seat</span>.</h3>
     </div>
 </section>

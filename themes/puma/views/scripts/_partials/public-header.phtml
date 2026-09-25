@@ -18,19 +18,7 @@
  */
 $identity   = Zend_Auth::getInstance()->hasIdentity() ? Zend_Auth::getInstance()->getIdentity() : null;
 $authRegion = $this->placeholder('tigerHeaderAuth');
-
-// Solutions mega-menu cards: [icon, key-base, href]. Labels resolve through the translator
-// (theme.mega.<name>.{title,tag,desc}) so the whole mega-menu localizes with the site.
-$mega = [
-    ['fa-wand-magic-sparkles', 'theme.mega.websites',   '/cms'],
-    ['fa-people-group',        'theme.mega.agency',     '/agency'],
-    ['fa-rocket',              'theme.mega.saas',        '/vibe'],
-    ['fa-code',                'theme.mega.developers', '/developers'],
-    ['fa-puzzle-piece',        'theme.mega.creators',   '/creators'],
-    ['fa-server',              'theme.mega.hosting',     '/hosting'],
-];
 ?>
-<!-- Mega-menu / mini-mega styles live in themes/puma/assets/default.css (.tiger-mega / .tiger-mini). -->
 <nav class="navbar navbar-expand-lg border-bottom sticky-top" style="background: var(--bs-body-bg);" aria-label="<?= $this->escape($this->t('theme.a11y.primary_nav')) ?>">
     <div class="container">
         <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="/">
@@ -44,65 +32,6 @@ $mega = [
 
         <div class="collapse navbar-collapse" id="tigerNav">
             <ul class="navbar-nav mb-2 mb-lg-0">
-                <!-- Why Tiger: a mini-mega — two cards, opens on hover (desktop). -->
-                <li class="nav-item dropdown tiger-mini">
-                    <a class="nav-link dropdown-toggle" href="#" id="tigerWhy" role="button" data-bs-toggle="dropdown" aria-expanded="false"><?= $this->t('theme.nav.why_tiger') ?></a>
-                    <div class="dropdown-menu border-0 shadow-lg p-3" aria-labelledby="tigerWhy">
-                        <div class="row g-3">
-                            <div class="col-12 col-lg-6">
-                                <a class="mega-card d-block h-100 text-decoration-none text-body rounded-3 p-3" href="/why-tiger">
-                                    <i class="fa-solid fa-paw text-primary fs-4 mb-2 d-block"></i>
-                                    <div class="fw-semibold mb-1"><?= $this->t('theme.nav.why_tiger') ?></div>
-                                    <p class="text-secondary mb-0"><?= $this->t('theme.nav.why_tiger_desc') ?></p>
-                                </a>
-                            </div>
-                            <div class="col-12 col-lg-6">
-                                <a class="mega-card d-block h-100 text-decoration-none text-body rounded-3 p-3" href="/how-it-works">
-                                    <i class="fa-solid fa-diagram-project text-primary fs-4 mb-2 d-block"></i>
-                                    <div class="fw-semibold mb-1"><?= $this->t('theme.nav.how_it_works') ?></div>
-                                    <p class="text-secondary mb-0"><?= $this->t('theme.nav.how_it_works_desc') ?></p>
-                                </a>
-                            </div>
-                            <div class="col-12 col-lg-6">
-                                <a class="mega-card d-block h-100 text-decoration-none text-body rounded-3 p-3" href="/tech-stack">
-                                    <i class="fa-solid fa-layer-group text-primary fs-4 mb-2 d-block"></i>
-                                    <div class="fw-semibold mb-1"><?= $this->t('theme.nav.tech_stack') ?></div>
-                                    <p class="text-secondary mb-0"><?= $this->t('theme.nav.tech_stack_desc') ?></p>
-                                </a>
-                            </div>
-                            <div class="col-12 col-lg-6">
-                                <a class="mega-card d-block h-100 text-decoration-none text-body rounded-3 p-3" href="/saas-vs-sias">
-                                    <i class="fa-solid fa-scale-balanced text-primary fs-4 mb-2 d-block"></i>
-                                    <div class="fw-semibold mb-1"><?= $this->t('theme.nav.saas_vs_sias') ?></div>
-                                    <p class="text-secondary mb-0"><?= $this->t('theme.nav.saas_vs_sias_desc') ?></p>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </li>
-                <!-- Solutions: a static mega-menu — HTML injected into the first dropdown. -->
-                <li class="nav-item dropdown tiger-mega">
-                    <a class="nav-link dropdown-toggle" href="#" id="tigerSolutions" role="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false"><?= $this->t('theme.nav.solutions') ?></a>
-                    <div class="dropdown-menu border-0 shadow-lg p-3 p-lg-4" aria-labelledby="tigerSolutions">
-                        <div class="row g-3">
-<?php foreach ($mega as $m): ?>
-                            <div class="col-12 col-md-6 col-lg-4">
-                                <a class="mega-card d-block h-100 text-decoration-none text-body rounded-3 p-3" href="<?= $m[2] ?>">
-                                    <div class="d-flex gap-3">
-                                        <i class="fa-solid <?= $m[0] ?> text-primary fs-4 mt-1"></i>
-                                        <div>
-                                            <div class="fw-semibold"><?= $this->t($m[1] . '.title') ?></div>
-                                            <div class="text-primary-emphasis fw-semibold mb-1"><?= $this->t($m[1] . '.tag') ?></div>
-                                            <p class="text-secondary mb-0"><?= $this->t($m[1] . '.desc') ?></p>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-<?php endforeach; ?>
-                        </div>
-                    </div>
-                </li>
-                <li class="nav-item"><a class="nav-link" href="/features"><?= $this->t('theme.nav.features') ?></a></li>
                 <li class="nav-item"><a class="nav-link" href="/docs"><?= $this->t('theme.nav.docs') ?></a></li>
                 <li class="nav-item"><a class="nav-link" href="https://github.com/WebTigers/Tiger" target="_blank" rel="noopener"><?= $this->t('theme.nav.github') ?></a></li>
             </ul>

@@ -207,4 +207,10 @@ return [
     'core.mail.provider.help.microsoft_smtp'   => 'Microsoft desactiva SMTP AUTH de forma predeterminada y está retirando la autenticación básica; puede que tengas que habilitarla para este buzón.',
     'core.mail.provider.requires.aws_sdk'      => 'Este controlador necesita el módulo del SDK de AWS (tiger-sdk-aws). Instálalo y actívalo, o usa Amazon SES (SMTP).',
     'core.mail.provider.requires.generic'      => 'El controlador de este proveedor no está disponible en esta instalación.',
+
+    // --- Built-in home stub (IndexController::indexAction fallback — the neutral, brandable welcome) ---
+    'core.home.welcome'    => 'Bienvenido a %s',
+    'core.home.ready'      => 'Tu sitio está listo.',
+    'core.home.admin_hint' => 'Esta es la página de inicio predeterminada. Configura tu propia página de inicio o publica tu primera página desde el administrador.',
+    'core.home.admin_cta'  => 'Ir al administrador',
 ];
