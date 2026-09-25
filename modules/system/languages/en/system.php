@@ -390,6 +390,8 @@ return [
     'system.js.deactivate_ok' => 'Deactivate',
     'system.js.deactivate_required' => 'This module is required by %1$s to function. Deactivate anyway?',
     'system.js.deactivate_theme' => 'Deactivate the "%1$s" theme? The public site reverts to the default theme.',
+    'system.js.activate_theme_multi_title' => 'Multiple active themes',
+    'system.js.activate_theme_multi' => 'Another theme is already active. Activating more than one theme at a time can have unpredictable results — unless the theme is designed to work alongside others. Activate anyway?',
     'system.js.deactivate_confirm' => 'Deactivate "%1$s"? Its routes stop working until you reactivate it. Nothing is deleted.',
     'system.js.confirm_install_title' => 'Install module',
     'system.js.confirm_install_body' => 'This module’s code will run in your app once active.',

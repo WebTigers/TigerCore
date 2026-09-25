@@ -166,6 +166,8 @@ $this->i18n([
     'deactivateRequired' => 'system.js.deactivate_required',
     'deactivateTheme' => 'system.js.deactivate_theme',
     'deactivateConfirm' => 'system.js.deactivate_confirm',
+    'activateThemeMultiTitle' => 'system.js.activate_theme_multi_title',
+    'activateThemeMulti' => 'system.js.activate_theme_multi',
 ]);
 ?>
 <script>
@@ -253,6 +255,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 variant: 'warning'
             }).then(function (ok) { if (ok) { run(); } });
             return;
+        }
+
+        /* Activating a theme while another theme is already active is ALLOWED (a theme may be built to
+           coexist), but it can be unpredictable — surface a modal NOTICE first, then proceed on OK.
+           Active themes are the rows showing a Deactivate button tagged data-theme="1". */
+        if (isTheme) {
+            var otherActiveThemes = Array.prototype.filter.call(
+                document.querySelectorAll('[data-mod-toggle="deactivate"][data-theme="1"]'),
+                function (b) { return b.getAttribute('data-slug') !== slug; }
+            );
+            if (otherActiveThemes.length) {
+                TigerModal.confirm({
+                    title: Tiger.t('activateThemeMultiTitle'),
+                    body: Tiger.t('activateThemeMulti'),
+                    confirmLabel: Tiger.t('activateOk'),
+                    variant: 'primary'
+                }).then(function (ok) { if (ok) { run(); } });
+                return;
+            }
         }
         run();
     }
