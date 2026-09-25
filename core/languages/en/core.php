@@ -213,8 +213,4 @@ return [
     'core.mail.provider.requires.generic'      => 'This provider\'s driver is not available on this install.',
 
     // --- Built-in home stub (IndexController::indexAction fallback — the neutral, brandable welcome) ---
-    'core.home.welcome'    => 'Welcome to %s',
-    'core.home.ready'      => 'Your site is ready.',
-    'core.home.admin_hint' => 'This is the default home page. Set your own home page or publish your first page from the admin.',
-    'core.home.admin_cta'  => 'Go to the admin',
 ];

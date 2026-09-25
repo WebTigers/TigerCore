@@ -209,8 +209,4 @@ return [
     'core.mail.provider.requires.generic'      => 'Le pilote de ce fournisseur n\'est pas disponible sur cette installation.',
 
     // --- Built-in home stub (IndexController::indexAction fallback — the neutral, brandable welcome) ---
-    'core.home.welcome'    => 'Bienvenue sur %s',
-    'core.home.ready'      => 'Votre site est prêt.',
-    'core.home.admin_hint' => 'Ceci est la page d\'accueil par défaut. Définissez votre propre page d\'accueil ou publiez votre première page depuis l\'administration.',
-    'core.home.admin_cta'  => 'Aller à l\'administration',
 ];

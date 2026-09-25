@@ -209,8 +209,4 @@ return [
     'core.mail.provider.requires.generic'      => 'Der Treiber dieses Anbieters ist auf dieser Installation nicht verfügbar.',
 
     // --- Built-in home stub (IndexController::indexAction fallback — the neutral, brandable welcome) ---
-    'core.home.welcome'    => 'Willkommen bei %s',
-    'core.home.ready'      => 'Ihre Website ist bereit.',
-    'core.home.admin_hint' => 'Dies ist die Standard-Startseite. Legen Sie im Admin-Bereich Ihre eigene Startseite fest oder veröffentlichen Sie Ihre erste Seite.',
-    'core.home.admin_cta'  => 'Zum Admin-Bereich',
 ];

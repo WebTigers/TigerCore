@@ -209,8 +209,4 @@ return [
     'core.mail.provider.requires.generic'      => 'El controlador de este proveedor no está disponible en esta instalación.',
 
     // --- Built-in home stub (IndexController::indexAction fallback — the neutral, brandable welcome) ---
-    'core.home.welcome'    => 'Bienvenido a %s',
-    'core.home.ready'      => 'Tu sitio está listo.',
-    'core.home.admin_hint' => 'Esta es la página de inicio predeterminada. Configura tu propia página de inicio o publica tu primera página desde el administrador.',
-    'core.home.admin_cta'  => 'Ir al administrador',
 ];

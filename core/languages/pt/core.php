@@ -209,8 +209,4 @@ return [
     'core.mail.provider.requires.generic'      => 'O driver deste provedor não está disponível nesta instalação.',
 
     // --- Built-in home stub (IndexController::indexAction fallback — the neutral, brandable welcome) ---
-    'core.home.welcome'    => 'Bem-vindo a %s',
-    'core.home.ready'      => 'O seu site está pronto.',
-    'core.home.admin_hint' => 'Esta é a página inicial padrão. Defina a sua própria página inicial ou publique a sua primeira página no administrador.',
-    'core.home.admin_cta'  => 'Ir para o administrador',
 ];

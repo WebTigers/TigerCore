@@ -209,8 +209,4 @@ return [
     'core.mail.provider.requires.generic'      => 'इस प्रदाता का ड्राइवर इस इंस्टॉल पर उपलब्ध नहीं है।',
 
     // --- Built-in home stub (IndexController::indexAction fallback — the neutral, brandable welcome) ---
-    'core.home.welcome'    => '%s में आपका स्वागत है',
-    'core.home.ready'      => 'आपकी साइट तैयार है।',
-    'core.home.admin_hint' => 'यह डिफ़ॉल्ट होम पेज है। एडमिन से अपना होम पेज सेट करें या अपना पहला पेज प्रकाशित करें।',
-    'core.home.admin_cta'  => 'एडमिन पर जाएं',
 ];
