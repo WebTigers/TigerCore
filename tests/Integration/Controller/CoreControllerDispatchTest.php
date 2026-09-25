@@ -124,40 +124,6 @@ final class CoreControllerDispatchTest extends ControllerTestCase
         $this->assertSame($uid, \Zend_Auth::getInstance()->getIdentity()->user_id);
     }
 
-    #[Test]
-    public function the_index_controller_renders_a_static_marketing_action_without_error(): void
-    {
-        // vibeAction just sets up a static page (no DB, no forward). With rendering off, the harness
-        // runs the action body cleanly — proving view-touching actions dispatch under the harness.
-        $res = $this->dispatchAction(IndexController::class, 'vibe', [], 'GET');
-        $this->assertSame(200, $res->getHttpResponseCode(), 'a static action dispatches without error');
-    }
-
-    #[Test]
-    public function the_saas_vs_sias_marketing_action_dispatches_without_error(): void
-    {
-        // The newest shipped marketing page (SaaS vs SiaS) — a static, DB-free action that renders
-        // via localeView(); proves the route/action/view wire up under the harness.
-        // The harness dispatches the bare method name (no inflection), so pass the camelCase action
-        // the router would resolve "saas-vs-sias" to.
-        $res = $this->dispatchAction(IndexController::class, 'saasVsSias', [], 'GET');
-        $this->assertSame(200, $res->getHttpResponseCode(), 'the saas-vs-sias action dispatches without error');
-    }
-
-    #[Test]
-    public function the_how_it_works_marketing_action_dispatches_without_error(): void
-    {
-        $res = $this->dispatchAction(IndexController::class, 'howItWorks', [], 'GET');
-        $this->assertSame(200, $res->getHttpResponseCode(), 'the how-it-works action dispatches without error');
-    }
-
-    #[Test]
-    public function the_tech_stack_marketing_action_dispatches_without_error(): void
-    {
-        $res = $this->dispatchAction(IndexController::class, 'techStack', [], 'GET');
-        $this->assertSame(200, $res->getHttpResponseCode(), 'the tech-stack action dispatches without error');
-    }
-
     private function headerValue($res, string $name): string
     {
         foreach ($res->getHeaders() as $h) {

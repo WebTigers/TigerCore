@@ -207,4 +207,6 @@ return [
     'core.mail.provider.help.microsoft_smtp'   => 'Microsoft deaktiviert SMTP AUTH standardmäßig und stellt die Basisauthentifizierung ein; möglicherweise müssen Sie sie für dieses Postfach aktivieren.',
     'core.mail.provider.requires.aws_sdk'      => 'Dieser Treiber benötigt das AWS-SDK-Modul (tiger-sdk-aws). Installieren und aktivieren Sie es, oder verwenden Sie Amazon SES (SMTP).',
     'core.mail.provider.requires.generic'      => 'Der Treiber dieses Anbieters ist auf dieser Installation nicht verfügbar.',
+
+    // --- Built-in home stub (IndexController::indexAction fallback — the neutral, brandable welcome) ---
 ];
