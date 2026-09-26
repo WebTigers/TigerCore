@@ -219,7 +219,7 @@ final class PageTest extends IntegrationTestCase
         $draft = $this->insertPage(['slug' => 'zz-draft', 'title' => 'ZZ Draft Page', 'status' => Tiger_Model_Page::STATUS_DRAFT]);
         $future = $this->insertPage(['slug' => 'zz-future', 'title' => 'ZZ Future Page', 'published_at' => $this->at('+2 days')]);
         $gone  = $this->insertPage(['slug' => 'zz-gone', 'title' => 'ZZ Gone Page']);
-        $this->page->softDelete($gone);
+        $this->page->softDelete(['page_id = ?' => $gone]);   // softDelete takes a WHERE, not a bare id
 
         $rows = $this->page->publishedSummaries('ZZ ', 50);
         $ids  = array_map(static function ($r) { return $r['page_id']; }, $rows);
