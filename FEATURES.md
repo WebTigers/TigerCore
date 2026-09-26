@@ -69,6 +69,14 @@ framework.
   fallback so nothing breaks mid-rotation, and it's **fail-safe** — the old secret is only removed
   (`secrets:drop-retired`) once you've confirmed the migration, so a botched rotation can't lock anyone
   out. Multiple retired secrets are supported (overlapping rotations).
+- **Pluggable password factor.** The password check is a config-selected, provider-agnostic adapter
+  (`Tiger_Auth_Credential`, `tiger.auth.credential.provider` — the same pattern as `Tiger_Location`/
+  `Tiger_Mail`/`Tiger_Log`). Unset → the built-in DB `user_credential` path (every ordinary install,
+  unchanged). A deployment can register an adapter and point the factor at another authority — e.g.
+  TigerServer verifies an account owner's web login against the OS/system credential so there's a single
+  password — as a provider *chain* (the adapter owns only the users it `appliesTo`; everyone else falls
+  back to the DB), and only the password factor moves: TOTP/other factors, lockout, audit and session
+  issuance stay in the auth service.
 - **One-time challenges.** `auth_challenge` backs OTP / password-reset / magic-link flows —
   hashed codes, single-use, TTL, attempt-limited.
 - **Self-service password reset.** A themed forgot/reset flow: an emailed tokenized link

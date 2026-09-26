@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**209 classes** across **33 capabilities** · **22 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**211 classes** across **33 capabilities** · **22 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -18,6 +18,8 @@
 
 ### Authentication
 
+- **Tiger_Auth_Credential** `@api` — the registry + config selector for pluggable password-factor providers.  ·  `library/Tiger/Auth/Credential.php`
+- **Tiger_Auth_Credential_Adapter_Abstract** `@api` — a pluggable verifier for the PASSWORD factor.  ·  `library/Tiger/Auth/Credential/Adapter/Abstract.php`
 - **Tiger_Auth_Totp** `@api` — RFC 6238 time-based one-time passwords (the "authenticator app" factor), dependency-free.  ·  `library/Tiger/Auth/Totp.php`
 - **Tiger_Model_AuthChallenge** `@api` — AuthChallenge — transient, single-use auth proofs (OTP codes, reset/verify/magic tokens).  ·  `library/Tiger/Model/AuthChallenge.php`
 - **Tiger_Model_Login** `@api` — Login — the append-only authentication audit log (see migration 0011).  ·  `library/Tiger/Model/Login.php`
