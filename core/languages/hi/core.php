@@ -207,4 +207,6 @@ return [
     'core.mail.provider.help.microsoft_smtp'   => 'Microsoft डिफ़ॉल्ट रूप से SMTP AUTH बंद रखता है और बेसिक प्रमाणीकरण हटा रहा है; आपको इस मेलबॉक्स के लिए इसे सक्षम करना पड़ सकता है।',
     'core.mail.provider.requires.aws_sdk'      => 'इस ड्राइवर के लिए AWS SDK मॉड्यूल (tiger-sdk-aws) चाहिए। इसे इंस्टॉल और सक्रिय करें, या Amazon SES (SMTP) उपयोग करें।',
     'core.mail.provider.requires.generic'      => 'इस प्रदाता का ड्राइवर इस इंस्टॉल पर उपलब्ध नहीं है।',
+
+    // --- Built-in home stub (IndexController::indexAction fallback — the neutral, brandable welcome) ---
 ];

@@ -211,4 +211,6 @@ return [
     'core.mail.provider.help.microsoft_smtp'   => 'Microsoft disables SMTP AUTH by default and is retiring basic authentication; you may need to enable it for this mailbox.',
     'core.mail.provider.requires.aws_sdk'      => 'This driver needs the AWS SDK module (tiger-sdk-aws). Install and activate it, or use Amazon SES (SMTP) instead.',
     'core.mail.provider.requires.generic'      => 'This provider\'s driver is not available on this install.',
+
+    // --- Built-in home stub (IndexController::indexAction fallback — the neutral, brandable welcome) ---
 ];

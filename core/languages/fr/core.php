@@ -207,4 +207,6 @@ return [
     'core.mail.provider.help.microsoft_smtp'   => 'Microsoft désactive SMTP AUTH par défaut et retire l\'authentification de base ; vous devrez peut-être l\'activer pour cette boîte aux lettres.',
     'core.mail.provider.requires.aws_sdk'      => 'Ce pilote nécessite le module SDK AWS (tiger-sdk-aws). Installez-le et activez-le, ou utilisez Amazon SES (SMTP).',
     'core.mail.provider.requires.generic'      => 'Le pilote de ce fournisseur n\'est pas disponible sur cette installation.',
+
+    // --- Built-in home stub (IndexController::indexAction fallback — the neutral, brandable welcome) ---
 ];

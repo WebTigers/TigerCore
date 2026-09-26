@@ -92,7 +92,7 @@ final class SocialServiceTest extends IntegrationTestCase
     {
         $this->login('anon', 'org-test', 'guest');
 
-        foreach (['pages' => [], 'save' => ['page_key' => 'agency', 'title' => 'x']] as $method => $params) {
+        foreach (['pages' => [], 'save' => ['page_key' => 'index', 'title' => 'x']] as $method => $params) {
             $res = $this->call($method, $params);
             $this->assertSame(0, (int) $res->result, $method . ' is denied');
             $this->assertStringContainsString('not_allowed', json_encode($res->messages));
@@ -103,7 +103,7 @@ final class SocialServiceTest extends IntegrationTestCase
     public function a_plain_user_is_denied(): void
     {
         $this->loginAs('user');
-        $res = $this->call('save', ['page_key' => 'agency', 'title' => 'x']);
+        $res = $this->call('save', ['page_key' => 'index', 'title' => 'x']);
         $this->assertSame(0, (int) $res->result);
         $this->assertStringContainsString('not_allowed', json_encode($res->messages));
     }
@@ -117,11 +117,11 @@ final class SocialServiceTest extends IntegrationTestCase
         $res = $this->call('pages');
 
         $this->assertSame(1, (int) $res->result);
-        $agency = $this->page($res, 'agency');
-        $this->assertNotNull($agency, 'the shipped /agency page is listed');
-        $this->assertSame('/agency', $agency['url']);
-        $this->assertFalse($agency['has_title'], 'nothing authored yet');
-        $this->assertSame('', $agency['title']);
+        $home = $this->page($res, 'index');
+        $this->assertNotNull($home, 'the shipped home page is listed');
+        $this->assertSame('/', $home['url']);
+        $this->assertFalse($home['has_title'], 'nothing authored yet');
+        $this->assertSame('', $home['title']);
 
         $defaults = $res->data['defaults'];
         $this->assertSame('Tiger', $defaults['site_name']);
@@ -136,7 +136,7 @@ final class SocialServiceTest extends IntegrationTestCase
     {
         $this->config([
             'site' => ['name' => 'Tiger'],
-            'seo'  => ['page' => ['agency' => [
+            'seo'  => ['page' => ['index' => [
                 'title'       => 'For agencies',
                 'description' => 'Run every client site from one install.',
                 'image'       => 'https://cdn.example.test/og-agency.png',
@@ -144,14 +144,14 @@ final class SocialServiceTest extends IntegrationTestCase
         ]);
         $this->loginAs('admin');
 
-        $agency = $this->page($this->call('pages'), 'agency');
+        $home = $this->page($this->call('pages'), 'index');
 
-        $this->assertSame('For agencies', $agency['title']);
-        $this->assertSame('Run every client site from one install.', $agency['description']);
-        $this->assertSame('https://cdn.example.test/og-agency.png', $agency['image']);
-        $this->assertTrue($agency['has_title']);
-        $this->assertTrue($agency['has_description']);
-        $this->assertTrue($agency['has_image']);
+        $this->assertSame('For agencies', $home['title']);
+        $this->assertSame('Run every client site from one install.', $home['description']);
+        $this->assertSame('https://cdn.example.test/og-agency.png', $home['image']);
+        $this->assertTrue($home['has_title']);
+        $this->assertTrue($home['has_description']);
+        $this->assertTrue($home['has_image']);
     }
 
     // ----- save() -------------------------------------------------------------------------------
@@ -161,16 +161,16 @@ final class SocialServiceTest extends IntegrationTestCase
     {
         $this->loginAs('admin');
         $res = $this->call('save', [
-            'page_key'    => 'agency',
+            'page_key'    => 'index',
             'title'       => '  For agencies  ',
             'description' => 'One install, every client site.',
             'image_url'   => 'https://cdn.example.test/og-agency.png',
         ]);
 
         $this->assertSame(1, (int) $res->result);
-        $this->assertSame('For agencies', $this->cfg('tiger.seo.page.agency.title'), 'trimmed on save');
-        $this->assertSame('One install, every client site.', $this->cfg('tiger.seo.page.agency.description'));
-        $this->assertSame('https://cdn.example.test/og-agency.png', $this->cfg('tiger.seo.page.agency.image'));
+        $this->assertSame('For agencies', $this->cfg('tiger.seo.page.index.title'), 'trimmed on save');
+        $this->assertSame('One install, every client site.', $this->cfg('tiger.seo.page.index.description'));
+        $this->assertSame('https://cdn.example.test/og-agency.png', $this->cfg('tiger.seo.page.index.image'));
     }
 
     #[Test]
@@ -178,13 +178,13 @@ final class SocialServiceTest extends IntegrationTestCase
     {
         $this->loginAs('admin');
         $res = $this->call('save', [
-            'page_key'       => 'agency',
+            'page_key'       => 'index',
             'image_media_id' => self::UUID,
             'image_url'      => 'https://cdn.example.test/ignored.png',
         ]);
 
         $this->assertSame(1, (int) $res->result);
-        $this->assertSame(self::UUID, $this->cfg('tiger.seo.page.agency.image'));
+        $this->assertSame(self::UUID, $this->cfg('tiger.seo.page.index.image'));
     }
 
     #[Test]
@@ -192,12 +192,12 @@ final class SocialServiceTest extends IntegrationTestCase
     {
         $this->loginAs('admin');
         $this->call('save', [
-            'page_key'       => 'agency',
+            'page_key'       => 'index',
             'image_media_id' => '',
             'image_url'      => 'https://cdn.example.test/og-agency.png',
         ]);
 
-        $this->assertSame('https://cdn.example.test/og-agency.png', $this->cfg('tiger.seo.page.agency.image'));
+        $this->assertSame('https://cdn.example.test/og-agency.png', $this->cfg('tiger.seo.page.index.image'));
     }
 
     #[Test]
@@ -206,11 +206,11 @@ final class SocialServiceTest extends IntegrationTestCase
         // The media id is a declared form element precisely so a non-browser caller (the AI agent,
         // MCP) is told its id was wrong instead of quietly getting the URL — or nothing — instead.
         $this->loginAs('admin');
-        $res = $this->call('save', ['page_key' => 'agency', 'image_media_id' => 'not-a-uuid']);
+        $res = $this->call('save', ['page_key' => 'index', 'image_media_id' => 'not-a-uuid']);
 
         $this->assertSame(0, (int) $res->result);
         $this->assertArrayHasKey('image_media_id', (array) $res->form);
-        $this->assertNull($this->cfg('tiger.seo.page.agency.image'));
+        $this->assertNull($this->cfg('tiger.seo.page.index.image'));
     }
 
     // ----- the load-bearing one: blank REMOVES the override --------------------------------------
@@ -220,16 +220,16 @@ final class SocialServiceTest extends IntegrationTestCase
     {
         $this->loginAs('admin');
         $this->call('save', [
-            'page_key'    => 'agency',
+            'page_key'    => 'index',
             'title'       => 'For agencies',
             'description' => 'One install, every client site.',
             'image_url'   => 'https://cdn.example.test/og-agency.png',
         ]);
-        $this->assertSame('For agencies', $this->cfg('tiger.seo.page.agency.title'));
+        $this->assertSame('For agencies', $this->cfg('tiger.seo.page.index.title'));
 
         // Now clear the title only.
         $res = $this->call('save', [
-            'page_key'    => 'agency',
+            'page_key'    => 'index',
             'title'       => '',
             'description' => 'One install, every client site.',
             'image_url'   => 'https://cdn.example.test/og-agency.png',
@@ -237,25 +237,25 @@ final class SocialServiceTest extends IntegrationTestCase
 
         $this->assertSame(1, (int) $res->result);
         // Gone from the cascade entirely — NOT stored as '' (which would mask the site fallback).
-        $this->assertNull($this->cfg('tiger.seo.page.agency.title'), 'the override is removed');
-        $this->assertSame('One install, every client site.', $this->cfg('tiger.seo.page.agency.description'), 'the others stand');
+        $this->assertNull($this->cfg('tiger.seo.page.index.title'), 'the override is removed');
+        $this->assertSame('One install, every client site.', $this->cfg('tiger.seo.page.index.description'), 'the others stand');
     }
 
     #[Test]
     public function an_all_blank_save_clears_every_override_and_re_setting_revives_it(): void
     {
         $this->loginAs('admin');
-        $this->call('save', ['page_key' => 'vibe', 'title' => 'T', 'description' => 'D', 'image_url' => 'https://x.test/i.png']);
+        $this->call('save', ['page_key' => 'index', 'title' => 'T', 'description' => 'D', 'image_url' => 'https://x.test/i.png']);
 
-        $this->call('save', ['page_key' => 'vibe']);   // nothing posted = clear all three
+        $this->call('save', ['page_key' => 'index']);   // nothing posted = clear all three
         foreach (['title', 'description', 'image'] as $field) {
-            $this->assertNull($this->cfg('tiger.seo.page.vibe.' . $field), $field . ' override removed');
+            $this->assertNull($this->cfg('tiger.seo.page.index.' . $field), $field . ' override removed');
         }
 
         // forget() soft-deletes; a later set() must REVIVE the row, not collide with the unique index.
-        $res = $this->call('save', ['page_key' => 'vibe', 'title' => 'Back again']);
+        $res = $this->call('save', ['page_key' => 'index', 'title' => 'Back again']);
         $this->assertSame(1, (int) $res->result);
-        $this->assertSame('Back again', $this->cfg('tiger.seo.page.vibe.title'));
+        $this->assertSame('Back again', $this->cfg('tiger.seo.page.index.title'));
     }
 
     #[Test]
@@ -264,7 +264,7 @@ final class SocialServiceTest extends IntegrationTestCase
         $this->loginAs('admin');
         $before = (int) $this->db->fetchOne('SELECT COUNT(*) FROM config');
 
-        $res = $this->call('save', ['page_key' => 'features']);
+        $res = $this->call('save', ['page_key' => 'index']);
 
         $this->assertSame(1, (int) $res->result);
         $this->assertSame($before, (int) $this->db->fetchOne('SELECT COUNT(*) FROM config'), 'no empty rows written');
@@ -312,19 +312,19 @@ final class SocialServiceTest extends IntegrationTestCase
     public function a_malformed_image_url_is_rejected(): void
     {
         $this->loginAs('admin');
-        $res = $this->call('save', ['page_key' => 'agency', 'image_url' => 'ftp://nope']);
+        $res = $this->call('save', ['page_key' => 'index', 'image_url' => 'ftp://nope']);
 
         $this->assertSame(0, (int) $res->result);
         $this->assertNotNull($res->form);
         $this->assertArrayHasKey('image_url', $res->form);
-        $this->assertNull($this->cfg('tiger.seo.page.agency.image'));
+        $this->assertNull($this->cfg('tiger.seo.page.index.image'));
     }
 
     #[Test]
     public function an_over_long_description_is_rejected(): void
     {
         $this->loginAs('admin');
-        $res = $this->call('save', ['page_key' => 'agency', 'description' => str_repeat('x', 301)]);
+        $res = $this->call('save', ['page_key' => 'index', 'description' => str_repeat('x', 301)]);
 
         $this->assertSame(0, (int) $res->result);
         $this->assertArrayHasKey('description', (array) $res->form);
