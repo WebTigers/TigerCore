@@ -32,23 +32,17 @@ class Cms_SettingsController extends Tiger_Controller_Admin_Action
 
         $home = $site ? (string) $site->get('home_page') : '';
 
-        // A stored PATH that isn't one of the offered module pages (an ad-hoc route, or a module
-        // since deactivated) must still round-trip: show it in the custom field with "custom path"
-        // selected, rather than silently resetting the site's home page to the built-in landing.
-        $custom = '';
-        if ($home !== '' && $home[0] === '/' && !array_key_exists($home, Cms_Form_Settings::modulePaths())) {
-            $custom = $home;
-            $home   = Cms_Form_Settings::CUSTOM;
-        }
-
         $form = new Cms_Form_Settings();
         $form->populate([
-            'site_name'        => ($site && (string) $site->get('name') !== '') ? (string) $site->name : 'Tiger',
-            'home_page'        => $home,
-            'home_page_custom' => $custom,
+            'site_name' => ($site && (string) $site->get('name') !== '') ? (string) $site->name : 'Tiger',
+            'home_page' => $home,
         ]);
 
         $this->view->title = 'Settings — Tiger Admin';
         $this->view->form  = $form;
+        // The combobox shows the CURRENT value's friendly label (a page title, "Grey Mist — Home",
+        // a path…); the hidden field holds the raw value. Resolved by the same authority the search uses.
+        $this->view->homeValue = $home;
+        $this->view->homeLabel = Cms_Service_Paths::labelFor($home);
     }
 }

@@ -325,7 +325,7 @@
 - **Analytics** (`analytics`, app)  ·  services: Analytics, Reports  ·  `modules/analytics`
 - **Backup** (`backup`, app)  ·  services: Backup  ·  `modules/backup`
 - **Blog** (`blog`, app)  ·  services: Post, Taxonomy  ·  `modules/blog`
-- **CMS** (`cms`, app)  ·  services: Menu, Page, Settings  ·  `modules/cms`
+- **CMS** (`cms`, app)  ·  services: Menu, Page, Paths, Settings  ·  `modules/cms`
 - **Code** (`code`, developer)  ·  services: Code  ·  `modules/code`
 - **Comments** (`comment`, app)  ·  services: Comment, Render, Settings, Subjects  ·  `modules/comment`
 - **Identity** (`identity`, plugin)  ·  services: Identity  ·  `modules/identity`
