@@ -277,11 +277,57 @@ class Tiger_Service_Authentication
             return ['ok' => false, 'error' => 'This reset link is invalid or has expired.'];
         }
 
-        $credModel = new Tiger_Model_UserCredential();
-        $credId    = $credModel->setPassword($userId, $newPassword);
-        $credModel->recordSuccess($credId);   // clear any prior brute-force lockout
+        // Write through the SAME authority that verifies this user's login (§ setPasswordFor):
+        // a registered provider (e.g. TigerServer's system credential) rewrites the OS password,
+        // so a forgot-password reset changes the one real password; else the default DB path.
+        if (!$this->setPasswordFor($userId, $newPassword)) {
+            return ['ok' => false, 'error' => 'We could not set your password. Please try again.'];
+        }
 
         return ['ok' => true, 'error' => null];
+    }
+
+    /**
+     * Set a user's password through the SAME authority that verifies their login — the configured
+     * `Tiger_Auth_Credential` provider when one owns this user (e.g. TigerServer's OS/system
+     * credential, so a change/forgot-password rewrites the real password and there stays ONE
+     * password for the web login AND SSH), otherwise the default DB `user_credential` path.
+     *
+     * This is the single write seam every password-write flow routes through — self-service change
+     * (`Profile_Service_Security`), forgot-password (`resetPassword` above), and admin reset
+     * (`Access_Service_User`) — so a registered provider is never bypassed by a write. A provider
+     * that owns the user but is read-only (`canSetPassword()` false — an external IdP) returns false
+     * WITHOUT touching the ignored DB credential, so the caller can report "managed elsewhere".
+     *
+     * @param  string $userId      the user whose password to set
+     * @param  string $newPassword the new plaintext password (the caller has already policy-checked it)
+     * @return bool                true on success; false if the user is unknown, the provider's
+     *                             authority is read-only, or the provider write failed
+     */
+    public function setPasswordFor($userId, $newPassword): bool
+    {
+        $userId = (string) $userId;
+        $user   = $userId !== '' ? (new Tiger_Model_User())->findById($userId) : null;
+        if (!$user) {
+            return false;
+        }
+
+        $provider = Tiger_Auth_Credential::providerFor($user);
+        if ($provider !== null) {
+            if (!$provider->canSetPassword($user)) {
+                return false;   // the provider owns this user but its authority is read-only
+            }
+            try {
+                return $provider->setPassword($user, (string) $newPassword);
+            } catch (Throwable $e) {
+                return false;   // a misbehaving adapter must never throw into a password write
+            }
+        }
+
+        $credModel = new Tiger_Model_UserCredential();
+        $credId    = $credModel->setPassword($userId, (string) $newPassword);
+        $credModel->recordSuccess($credId);   // clear any prior brute-force lockout
+        return true;
     }
 
     /** Map a Tiger_Policy_Password violation key to a ready-to-show message. */

@@ -90,6 +90,26 @@ final class CredentialTest extends UnitTestCase
         $this->configureProvider('server');
         $this->assertNull(Tiger_Auth_Credential::providerFor($this->user()), 'appliesTo throwing → null, never break login');
     }
+
+    #[Test]
+    public function the_factor_is_read_only_by_default_so_writes_never_leak_to_an_ignored_db_row(): void
+    {
+        // A verify-only adapter (the AD/external-IdP shape) must NOT claim it can write, and its
+        // default setPassword is a no-op false — so setPasswordFor reports "managed elsewhere"
+        // instead of silently writing a DB credential the provider has superseded.
+        $verifyOnly = new FakeOwnerAdapter();
+        $this->assertFalse($verifyOnly->canSetPassword($this->user()), 'read-only authority by default');
+        $this->assertFalse($verifyOnly->setPassword($this->user(), 'whatever'), 'default setPassword writes nothing');
+    }
+
+    #[Test]
+    public function a_write_capable_adapter_owns_the_password_write(): void
+    {
+        $writable = new FakeWritableAdapter();
+        $this->assertTrue($writable->canSetPassword($this->user()), 'declares it can write');
+        $this->assertTrue($writable->setPassword($this->user(), 'good'), 'accepts a write it can perform');
+        $this->assertFalse($writable->setPassword($this->user(), ''), 'fails closed when it cannot');
+    }
 }
 
 /** Applies to everyone. */
@@ -111,4 +131,13 @@ class FakeThrowingAdapter extends Tiger_Auth_Credential_Adapter_Abstract
 {
     public function appliesTo($user): bool { throw new \RuntimeException('boom'); }
     public function verify($user, string $password): bool { return false; }
+}
+
+/** Owns the user AND its password writes (the TigerServer `server` adapter shape). */
+class FakeWritableAdapter extends Tiger_Auth_Credential_Adapter_Abstract
+{
+    public function appliesTo($user): bool { return true; }
+    public function verify($user, string $password): bool { return $password === 'good'; }
+    public function canSetPassword($user): bool { return true; }
+    public function setPassword($user, string $newPassword): bool { return $newPassword !== ''; }
 }

@@ -22,6 +22,7 @@ return [
     'profile.security.confirm'          => 'Confirmar nova senha',
     'profile.security.change'           => 'Alterar senha',
     'profile.security.password_changed' => 'Senha atualizada.',
+    'profile.security.password_change_failed' => 'Não foi possível alterar a senha. Tente novamente.',
     'profile.security.twofa'            => 'Gerenciar a autenticação de dois fatores',
 
     'profile.user.display_name'    => 'Nome de exibição',

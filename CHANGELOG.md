@@ -6,7 +6,22 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
-## [1.16.1] — 2026-09-26
+## [1.17.0] — 2026-09-26
+
+### Added
+
+- **The pluggable password factor is now read *and* write.** `Tiger_Auth_Credential_Adapter_Abstract`
+  gains `canSetPassword($user)` + `setPassword($user, $newPassword)`, and a new write seam
+  `Tiger_Service_Authentication::setPasswordFor($userId, $newPassword)` routes **every** password
+  write — self-service change (`Profile_Service_Security`), forgot-password
+  (`Authentication::resetPassword`), and admin reset (`Access_Service_User`) — through the same
+  provider decision `login()`/`unlock()` already use. So when a credential provider owns a user
+  (e.g. TigerServer's system credential), changing or resetting their password rewrites **that**
+  authority (the OS password — one password for the web login and SSH), not an ignored DB row.
+  Defaults are unchanged for the ~all installs with no provider: no provider → the DB
+  `user_credential` path exactly as before. A provider that owns a user but is read-only
+  (`canSetPassword` false — an external IdP) is left untouched and the write is refused rather than
+  silently landing in the superseded DB credential.
 
 ### Changed
 
