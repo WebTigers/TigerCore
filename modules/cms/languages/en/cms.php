@@ -81,11 +81,15 @@ return [
     'cms.settings.label_home_page'     => 'Home page',
     'cms.settings.help_home_page'      => 'Which page to serve at %s. “Built-in landing page” keeps the default marketing page.',
     'cms.settings.opt_builtin_landing' => '— Built-in landing page —',
+    'cms.settings.optgroup_general'      => 'General',
     'cms.settings.optgroup_pages'        => 'Content pages',
+    'cms.settings.optgroup_themes'       => 'Theme pages',
     'cms.settings.optgroup_modules'      => 'Module pages',
-    'cms.settings.opt_custom_path'       => '— Custom path… —',
-    'cms.settings.label_home_page_custom' => 'Custom path',
-    'cms.settings.help_home_page_custom' => 'Any route on this site, starting with a slash — for example /marketplace. It is served at / rather than redirected to.',
+    'cms.settings.theme_home'            => 'Home',
+    'cms.settings.home_placeholder'      => 'Search pages, or type any path…',
+    'cms.settings.home_empty'            => 'No matches — type any path.',
+    'cms.settings.advanced_search'       => 'Advanced search',
+    'cms.settings.advanced_search_help'  => 'Include every theme page and route, not just the common home pages.',
 
     // ---- Content list ----
     'cms.page.list_heading'        => 'Content',

@@ -326,11 +326,8 @@ class Tiger_Theme
      */
     public static function names()
     {
-        $dirs = [];
-        if (defined('APPLICATION_PATH')) { $dirs = array_merge($dirs, (array) glob(APPLICATION_PATH . '/modules/theme-*', GLOB_ONLYDIR)); }
-        if (defined('TIGER_CORE_PATH'))  { $dirs = array_merge($dirs, (array) glob(TIGER_CORE_PATH . '/themes/*', GLOB_ONLYDIR)); }
         $out = [];
-        foreach ($dirs as $dir) {
+        foreach (self::_installedThemeDirs() as $dir) {
             $man = self::_manifestAt($dir);
             if (!empty($man['key'])) {
                 $out[(string) $man['key']] = (string) ($man['name'] ?? $man['key']);
@@ -340,17 +337,81 @@ class Tiger_Theme
     }
 
     /**
+     * The on-disk directories of every INSTALLED theme (app `modules/theme-*` + core `themes/*`),
+     * whether active or not. The scan behind `names()` / `dirForKey()`.
+     *
+     * @return array<int,string>
+     */
+    protected static function _installedThemeDirs()
+    {
+        $dirs = [];
+        if (defined('APPLICATION_PATH')) { $dirs = array_merge($dirs, (array) glob(APPLICATION_PATH . '/modules/theme-*', GLOB_ONLYDIR)); }
+        if (defined('TIGER_CORE_PATH'))  { $dirs = array_merge($dirs, (array) glob(TIGER_CORE_PATH . '/themes/*', GLOB_ONLYDIR)); }
+        return $dirs;
+    }
+
+    /**
+     * Resolve an installed theme's directory by its manifest `key` — for rendering a NAMED theme's
+     * material even when it isn't the active site theme (e.g. serving one theme's home page at "/"
+     * while another theme is the default). '' when no installed theme carries that key.
+     *
+     * @param  string $key the theme's manifest key (e.g. `grey-mist`)
+     * @return string      the absolute theme dir, or '' if not found
+     */
+    public static function dirForKey($key)
+    {
+        $key = (string) $key;
+        if ($key === '') { return ''; }
+        foreach (self::_installedThemeDirs() as $dir) {
+            $man = self::_manifestAt($dir);
+            if (!empty($man['key']) && (string) $man['key'] === $key) {
+                return $dir;
+            }
+        }
+        return '';
+    }
+
+    /**
+     * A NAMED theme's public asset base URL (its manifest `assetBase`, else `/_theme`) — the
+     * key-addressed twin of {@see assetBase()}, for rendering a non-active theme's page.
+     *
+     * @param  string $key the theme's manifest key
+     * @return string
+     */
+    public static function assetBaseForKey($key)
+    {
+        $man = self::_manifestAt(self::dirForKey($key));
+        return (isset($man['assetBase']) && $man['assetBase'] !== '') ? (string) $man['assetBase'] : '/_theme';
+    }
+
+    /**
+     * A NAMED theme's shipped content PAGES (its `content/**‍/*.phtml`, `tiger:page`-hinted) — the
+     * key-addressed twin of {@see pages()}, so the home-page selector can list any installed theme's
+     * pages, not only the active one's. [] when the theme isn't found or ships no pages.
+     *
+     * @param  string $key the theme's manifest key
+     * @return array<int,array<string,string>> [{slug,title,layout,skin}] sorted by title
+     */
+    public static function pagesForKey($key)
+    {
+        $dir = self::dirForKey($key);
+        return $dir === '' ? [] : self::_scan('tiger:page', ['tiger:layout', 'tiger:partial'], $dir);
+    }
+
+    /**
      * Scan `content/**‍/*.phtml` for files carrying $hintTag (skipping any that carry an $exclude tag),
      * returning the fork-list shape. The shared engine behind pages()/layouts()/partials().
      *
      * @param  string        $hintTag  the tiger:* tag whose hint drives title/layout/skin
      * @param  array<string> $exclude  tags that, if present, remove the file from THIS list
+     * @param  string|null   $dir      the theme dir to scan (null = the active theme)
      * @return array<int,array<string,string>>
      */
-    protected static function _scan($hintTag, array $exclude = [])
+    protected static function _scan($hintTag, array $exclude = [], $dir = null)
     {
-        $base = self::dir() . '/content';
-        if (self::dir() === '' || !is_dir($base)) {
+        $themeDir = ($dir !== null && $dir !== '') ? (string) $dir : self::dir();
+        $base     = $themeDir . '/content';
+        if ($themeDir === '' || !is_dir($base)) {
             return [];
         }
         $out = [];

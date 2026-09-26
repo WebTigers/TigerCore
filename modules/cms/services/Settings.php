@@ -33,15 +33,10 @@ class Cms_Service_Settings extends Tiger_Service_Service
             $g   = Tiger_Model_Config::SCOPE_GLOBAL;
             $cfg->set($g, '', 'tiger.site.name', trim((string) $v['site_name']));
 
-            // The stored value is a CMS page_id, a PATH ("/marketplace"), or '' for the built-in
-            // landing. Picking "custom path" swaps in the typed value; a blank one falls back to the
-            // built-in rather than storing the sentinel, which would resolve to nothing.
-            $home = (string) $v['home_page'];
-            if ($home === Cms_Form_Settings::CUSTOM) {
-                $custom = trim((string) ($v['home_page_custom'] ?? ''));
-                $home   = ($custom !== '' && $custom[0] === '/') ? $custom : '';
-            }
-            $cfg->set($g, '', 'tiger.site.home_page', $home);
+            // The stored value is a CMS page_id, a PATH ("/marketplace"), a theme page
+            // ("@theme:<key>[:<slug>]"), or '' for the built-in landing — whatever the combobox (or a
+            // free-typed path) put in the field. IndexController resolves it; the form validated its shape.
+            $cfg->set($g, '', 'tiger.site.home_page', trim((string) $v['home_page']));
 
             $this->_success([], 'cms.settings.saved', '/cms/settings');
         } catch (Throwable $e) {

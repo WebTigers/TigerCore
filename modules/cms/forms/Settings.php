@@ -4,70 +4,22 @@
 /**
  * Cms_Form_Settings — site/CMS settings (site name + the home page served at "/").
  *
- * Values are stored in the `config` table (scope=global) by Cms_Service_Settings —
- * NOT a settings table (see the config-discipline: config store + registry, no
- * option landfill). The home-page dropdown lists published pages; its value is a
- * `page_id` ('' = the built-in landing page).
+ * Values are stored in the `config` table (scope=global) by Cms_Service_Settings — NOT a settings table
+ * (config-discipline: config store + registry, no option landfill). The home page is **any valid path**,
+ * so `home_page` is a free value the combobox fills in from `Cms_Service_Paths` (a CMS `page_id`, a PATH
+ * like "/marketplace", a theme page "@theme:<key>[:<slug>]", or '' for the built-in landing) — and a dev
+ * can type any route the discovery list never saw. The validator just refuses obvious junk.
  *
  * @api
  */
 class Cms_Form_Settings extends Tiger_Form
 {
-    /** Sentinel option value meaning "use the typed path instead". Never stored. */
-    const CUSTOM = '__custom__';
-
-    /**
-     * Public module pages, as `path => label` — the active modules' pretty public prefixes.
-     *
-     * Read from `Tiger_Routing_Overrides`, which is where a module declares the public alias it wants
-     * (`/docs`, `/marketplace`). Non-page endpoints are skipped: an override whose prefix looks like a
-     * file (`robots.txt`, `sitemap.xml`, `llms.txt`) serves plain text, and offering it as a home page
-     * would only ever be a mistake. Reserved prefixes are already excluded by `all()`.
-     *
-     * @return array<string,string>
-     */
-    public static function modulePaths(): array
-    {
-        if (!class_exists('Tiger_Routing_Overrides')) { return []; }
-
-        $out = [];
-        foreach (Tiger_Routing_Overrides::all() as $o) {
-            $prefix = trim((string) ($o['prefix'] ?? ''), '/');
-            if ($prefix === '' || strpos($prefix, '.') !== false) { continue; }   // robots.txt / sitemap.xml / llms.txt
-            $out['/' . $prefix] = '/' . $prefix;
-        }
-        ksort($out);
-        return $out;
-    }
+    /** Accepted home_page shapes: '' (empty passes) · /path · @theme:key[:slug] · a UUID page_id. */
+    const HOME_PATTERN = '~^(/[A-Za-z0-9/_\-.]*|@theme:[A-Za-z0-9_\-]+(:[A-Za-z0-9/_\-]+)?|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$~';
 
     protected function elements(): array
     {
         $control = ['class' => 'form-control'];
-        $select  = ['class' => 'form-select'];
-
-        $home = ['' => $this->_t('cms.settings.opt_builtin_landing')];
-
-        // CMS pages — stored as a page_id.
-        $pages = [];
-        $pm    = new Tiger_Model_Page();
-        foreach ($pm->fetchAll(
-            $pm->activeSelect()
-               ->where('type = ?', Tiger_Model_Page::TYPE_PAGE)
-               ->where('status = ?', Tiger_Model_Page::STATUS_PUBLISHED)
-               ->order(['title ASC', 'locale ASC'])
-        ) as $p) {
-            $label = ($p->title ?: $p->slug ?: $p->page_key) . ' (' . $p->locale . ')';
-            $pages[$p->page_id] = $label;
-        }
-        if ($pages) { $home[$this->_t('cms.settings.optgroup_pages')] = $pages; }
-
-        // Public module pages — stored as a PATH. An active module's pretty public prefix is exactly
-        // what an admin thinks of as "the marketplace page" or "the docs page".
-        $modulePages = self::modulePaths();
-        if ($modulePages) { $home[$this->_t('cms.settings.optgroup_modules')] = $modulePages; }
-
-        // The escape hatch: any other route, typed in.
-        $home[self::CUSTOM] = $this->_t('cms.settings.opt_custom_path');
 
         return [
             ['text', 'site_name', [
@@ -75,16 +27,13 @@ class Cms_Form_Settings extends Tiger_Form
                 'filters'  => ['StringTrim'],
                 'attribs'  => array_merge($control, ['id' => 'set-site-name', 'maxlength' => 191]),
             ]],
-            ['select', 'home_page', [
-                'multiOptions' => $home,
-                'attribs'      => array_merge($select, ['id' => 'set-home-page']),
-            ]],
-            // Revealed by the view when "custom path" is picked; its value replaces home_page on save.
-            ['text', 'home_page_custom', [
+            // The stored home-page value. Rendered hidden; the combobox (a visible search input +
+            // Cms_Service_Paths) writes into it, and a free-typed path lands here directly.
+            ['text', 'home_page', [
                 'required'   => false,
                 'filters'    => ['StringTrim'],
-                'validators' => [['Regex', false, ['pattern' => '~^/[A-Za-z0-9/_\-.]*$~']]],
-                'attribs'    => array_merge($control, ['id' => 'set-home-page-custom', 'placeholder' => '/marketplace']),
+                'validators' => [['Regex', false, ['pattern' => self::HOME_PATTERN]]],
+                'attribs'    => ['id' => 'set-home-page'],
             ]],
         ];
     }

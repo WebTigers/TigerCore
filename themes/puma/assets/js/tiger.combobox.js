@@ -1,169 +1,150 @@
 /* SPDX-License-Identifier: BSD-3-Clause
- * Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+ * Copyright (c) 2026 WebTigers. Tiger and WebTigers are trademarks of WebTigers.
  *
- * TigerCombo — turn any <select> into a searchable, keyboard-navigable combobox, zero deps.
+ * TigerCombobox — a searchable "pick OR type" control over an /api search service. The house primitive
+ * for any field whose value is one of a discoverable set BUT may also be typed freely (a path, an id).
  *
- * House style (like TigerButton / TigerDOM): progressive enhancement over a real <select>. Put
- * `data-tiger-combo` on the select; the original stays in the DOM (hidden) and remains the form's
- * source of truth, so submit/reset/validation are unchanged — the widget only writes back to it.
- * Matching is a plain case-insensitive substring over each option's TEXT, so a rich label like
- * "America/New_York (EST, UTC-05:00)" is findable by the city, the abbreviation, or the offset.
+ * Two backing fields, the classic combobox split:
+ *   - a VISIBLE search <input> (what the user types / the chosen label), and
+ *   - a HIDDEN value field (data-value-field="<id>") that holds the committed value the form submits.
  *
- * Auto-scans on DOMContentLoaded; call TigerCombo.scan(root) after injecting markup dynamically.
- * Theme-aware for free — it's built from Bootstrap classes (.form-control, .dropdown-menu), so
- * light/dark follow data-bs-theme like everything else.
+ * Contract (data-* on a wrapper carrying data-tg-combobox):
+ *   data-service="module/service/method"   the /api op the search POSTs to (returns {groups:[{label,options:[{value,label}]}]})
+ *   data-value-field="<hidden input id>"    where the committed value is written
+ *   [data-tg-combobox-search]               the visible search input (else the first <input> in the wrapper)
+ *   [data-tg-combobox-advanced]             an optional checkbox → sent as `advanced` (the "litterbox" toggle)
+ *   [data-tg-combobox-panel]                the results panel (else auto-created; Bootstrap .dropdown-menu)
+ *
+ * Committing: clicking an option commits {value,label}; blurring/Enter with no pick commits the typed
+ * text verbatim (so a free-typed path is kept, "right or wrong" — the server validates on save). The
+ * wrapper fires a `tiger:combobox:change` event with {value,label} on every commit.
+ *
+ * Vanilla, zero-dep (fetch + Bootstrap dropdown classes). Auto-inits every [data-tg-combobox] on DOM ready.
  */
 (function (window, document) {
     'use strict';
 
-    var MAX_VISIBLE = 60;   // cap rendered rows; a filtered list rarely needs more, keeps open snappy
+    var DEBOUNCE = 200;
 
-    function build(select) {
-        if (select.dataset.tigerCombo === 'on') { return; }   // already enhanced
-        select.dataset.tigerCombo = 'on';
+    function TigerCombobox(root) {
+        if (!root || root._tgCombobox) { return; }
+        root._tgCombobox = true;
 
-        // Collect options up front (value, label, disabled). Skip nothing — the placeholder ("—")
-        // stays selectable so a user can clear the field.
-        var opts = Array.prototype.map.call(select.options, function (o) {
-            return { value: o.value, label: o.textContent.trim(), search: o.textContent.trim().toLowerCase() };
-        });
+        var search   = root.querySelector('[data-tg-combobox-search]') || root.querySelector('input:not([type=checkbox]):not([type=hidden])');
+        var valueEl  = document.getElementById(root.getAttribute('data-value-field') || '');
+        var advEl    = root.querySelector('[data-tg-combobox-advanced]')
+                       || document.getElementById(root.getAttribute('data-advanced-field') || '');
+        var panel    = root.querySelector('[data-tg-combobox-panel]');
+        var service  = (root.getAttribute('data-service') || '').split('/');
+        if (!search || !valueEl || service.length < 3) { return; }
 
-        var wrap = document.createElement('div');
-        wrap.className = 'tiger-combo position-relative';
-
-        var input = document.createElement('input');
-        input.type = 'text';
-        input.className = select.className.replace('form-select', 'form-control');
-        input.setAttribute('role', 'combobox');
-        input.setAttribute('aria-expanded', 'false');
-        input.setAttribute('aria-autocomplete', 'list');
-        input.autocomplete = 'off';
-        if (select.id) { input.id = select.id + '-combo'; }
-        if (select.disabled) { input.disabled = true; }
-        var ph = select.getAttribute('data-placeholder') || 'Type to search…';
-        input.placeholder = ph;
-
-        var menu = document.createElement('div');
-        // Keep .dropdown-menu for the theme-aware surface (light/dark), but pin position explicitly —
-        // Bootstrap's default placement needs Popper (data-bs-popper); we have no Popper here.
-        menu.className = 'dropdown-menu tiger-combo-menu shadow-sm';
-        menu.style.cssText = 'position:absolute;top:100%;left:0;width:100%;z-index:1080;max-height:18rem;overflow-y:auto;';
-
-        // Insert the widget right after the (now hidden) select.
-        select.style.display = 'none';
-        select.setAttribute('tabindex', '-1');
-        select.setAttribute('aria-hidden', 'true');
-        select.parentNode.insertBefore(wrap, select.nextSibling);
-        wrap.appendChild(input);
-        wrap.appendChild(menu);
-
-        var open = false, active = -1, filtered = [];
-
-        function labelFor(val) {
-            for (var i = 0; i < opts.length; i++) { if (opts[i].value === val) { return opts[i].label; } }
-            return '';
+        if (!panel) {
+            panel = document.createElement('div');
+            panel.className = 'dropdown-menu w-100';
+            panel.setAttribute('data-tg-combobox-panel', '');
+            root.appendChild(panel);
         }
-        function syncInputFromSelect() {
-            var val = select.value;
-            var lbl = labelFor(val);
-            // Show blank (placeholder) for an empty/placeholder value so the field reads as "unset".
-            input.value = (val === '' ) ? '' : lbl;
-            input.dataset.value = val;
+        panel.style.maxHeight = panel.style.maxHeight || '20rem';
+        panel.style.overflowY = 'auto';
+        panel.style.top = '100%'; panel.style.left = '0';   // pin under the search input
+        if (getComputedStyle(root).position === 'static') { root.style.position = 'relative'; }
+
+        // The committed selection whose LABEL currently fills the search box (so re-blurring an
+        // untouched pick keeps its real value instead of committing the label text).
+        var picked = { value: valueEl.value, label: search.value };
+        var timer = null, active = -1, options = [];
+
+        function open()  { panel.classList.add('show'); search.setAttribute('aria-expanded', 'true'); }
+        function close() { panel.classList.remove('show'); search.setAttribute('aria-expanded', 'false'); active = -1; }
+
+        function commit(value, label) {
+            picked = { value: value, label: label };
+            valueEl.value = value;
+            search.value  = label;
+            root.dispatchEvent(new CustomEvent('tiger:combobox:change', { detail: { value: value, label: label }, bubbles: true }));
         }
 
-        function render(q) {
-            var query = (q || '').trim().toLowerCase();
-            filtered = opts.filter(function (o) {
-                if (o.value === '') { return query === ''; }   // hide the "—" placeholder while searching
-                return query === '' || o.search.indexOf(query) !== -1;
+        // Blur/Enter with no pick: keep the last pick if the box is unchanged, else take the typed text.
+        function commitTyped() {
+            var typed = search.value.trim();
+            if (typed === picked.label) { valueEl.value = picked.value; return; }
+            commit(typed, typed);
+        }
+
+        function render(groups) {
+            panel.innerHTML = '';
+            options = [];
+            (groups || []).forEach(function (g) {
+                if (g.label) {
+                    var h = document.createElement('h6');
+                    h.className = 'dropdown-header';
+                    h.textContent = g.label;
+                    panel.appendChild(h);
+                }
+                (g.options || []).forEach(function (o) {
+                    var a = document.createElement('button');
+                    a.type = 'button';
+                    a.className = 'dropdown-item text-wrap';
+                    a.textContent = o.label;
+                    a.setAttribute('role', 'option');
+                    a.addEventListener('mousedown', function (e) { e.preventDefault(); commit(o.value, o.label); close(); });
+                    panel.appendChild(a);
+                    options.push(a);
+                });
             });
-            var shown = filtered.slice(0, MAX_VISIBLE);
-            menu.innerHTML = '';
-            if (!shown.length) {
+            if (!options.length) {
                 var none = document.createElement('span');
                 none.className = 'dropdown-item-text text-body-secondary small';
-                none.textContent = 'No matches';
-                menu.appendChild(none);
-                return;
-            }
-            shown.forEach(function (o, i) {
-                var a = document.createElement('button');
-                a.type = 'button';
-                a.className = 'dropdown-item text-truncate' + (o.value === select.value ? ' active' : '');
-                a.textContent = o.label || '—';
-                a.dataset.value = o.value;
-                a.dataset.i = i;
-                menu.appendChild(a);
-            });
-            if (filtered.length > shown.length) {
-                var more = document.createElement('span');
-                more.className = 'dropdown-item-text text-body-secondary small';
-                more.textContent = 'Showing ' + shown.length + ' of ' + filtered.length + ' — keep typing to narrow';
-                menu.appendChild(more);
+                none.textContent = search.getAttribute('data-empty-text') || 'No matches — type a path.';
+                panel.appendChild(none);
             }
             active = -1;
+            open();
         }
 
-        function show() {
-            if (open || input.disabled) { return; }
-            open = true;
-            menu.classList.add('show');
-            input.setAttribute('aria-expanded', 'true');
-            render('');
+        function fetchOptions() {
+            var body = new URLSearchParams();
+            body.set('module', service[0]); body.set('service', service[1]); body.set('method', service[2]);
+            body.set('q', search.value.trim());
+            body.set('advanced', advEl && advEl.checked ? '1' : '0');
+            fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
+                .then(function (r) { return r.json().catch(function () { return {}; }); })
+                .then(function (res) { if (res && res.result === 1 && res.data) { render(res.data.groups); } })
+                .catch(function () { /* leave the last list; free-typing still works */ });
         }
-        function hide() {
-            if (!open) { return; }
-            open = false;
-            menu.classList.remove('show');
-            input.setAttribute('aria-expanded', 'false');
-            syncInputFromSelect();   // snap the text back to the committed choice
-        }
-        function commit(val) {
-            select.value = val;
-            select.dispatchEvent(new Event('change', { bubbles: true }));
-            syncInputFromSelect();
-            hide();
-        }
+
+        function schedule() { if (timer) { clearTimeout(timer); } timer = setTimeout(fetchOptions, DEBOUNCE); }
+
         function highlight(next) {
-            var items = menu.querySelectorAll('.dropdown-item');
-            if (!items.length) { return; }
-            active = (active + next + items.length) % items.length;
-            items.forEach(function (el, i) { el.classList.toggle('active', i === active); });
-            items[active].scrollIntoView({ block: 'nearest' });
+            if (!options.length) { return; }
+            if (active >= 0 && options[active]) { options[active].classList.remove('active'); }
+            active = (next + options.length) % options.length;
+            options[active].classList.add('active');
+            options[active].scrollIntoView({ block: 'nearest' });
         }
 
-        input.addEventListener('focus', show);
-        input.addEventListener('input', function () { if (!open) { show(); } render(input.value); });
-        input.addEventListener('keydown', function (e) {
-            if (e.key === 'ArrowDown') { e.preventDefault(); if (!open) { show(); } else { highlight(1); } }
-            else if (e.key === 'ArrowUp') { e.preventDefault(); highlight(-1); }
-            else if (e.key === 'Enter') {
-                var items = menu.querySelectorAll('.dropdown-item');
-                if (open && active >= 0 && items[active]) { e.preventDefault(); commit(items[active].dataset.value); }
-                else if (open && items.length === 1) { e.preventDefault(); commit(items[0].dataset.value); }
-            }
-            else if (e.key === 'Escape') { if (open) { e.preventDefault(); hide(); } }
-        });
-        // mousedown (not click) so the pick fires before the input's blur closes the menu.
-        menu.addEventListener('mousedown', function (e) {
-            var b = e.target.closest('.dropdown-item');
-            if (!b) { return; }
-            e.preventDefault();
-            commit(b.dataset.value);
-        });
-        input.addEventListener('blur', function () { setTimeout(hide, 120); });
+        search.addEventListener('focus', fetchOptions);
+        search.addEventListener('input', schedule);
+        if (advEl) { advEl.addEventListener('change', fetchOptions); }
 
-        // Keep the widget honest if code changes the select programmatically.
-        select.addEventListener('change', function () { if (!open) { syncInputFromSelect(); } });
+        search.addEventListener('keydown', function (e) {
+            if (e.key === 'ArrowDown') { e.preventDefault(); if (!panel.classList.contains('show')) { fetchOptions(); } else { highlight(active + 1); } }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); highlight(active - 1); }
+            else if (e.key === 'Enter')  { if (active >= 0 && options[active]) { e.preventDefault(); options[active].dispatchEvent(new MouseEvent('mousedown')); } else { commitTyped(); close(); } }
+            else if (e.key === 'Escape') { close(); }
+        });
 
-        syncInputFromSelect();
+        search.addEventListener('blur', function () { setTimeout(function () { commitTyped(); close(); }, 150); });
     }
 
-    function scan(root) {
-        (root || document).querySelectorAll('select[data-tiger-combo]').forEach(build);
+    function initAll(scope) {
+        (scope || document).querySelectorAll('[data-tg-combobox]').forEach(function (el) { new TigerCombobox(el); });
     }
 
-    document.addEventListener('DOMContentLoaded', function () { scan(document); });
-
-    window.TigerCombo = { scan: scan, enhance: build };
+    window.TigerCombobox = { init: initAll, create: function (el) { return new TigerCombobox(el); } };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { initAll(); });
+    } else {
+        initAll();
+    }
 })(window, document);
