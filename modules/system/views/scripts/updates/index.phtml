@@ -11,6 +11,12 @@ $pending = $this->pending ?? [];
     <div>
         <h1 class="h3 mb-1"><?= $this->t('system.updates.title') ?></h1>
         <p class="text-body-secondary mb-0"><?= $this->t('system.updates.subtitle') ?></p>
+        <?php if (!empty($this->currentVersion)): ?>
+            <p class="small text-body-secondary mb-0 mt-1">
+                <?= $this->t('system.updates.current_version') ?>
+                <span class="font-monospace fw-semibold">TigerCore <?= $this->escape($this->currentVersion) ?></span>
+            </p>
+        <?php endif; ?>
     </div>
     <div class="text-nowrap">
         <button type="button" id="updates-refresh" class="btn btn-outline-secondary">
@@ -32,6 +38,12 @@ $pending = $this->pending ?? [];
         <i class="fa-solid fa-circle-check text-success fs-1 mb-3"></i>
         <h2 class="h5"><?= $this->t('system.updates.uptodate_title') ?></h2>
         <p class="text-body-secondary mb-0"><?= $this->t('system.updates.uptodate_body') ?></p>
+        <?php if (!empty($this->currentVersion)): ?>
+            <p class="small text-body-secondary mt-2 mb-0">
+                <span class="font-monospace fw-semibold">TigerCore <?= $this->escape($this->currentVersion) ?></span>
+                — <?= $this->t('system.updates.latest_release') ?>
+            </p>
+        <?php endif; ?>
     </div>
 </div>
 <?php if ($pending): ?>
