@@ -18,6 +18,12 @@
  * it owns (e.g. the account owner), and any identity it declines falls back to the default DB path.
  * So a non-owner user the owner invited still authenticates against the DB credential unchanged.
  *
+ * The factor is READ + WRITE, not read-only: an adapter that owns a user's login (`verify()`) also
+ * owns that user's password WRITES (`canSetPassword()` / `setPassword()`), so change-password and
+ * forgot-password rewrite the SAME authority they authenticate against (on TigerServer, the OS
+ * password — one password for the panel and SSH). A write-capable adapter overrides both; a
+ * verify-only authority (an external IdP) leaves the defaults and reports "managed elsewhere".
+ *
  * @api
  */
 abstract class Tiger_Auth_Credential_Adapter_Abstract
@@ -73,5 +79,37 @@ abstract class Tiger_Auth_Credential_Adapter_Abstract
      */
     public function recordSuccess($user): void
     {
+    }
+
+    /**
+     * Can this adapter WRITE a new password to its authority for a user it owns, or is that
+     * authority read-only (e.g. an external IdP / ActiveDirectory Tiger can't modify)? Default:
+     * no. An adapter that owns writes overrides this AND `setPassword()`. When false, the change-
+     * password and forgot-password flows leave the (ignored) DB credential untouched and report
+     * that the password is managed by the provider's authority — they never silently write a DB
+     * row the provider has superseded.
+     *
+     * @param  object $user the resolved user row
+     * @return bool
+     */
+    public function canSetPassword($user): bool
+    {
+        return false;
+    }
+
+    /**
+     * Write a new password to this adapter's authority for a user it owns — e.g. `chpasswd` the OS
+     * account on TigerServer, so a single password covers the web login AND SSH/SFTP. Called by the
+     * change-password / forgot-password / admin-reset flows ONLY when `canSetPassword()` is true, so
+     * a registered provider is never bypassed by a password write. Must fail closed (any error →
+     * false), never throw into the caller. Default: unsupported (false).
+     *
+     * @param  object $user        the resolved user row
+     * @param  string $newPassword the new plaintext password (already policy-checked by the caller)
+     * @return bool                true when the authority accepted the new password
+     */
+    public function setPassword($user, string $newPassword): bool
+    {
+        return false;
     }
 }

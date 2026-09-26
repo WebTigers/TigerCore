@@ -22,6 +22,7 @@ return [
     'profile.security.confirm'          => 'Neues Passwort bestätigen',
     'profile.security.change'           => 'Passwort ändern',
     'profile.security.password_changed' => 'Passwort geändert.',
+    'profile.security.password_change_failed' => 'Passwort konnte nicht geändert werden. Bitte versuche es erneut.',
     'profile.security.twofa'            => 'Zwei-Faktor-Authentifizierung verwalten',
 
     'profile.user.display_name'    => 'Anzeigename',

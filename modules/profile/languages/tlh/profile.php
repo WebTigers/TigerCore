@@ -23,6 +23,7 @@ return [
     'profile.security.confirm'          => 'Confirm New Password',
     'profile.security.change'           => 'Change Password',
     'profile.security.password_changed' => 'Password changed.',
+    'profile.security.password_change_failed' => 'Couldn’t change your password. Please try again.',
     'profile.security.twofa'            => 'Manage two-factor authentication',
 
     'profile.user.display_name'    => 'Display Name',

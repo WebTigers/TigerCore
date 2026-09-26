@@ -22,6 +22,7 @@ return [
     'profile.security.confirm'          => 'नए पासवर्ड की पुष्टि करें',
     'profile.security.change'           => 'पासवर्ड बदलें',
     'profile.security.password_changed' => 'पासवर्ड बदल दिया गया।',
+    'profile.security.password_change_failed' => 'पासवर्ड बदला नहीं जा सका। कृपया पुनः प्रयास करें।',
     'profile.security.twofa'            => 'टू-फैक्टर प्रमाणीकरण प्रबंधित करें',
 
     'profile.user.display_name'    => 'प्रदर्शित नाम',
