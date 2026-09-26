@@ -6,7 +6,19 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
-## [1.17.0] — 2026-09-26
+## [1.18.0] — 2026-09-26
+
+### Changed
+
+- **Bare core ships a neutral, blank home — WebTigers marketing removed from tiger-core (TIGER-230).**
+  A fresh install with no theme now renders an empty home in the active layout, not WebTigers'
+  marketing site. Removed from core: the built-in home body (now deliberately blank), every marketing
+  view (`/vibe`, `/agency`, `/get-tiger`, `/how-it-works`, `/features`, `/creators`, `/developers`,
+  `/hosting`, `/saas-vs-sias`, `/tech-stack` + all locales), their route aliases, `IndexController`'s
+  marketing actions, `themes/puma/assets/marketing.css`, and the PUMA public header's Solutions/Why-Tiger
+  mega-menus (nav is now Docs + GitHub). `IndexController`'s home-resolution chain is unchanged, so a
+  site still gets `/` from ComingSoon, an admin-chosen CMS page/path, or a theme that ships
+  `content/index.phtml`. The WebTigers marketing now lives in the private **TigerMarketing** theme.
 
 ### Added
 
