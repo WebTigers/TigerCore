@@ -6,6 +6,15 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.16.1] — 2026-09-26
+
+### Changed
+
+- **Updates screen shows the installed TigerCore version.** The screen reported "up to date" but never
+  said *which* version you're on. It now shows `Tiger_Version::VERSION` in the header ("Currently running
+  TigerCore x.y.z", always visible) and names it on the up-to-date card ("TigerCore x.y.z — the latest
+  release"). No change to the update checker.
+
 ## [1.16.0] — 2026-09-26
 
 ### Added
