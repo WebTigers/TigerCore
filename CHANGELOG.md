@@ -6,6 +6,32 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.16.0] — 2026-09-26
+
+### Added
+
+- **Multiple active themes + an opt-in default (#311/#312).** "Active" (a module flag, many allowed) is
+  decoupled from the **default site theme** (`tiger.theme`). Activating a theme no longer silently
+  switches the site; a "Make [name] the default theme" checkbox is the only thing that sets `tiger.theme`,
+  and the Modules screen notices/labels the default. `Tiger_Theme::activate($slug, $makeDefault)`.
+- **CMS home page: a searchable path selector over ANY valid path (#313/#314).** The home-page field is a
+  reusable **`tiger.pathbox.js`** "pick or type" combobox over a new admin-only discovery service
+  (`Cms_Service_Paths`): built-in landing, published CMS pages, each installed theme's home, and module
+  home prefixes, with an **Advanced Search** toggle for every theme page — and it always accepts a
+  free-typed path. **Any installed theme's page can serve at `/`** (default theme or not) via a stored
+  `@theme:<key>[:<slug>]` value that `IndexController` forwards to `PageController::themeContentAction`
+  (which honors a `theme_content_theme` param, setting that theme active for the request). New
+  `Tiger_Theme::inventory()`/`dirForKey()`/`assetBaseForKey()`/`pagesForKey()` (all four bootstrap theme
+  locations) and `Tiger_Model_Page::publishedSummaries()` (bounded, small-column pick-list finder).
+- **Auth: a config-selected, pluggable password-factor provider (#315, TIGER-242 core seam).**
+  `Tiger_Auth_Credential` (registry + `tiger.auth.credential.provider`, default `db` = unchanged) +
+  `Tiger_Auth_Credential_Adapter_Abstract` — the same provider-agnostic pattern as `Tiger_Location`/
+  `Tiger_Mail`/`Tiger_Log`. A deployment can point the password factor at another authority (e.g.
+  TigerServer verifying an account owner against the OS/system credential) as a provider chain (the
+  adapter owns only the users it `appliesTo()`; everyone else falls back to the DB). Only the password
+  factor moves — TOTP/2FA, brute-force lockout, login audit and session issuance are unchanged. Wired
+  into `Tiger_Service_Authentication::login()` + `unlock()`.
+
 ## [1.15.0] — 2026-09-23
 
 ### Added
