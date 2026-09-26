@@ -231,14 +231,19 @@ class Tiger_Theme
      * @return array{slug:string,key:string,asset_base:string}
      * @throws RuntimeException when no theme with that slug is on disk
      */
-    public static function activate($slug)
+    public static function activate($slug, $makeDefault = true)
     {
         $d = self::_discovered($slug);
         $key  = (string) ($d['key'] ?? preg_replace('/^theme-/', '', $slug));
         $base = ((string) ($d['asset_base'] ?? '')) !== '' ? (string) $d['asset_base'] : '/_' . $key;
-        (new Tiger_Model_Config())->set(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.theme', $key);
+        // Multiple themes can be active at once (their assets published, their layouts available); only
+        // ONE is the DEFAULT site theme (`tiger.theme`). Setting the default is opt-in, so activating a
+        // theme never hijacks the site — the Module manager's "make default" checkbox drives $makeDefault.
+        if ($makeDefault) {
+            (new Tiger_Model_Config())->set(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.theme', $key);
+        }
         self::_linkAssets($slug, $base, (string) ($d['area'] ?? 'app'));
-        return ['slug' => $slug, 'key' => $key, 'asset_base' => $base];
+        return ['slug' => $slug, 'key' => $key, 'asset_base' => $base, 'default' => (bool) $makeDefault];
     }
 
     /**
@@ -321,17 +326,114 @@ class Tiger_Theme
      */
     public static function names()
     {
-        $dirs = [];
-        if (defined('APPLICATION_PATH')) { $dirs = array_merge($dirs, (array) glob(APPLICATION_PATH . '/modules/theme-*', GLOB_ONLYDIR)); }
-        if (defined('TIGER_CORE_PATH'))  { $dirs = array_merge($dirs, (array) glob(TIGER_CORE_PATH . '/themes/*', GLOB_ONLYDIR)); }
         $out = [];
-        foreach ($dirs as $dir) {
-            $man = self::_manifestAt($dir);
-            if (!empty($man['key'])) {
-                $out[(string) $man['key']] = (string) ($man['name'] ?? $man['key']);
-            }
+        foreach (self::inventory() as $key => $t) {
+            $out[$key] = (string) ($t['name'] ?? $key);
         }
         return $out;
+    }
+
+    /**
+     * The installed-theme INVENTORY, keyed by manifest key: `[key => ['dir','name','assetBase']]`.
+     * Built ONCE per request from a single filesystem scan (memoised) so `names()`/`dirForKey()`/
+     * `assetBaseForKey()`/`pagesForKey()` — often all called for the same discovery — don't each re-glob
+     * and re-read every manifest.
+     *
+     * It scans exactly the locations `Bootstrap::_initTheme` resolves an active theme from, in the SAME
+     * precedence (app wins the package), so a theme discoverable/activatable by the bootstrap is also
+     * resolvable here — a plain `themes/<name>` dir AND a `theme-<name>` MODULE, under both the app and
+     * the core package.
+     *
+     * @return array<string,array{dir:string,name:string,assetBase:string}>
+     */
+    public static function inventory()
+    {
+        if (self::$_inventory !== null) { return self::$_inventory; }
+
+        $dirs = [];
+        if (defined('APPLICATION_PATH')) {
+            $dirs = array_merge($dirs,
+                (array) glob(APPLICATION_PATH . '/themes/*', GLOB_ONLYDIR),
+                (array) glob(APPLICATION_PATH . '/modules/theme-*', GLOB_ONLYDIR));
+        }
+        if (defined('TIGER_CORE_PATH')) {
+            $dirs = array_merge($dirs,
+                (array) glob(TIGER_CORE_PATH . '/modules/theme-*', GLOB_ONLYDIR),
+                (array) glob(TIGER_CORE_PATH . '/themes/*', GLOB_ONLYDIR));
+        }
+
+        $inv = [];
+        foreach ($dirs as $dir) {                 // in precedence order — first key seen wins (app over core)
+            $man = self::_manifestAt($dir);
+            $key = (string) ($man['key'] ?? '');
+            if ($key === '' || isset($inv[$key])) { continue; }
+            $inv[$key] = [
+                'dir'       => $dir,
+                'name'      => (string) ($man['name'] ?? $key),
+                'assetBase' => (isset($man['assetBase']) && $man['assetBase'] !== '') ? (string) $man['assetBase'] : '/_theme',
+            ];
+        }
+        return self::$_inventory = $inv;
+    }
+
+    /** Drop the memoised inventory (tests that install/remove a theme dir mid-run). */
+    public static function resetInventory()
+    {
+        self::$_inventory = null;
+    }
+
+    /** @var array<string,array{dir:string,name:string,assetBase:string}>|null memoised installed-theme inventory */
+    protected static $_inventory = null;
+
+    /**
+     * The on-disk directories of every INSTALLED theme, whether active or not.
+     *
+     * @return array<int,string>
+     */
+    protected static function _installedThemeDirs()
+    {
+        return array_values(array_map(static function ($t) { return $t['dir']; }, self::inventory()));
+    }
+
+    /**
+     * Resolve an installed theme's directory by its manifest `key` — for rendering a NAMED theme's
+     * material even when it isn't the active site theme (e.g. serving one theme's home page at "/"
+     * while another theme is the default). '' when no installed theme carries that key.
+     *
+     * @param  string $key the theme's manifest key (e.g. `grey-mist`)
+     * @return string      the absolute theme dir, or '' if not found
+     */
+    public static function dirForKey($key)
+    {
+        $inv = self::inventory();
+        return isset($inv[(string) $key]) ? $inv[(string) $key]['dir'] : '';
+    }
+
+    /**
+     * A NAMED theme's public asset base URL (its manifest `assetBase`, else `/_theme`) — the
+     * key-addressed twin of {@see assetBase()}, for rendering a non-active theme's page.
+     *
+     * @param  string $key the theme's manifest key
+     * @return string
+     */
+    public static function assetBaseForKey($key)
+    {
+        $inv = self::inventory();
+        return isset($inv[(string) $key]) ? $inv[(string) $key]['assetBase'] : '/_theme';
+    }
+
+    /**
+     * A NAMED theme's shipped content PAGES (its `content/**‍/*.phtml`, `tiger:page`-hinted) — the
+     * key-addressed twin of {@see pages()}, so the home-page selector can list any installed theme's
+     * pages, not only the active one's. [] when the theme isn't found or ships no pages.
+     *
+     * @param  string $key the theme's manifest key
+     * @return array<int,array<string,string>> [{slug,title,layout,skin}] sorted by title
+     */
+    public static function pagesForKey($key)
+    {
+        $dir = self::dirForKey($key);
+        return $dir === '' ? [] : self::_scan('tiger:page', ['tiger:layout', 'tiger:partial'], $dir);
     }
 
     /**
@@ -340,12 +442,14 @@ class Tiger_Theme
      *
      * @param  string        $hintTag  the tiger:* tag whose hint drives title/layout/skin
      * @param  array<string> $exclude  tags that, if present, remove the file from THIS list
+     * @param  string|null   $dir      the theme dir to scan (null = the active theme)
      * @return array<int,array<string,string>>
      */
-    protected static function _scan($hintTag, array $exclude = [])
+    protected static function _scan($hintTag, array $exclude = [], $dir = null)
     {
-        $base = self::dir() . '/content';
-        if (self::dir() === '' || !is_dir($base)) {
+        $themeDir = ($dir !== null && $dir !== '') ? (string) $dir : self::dir();
+        $base     = $themeDir . '/content';
+        if ($themeDir === '' || !is_dir($base)) {
             return [];
         }
         $out = [];

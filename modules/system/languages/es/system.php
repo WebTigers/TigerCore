@@ -112,6 +112,8 @@ return [
     'system.updates.update_all'     => 'Actualizar todo',
     'system.updates.uptodate_title' => 'Todo está al día',
     'system.updates.uptodate_body'  => 'TigerCore y todos los módulos están en sus últimas versiones.',
+    'system.updates.current_version'=> 'Versión actual',
+    'system.updates.latest_release' => 'la última versión',
     'system.updates.select_all'     => 'Seleccionar todas las actualizaciones',
     'system.updates.available_one'  => '%d actualización disponible',
     'system.updates.available_many' => '%d actualizaciones disponibles',

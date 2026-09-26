@@ -75,37 +75,55 @@ class Tiger_Service_Authentication
             return false;
         }
 
-        $credModel = new Tiger_Model_UserCredential();
-        $cred      = $credModel->passwordCredential($user->user_id);
-        if (!$cred || $cred->secret === null) {
-            password_verify($password, $this->_dummyHash());
-            $this->_recordLogin(Tiger_Model_Login::RESULT_FAILURE, $identifier, $user->user_id);
-            return false;
+        // Password factor. A deployment may point it at an ALTERNATE authority (the config-selected
+        // Tiger_Auth_Credential provider — e.g. the OS/system credential on TigerServer, so there's one
+        // password). When a provider owns THIS user, verify there; otherwise ($provider === null: no
+        // provider configured, or it declines this user) run the default DB-credential path unchanged.
+        $provider = Tiger_Auth_Credential::providerFor($user);
+        if ($provider !== null) {
+            if ($provider->isLockedOut($user)) {
+                $this->_recordLogin(Tiger_Model_Login::RESULT_LOCKED, $identifier, $user->user_id);
+                return false;
+            }
+            if (!$provider->verify($user, $password)) {
+                $provider->recordFailure($user);
+                $this->_recordLogin(Tiger_Model_Login::RESULT_FAILURE, $identifier, $user->user_id);
+                return false;
+            }
+            $provider->recordSuccess($user);
+        } else {
+            $credModel = new Tiger_Model_UserCredential();
+            $cred      = $credModel->passwordCredential($user->user_id);
+            if (!$cred || $cred->secret === null) {
+                password_verify($password, $this->_dummyHash());
+                $this->_recordLogin(Tiger_Model_Login::RESULT_FAILURE, $identifier, $user->user_id);
+                return false;
+            }
+
+            // Brute-force lockout: too many recent failures -> refuse without checking.
+            if ($credModel->isLockedOut($cred)) {
+                $this->_recordLogin(Tiger_Model_Login::RESULT_LOCKED, $identifier, $user->user_id);
+                return false;
+            }
+
+            // Delegate the actual check to the model so it applies the PEPPER (and
+            // transparently upgrades a pre-pepper hash on success) — never a raw
+            // password_verify here, which would ignore the pepper.
+            if (!$credModel->verifyPassword($user->user_id, $password)) {
+                $credModel->recordFailure($cred->credential_id);
+                $this->_recordLogin(Tiger_Model_Login::RESULT_FAILURE, $identifier, $user->user_id);
+                return false;
+            }
+
+            $credModel->recordSuccess($cred->credential_id);
         }
 
-        // Brute-force lockout: too many recent failures -> refuse without checking.
-        if ($credModel->isLockedOut($cred)) {
-            $this->_recordLogin(Tiger_Model_Login::RESULT_LOCKED, $identifier, $user->user_id);
-            return false;
-        }
-
-        // Delegate the actual check to the model so it applies the PEPPER (and
-        // transparently upgrades a pre-pepper hash on success) — never a raw
-        // password_verify here, which would ignore the pepper.
-        if (!$credModel->verifyPassword($user->user_id, $password)) {
-            $credModel->recordFailure($cred->credential_id);
-            $this->_recordLogin(Tiger_Model_Login::RESULT_FAILURE, $identifier, $user->user_id);
-            return false;
-        }
-
-        $credModel->recordSuccess($cred->credential_id);
-
-        // Second factor gate: if the user has a confirmed authenticator app, the
-        // password is not enough — stash a short-lived pending challenge (bound to this
-        // session) and tell the caller to collect a TOTP/recovery code. NO session is
-        // established until verifyTwoFactor() succeeds, so a stolen password alone can't
-        // sign in.
-        if ($credModel->hasActiveTotp($user->user_id)) {
+        // Second factor gate: if the user has a confirmed authenticator app, the password is not
+        // enough — stash a short-lived pending challenge (bound to this session) and tell the caller
+        // to collect a TOTP/recovery code. NO session is established until verifyTwoFactor() succeeds,
+        // so a stolen password alone can't sign in. TOTP lives in the DB regardless of the password
+        // provider, so this gate is shared by both paths.
+        if ((new Tiger_Model_UserCredential())->hasActiveTotp($user->user_id)) {
             $this->_beginPending2fa($user->user_id, $identifier);
             return self::TWOFA_REQUIRED;
         }
@@ -259,11 +277,57 @@ class Tiger_Service_Authentication
             return ['ok' => false, 'error' => 'This reset link is invalid or has expired.'];
         }
 
-        $credModel = new Tiger_Model_UserCredential();
-        $credId    = $credModel->setPassword($userId, $newPassword);
-        $credModel->recordSuccess($credId);   // clear any prior brute-force lockout
+        // Write through the SAME authority that verifies this user's login (§ setPasswordFor):
+        // a registered provider (e.g. TigerServer's system credential) rewrites the OS password,
+        // so a forgot-password reset changes the one real password; else the default DB path.
+        if (!$this->setPasswordFor($userId, $newPassword)) {
+            return ['ok' => false, 'error' => 'We could not set your password. Please try again.'];
+        }
 
         return ['ok' => true, 'error' => null];
+    }
+
+    /**
+     * Set a user's password through the SAME authority that verifies their login — the configured
+     * `Tiger_Auth_Credential` provider when one owns this user (e.g. TigerServer's OS/system
+     * credential, so a change/forgot-password rewrites the real password and there stays ONE
+     * password for the web login AND SSH), otherwise the default DB `user_credential` path.
+     *
+     * This is the single write seam every password-write flow routes through — self-service change
+     * (`Profile_Service_Security`), forgot-password (`resetPassword` above), and admin reset
+     * (`Access_Service_User`) — so a registered provider is never bypassed by a write. A provider
+     * that owns the user but is read-only (`canSetPassword()` false — an external IdP) returns false
+     * WITHOUT touching the ignored DB credential, so the caller can report "managed elsewhere".
+     *
+     * @param  string $userId      the user whose password to set
+     * @param  string $newPassword the new plaintext password (the caller has already policy-checked it)
+     * @return bool                true on success; false if the user is unknown, the provider's
+     *                             authority is read-only, or the provider write failed
+     */
+    public function setPasswordFor($userId, $newPassword): bool
+    {
+        $userId = (string) $userId;
+        $user   = $userId !== '' ? (new Tiger_Model_User())->findById($userId) : null;
+        if (!$user) {
+            return false;
+        }
+
+        $provider = Tiger_Auth_Credential::providerFor($user);
+        if ($provider !== null) {
+            if (!$provider->canSetPassword($user)) {
+                return false;   // the provider owns this user but its authority is read-only
+            }
+            try {
+                return $provider->setPassword($user, (string) $newPassword);
+            } catch (Throwable $e) {
+                return false;   // a misbehaving adapter must never throw into a password write
+            }
+        }
+
+        $credModel = new Tiger_Model_UserCredential();
+        $credId    = $credModel->setPassword($userId, (string) $newPassword);
+        $credModel->recordSuccess($credId);   // clear any prior brute-force lockout
+        return true;
     }
 
     /** Map a Tiger_Policy_Password violation key to a ready-to-show message. */
@@ -880,7 +944,14 @@ class Tiger_Service_Authentication
         if (!$identity || empty($identity->user_id)) {
             return false;
         }
-        if (!(new Tiger_Model_UserCredential())->verifyPassword($identity->user_id, (string) $password)) {
+        // Honor the configured password provider (e.g. the system credential on TigerServer) so the
+        // owner unlocks with the SAME password they signed in with; otherwise the default DB check.
+        $user     = (new Tiger_Model_User())->findById($identity->user_id);
+        $provider = $user ? Tiger_Auth_Credential::providerFor($user) : null;
+        $ok = $provider !== null
+            ? $provider->verify($user, (string) $password)
+            : (new Tiger_Model_UserCredential())->verifyPassword($identity->user_id, (string) $password);
+        if (!$ok) {
             return false;
         }
         unset($this->_lockNs()->locked);

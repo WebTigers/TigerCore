@@ -37,9 +37,17 @@ class Profile_Service_Security extends Tiger_Service_Service
 
         $new = (string) $form->getValue('new_password');
         try {
-            $this->_transaction(function () use ($userId, $new) {
-                (new Tiger_Model_UserCredential())->setPassword($userId, $new);
+            // Route through the auth service's write seam so a registered credential provider (e.g.
+            // TigerServer's system credential) is honoured — changing the password here rewrites the
+            // OS password, not an ignored DB row. Falls back to the DB credential when no provider
+            // owns this user. False = provider write failed / a read-only (externally managed) authority.
+            $ok = $this->_transaction(function () use ($userId, $new) {
+                return (new Tiger_Service_Authentication())->setPasswordFor($userId, $new);
             });
+            if (!$ok) {
+                $this->_error('profile.security.password_change_failed');
+                return;
+            }
             $this->_success([], 'profile.security.password_changed');
         } catch (Throwable $e) {
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');

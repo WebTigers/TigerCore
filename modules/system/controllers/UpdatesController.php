@@ -34,9 +34,10 @@ class System_UpdatesController extends Tiger_Controller_Admin_Action
         }
         unset($u);
 
-        $this->view->title    = 'Updates — Tiger Admin';
-        $this->view->updates  = $updates;
-        $this->view->pending  = $pending;
+        $this->view->title          = 'Updates — Tiger Admin';
+        $this->view->updates        = $updates;
+        $this->view->pending        = $pending;
+        $this->view->currentVersion = Tiger_Version::VERSION;   // the installed TigerCore version, always shown
 
         // Durable history (empty until the migration runs — never let it break the screen).
         try {
