@@ -33,18 +33,14 @@ class Cms_Service_Paths extends Tiger_Service_Service
     {
         if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
 
-        $q        = strtolower(trim((string) ($params['q'] ?? '')));
+        $q        = trim((string) ($params['q'] ?? ''));
         $advanced = !empty($params['advanced']) && (string) $params['advanced'] !== '0';
 
+        // Groups come back already q-filtered (CMS pages filtered + bounded in the model; the small
+        // in-memory lists filtered here). Cap each group so one huge theme can't flood the list.
         $out = [];
-        foreach (self::_discover($advanced) as $group) {
-            $opts = [];
-            foreach ($group['options'] as $o) {
-                if ($q === '' || strpos(strtolower($o['label'] . ' ' . $o['value']), $q) !== false) {
-                    $opts[] = $o;
-                    if (count($opts) >= self::LIMIT) { break; }
-                }
-            }
+        foreach (self::_discover($advanced, $q) as $group) {
+            $opts = array_slice($group['options'], 0, self::LIMIT);
             if ($opts) { $out[] = ['label' => $group['label'], 'options' => $opts]; }
         }
 
@@ -86,45 +82,57 @@ class Cms_Service_Paths extends Tiger_Service_Service
     }
 
     /**
-     * Build the grouped option set (unfiltered). BASIC unless $advanced adds every theme page.
+     * Build the grouped option set, q-filtered. BASIC unless $advanced adds every theme page.
      *
-     * @param  bool $advanced
+     * CMS pages are filtered + bounded IN THE MODEL (Tiger_Model_Page::publishedSummaries — no query
+     * builder here, no page bodies loaded). Theme HOMES are emitted for ALL themes first, then (advanced)
+     * every theme's sub-pages, so the caller's per-group cap can never crowd a later theme's home out.
+     * Theme + module lists are small and in-memory, so they're substring-filtered here.
+     *
+     * @param  bool   $advanced
+     * @param  string $q
      * @return array<int,array{label:string,options:array<int,array{value:string,label:string}>}>
      */
-    protected static function _discover(bool $advanced): array
+    protected static function _discover(bool $advanced, string $q): array
     {
+        $ql    = strtolower($q);
+        $match = static function ($label, $value) use ($ql) {
+            return $ql === '' || strpos(strtolower($label . ' ' . $value), $ql) !== false;
+        };
         $groups = [];
 
         // General — the built-in landing (value '').
-        $groups[] = ['label' => self::_t('cms.settings.optgroup_general'), 'options' => [
-            ['value' => '', 'label' => self::_t('cms.settings.opt_builtin_landing')],
-        ]];
+        $landing = self::_t('cms.settings.opt_builtin_landing');
+        if ($match($landing, '')) {
+            $groups[] = ['label' => self::_t('cms.settings.optgroup_general'), 'options' => [['value' => '', 'label' => $landing]]];
+        }
 
-        // CMS pages — stored as a page_id.
+        // CMS pages — filtered + bounded in the model; stored as a page_id.
         $pages = [];
-        $pm    = new Tiger_Model_Page();
-        foreach ($pm->fetchAll(
-            $pm->activeSelect()
-               ->where('type = ?', Tiger_Model_Page::TYPE_PAGE)
-               ->where('status = ?', Tiger_Model_Page::STATUS_PUBLISHED)
-               ->order(['title ASC', 'locale ASC'])
-        ) as $p) {
-            $pages[] = ['value' => (string) $p->page_id, 'label' => ($p->title ?: $p->slug ?: $p->page_key) . ' (' . $p->locale . ')'];
+        foreach ((new Tiger_Model_Page())->publishedSummaries($q, self::LIMIT) as $p) {
+            $label   = (($p['title'] ?? '') ?: ($p['slug'] ?? '') ?: ($p['page_key'] ?? '')) . ' (' . ($p['locale'] ?? '') . ')';
+            $pages[] = ['value' => (string) $p['page_id'], 'label' => $label];
         }
         if ($pages) { $groups[] = ['label' => self::_t('cms.settings.optgroup_pages'), 'options' => $pages]; }
 
-        // Themes — each installed theme's HOME, plus (advanced) its every content page.
-        $themes = [];
-        foreach (Tiger_Theme::names() as $key => $name) {
-            $dir = Tiger_Theme::dirForKey($key);
-            if ($dir === '') { continue; }
-            if (is_file($dir . '/content/index.phtml')) {
-                $themes[] = ['value' => '@theme:' . $key, 'label' => $name . ' — ' . self::_t('cms.settings.theme_home')];
+        // Themes — ALL homes first, then (advanced) every theme's sub-pages. One inventory scan.
+        $themes    = [];
+        $themeHome = self::_t('cms.settings.theme_home');
+        $inv       = Tiger_Theme::inventory();
+        foreach ($inv as $key => $t) {
+            if (is_file($t['dir'] . '/content/index.phtml')) {
+                $label = $t['name'] . ' — ' . $themeHome;
+                $value = '@theme:' . $key;
+                if ($match($label, $value)) { $themes[] = ['value' => $value, 'label' => $label]; }
             }
-            if ($advanced) {
+        }
+        if ($advanced) {
+            foreach ($inv as $key => $t) {
                 foreach (Tiger_Theme::pagesForKey($key) as $pg) {
-                    if ($pg['slug'] === 'index') { continue; }   // the home is already listed
-                    $themes[] = ['value' => '@theme:' . $key . ':' . $pg['slug'], 'label' => $name . ' — ' . $pg['title']];
+                    if ($pg['slug'] === 'index') { continue; }   // the home is already listed above
+                    $label = $t['name'] . ' — ' . $pg['title'];
+                    $value = '@theme:' . $key . ':' . $pg['slug'];
+                    if ($match($label, $value)) { $themes[] = ['value' => $value, 'label' => $label]; }
                 }
             }
         }
@@ -136,7 +144,8 @@ class Cms_Service_Paths extends Tiger_Service_Service
             foreach (Tiger_Routing_Overrides::all() as $o) {
                 $prefix = trim((string) ($o['prefix'] ?? ''), '/');
                 if ($prefix === '' || strpos($prefix, '.') !== false) { continue; }   // robots.txt / sitemap.xml / llms.txt
-                $modules['/' . $prefix] = ['value' => '/' . $prefix, 'label' => '/' . $prefix];
+                $value = '/' . $prefix;
+                if ($match($value, $value)) { $modules[$value] = ['value' => $value, 'label' => $value]; }
             }
             ksort($modules);
         }

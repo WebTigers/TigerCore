@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: BSD-3-Clause
  * Copyright (c) 2026 WebTigers. Tiger and WebTigers are trademarks of WebTigers.
  *
- * CMS Settings — save handler. The home-page control is a TigerCombobox (auto-initialised by
- * tiger.combobox.js over Cms_Service_Paths); this only wires the Save button, which posts the form to
+ * CMS Settings — save handler. The home-page control is a TigerPathbox (auto-initialised by
+ * tiger.pathbox.js over Cms_Service_Paths); this only wires the Save button, which posts the form to
  * /api (Cms_Service_Settings::save) and drives the feedback via the house primitives. No page-POST.
  */
 (function (document) {
@@ -19,6 +19,10 @@
             fb.innerHTML = '';
             form.querySelectorAll('.is-invalid').forEach(function (e) { e.classList.remove('is-invalid'); });
 
+            // Commit any text typed into the pathbox but not yet blurred, SYNCHRONOUSLY, so the value
+            // typed a moment before clicking Save is in the hidden field before FormData reads it.
+            if (window.TigerPathbox) { TigerPathbox.flushAll(form); }
+
             var fd = new URLSearchParams(new FormData(form));
             fd.set('module', 'cms'); fd.set('service', 'settings'); fd.set('method', 'save');
 
@@ -30,7 +34,10 @@
                     if (res && res.result === 1) { TigerDOM.notify(fb, Tiger.t('settingsSaved'), { type: 'success' }); return; }
                     if (res && res.form) {
                         Object.keys(res.form).forEach(function (field) {
-                            var input = form.querySelector('[name="' + field + '"]');
+                            // home_page is a hidden backing field; show the error on the VISIBLE search input.
+                            var input = field === 'home_page'
+                                ? document.getElementById('set-home-page-search')
+                                : form.querySelector('[name="' + field + '"]');
                             if (input) { input.classList.add('is-invalid'); }
                         });
                     }

@@ -3,7 +3,7 @@
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
  * CMS Settings — the site name + the home page served at "/". ViewHelper-only form (the view owns
- * markup). The home page is ANY valid path: a TigerCombobox over Cms_Service_Paths supplies the
+ * markup). The home page is ANY valid path: a TigerPathbox over Cms_Service_Paths supplies the
  * convenience list (with an "Advanced Search" toggle for the full litterbox), and a dev can type any
  * route freely — the hidden `home_page` field holds whatever is committed. Saving is an /api call to
  * Cms_Service_Settings; behaviour lives in cms.settings.js (no inline script).
@@ -41,10 +41,10 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
                         <?php // The committed value the form submits — hidden; the combobox writes into it. ?>
                         <div class="d-none"><?= $el('home_page') ?></div>
 
-                        <?php // The searchable "pick or type" control (TigerCombobox → Cms_Service_Paths). ?>
-                        <div data-tg-combobox data-service="cms/paths/search"
+                        <?php // The searchable "pick or type" control (TigerPathbox → Cms_Service_Paths). ?>
+                        <div data-tg-pathbox data-service="cms/paths/search"
                              data-value-field="set-home-page" data-advanced-field="set-home-advanced">
-                            <input type="text" class="form-control" id="set-home-page-search" data-tg-combobox-search
+                            <input type="text" class="form-control" id="set-home-page-search" data-tg-pathbox-search
                                    autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list"
                                    value="<?= $this->escape($this->homeLabel) ?>"
                                    placeholder="<?= $this->escape($this->t('cms.settings.home_placeholder')) ?>"
@@ -71,6 +71,6 @@ $this->i18n([
     'networkError' => 'cms.js.network_error',
     'settingsSaved' => 'cms.js.settings_saved',
 ]);
-$this->pageScript($this->themeAssets . '/js/tiger.combobox.js');
+$this->pageScript($this->themeAssets . '/js/tiger.pathbox.js');
 $this->pageScript($this->themeAssets . '/js/cms.settings.js');
 ?>

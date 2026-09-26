@@ -327,27 +327,72 @@ class Tiger_Theme
     public static function names()
     {
         $out = [];
-        foreach (self::_installedThemeDirs() as $dir) {
-            $man = self::_manifestAt($dir);
-            if (!empty($man['key'])) {
-                $out[(string) $man['key']] = (string) ($man['name'] ?? $man['key']);
-            }
+        foreach (self::inventory() as $key => $t) {
+            $out[$key] = (string) ($t['name'] ?? $key);
         }
         return $out;
     }
 
     /**
-     * The on-disk directories of every INSTALLED theme (app `modules/theme-*` + core `themes/*`),
-     * whether active or not. The scan behind `names()` / `dirForKey()`.
+     * The installed-theme INVENTORY, keyed by manifest key: `[key => ['dir','name','assetBase']]`.
+     * Built ONCE per request from a single filesystem scan (memoised) so `names()`/`dirForKey()`/
+     * `assetBaseForKey()`/`pagesForKey()` — often all called for the same discovery — don't each re-glob
+     * and re-read every manifest.
+     *
+     * It scans exactly the locations `Bootstrap::_initTheme` resolves an active theme from, in the SAME
+     * precedence (app wins the package), so a theme discoverable/activatable by the bootstrap is also
+     * resolvable here — a plain `themes/<name>` dir AND a `theme-<name>` MODULE, under both the app and
+     * the core package.
+     *
+     * @return array<string,array{dir:string,name:string,assetBase:string}>
+     */
+    public static function inventory()
+    {
+        if (self::$_inventory !== null) { return self::$_inventory; }
+
+        $dirs = [];
+        if (defined('APPLICATION_PATH')) {
+            $dirs = array_merge($dirs,
+                (array) glob(APPLICATION_PATH . '/themes/*', GLOB_ONLYDIR),
+                (array) glob(APPLICATION_PATH . '/modules/theme-*', GLOB_ONLYDIR));
+        }
+        if (defined('TIGER_CORE_PATH')) {
+            $dirs = array_merge($dirs,
+                (array) glob(TIGER_CORE_PATH . '/modules/theme-*', GLOB_ONLYDIR),
+                (array) glob(TIGER_CORE_PATH . '/themes/*', GLOB_ONLYDIR));
+        }
+
+        $inv = [];
+        foreach ($dirs as $dir) {                 // in precedence order — first key seen wins (app over core)
+            $man = self::_manifestAt($dir);
+            $key = (string) ($man['key'] ?? '');
+            if ($key === '' || isset($inv[$key])) { continue; }
+            $inv[$key] = [
+                'dir'       => $dir,
+                'name'      => (string) ($man['name'] ?? $key),
+                'assetBase' => (isset($man['assetBase']) && $man['assetBase'] !== '') ? (string) $man['assetBase'] : '/_theme',
+            ];
+        }
+        return self::$_inventory = $inv;
+    }
+
+    /** Drop the memoised inventory (tests that install/remove a theme dir mid-run). */
+    public static function resetInventory()
+    {
+        self::$_inventory = null;
+    }
+
+    /** @var array<string,array{dir:string,name:string,assetBase:string}>|null memoised installed-theme inventory */
+    protected static $_inventory = null;
+
+    /**
+     * The on-disk directories of every INSTALLED theme, whether active or not.
      *
      * @return array<int,string>
      */
     protected static function _installedThemeDirs()
     {
-        $dirs = [];
-        if (defined('APPLICATION_PATH')) { $dirs = array_merge($dirs, (array) glob(APPLICATION_PATH . '/modules/theme-*', GLOB_ONLYDIR)); }
-        if (defined('TIGER_CORE_PATH'))  { $dirs = array_merge($dirs, (array) glob(TIGER_CORE_PATH . '/themes/*', GLOB_ONLYDIR)); }
-        return $dirs;
+        return array_values(array_map(static function ($t) { return $t['dir']; }, self::inventory()));
     }
 
     /**
@@ -360,15 +405,8 @@ class Tiger_Theme
      */
     public static function dirForKey($key)
     {
-        $key = (string) $key;
-        if ($key === '') { return ''; }
-        foreach (self::_installedThemeDirs() as $dir) {
-            $man = self::_manifestAt($dir);
-            if (!empty($man['key']) && (string) $man['key'] === $key) {
-                return $dir;
-            }
-        }
-        return '';
+        $inv = self::inventory();
+        return isset($inv[(string) $key]) ? $inv[(string) $key]['dir'] : '';
     }
 
     /**
@@ -380,8 +418,8 @@ class Tiger_Theme
      */
     public static function assetBaseForKey($key)
     {
-        $man = self::_manifestAt(self::dirForKey($key));
-        return (isset($man['assetBase']) && $man['assetBase'] !== '') ? (string) $man['assetBase'] : '/_theme';
+        $inv = self::inventory();
+        return isset($inv[(string) $key]) ? $inv[(string) $key]['assetBase'] : '/_theme';
     }
 
     /**
