@@ -209,4 +209,41 @@ final class PageTest extends IntegrationTestCase
 
         $this->assertSame($de, $this->page->resolveBySlug('hallo', 'de', $org)->page_id, 'exact de wins over the en default');
     }
+
+    // ----- publishedSummaries (the home-page selector's bounded finder) ---------------------------
+
+    #[Test]
+    public function published_summaries_returns_small_columns_for_published_pages_only(): void
+    {
+        $live  = $this->insertPage(['slug' => 'zz-live-' . substr(Tiger_Uuid::v7(), 0, 8), 'title' => 'ZZ Live Page', 'page_key' => 'zz-live']);
+        $draft = $this->insertPage(['slug' => 'zz-draft', 'title' => 'ZZ Draft Page', 'status' => Tiger_Model_Page::STATUS_DRAFT]);
+        $future = $this->insertPage(['slug' => 'zz-future', 'title' => 'ZZ Future Page', 'published_at' => $this->at('+2 days')]);
+        $gone  = $this->insertPage(['slug' => 'zz-gone', 'title' => 'ZZ Gone Page']);
+        $this->page->softDelete(['page_id = ?' => $gone]);   // softDelete takes a WHERE, not a bare id
+
+        $rows = $this->page->publishedSummaries('ZZ ', 50);
+        $ids  = array_map(static function ($r) { return $r['page_id']; }, $rows);
+
+        $this->assertContains($live, $ids, 'a published, past/NULL-scheduled page is listed');
+        $this->assertNotContains($draft, $ids, 'a draft is not');
+        $this->assertNotContains($future, $ids, 'a future-scheduled page is not');
+        $this->assertNotContains($gone, $ids, 'a soft-deleted page is not');
+
+        $row = null;
+        foreach ($rows as $r) { if ($r['page_id'] === $live) { $row = $r; } }
+        $this->assertNotNull($row);
+        $this->assertSame(['page_id', 'title', 'slug', 'page_key', 'locale'], array_keys($row), 'small columns only — never body/meta');
+    }
+
+    #[Test]
+    public function published_summaries_filters_by_query_and_honors_the_limit(): void
+    {
+        $wanted = $this->insertPage(['slug' => 'find-me-widget', 'title' => 'Find Me Widget', 'page_key' => 'find-me-widget']);
+        $this->insertPage(['slug' => 'unrelated-thing', 'title' => 'Unrelated Thing', 'page_key' => 'unrelated']);
+
+        $hits = array_map(static function ($r) { return $r['page_id']; }, $this->page->publishedSummaries('widget', 50));
+        $this->assertContains($wanted, $hits, 'matches on title/slug/page_key');
+
+        $this->assertLessThanOrEqual(1, count($this->page->publishedSummaries('', 1)), 'the row cap is enforced');
+    }
 }
