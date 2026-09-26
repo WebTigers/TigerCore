@@ -75,37 +75,55 @@ class Tiger_Service_Authentication
             return false;
         }
 
-        $credModel = new Tiger_Model_UserCredential();
-        $cred      = $credModel->passwordCredential($user->user_id);
-        if (!$cred || $cred->secret === null) {
-            password_verify($password, $this->_dummyHash());
-            $this->_recordLogin(Tiger_Model_Login::RESULT_FAILURE, $identifier, $user->user_id);
-            return false;
+        // Password factor. A deployment may point it at an ALTERNATE authority (the config-selected
+        // Tiger_Auth_Credential provider — e.g. the OS/system credential on TigerServer, so there's one
+        // password). When a provider owns THIS user, verify there; otherwise ($provider === null: no
+        // provider configured, or it declines this user) run the default DB-credential path unchanged.
+        $provider = Tiger_Auth_Credential::providerFor($user);
+        if ($provider !== null) {
+            if ($provider->isLockedOut($user)) {
+                $this->_recordLogin(Tiger_Model_Login::RESULT_LOCKED, $identifier, $user->user_id);
+                return false;
+            }
+            if (!$provider->verify($user, $password)) {
+                $provider->recordFailure($user);
+                $this->_recordLogin(Tiger_Model_Login::RESULT_FAILURE, $identifier, $user->user_id);
+                return false;
+            }
+            $provider->recordSuccess($user);
+        } else {
+            $credModel = new Tiger_Model_UserCredential();
+            $cred      = $credModel->passwordCredential($user->user_id);
+            if (!$cred || $cred->secret === null) {
+                password_verify($password, $this->_dummyHash());
+                $this->_recordLogin(Tiger_Model_Login::RESULT_FAILURE, $identifier, $user->user_id);
+                return false;
+            }
+
+            // Brute-force lockout: too many recent failures -> refuse without checking.
+            if ($credModel->isLockedOut($cred)) {
+                $this->_recordLogin(Tiger_Model_Login::RESULT_LOCKED, $identifier, $user->user_id);
+                return false;
+            }
+
+            // Delegate the actual check to the model so it applies the PEPPER (and
+            // transparently upgrades a pre-pepper hash on success) — never a raw
+            // password_verify here, which would ignore the pepper.
+            if (!$credModel->verifyPassword($user->user_id, $password)) {
+                $credModel->recordFailure($cred->credential_id);
+                $this->_recordLogin(Tiger_Model_Login::RESULT_FAILURE, $identifier, $user->user_id);
+                return false;
+            }
+
+            $credModel->recordSuccess($cred->credential_id);
         }
 
-        // Brute-force lockout: too many recent failures -> refuse without checking.
-        if ($credModel->isLockedOut($cred)) {
-            $this->_recordLogin(Tiger_Model_Login::RESULT_LOCKED, $identifier, $user->user_id);
-            return false;
-        }
-
-        // Delegate the actual check to the model so it applies the PEPPER (and
-        // transparently upgrades a pre-pepper hash on success) — never a raw
-        // password_verify here, which would ignore the pepper.
-        if (!$credModel->verifyPassword($user->user_id, $password)) {
-            $credModel->recordFailure($cred->credential_id);
-            $this->_recordLogin(Tiger_Model_Login::RESULT_FAILURE, $identifier, $user->user_id);
-            return false;
-        }
-
-        $credModel->recordSuccess($cred->credential_id);
-
-        // Second factor gate: if the user has a confirmed authenticator app, the
-        // password is not enough — stash a short-lived pending challenge (bound to this
-        // session) and tell the caller to collect a TOTP/recovery code. NO session is
-        // established until verifyTwoFactor() succeeds, so a stolen password alone can't
-        // sign in.
-        if ($credModel->hasActiveTotp($user->user_id)) {
+        // Second factor gate: if the user has a confirmed authenticator app, the password is not
+        // enough — stash a short-lived pending challenge (bound to this session) and tell the caller
+        // to collect a TOTP/recovery code. NO session is established until verifyTwoFactor() succeeds,
+        // so a stolen password alone can't sign in. TOTP lives in the DB regardless of the password
+        // provider, so this gate is shared by both paths.
+        if ((new Tiger_Model_UserCredential())->hasActiveTotp($user->user_id)) {
             $this->_beginPending2fa($user->user_id, $identifier);
             return self::TWOFA_REQUIRED;
         }
@@ -880,7 +898,14 @@ class Tiger_Service_Authentication
         if (!$identity || empty($identity->user_id)) {
             return false;
         }
-        if (!(new Tiger_Model_UserCredential())->verifyPassword($identity->user_id, (string) $password)) {
+        // Honor the configured password provider (e.g. the system credential on TigerServer) so the
+        // owner unlocks with the SAME password they signed in with; otherwise the default DB check.
+        $user     = (new Tiger_Model_User())->findById($identity->user_id);
+        $provider = $user ? Tiger_Auth_Credential::providerFor($user) : null;
+        $ok = $provider !== null
+            ? $provider->verify($user, (string) $password)
+            : (new Tiger_Model_UserCredential())->verifyPassword($identity->user_id, (string) $password);
+        if (!$ok) {
             return false;
         }
         unset($this->_lockNs()->locked);
