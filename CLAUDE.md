@@ -13,3 +13,8 @@ Reference docs: @ARCHITECTURE.md (the why) · @FEATURES.md (what the platform do
 @SELLING.md (the seller's guide + model: list free / sell paid → Add Module, and the build status) ·
 @TIGERAGENT.md (the in-platform AI agent) · @TIGERSKILLS.md (agent Skills — installable know-how + the Skills/MCP surface) ·
 @TIGERMCP.md (Tiger as an MCP server — external AI clients drive the install over /api).
+
+First-party installable modules worth knowing (not in this tree — install from the Directory):
+**TigerImage** (`WebTigers/TigerImage`) — AI image generation (generate/compare/refine/keep, with
+lineage), provider-agnostic and spend-capped. Reach for it before hand-rolling image-provider calls;
+admin docs at `/docs/tigerimage`.
