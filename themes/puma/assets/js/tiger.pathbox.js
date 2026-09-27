@@ -111,7 +111,11 @@
             open = true;   // a fetch expresses open intent (focus/typing/toggle)
             var body = new URLSearchParams();
             body.set('module', service[0]); body.set('service', service[1]); body.set('method', service[2]);
-            body.set('q', search.value.trim());
+            // While the box still shows the COMMITTED label (just focused, not yet edited), search with an
+            // EMPTY q so the FULL list appears — otherwise opening the control would "search" for the
+            // current selection's label and hide every other option (the active theme included).
+            var typed = search.value.trim();
+            body.set('q', typed === (picked.label || '').trim() ? '' : typed);
             body.set('advanced', advEl && advEl.checked ? '1' : '0');
             fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
                 .then(function (r) { return r.json().catch(function () { return {}; }); })
@@ -132,7 +136,7 @@
             options[activeIdx].scrollIntoView({ block: 'nearest' });
         }
 
-        search.addEventListener('focus', fetchOptions);
+        search.addEventListener('focus', function () { search.select(); fetchOptions(); });
         search.addEventListener('input', schedule);
         if (advEl) { advEl.addEventListener('change', fetchOptions); }
 

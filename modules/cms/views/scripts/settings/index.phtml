@@ -41,20 +41,22 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
                         <?php // The committed value the form submits — hidden; the combobox writes into it. ?>
                         <div class="d-none"><?= $el('home_page') ?></div>
 
-                        <?php // The searchable "pick or type" control (TigerPathbox → Cms_Service_Paths). ?>
-                        <div data-tg-pathbox data-service="cms/paths/search"
-                             data-value-field="set-home-page" data-advanced-field="set-home-advanced">
-                            <input type="text" class="form-control" id="set-home-page-search" data-tg-pathbox-search
-                                   autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list"
-                                   value="<?= $this->escape($this->homeLabel) ?>"
-                                   placeholder="<?= $this->escape($this->t('cms.settings.home_placeholder')) ?>"
-                                   data-empty-text="<?= $this->escape($this->t('cms.settings.home_empty')) ?>">
-                        </div>
-
-                        <div class="form-check mt-2">
-                            <input class="form-check-input" type="checkbox" id="set-home-advanced">
-                            <label class="form-check-label" for="set-home-advanced"><?= $this->t('cms.settings.advanced_search') ?></label>
-                            <div class="form-text mt-0"><?= $this->t('cms.settings.advanced_search_help') ?></div>
+                        <?php // The searchable "pick or type" control (TigerPathbox → Cms_Service_Paths),
+                              // with the Advanced-search toggle BESIDE it. ?>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="flex-grow-1" data-tg-pathbox data-service="cms/paths/search"
+                                 data-value-field="set-home-page" data-advanced-field="set-home-advanced">
+                                <input type="text" class="form-control" id="set-home-page-search" data-tg-pathbox-search
+                                       autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list"
+                                       value="<?= $this->escape($this->homeLabel) ?>"
+                                       placeholder="<?= $this->escape($this->t('cms.settings.home_placeholder')) ?>"
+                                       data-empty-text="<?= $this->escape($this->t('cms.settings.home_empty')) ?>">
+                            </div>
+                            <div class="form-check mb-0 text-nowrap">
+                                <input class="form-check-input" type="checkbox" id="set-home-advanced">
+                                <label class="form-check-label" for="set-home-advanced"
+                                       title="<?= $this->escape($this->t('cms.settings.advanced_search_help')) ?>"><?= $this->t('cms.settings.advanced_search') ?></label>
+                            </div>
                         </div>
 
                         <div class="form-text"><?= $this->t('cms.settings.help_home_page', '<code>/</code>') ?></div>

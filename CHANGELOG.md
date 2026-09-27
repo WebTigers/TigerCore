@@ -6,6 +6,18 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.18.1] — 2026-09-27
+
+### Fixed
+
+- **CMS home-page picker (TigerPathbox) now shows the full list on open, including the active theme.**
+  On focus the control was sending its current label ("— Built-in landing page —") as the search query,
+  so opening it filtered every other option out — an active theme's home never appeared. It now searches
+  with an empty query while the box still shows the committed label (full list), filters only once you
+  type, and selects the text on focus so typing replaces it. The discovery service was already correct.
+- **CMS Settings: the "Advanced search" toggle sits beside the home-page combobox** (its help text moved
+  to a tooltip) for a tidier row.
+
 ## [1.18.0] — 2026-09-26
 
 ### Changed
