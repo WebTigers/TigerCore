@@ -20,6 +20,8 @@ $code = $this->escape($this->code ?? '');
 <form id="reset-form" novalidate>
     <input type="hidden" name="cid" value="<?= $cid ?>">
     <input type="hidden" name="code" value="<?= $code ?>">
+    <?php /* Filled from the server response on success so the browser can offer to save the password. */ ?>
+    <input type="text" name="username" id="reset-username" autocomplete="username" value="" hidden>
     <div class="mb-3">
         <label class="form-label" for="reset-password"><?= $this->escape($this->t('core.auth.reset.new_password')) ?></label>
         <input type="password" class="form-control form-control-lg" id="reset-password" name="password"
@@ -75,7 +77,13 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(function (r) { return r.json().catch(function () { return {}; }); });
         })
         .then(function (res) {
-            if (res && res.result === 1) { window.location = res.redirect || '/auth/login/reset/1'; return; }
+            if (res && res.result === 1) {
+                // Populate the username so the browser offers to save the new password, then go straight
+                // to the dashboard (we're already signed in — no bounce to the login page).
+                if (res.username) { var uf = document.getElementById('reset-username'); if (uf) { uf.value = res.username; } }
+                window.location = res.redirect || '/auth/login/reset/1';
+                return;
+            }
             if (res && res.recaptcha) { rcReset(); fail(Tiger.t('recaptcha')); return; }
             fail((res && res.message) ? res.message : Tiger.t('resetFailed'));
         })

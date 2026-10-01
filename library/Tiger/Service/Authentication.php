@@ -284,7 +284,9 @@ class Tiger_Service_Authentication
             return ['ok' => false, 'error' => 'We could not set your password. Please try again.'];
         }
 
-        return ['ok' => true, 'error' => null];
+        // Return the identity so the caller can sign the user straight in (no bounce to the login page).
+        $u = (new Tiger_Model_User())->findById($userId);
+        return ['ok' => true, 'error' => null, 'user_id' => $userId, 'username' => $u ? (string) $u->username : ''];
     }
 
     /**
