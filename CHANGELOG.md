@@ -6,6 +6,19 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.19.0] — 2026-10-01
+
+### Changed
+
+- **Active-only UNIQUE indexes on `user.email` + `user.username` — soft-delete now frees the value
+  (TIGER-274).** A plain `UNIQUE(col)` spans soft-deleted (`deleted=1`) rows, so soft-deleting a user
+  never freed their email/username and a re-signup with that address collided on the index. Migration
+  `0053` moves each unique index onto a generated `<col>_active = IF(deleted=0, col, NULL)` column —
+  MySQL/MariaDB allow multiple NULLs in a unique index, so soft-deleted rows drop out and the value is
+  reusable, while live rows stay unique. The real `email`/`username` columns are untouched and the
+  finders already filter `deleted=0`, so there is no behavioral change for live rows. This is the
+  platform-wide convention for every unique + soft-deletable column (TIGER-274).
+
 ## [1.18.1] — 2026-09-27
 
 ### Fixed
