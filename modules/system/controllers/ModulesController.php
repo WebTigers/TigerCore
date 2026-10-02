@@ -28,41 +28,18 @@ class System_ModulesController extends Tiger_Controller_Admin_Action
      */
     public function indexAction()
     {
-        $installed   = (new Tiger_Model_Module())->bySlugMap();
-        $activeTheme = (string) (new Tiger_Model_Config())->get(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.theme');
+        // The rows are NOT server-rendered — the view ships an empty table and fetches them from
+        // System_Service_Modules::datatable over /api (client/server paradigm, WEBSERVICES §5). Here we
+        // only build the TYPE-filter pills: their labels + full-catalog counts, and which one starts
+        // active (from the remembered cookie), so the first ajax load is already filtered — no flash.
+        $catalog = System_Service_Modules::catalog();
 
-        $modules = [];
-        foreach (Tiger_Module_Discovery::all() as $slug => $m) {
-            $row     = $installed[$slug] ?? null;
-            $isTheme = ($m['type'] ?? 'module') === 'theme';
-            // Active is the module FLAG for everything now, themes included — multiple themes can be
-            // active at once. WHICH theme is the DEFAULT site theme is the separate `tiger.theme` config.
-            $active    = $row ? ((int) $row->active === 1) : true;
-            $isDefault = $isTheme && $activeTheme !== '' && $activeTheme === (string) ($m['key'] ?? $slug);
-            $source  = $row ? $row->source : ($m['area'] === 'core' ? 'bundled' : 'custom');
-            // Taxonomy resolution (AUTHORING.md): the value STORED at install (retained from the source
-            // listing/manifest) wins; else the live manifest that Discovery read; else its default. Read
-            // via toArray() so a pre-0042 DB (no columns) degrades gracefully to the manifest.
-            $rowArr = $row ? $row->toArray() : [];
-            if (!empty($rowArr['type']))     { $m['type']     = (string) $rowArr['type']; }
-            if (!empty($rowArr['category'])) { $m['category'] = array_values(array_filter(explode(',', (string) $rowArr['category']))); }
-            // Protected = the hardcoded core set OR the module's manifest `"protected": true` (Discovery
-            // put that in $m). Set it on $m so it wins the union below (which keeps left-hand keys).
-            $m['protected'] = !empty($m['protected']) || in_array($slug, System_Service_Modules::PROTECTED, true);
-            $modules[] = $m + [
-                'active'    => $active,
-                'is_default' => $isDefault,
-                'source'    => $source,
-                // Advisory: tested-version compat notice (never blocks) + who requires this module
-                // (drives the "required by X, Y — deactivate anyway?" confirm; empty for most).
-                'compat'      => Tiger_Module_Compat::check($m),
-                'required_by' => $isTheme ? [] : Tiger_Module_Dependency::dependents($slug),
-            ];
-        }
+        $counts = [];
+        foreach ($catalog as $m) { $t = (string) ($m['type'] ?? 'module'); $counts[$t] = ($counts[$t] ?? 0) + 1; }
 
-        // Type labels for the filter pills + the Type column, from the SAME data-driven registry taxonomy
-        // the Add Module screen uses (Apps / Themes / Plugins / Code / Developer …). Best-effort + cached;
-        // a derived humanize is the fallback, so the screen never depends on the registry being reachable.
+        // Type labels from the SAME data-driven registry taxonomy the Add Module screen uses. Best-effort
+        // + cached; a derived humanize (in the view) is the fallback, so the screen never depends on the
+        // registry being reachable.
         $typeLabels = [];
         try {
             $tax = Tiger_Module_Registry::taxonomy();
@@ -72,11 +49,18 @@ class System_ModulesController extends Tiger_Controller_Admin_Action
         } catch (Throwable $e) {
         }
 
-        $this->view->title       = 'Modules — Tiger Admin';
-        $this->view->modules     = $modules;
-        $this->view->activeTheme = $activeTheme;
-        $this->view->typeLabels  = $typeLabels;
-        $this->view->useDataTables = true;   // the list is a client-side DataTable (sort / page / search)
+        // The remembered type filter (a cookie the pill click sets) decides which pill renders active,
+        // so the grid loads already filtered on that type instead of flashing All → the chosen tab. A
+        // stale cookie (a type no longer present) falls back to All.
+        $activeType = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($_COOKIE['tiger_mods_type'] ?? ''));
+        if ($activeType !== '' && !isset($counts[$activeType])) { $activeType = ''; }
+
+        $this->view->title         = 'Modules — Tiger Admin';
+        $this->view->counts        = $counts;
+        $this->view->total         = count($catalog);
+        $this->view->typeLabels    = $typeLabels;
+        $this->view->activeType    = $activeType;
+        $this->view->useDataTables = true;
     }
 
     /**

@@ -35,6 +35,182 @@ class System_Service_Modules extends Tiger_Service_Service
     const NAG_DISABLED_KEY  = 'tiger.pass.nag.disabled';       // '1' = the user turned the banner off
 
     /**
+     * The full installed-module catalog — every module ON DISK (Tiger_Module_Discovery) joined with
+     * its install row, resolved taxonomy, source, compat notice and dependents. One authority shared
+     * by the controller (filter pills + counts) and datatable() (the grid feed). No ACL here — both
+     * callers are superadmin surfaces that gate themselves.
+     *
+     * @return array<int,array<string,mixed>> the derived module rows
+     */
+    public static function catalog(): array
+    {
+        $installed   = (new Tiger_Model_Module())->bySlugMap();
+        $activeTheme = (string) (new Tiger_Model_Config())->get(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.theme');
+
+        $modules = [];
+        foreach (Tiger_Module_Discovery::all() as $slug => $m) {
+            $row     = $installed[$slug] ?? null;
+            $isTheme = ($m['type'] ?? 'module') === 'theme';
+            // Active is the module FLAG for everything, themes included (many themes can be active at
+            // once). WHICH theme is the DEFAULT site theme is the separate `tiger.theme` config.
+            $active    = $row ? ((int) $row->active === 1) : true;
+            $isDefault = $isTheme && $activeTheme !== '' && $activeTheme === (string) ($m['key'] ?? $slug);
+            $source    = $row ? $row->source : ($m['area'] === 'core' ? 'bundled' : 'custom');
+            // Taxonomy: the value STORED at install wins; else the live manifest Discovery read.
+            $rowArr = $row ? $row->toArray() : [];
+            if (!empty($rowArr['type']))     { $m['type']     = (string) $rowArr['type']; }
+            if (!empty($rowArr['category'])) { $m['category'] = array_values(array_filter(explode(',', (string) $rowArr['category']))); }
+            $m['protected'] = !empty($m['protected']) || in_array($slug, self::PROTECTED, true);
+            $modules[] = $m + [
+                'active'      => $active,
+                'is_default'  => $isDefault,
+                'source'      => $source,
+                'compat'      => Tiger_Module_Compat::check($m),
+                'required_by' => $isTheme ? [] : Tiger_Module_Dependency::dependents($slug),
+            ];
+        }
+        return $modules;
+    }
+
+    /**
+     * DataTables feed for the Modules screen (client/server paradigm — the view renders an EMPTY
+     * table and fetches rows here; rows are never server-rendered). Server-side search / type-filter
+     * / sort / paginate over catalog(), each row carrying its display fields plus per-row action
+     * flags (can_toggle / can_delete) so the client renders cells and gates controls without
+     * re-deriving authority. The response also carries per-type `counts` over the WHOLE catalog, so
+     * the filter pills stay accurate after an activate / delete without a page reload.
+     *
+     * @param  array $params the DataTables request (+ an optional `type` pill filter)
+     * @return void
+     */
+    public function datatable(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+
+        $dt  = $this->_dtParams($params);
+        $all = self::catalog();
+
+        // Pill counts over the whole catalog — independent of the type/search filter below.
+        $counts = [];
+        foreach ($all as $m) { $t = (string) ($m['type'] ?? 'module'); $counts[$t] = ($counts[$t] ?? 0) + 1; }
+        $total = count($all);
+
+        // Type-filter (the active pill) + global search, both server-side.
+        $type = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($params['type'] ?? ''));
+        $q    = $dt['search'] !== '' ? strtolower($dt['search']) : '';
+        $list = array_values(array_filter($all, static function ($m) use ($type, $q) {
+            if ($type !== '' && (string) ($m['type'] ?? 'module') !== $type) { return false; }
+            if ($q === '') { return true; }
+            $hay = strtolower(($m['name'] ?? '') . ' ' . ($m['slug'] ?? '') . ' ' . ($m['description'] ?? '') . ' ' . ($m['author'] ?? ''));
+            return strpos($hay, $q) !== false;
+        }));
+        $filtered = count($list);
+
+        // Sort — only Module (col 0, by name) and Status (col 4, by active flag) are orderable.
+        $col = isset($dt['order'][0]) ? $dt['order'][0]['column'] : 0;
+        $dir = (isset($dt['order'][0]) && $dt['order'][0]['dir'] === 'DESC') ? -1 : 1;
+        usort($list, static function ($a, $b) use ($col, $dir) {
+            $cmp = ($col === 4)
+                ? (((int) !empty($a['active'])) <=> ((int) !empty($b['active'])))
+                : 0;
+            if ($cmp === 0) { $cmp = strcasecmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? '')); }
+            return $cmp * $dir;
+        });
+
+        $page          = array_slice($list, $dt['start'], $dt['length']);
+        $defaultExists = (string) (new Tiger_Model_Config())->get(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.theme') !== '';
+        $bySlug        = []; foreach ($all as $mm) { $bySlug[$mm['slug']] = $mm; }
+        $tokenOf = static function (array $m) {
+            $v = trim((string) ($m['author'] ?? '')); $n = trim((string) ($m['name'] ?? ''));
+            return $v !== '' ? ($v . '/' . $n) : $n;
+        };
+
+        $rows = [];
+        foreach ($page as $m) {
+            $slug      = (string) $m['slug'];
+            $modType   = (string) ($m['type'] ?? 'module');
+            $protected = !empty($m['protected']);
+            $active    = !empty($m['active']);
+            $area      = (string) ($m['area'] ?? '');
+            $compat    = $m['compat'] ?? null;
+            $deps      = array_values($m['required_by'] ?? []);
+            $depTokens = array_map(static function ($s) use ($bySlug, $tokenOf) { return $tokenOf($bySlug[$s] ?? ['name' => $s]); }, $deps);
+            $rows[] = [
+                'slug'           => $slug,
+                'name'           => (string) ($m['name'] ?? $slug),
+                'description'    => (string) ($m['description'] ?? ''),
+                'author'         => (string) ($m['author'] ?? ''),
+                'license'        => (string) ($m['license'] ?? ''),
+                'license_short'  => self::_licenseShort((string) ($m['license'] ?? '')),
+                'version'        => ($m['version'] ?? null) !== null ? (string) $m['version'] : '',
+                'type'           => $modType,
+                'type_label'     => self::_typeLabel($modType),
+                'type_icon'      => self::_typeIcon($modType),
+                'source'         => (string) ($m['source'] ?? 'custom'),   // bundled | custom
+                'active'         => $active,
+                'is_default'     => !empty($m['is_default']),
+                'is_theme'       => $modType === 'theme',
+                'protected'      => $protected,
+                'default_exists' => $defaultExists,
+                'required_by'    => $deps,
+                'dep_tokens'     => implode(', ', $depTokens),
+                'token'          => $tokenOf($m),
+                'compat_message' => (is_array($compat) && empty($compat['ok']) && !empty($compat['message'])) ? (string) $compat['message'] : '',
+                'can_toggle'     => !$protected,
+                'can_delete'     => !$protected && $area !== 'core' && !$active,
+            ];
+        }
+
+        $this->_success([
+            'draw'            => $dt['draw'],
+            'recordsTotal'    => $total,
+            'recordsFiltered' => $filtered,
+            'data'            => $rows,
+            'counts'          => $counts,
+        ]);
+    }
+
+    /** Human label for a module type id — the registry taxonomy (cached, best-effort), humanized fallback. */
+    protected static function _typeLabel(string $type): string
+    {
+        static $labels = null;
+        if ($labels === null) {
+            $labels = [];
+            try {
+                $tax = Tiger_Module_Registry::taxonomy();
+                foreach (($tax['types'] ?? []) as $t) {
+                    if (!empty($t['id'])) { $labels[(string) $t['id']] = (string) ($t['label'] ?? $t['id']); }
+                }
+            } catch (Throwable $e) {
+            }
+        }
+        return $labels[$type] ?? ucwords(str_replace(['-', '_'], ' ', $type));
+    }
+
+    /** Font Awesome icon class for a module type (mirrors the Add Module screen). */
+    protected static function _typeIcon(string $type): string
+    {
+        switch ($type) {
+            case 'theme':  return 'fa-palette';
+            case 'code':   return 'fa-code';
+            case 'app':    return 'fa-cubes';
+            case 'plugin': return 'fa-plug';
+            default:       return 'fa-cube';
+        }
+    }
+
+    /** A short license tag from an SPDX-ish string. */
+    protected static function _licenseShort(string $lic): string
+    {
+        if ($lic === '') { return ''; }
+        if (preg_match('/\bMIT\b/i', $lic)) { return 'MIT'; }
+        if (preg_match('/BSD-3/i', $lic))   { return 'BSD-3'; }
+        if (preg_match('/BSD-2/i', $lic))   { return 'BSD-2'; }
+        if (preg_match('/proprietary|licenseref|commercial/i', $lic)) { return 'Commercial'; }
+        return $lic;
+    }
+
+    /**
      * Activate a module (by `slug`), publishing its assets.
      *
      * @param  array $params the /api payload (expects `slug`)
