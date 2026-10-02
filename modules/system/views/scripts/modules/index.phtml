@@ -182,27 +182,44 @@ document.addEventListener('DOMContentLoaded', function () {
             pageLength: 25,
             lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],
             order: [[0, 'asc']],
+            stateSave: true,   /* remember sort / page / length / search across a reload (incl. the activate reload) */
             columnDefs: [{ targets: 5, orderable: false, searchable: false }],
             language: { search: '', searchPlaceholder: 'Filter modules…' }
         });
 
-        /* Type filter: a custom search scoped to THIS table, matching each row's data-type. */
+        /* Type filter: a custom search scoped to THIS table, matching each row's data-type. The chosen
+           tab is remembered per-browser (localStorage) so a reload — including the one after an
+           activate/deactivate — lands back on the same filter, not on "All". */
+        var FILTER_KEY = 'tiger.modules.typeFilter';
         var activeType = '';
+        try { activeType = window.localStorage.getItem(FILTER_KEY) || ''; } catch (e) { activeType = ''; }
         jQuery.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
             if (settings.nTable.id !== 'mods-table') { return true; }
             if (!activeType) { return true; }
             var tr = settings.aoData[dataIndex].nTr;
             return !!tr && tr.getAttribute('data-type') === activeType;
         });
+        function applyType(type) {
+            activeType = type || '';
+            try {
+                if (activeType) { window.localStorage.setItem(FILTER_KEY, activeType); }
+                else { window.localStorage.removeItem(FILTER_KEY); }
+            } catch (e) {}
+            var pill = activeType
+                ? document.querySelector('#mods-type-filter [data-type="' + activeType + '"]')
+                : document.querySelector('#mods-type-filter [data-type=""]');
+            if (!pill) { pill = document.querySelector('#mods-type-filter [data-type=""]'); activeType = ''; }  /* stale type → All */
+            document.querySelectorAll('#mods-type-filter .nav-link').forEach(function (x) { x.classList.remove('active'); });
+            if (pill) { pill.classList.add('active'); }
+            table.draw();
+        }
         document.querySelectorAll('#mods-type-filter [data-type]').forEach(function (pill) {
             pill.addEventListener('click', function (e) {
                 e.preventDefault();
-                document.querySelectorAll('#mods-type-filter .nav-link').forEach(function (x) { x.classList.remove('active'); });
-                pill.classList.add('active');
-                activeType = pill.getAttribute('data-type');
-                table.draw();
+                applyType(pill.getAttribute('data-type'));
             });
         });
+        if (activeType) { applyType(activeType); }   /* restore the remembered tab on load */
     }
 
     /* ---- activate / deactivate (conflict-aware) — DELEGATED so it survives DataTables redraws ---- */
