@@ -119,7 +119,16 @@ class Cms_Service_Paths extends Tiger_Service_Service
         $themes    = [];
         $themeHome = self::_t('cms.settings.theme_home');
         $inv       = Tiger_Theme::inventory();
+        // Only ACTIVATED themes belong in the picker — you can't serve a page from a theme that's turned
+        // off. A theme that ships as a MODULE (modules/theme-<key>) must have its module active; a plain
+        // themes/<name> theme has no module to deactivate, so it's always available.
+        $inactiveMods = [];
+        try { $inactiveMods = array_flip((new Tiger_Model_Module())->inactiveSlugs()); } catch (Throwable $e) {}
+        $themeActive = function ($key, $dir) use ($inactiveMods) {
+            return strpos((string) $dir, '/modules/theme-') === false || !isset($inactiveMods['theme-' . $key]);
+        };
         foreach ($inv as $key => $t) {
+            if (!$themeActive($key, $t['dir'])) { continue; }
             if (is_file($t['dir'] . '/content/index.phtml')) {
                 $label = $t['name'] . ' — ' . $themeHome;
                 $value = '@theme:' . $key;
@@ -128,6 +137,7 @@ class Cms_Service_Paths extends Tiger_Service_Service
         }
         if ($advanced) {
             foreach ($inv as $key => $t) {
+                if (!$themeActive($key, $t['dir'])) { continue; }
                 foreach (Tiger_Theme::pagesForKey($key) as $pg) {
                     if ($pg['slug'] === 'index') { continue; }   // the home is already listed above
                     $label = $t['name'] . ' — ' . $pg['title'];
