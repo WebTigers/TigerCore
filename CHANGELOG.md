@@ -6,6 +6,18 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.19.1] — 2026-10-07
+
+### Fixed
+
+- **Scheduler cron line runs from a pasted crontab (#328).** `Schedule_Service_Schedule::cronCommand()`
+  emitted `php <root>/vendor/bin/tiger schedule:run`, but `bin/tiger` resolves the app root from the
+  working directory, so a pasted line failed with "run this from a Tiger app root." It now `cd`s into the
+  app root first.
+- **CMS home-page picker lists only ACTIVATED themes (#325).** A theme shipped as a module that is
+  deactivated no longer appears in the home-page picker — you can't serve a page from a theme that's off.
+  Plain `themes/<name>` themes have no module to deactivate and stay available.
+
 ## [1.19.0] — 2026-10-01
 
 ### Changed
