@@ -124,7 +124,7 @@
 - **Tiger_Module_Compat** `@api` — advisory "which Tiger versions was this module tested for?" metadata.  ·  `library/Tiger/Module/Compat.php`
 - **Tiger_Module_Dependency** `@api` — lightweight, lazy inter-module dependency alerts.  ·  `library/Tiger/Module/Dependency.php`
 - **Tiger_Module_Discovery** `@api` — find the modules present on disk (active or not).  ·  `library/Tiger/Module/Discovery.php`
-- **Tiger_Module_Github** `@api` — read public GitHub repos over cURL (no auth, public only).  ·  `library/Tiger/Module/Github.php`
+- **Tiger_Module_Github** `@api` — read GitHub repos over cURL.  ·  `library/Tiger/Module/Github.php`
 - **Tiger_Module_Installer** `@api` — install / update / remove modules from public GitHub repos.  ·  `library/Tiger/Module/Installer.php`
 - **Tiger_Module_Longform** `@api` — resolves a module listing's LONG-FORM copy and renders it safely.  ·  `library/Tiger/Module/Longform.php`
 - **Tiger_Module_Pricing** `@api` — the manifest `pricing` block, normalized.  ·  `library/Tiger/Module/Pricing.php`
