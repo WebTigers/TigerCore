@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tiger\Tests\Support\UnitTestCase;
 use Tiger_Module_Registry;
+use Tiger_Module_Source;
 
 /**
  * Tiger_Module_Registry — the client for the open Vendor Registry. Driven with NO network by PRE-SEEDING
@@ -445,5 +446,46 @@ final class RegistryTest extends UnitTestCase
         $this->assertArrayHasKey('pro-module', $bySlug, 'the marketplace contributes its paid catalog');
         $this->assertSame('Marketplace', $bySlug['widget']['vendor'], 'marketplace #0 (priority 0) wins the shared slug');
         $this->assertSame('webtigers', $bySlug['widget']['source_id']);
+    }
+
+    // ---- authenticated (private) sources → org-scoped token resolver -----------
+
+    #[Test]
+    public function authResolverMapsEachAuthedSourceOrgToItsDecryptedToken(): void
+    {
+        $sources = [
+            new Tiger_Module_Source(['id' => 'tiger-vendors', 'url' => 'u']),                 // public → ignored
+            new Tiger_Module_Source(['id' => 'company', 'url' => 'u', 'org' => 'WebTigers',
+                'auth' => ['type' => 'github-token', 'ref' => 'tiger.modules.sources.company.token']]),
+            new Tiger_Module_Source(['id' => 'noorg', 'url' => 'u', 'auth' => ['ref' => 'some.key']]),  // no org → ignored
+        ];
+        $secret  = static fn(string $k): string => $k === 'tiger.modules.sources.company.token' ? 'ghp_live' : '';
+        $resolve = Tiger_Module_Registry::authResolver($sources, $secret);
+
+        $this->assertSame('ghp_live', $resolve('WebTigers', 'TigerMarketing'), 'a covered org resolves its token');
+        $this->assertSame('ghp_live', $resolve('webtigers', 'TigerServer'), 'org match is case-insensitive');
+        $this->assertSame('', $resolve('SomeoneElse', 'Repo'), 'an uncovered org gets no token (public)');
+    }
+
+    #[Test]
+    public function authResolverSkipsASourceWhoseSecretCannotBeResolved(): void
+    {
+        $sources = [new Tiger_Module_Source(['id' => 'company', 'url' => 'u', 'org' => 'WebTigers', 'auth' => ['ref' => 'missing.key']])];
+        $resolve = Tiger_Module_Registry::authResolver($sources, static fn(string $k): string => '');   // secret unresolved
+        $this->assertSame('', $resolve('WebTigers', 'X'), 'an empty secret leaves the org uncovered');
+    }
+
+    #[Test]
+    public function noShippedDefaultSourceIsAuthenticated(): void
+    {
+        // A company/private feed is ALWAYS admin-configured ('connected'), NEVER a shipped default — so a
+        // customer install never carries a credential and never discovers WebTigers-only modules. This guard
+        // fails loudly if an authenticated source is ever baked into the defaults.
+        $defaults = array_filter(Tiger_Module_Registry::sources(), static fn($s) => $s->default === true);
+        $this->assertNotEmpty($defaults, 'the platform ships default sources');
+        foreach ($defaults as $s) {
+            $this->assertFalse($s->hasAuth(), "shipped default source '{$s->id}' must carry no credential (company feeds are admin-only)");
+            $this->assertSame('', $s->org, "shipped default source '{$s->id}' must be public (no org scope)");
+        }
     }
 }
