@@ -144,6 +144,7 @@ class Tiger_Update_Checker
      */
     public static function modules($refresh = false)
     {
+        Tiger_Module_Registry::ensureAuth();   // so latestRef() can read a private company repo (idempotent)
         try {
             $rows = (new Tiger_Model_Module())->bySlugMap();
         } catch (Throwable $e) {

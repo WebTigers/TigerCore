@@ -54,6 +54,74 @@ class Tiger_Module_Registry
     /** @var array<string,array> module-contributed sources (id => spec), registered in-memory per request. */
     protected static $registered = [];
 
+    /** @var bool one-shot guard — the auth resolver is built + installed into Github once per request. */
+    protected static $authInstalled = false;
+
+    /**
+     * Build an org→bearer-token resolver from the configured AUTHENTICATED sources. For each fetchable
+     * source that declares an `org` + an `auth` reference, the referenced config secret is resolved and
+     * decrypted; the result maps the source's GitHub org to its token. The returned closure is what
+     * {@see Tiger_Module_Github::setAuthResolver()} consumes — so a private company repo under a covered
+     * org becomes readable/installable, while every other repo stays public (an empty token).
+     *
+     * Injectable for tests: pass an explicit $sources list and/or a $secret resolver (configKey→token) to
+     * exercise the mapping with no DB / config / crypto.
+     *
+     * @param  array|null    $sources Tiger_Module_Source[] (defaults to the live, merged source list)
+     * @param  callable|null $secret  fn(string $configKey): string (defaults to the decrypting resolver)
+     * @return callable fn(string $org, string $repo): string
+     */
+    public static function authResolver(?array $sources = null, ?callable $secret = null): callable
+    {
+        $sources = $sources ?? self::sources();
+        $secret  = $secret  ?? static fn(string $k): string => self::_resolveSecret($k);
+
+        $tokens = [];   // lowercased org => token
+        foreach ($sources as $s) {
+            if (!$s instanceof Tiger_Module_Source || !$s->hasAuth() || $s->org === '') { continue; }
+            $tok = (string) $secret($s->authRef());
+            if ($tok !== '') { $tokens[strtolower($s->org)] = $tok; }
+        }
+        return static fn($org, $repo): string => (string) ($tokens[strtolower((string) $org)] ?? '');
+    }
+
+    /**
+     * Install the credential resolver into Tiger_Module_Github — once per request (idempotent). This is
+     * what makes private-repo auth active across all three flows: Add (index/search), Updates detection
+     * (Tiger_Update_Checker), and apply (Tiger_Module_Installer). Public-only if anything fails.
+     */
+    public static function ensureAuth(): void
+    {
+        if (self::$authInstalled) { return; }
+        self::$authInstalled = true;
+        try { Tiger_Module_Github::setAuthResolver(self::authResolver()); }
+        catch (Throwable $e) { /* leave Github public-only */ }
+    }
+
+    /** Resolve a config key to its (Tiger_Crypto-decrypted) secret; '' when absent. Tolerates a plaintext value. */
+    protected static function _resolveSecret(string $configKey): string
+    {
+        $raw = self::_configValue($configKey);
+        if ($raw === '') { return ''; }
+        if (class_exists('Tiger_Crypto')) {
+            try { $dec = Tiger_Crypto::decrypt($raw); if (is_string($dec) && $dec !== '') { return $dec; } }
+            catch (Throwable $e) { /* fall through — treat as plaintext (dev convenience) */ }
+        }
+        return $raw;
+    }
+
+    /** Read one global config value by key (the `config` table), '' when unset. */
+    protected static function _configValue(string $key): string
+    {
+        if ($key === '' || !class_exists('Tiger_Model_Config')) { return ''; }
+        try {
+            foreach ((new Tiger_Model_Config())->getForScope(Tiger_Model_Config::SCOPE_GLOBAL, '') as $row) {
+                if ((string) $row->config_key === $key) { return (string) $row->config_value; }
+            }
+        } catch (Throwable $e) { /* fall through */ }
+        return '';
+    }
+
     /**
      * Register a catalog source from a module (call it from the module's Bootstrap `_init*`). This is the
      * one-call seam that lets any module add its own marketplace to the Add screen — no config editing, no
@@ -241,6 +309,7 @@ class Tiger_Module_Registry
      */
     public static function index($refresh = false)
     {
+        self::ensureAuth();   // authenticate private sources before any source fetch (idempotent)
         $merged  = ['modules' => [], 'taxonomy' => []];
         $bySlug  = [];   // slug => index into $merged['modules']
         $seenTax = ['types' => [], 'categories' => []];

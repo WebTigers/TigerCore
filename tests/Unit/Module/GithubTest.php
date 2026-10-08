@@ -37,6 +37,8 @@ final class GithubTest extends UnitTestCase
 
     protected function tearDown(): void
     {
+        Tiger_Module_Github::setTransport(null);     // never let an auth/transport seam leak between tests
+        Tiger_Module_Github::setAuthResolver(null);
         $this->rrmdir($this->tmp);
         parent::tearDown();
     }
@@ -102,6 +104,83 @@ final class GithubTest extends UnitTestCase
         $this->assertFalse(Tiger_Module_Github::download(self::DEAD . '/pkg.tar.gz', $dest));
         // The failed-download temp file is cleaned up by _http (no truncated artifact left behind).
         $this->assertFileDoesNotExist($dest, 'a failed download must not leave a partial file');
+    }
+
+    // ---- auth: the org-scoped resolver + the transport seam (no real network) --
+
+    /** Capture the headers each request would send, and answer 200 with a canned body. */
+    private function captureTransport(array &$sink): callable
+    {
+        return static function (string $url, array $headers, ?string $toFile) use (&$sink): array {
+            $sink[] = ['url' => $url, 'headers' => $headers];
+            return ['code' => 200, 'body' => '{}'];
+        };
+    }
+
+    #[Test]
+    public function itAuthenticatesARepoTheResolverCovers(): void
+    {
+        $seen = [];
+        Tiger_Module_Github::setTransport($this->captureTransport($seen));
+        Tiger_Module_Github::setAuthResolver(
+            static fn($org, $repo) => ($org === 'WebTigers' && $repo === 'TigerMarketing') ? 'ghp_secret' : ''
+        );
+
+        Tiger_Module_Github::fetchRaw('WebTigers', 'TigerMarketing', 'v0.3.0', 'theme.json');
+
+        $this->assertContains('Authorization: Bearer ghp_secret', $seen[0]['headers'],
+            'a private repo the resolver covers is sent an auth header');
+    }
+
+    #[Test]
+    public function itSendsNoAuthForARepoOutsideTheResolverScope(): void
+    {
+        $seen = [];
+        Tiger_Module_Github::setTransport($this->captureTransport($seen));
+        Tiger_Module_Github::setAuthResolver(static fn($org, $repo) => $org === 'WebTigers' ? 'ghp_secret' : '');
+
+        Tiger_Module_Github::fetchRaw('SomeoneElse', 'PublicRepo', 'main', 'module.json');
+
+        $this->assertStringNotContainsString('Authorization', implode("\n", $seen[0]['headers']),
+            'an out-of-scope repo is fetched unauthenticated');
+    }
+
+    #[Test]
+    public function withNoResolverItStaysPublicOnly(): void
+    {
+        $seen = [];
+        Tiger_Module_Github::setTransport($this->captureTransport($seen));   // no resolver installed
+
+        Tiger_Module_Github::fetchRaw('WebTigers', 'TigerMarketing', 'v0.3.0', 'theme.json');
+
+        $this->assertStringNotContainsString('Authorization', implode("\n", $seen[0]['headers']),
+            'public-only when no resolver is wired');
+    }
+
+    #[Test]
+    public function aThrowingResolverDegradesToPublicNeverCrashes(): void
+    {
+        $seen = [];
+        Tiger_Module_Github::setTransport($this->captureTransport($seen));
+        Tiger_Module_Github::setAuthResolver(static function ($org, $repo) { throw new \RuntimeException('boom'); });
+
+        $this->assertSame('{}', Tiger_Module_Github::fetchRaw('WebTigers', 'TigerMarketing', 'v0.3.0', 'theme.json'),
+            'a resolver that throws must not break the fetch');
+        $this->assertStringNotContainsString('Authorization', implode("\n", $seen[0]['headers']),
+            'a throwing resolver yields no auth');
+    }
+
+    #[Test]
+    public function theTokenRidesTheTarballDownloadToo(): void
+    {
+        $seen = [];
+        Tiger_Module_Github::setTransport($this->captureTransport($seen));
+        Tiger_Module_Github::setAuthResolver(static fn($org, $repo) => 'ghp_secret');
+
+        Tiger_Module_Github::download(Tiger_Module_Github::tarballUrl('WebTigers', 'TigerMarketing', 'v0.3.0'), $this->tmp . '/a.tgz');
+
+        $this->assertContains('Authorization: Bearer ghp_secret', $seen[0]['headers'],
+            'the archive download of a private repo is authenticated');
     }
 
     private function rrmdir(string $dir): void

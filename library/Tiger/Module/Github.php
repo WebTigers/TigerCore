@@ -2,12 +2,17 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
- * Tiger_Module_Github — read public GitHub repos over cURL (no auth, public only).
+ * Tiger_Module_Github — read GitHub repos over cURL. PUBLIC by default; PRIVATE when authorized.
  *
- * The module installer never uses git or a token: it pulls `module.json` (the technical
- * manifest) and `TIGER.md` (the vendor's human description) as RAW files, resolves a pinned
- * release ref, and downloads the release tarball. Private repos simply 404 on raw — which the
- * installer treats as "not installable" (public code is the price of admission).
+ * It pulls `module.json`/`theme.json` (the technical manifest) and `TIGER.md` (the vendor's human
+ * description) as RAW files, resolves a pinned release ref, and downloads the release tarball. With no
+ * credential resolver installed it is public-only, exactly as before — a private repo 404s on raw and
+ * the installer treats it as "not installable". When an org-scoped resolver is installed via
+ * {@see setAuthResolver()} (the registry wires it from authenticated sources), a request to a repo the
+ * resolver yields a token for is sent with an `Authorization: Bearer` header, so a PRIVATE repo the
+ * caller is authorized for becomes readable + installable from its authenticated tarball. Private
+ * release-ZIP *assets* (vendored-bundle modules) are a documented follow-up — source/theme private
+ * repos install from the tarball. A test transport ({@see setTransport()}) replaces the network.
  *
  * @api
  */
@@ -16,6 +21,49 @@ class Tiger_Module_Github
     const RAW = 'https://raw.githubusercontent.com';
     const API = 'https://api.github.com';
     const UA  = 'Tiger-Module-Installer';
+
+    /** @var callable|null fn(string $org, string $repo): string — a bearer token for a repo, or '' (public) */
+    protected static $authResolver = null;
+    /** @var callable|null test seam: fn(string $url, array $headers, ?string $toFile): array{code:int,body:?string} */
+    protected static $transport = null;
+
+    /**
+     * Install an org-scoped credential resolver. When set, {@see _http()} asks it for a bearer token for
+     * the repo a request targets and, if one comes back non-empty, authenticates the request — so a
+     * PRIVATE repo the caller is authorized for becomes readable/installable. Public repos (resolver
+     * returns '') are fetched exactly as before. The registry wires this from authenticated sources;
+     * null (the default) is public-only.
+     */
+    public static function setAuthResolver(?callable $resolver): void
+    {
+        self::$authResolver = $resolver;
+    }
+
+    /** Swap the HTTP transport — tests inject a fake to assert headers without the network. Null = real cURL. */
+    public static function setTransport(?callable $transport): void
+    {
+        self::$transport = $transport;
+    }
+
+    /** The bearer token for a repo via the resolver (org-scoped), or '' when none/public. Never throws. */
+    protected static function _tokenFor($org, $repo): string
+    {
+        if (!self::$authResolver) { return ''; }
+        try { return (string) (self::$authResolver)((string) $org, (string) $repo); }
+        catch (\Throwable $e) { return ''; }
+    }
+
+    /** Recognize the {org, repo} a GitHub URL targets (raw / api / archive / codeload), or null. */
+    protected static function _repoFromUrl($url): ?array
+    {
+        $u = (string) $url;
+        if (preg_match('~(?:raw\.githubusercontent\.com|codeload\.github\.com)/([A-Za-z0-9._-]+)/([A-Za-z0-9._-]+)~', $u, $m)
+            || preg_match('~api\.github\.com/repos/([A-Za-z0-9._-]+)/([A-Za-z0-9._-]+)~', $u, $m)
+            || preg_match('~github\.com/([A-Za-z0-9._-]+)/([A-Za-z0-9._-]+)/(?:archive|releases|tarball|zipball)~', $u, $m)) {
+            return ['org' => $m[1], 'repo' => $m[2]];
+        }
+        return null;
+    }
 
     /**
      * Parse a GitHub repo URL/slug → ['org','repo'], or null. Accepts …/org/repo(.git)(/…).
@@ -133,11 +181,29 @@ class Tiger_Module_Github
         return self::_http($url);
     }
 
-    /** HTTP GET via cURL (public, follows redirects, UA set). Body string / true(to file) / null. */
+    /** HTTP GET via cURL (follows redirects, UA set; authenticates when a resolver yields a token for the
+     *  target repo). Body string / true(to file) / null. A test transport, if set, replaces the network. */
     protected static function _http($url, $api = false, $toFile = null)
     {
+        $headers = [];
+        if ($api) { $headers[] = 'Accept: application/vnd.github+json'; }
+        if ($r = self::_repoFromUrl($url)) {
+            $token = self::_tokenFor($r['org'], $r['repo']);
+            if ($token !== '') { $headers[] = 'Authorization: Bearer ' . $token; }
+        }
+
+        // Test seam: a fake transport captures the final headers (asserting auth) without the network.
+        if (self::$transport) {
+            $res  = (array) (self::$transport)((string) $url, $headers, $toFile);
+            $code = (int) ($res['code'] ?? 0);
+            if ($code < 200 || $code >= 300) { return null; }
+            if ($toFile) { return @file_put_contents($toFile, (string) ($res['body'] ?? '')) !== false ? true : null; }
+            return $res['body'] ?? null;
+        }
+
         if (!function_exists('curl_init')) {
-            $ctx  = stream_context_create(['http' => ['user_agent' => self::UA, 'timeout' => 30]]);
+            $hdr  = $headers ? implode("\r\n", $headers) . "\r\n" : '';
+            $ctx  = stream_context_create(['http' => ['user_agent' => self::UA, 'timeout' => 30, 'header' => $hdr]]);
             $body = @file_get_contents($url, false, $ctx);
             if ($body === false) { return null; }
             if ($toFile) { return @file_put_contents($toFile, $body) !== false ? true : null; }
@@ -154,7 +220,7 @@ class Tiger_Module_Github
             CURLOPT_USERAGENT      => self::UA,
             CURLOPT_SSL_VERIFYPEER => true,
         ];
-        if ($api) { $opts[CURLOPT_HTTPHEADER] = ['Accept: application/vnd.github+json']; }
+        if ($headers) { $opts[CURLOPT_HTTPHEADER] = $headers; }
         if ($toFile) {
             $fh = fopen($toFile, 'wb');
             $opts[CURLOPT_FILE] = $fh;

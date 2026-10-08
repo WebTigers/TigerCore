@@ -6,6 +6,19 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Authenticated module sources (private registries).** A module source may now carry a credential, so
+  the Module Manager can read and install from a PRIVATE registry/repo it is authorized for — not just
+  public ones. A source names the GitHub `org` its credential covers and an `auth` **reference** (a
+  credential type plus the config key, `ref`, that holds the secret); the raw secret is never stored on
+  the source, so it cannot leak through `toArray()`, a settings UI, or a diagnostics dump.
+  `Tiger_Module_Github` gains an org-scoped auth resolver (`setAuthResolver()`) plus a testable transport
+  seam, and the registry wires the resolver from the configured authenticated sources — so update
+  detection (`Tiger_Update_Checker`) and one-click install (`Tiger_Module_Installer`) both work for an
+  authorized private repo. With no authenticated source configured, everything stays public exactly as
+  before, and no shipped-default source is ever authenticated.
+
 ## [1.19.1] — 2026-10-07
 
 ### Fixed
