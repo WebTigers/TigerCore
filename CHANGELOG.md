@@ -6,6 +6,8 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.20.0] — 2026-10-08
+
 ### Added
 
 - **Authenticated module sources (private registries).** A module source may now carry a credential, so
