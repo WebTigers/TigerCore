@@ -118,7 +118,15 @@ class Tiger_Module_Github
     }
 
     /**
-     * GitHub's codeload tarball URL for a ref (redirects; download() follows).
+     * The GitHub API tarball endpoint for a ref — a 302 to a signed codeload URL (download() follows).
+     *
+     * We use the API endpoint (`api.github.com/repos/{org}/{repo}/tarball/{ref}`), NOT the web archive
+     * path (`github.com/{org}/{repo}/archive/{ref}.tar.gz`): the web path 404s for a PRIVATE repo even
+     * with a valid bearer token, whereas the API endpoint honours the token and 302s to a signed codeload
+     * URL (which then needs no auth — curl drops the Authorization header on the cross-host redirect). The
+     * API endpoint works for public repos too, so this one URL serves both the public directory and an
+     * authenticated private/company source. (The licensed/authority path mints its own signed URL and does
+     * not come through here.)
      *
      * @param  string $org  the repo owner
      * @param  string $repo the repo name
@@ -127,7 +135,7 @@ class Tiger_Module_Github
      */
     public static function tarballUrl($org, $repo, $ref)
     {
-        return "https://github.com/{$org}/{$repo}/archive/" . rawurlencode((string) $ref) . '.tar.gz';
+        return self::API . "/repos/{$org}/{$repo}/tarball/" . rawurlencode((string) $ref);
     }
 
     /**
