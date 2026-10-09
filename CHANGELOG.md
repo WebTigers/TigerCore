@@ -6,6 +6,17 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.20.1] — 2026-10-09
+
+### Fixed
+
+- **Private module repos now install, not just detect.** `Tiger_Module_Github::tarballUrl()` returned
+  GitHub's web archive URL (`github.com/<org>/<repo>/archive/<ref>.tar.gz`), which 404s for a PRIVATE
+  repo even with a valid bearer token — so an authenticated module source could *detect* an update but
+  fail to *apply* it. It now uses the API tarball endpoint (`api.github.com/repos/<org>/<repo>/tarball/<ref>`),
+  which honours the token and redirects to a signed codeload URL, and works for public repos too. The
+  licensed/authority install path is unaffected (it mints its own signed URL).
+
 ## [1.20.0] — 2026-10-08
 
 ### Added
