@@ -76,15 +76,17 @@ final class GithubTest extends UnitTestCase
     // ---- tarballUrl ------------------------------------------------------------
 
     #[Test]
-    public function tarballUrlBuildsCodeloadWithAnEncodedRef(): void
+    public function tarballUrlBuildsTheApiEndpointWithAnEncodedRef(): void
     {
+        // The API tarball endpoint — honours a bearer token for PRIVATE repos (the web /archive/ path
+        // 404s for those) and 302s to codeload; works for public repos too.
         $this->assertSame(
-            'https://github.com/WebTigers/TigerDocs/archive/v1.2.3-beta.tar.gz',
+            'https://api.github.com/repos/WebTigers/TigerDocs/tarball/v1.2.3-beta',
             Tiger_Module_Github::tarballUrl('WebTigers', 'TigerDocs', 'v1.2.3-beta')
         );
         // A ref with a slash (a branch like feature/x) is rawurlencoded so the URL stays well-formed.
         $this->assertSame(
-            'https://github.com/o/r/archive/feature%2Fx.tar.gz',
+            'https://api.github.com/repos/o/r/tarball/feature%2Fx',
             Tiger_Module_Github::tarballUrl('o', 'r', 'feature/x')
         );
     }
