@@ -101,20 +101,27 @@ final class SystemControllerDispatchTest extends ControllerTestCase
     public function the_modules_screen_builds_the_on_disk_module_list(): void
     {
         $this->loginAs('superadmin');
-        $res = $this->dispatchAction(System_ModulesController::class, 'index');
 
+        // The Modules screen is now a shell: the index action renders the type-filter pills + counts,
+        // and the on-disk module list is fetched client-side from System_Service_Modules::datatable over
+        // /api (client/server DataTable paradigm). So the action dispatches 200 but no longer builds
+        // $this->view->modules — the list + its derived fields come from the datatable service.
+        $res = $this->dispatchAction(System_ModulesController::class, 'index');
         $this->assertSame(200, $res->getHttpResponseCode());
-        $modules = $this->controller()->view->modules;
+
+        $dt = (new System_Service_Modules(['action' => 'datatable', 'start' => 0, 'length' => 500]))->getResponse();
+        $this->assertSame(1, (int) $dt->result);
+        $modules = $dt->data['data'] ?? null;
         $this->assertIsArray($modules);
         $this->assertNotEmpty($modules, 'the disk scan surfaced the bundled modules');
 
-        // Each row carries the manifest + the derived activation/guard fields the view renders.
+        // Each row carries the manifest + the derived activation/guard fields the grid renders.
         $row = $modules[0];
         $this->assertArrayHasKey('active', $row);
         $this->assertArrayHasKey('protected', $row);
         $this->assertArrayHasKey('source', $row);
 
-        // The PROTECTED core modules must be flagged so the view disables their toggle.
+        // The PROTECTED core modules must be flagged so the grid disables their toggle.
         $bySlug = [];
         foreach ($modules as $m) { $bySlug[$m['slug']] = $m; }
         $this->assertTrue($bySlug['system']['protected'], 'system is a protected module');
