@@ -39,6 +39,7 @@ class Tiger_Module_Installer
      */
     public static function installFromUrl($repoUrl, $ref = null, array $opts = [])
     {
+        Tiger_Module_Registry::ensureAuth();   // so a private company repo resolves + downloads (idempotent)
         $r = Tiger_Module_Github::parseRepo($repoUrl);
         if (!$r) {
             throw new RuntimeException('Not a GitHub repository URL.');

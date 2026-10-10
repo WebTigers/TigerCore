@@ -55,6 +55,10 @@ $this->i18n([
     'sourceAddon'      => 'system.modules.source_addon',
     'activate'         => 'system.modules.activate',
     'deactivate'       => 'system.modules.deactivate',
+    'autoUpdateTitle'  => 'system.modules.autoupdate_title',
+    'autoUpdateAria'   => 'system.modules.autoupdate_aria',
+    'autoUpdateOn'     => 'system.modules.autoupdate_on',
+    'autoUpdateOff'    => 'system.modules.autoupdate_off',
     'alwaysOn'         => 'system.modules.always_on',
     'defaultTheme'     => 'system.modules.default_theme',
     'defaultThemeTitle' => 'system.modules.default_theme_title',
@@ -216,6 +220,15 @@ document.addEventListener('DOMContentLoaded', function () {
                         ' data-slug="' + esc(row.slug) + '" data-token="' + esc(row.token) + '" data-name="' + esc(row.name) + '"' +
                         ' data-deps="' + esc(row.dep_tokens) + '" title="' + esc(Tiger.t('deleteTitle')) + '"><i class="fa-solid fa-trash-can"></i></button>';
                 }
+                // WordPress-style per-module auto-update toggle (off by default); hidden for bundled/core.
+                if (row.can_autoupdate) {
+                    html += ' <span class="form-check form-switch d-inline-block align-middle ms-2 mb-0"' +
+                        ' title="' + esc(Tiger.t('autoUpdateTitle')) + '">' +
+                        '<input class="form-check-input" type="checkbox" role="switch" data-mod-autoupdate' +
+                        ' data-slug="' + esc(row.slug) + '" data-name="' + esc(row.name) + '"' +
+                        ' aria-label="' + esc(Tiger.t('autoUpdateAria', row.name)) + '"' + (row.auto_update ? ' checked' : '') + '>' +
+                        '</span>';
+                }
                 return html;
             } }
         ]
@@ -341,6 +354,29 @@ document.addEventListener('DOMContentLoaded', function () {
         if (toggle) { handleToggle(toggle); return; }
         var del = e.target.closest('[data-mod-delete]');
         if (del) { handleDeleteTrigger(del); return; }
+    });
+
+    /* Per-module auto-update switch (delegated — survives every grid redraw). Optimistic; reverts on failure. */
+    document.addEventListener('change', function (e) {
+        var sw = e.target.closest('[data-mod-autoupdate]');
+        if (!sw) { return; }
+        var slug = sw.getAttribute('data-slug'), on = sw.checked, prev = !on;
+        sw.disabled = true;
+        var body = new URLSearchParams({ module: 'system', service: 'modules', method: 'autoUpdate', slug: slug, on: on ? '1' : '0' });
+        fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                var ok = res && res.result === 1;
+                if (!ok) { sw.checked = prev; }
+                if (window.TigerDOM && TigerDOM.toast) {
+                    TigerDOM.toast(Tiger.t(ok ? (on ? 'autoUpdateOn' : 'autoUpdateOff') : 'networkError'), { type: ok ? 'success' : 'error' });
+                }
+            })
+            .catch(function () {
+                sw.checked = prev;
+                if (window.TigerDOM && TigerDOM.toast) { TigerDOM.toast(Tiger.t('networkError'), { type: 'error' }); }
+            })
+            .finally(function () { sw.disabled = false; });
     });
 
     if (delInput) {

@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**211 classes** across **33 capabilities** · **22 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**213 classes** across **33 capabilities** · **22 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -124,15 +124,17 @@
 - **Tiger_Module_Compat** `@api` — advisory "which Tiger versions was this module tested for?" metadata.  ·  `library/Tiger/Module/Compat.php`
 - **Tiger_Module_Dependency** `@api` — lightweight, lazy inter-module dependency alerts.  ·  `library/Tiger/Module/Dependency.php`
 - **Tiger_Module_Discovery** `@api` — find the modules present on disk (active or not).  ·  `library/Tiger/Module/Discovery.php`
-- **Tiger_Module_Github** `@api` — read public GitHub repos over cURL (no auth, public only).  ·  `library/Tiger/Module/Github.php`
+- **Tiger_Module_Github** `@api` — read GitHub repos over cURL.  ·  `library/Tiger/Module/Github.php`
 - **Tiger_Module_Installer** `@api` — install / update / remove modules from public GitHub repos.  ·  `library/Tiger/Module/Installer.php`
 - **Tiger_Module_Longform** `@api` — resolves a module listing's LONG-FORM copy and renders it safely.  ·  `library/Tiger/Module/Longform.php`
 - **Tiger_Module_Pricing** `@api` — the manifest `pricing` block, normalized.  ·  `library/Tiger/Module/Pricing.php`
 - **Tiger_Module_Registry** `@api` — the client for the module catalog, now **multi-source**.  ·  `library/Tiger/Module/Registry.php`
 - **Tiger_Module_Source** `@api` — one catalog feed the Module Manager reads.  ·  `library/Tiger/Module/Source.php`
+- **Tiger_Update_AutoUpdate** `@api` — per-module auto-update opt-in (the WordPress "Enable auto-updates" toggle).  ·  `library/Tiger/Update/AutoUpdate.php`
 - **Tiger_Update_Checker** `@api` — "what has an update?" for the WordPress-simple Updates screen.  ·  `library/Tiger/Update/Checker.php`
 - **Tiger_Update_Composer** `@api` — run `composer update <package>` IN-PROCESS, for hosts where Composer genuinely runs (a binary + proc_open/exec not disabled + a writable vendor/ — see Tiger_Vendor_Environment).  ·  `library/Tiger/Update/Composer.php`
 - **Tiger_Update_Core** `@api` — no-shell TigerCore self-update via a pre-resolved vendored release ZIP.  ·  `library/Tiger/Update/Core.php`
+- **Tiger_Update_Provider** `@api` — a module may own HOW it detects + applies its own updates.  ·  `library/Tiger/Update/Provider.php`
 - **Tiger_Vendor** `@api` — provisions a third-party PHP library and makes it autoloadable, on any host.  ·  `library/Tiger/Vendor.php`
 - **Tiger_Vendor_Environment** `@api` — reads the host's capability for provisioning third-party libraries.  ·  `library/Tiger/Vendor/Environment.php`
 
