@@ -11,6 +11,7 @@ use System_LogsController;
 use System_ModulesController;
 use System_SettingsController;
 use System_UpdatesController;
+use System_Service_Modules;
 use Tiger\Tests\Support\ControllerTestCase;
 use Zend_Config;
 use Zend_Registry;
