@@ -6,6 +6,25 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Per-module auto-update — the WordPress "Enable auto-updates" toggle.** Opt-in and OFF by default: an
+  admin flips a switch per module on the Modules screen, and the daily update job then applies new versions
+  for those (and only those) unattended, leaving every other module manual. `Tiger_Update_AutoUpdate` stores
+  the opt-in set as one site-wide option (a slug list, like WP's `auto_update_plugins`);
+  `System_Service_Modules::autoUpdate()` toggles it; `System_Service_Updates::runScheduledAutoUpdates()` is the
+  headless, best-effort apply the scheduler calls. Channel-agnostic — a module updated over GitHub, a provider,
+  or any route opts in the same way.
+
+- **A module may own its own update channel — `Tiger_Update_Provider`.** A neutral register() seam (like
+  `Tiger_Audience`/`Tiger_Search`): a module registers a provider for its slug with a `check()` (detection)
+  and an `apply()` (install), and the Updates screen then lists and applies it exactly like a GitHub- or
+  Packagist-managed module — same descriptor (`method: 'provider'`), same apply result. `Tiger_Update_Checker`
+  consults a registered provider before the Git path (so even a repo-less row still lists), and
+  `System_Service_Updates` dispatches apply to it. Lets a module be distributed behind its own authority /
+  signed-artifact feed without teaching open-source core where those bytes come from — detection and apply are
+  fail-safe (a broken provider never flags a phantom update or bubbles an exception).
+
 ## [1.20.1] — 2026-10-09
 
 ### Fixed
