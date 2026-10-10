@@ -396,11 +396,11 @@ class AuthController extends Tiger_Controller_Action
         $this->_json(['result' => $identity ? 1 : 0, 'data' => $identity]);
     }
 
-    /** Role-appropriate landing after auth: admin back office for admin+, else public home. */
+    /** Role-appropriate landing after auth: admin back office for admin+, else the "My Account" dashboard. */
     protected function _roleHome($identity)
     {
         $role = ($identity && isset($identity->role)) ? $identity->role : '';
-        return in_array($role, self::ADMIN_ROLES, true) ? '/admin' : '/';
+        return in_array($role, self::ADMIN_ROLES, true) ? '/admin' : '/account';
     }
 
     /**

@@ -51,6 +51,30 @@ class System_Service_Modules extends Tiger_Service_Service
     public function deactivate(array $params): void { $this->_toggle($params, false); }
 
     /**
+     * Turn per-module auto-update on/off — the WordPress "Enable auto-updates" toggle. Opt-in and OFF by
+     * default; the daily update job then applies new versions for opted-in modules only, leaving every
+     * other module manual ("Update now" on the Updates screen). Admin+ (same gate as activate). Works for
+     * any module regardless of its update channel (GitHub, provider, …) — it only records the opt-in.
+     *
+     * @param  array $params the /api payload (expects `slug`, `on`)
+     * @return void
+     */
+    public function autoUpdate(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($params['slug'] ?? ''));
+        if ($slug === '') { $this->_error('core.api.error.general'); return; }
+        if (!isset(Tiger_Module_Discovery::all()[$slug])) { $this->_error('system.error.unknown'); return; }
+
+        $on    = filter_var($params['on'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $state = Tiger_Update_AutoUpdate::set($slug, $on);
+        $this->_success(
+            ['slug' => $slug, 'auto_update' => $state],
+            $state ? 'system.modules.autoupdate_on' : 'system.modules.autoupdate_off'
+        );
+    }
+
+    /**
      * NUCLEAR delete of a NON-CORE module (by `slug`): drops its tables + data, then removes its files,
      * assets, and install row. **Irreversible.** Guarded four ways: superadmin-only (the service ACL);
      * never a bundled/core or PROTECTED module; a typed-confirmation `confirm` token that must match the
