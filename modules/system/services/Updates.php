@@ -213,6 +213,22 @@ class System_Service_Updates extends Tiger_Service_Service
         try {
             $step('resolve', true, "{$u['name']} {$u['installed']} → {$u['latest']}  ({$u['repository']})");
 
+            // Provider-owned update channel ({@see Tiger_Update_Provider}): the module supplied its own
+            // apply — it downloads/verifies/installs however it distributes (e.g. through a vendor authority).
+            // Dispatch to it and fold its log into ours; core never touches its source. Runs before the Git
+            // path and the licensed gate (a provider module is distributed, and gated, on its own terms).
+            if (!empty($u['provider']) && Tiger_Update_Provider::has((string) $u['slug'])) {
+                $res = Tiger_Update_Provider::apply((string) $u['slug'], $u);
+                foreach (($res['log'] ?? []) as $l) {
+                    $step((string) ($l['step'] ?? 'provider'), !empty($l['ok']), (string) ($l['detail'] ?? ''));
+                }
+                $ok = !empty($res['ok']);
+                $ver = $res['version'] ?? ($ok ? $u['latest'] : null);
+                $step($ok ? 'done' : 'error', $ok, $ok ? ("Updated to {$ver}.") : 'Provider update failed.');
+                if (!$ok) { Tiger_Log::error('update.failed', ['item' => $u['slug'], 'via' => 'provider']); }
+                return ['slug' => $u['slug'], 'name' => $u['name'], 'ok' => $ok, 'version' => $ver, 'log' => $log];
+            }
+
             // Licensed module whose license is definitively LAPSED: withhold the update — nag, never disable.
             // The installed version keeps running; renewing the license lets the update proceed next time.
             $manifest = Tiger_Module_Discovery::manifestFor($u['slug']);

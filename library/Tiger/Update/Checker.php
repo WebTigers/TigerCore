@@ -152,8 +152,28 @@ class Tiger_Update_Checker
         }
         $out = [];
         foreach ($rows as $slug => $row) {
-            $repo      = (string) ($row->repository ?? '');
             $installed = (string) ($row->version ?? '');
+
+            // A module may own its own update channel ({@see Tiger_Update_Provider}) — distributed behind a
+            // vendor authority / signed-artifact feed rather than a readable Git repo. When one is registered
+            // for this slug it decides latest (and may correct installed); the row still lists in the Updates
+            // screen like any other, as a standard descriptor with method 'provider'. Core never learns where
+            // the bytes come from. This runs BEFORE the repo check, so even a repo-less row is checkable.
+            if (Tiger_Update_Provider::has($slug)) {
+                $info = Tiger_Update_Provider::check($slug, $installed);
+                if (!is_array($info)) { continue; }   // nothing to say / unreachable — fail-safe
+                $prov = Tiger_Update_Provider::get($slug);
+                $desc = self::_descriptor(
+                    'module', (string) ($row->name ?: $slug), $slug,
+                    (string) ($info['installed'] ?? $installed), self::_stripV((string) $info['latest']),
+                    'provider', (string) ($info['repository'] ?? $row->repository ?? ''), $info['ref'] ?? null
+                );
+                $desc['provider'] = (string) ($prov['id'] ?? $slug);
+                $out[] = $desc;
+                continue;
+            }
+
+            $repo      = (string) ($row->repository ?? '');
             $parsed    = $repo !== '' ? Tiger_Module_Github::parseRepo($repo) : null;
             if ($installed === '' || !$parsed) {
                 continue;   // discovered/local module — nothing authoritative to diff against

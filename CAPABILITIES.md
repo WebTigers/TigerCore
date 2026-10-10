@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**211 classes** across **33 capabilities** · **22 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**212 classes** across **33 capabilities** · **22 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -133,6 +133,7 @@
 - **Tiger_Update_Checker** `@api` — "what has an update?" for the WordPress-simple Updates screen.  ·  `library/Tiger/Update/Checker.php`
 - **Tiger_Update_Composer** `@api` — run `composer update <package>` IN-PROCESS, for hosts where Composer genuinely runs (a binary + proc_open/exec not disabled + a writable vendor/ — see Tiger_Vendor_Environment).  ·  `library/Tiger/Update/Composer.php`
 - **Tiger_Update_Core** `@api` — no-shell TigerCore self-update via a pre-resolved vendored release ZIP.  ·  `library/Tiger/Update/Core.php`
+- **Tiger_Update_Provider** `@api` — a module may own HOW it detects + applies its own updates.  ·  `library/Tiger/Update/Provider.php`
 - **Tiger_Vendor** `@api` — provisions a third-party PHP library and makes it autoloadable, on any host.  ·  `library/Tiger/Vendor.php`
 - **Tiger_Vendor_Environment** `@api` — reads the host's capability for provisioning third-party libraries.  ·  `library/Tiger/Vendor/Environment.php`
 

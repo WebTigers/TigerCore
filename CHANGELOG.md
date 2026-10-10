@@ -6,6 +6,17 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+### Added
+
+- **A module may own its own update channel — `Tiger_Update_Provider`.** A neutral register() seam (like
+  `Tiger_Audience`/`Tiger_Search`): a module registers a provider for its slug with a `check()` (detection)
+  and an `apply()` (install), and the Updates screen then lists and applies it exactly like a GitHub- or
+  Packagist-managed module — same descriptor (`method: 'provider'`), same apply result. `Tiger_Update_Checker`
+  consults a registered provider before the Git path (so even a repo-less row still lists), and
+  `System_Service_Updates` dispatches apply to it. Lets a module be distributed behind its own authority /
+  signed-artifact feed without teaching open-source core where those bytes come from — detection and apply are
+  fail-safe (a broken provider never flags a phantom update or bubbles an exception).
+
 ## [1.20.1] — 2026-10-09
 
 ### Fixed
