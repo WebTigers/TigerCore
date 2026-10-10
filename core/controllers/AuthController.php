@@ -211,7 +211,18 @@ class AuthController extends Tiger_Controller_Action
                 (string) $request->getPost('confirm')
             );
             if ($res['ok']) {
-                $this->_json(['result' => 1, 'redirect' => '/auth/login/reset/1']);
+                // Better UX: sign the user straight in and send them to their dashboard — no bounce back
+                // to the login page. `pwreset=1` on the destination drives a dismissable "password set,
+                // you're logged in" toast; `username` lets the form offer the browser's save-password.
+                $uid = (string) ($res['user_id'] ?? '');
+                if ($uid !== '' && (new Tiger_Service_Authentication())->establishSession($uid)) {
+                    $home = $this->_roleHome(Zend_Auth::getInstance()->getIdentity());
+                    $home .= (strpos($home, '?') === false ? '?' : '&') . 'pwreset=1';
+                    $this->_json(['result' => 1, 'redirect' => $home, 'logged_in' => true,
+                                  'username' => (string) ($res['username'] ?? '')]);
+                } else {
+                    $this->_json(['result' => 1, 'redirect' => '/auth/login/reset/1']);   // fallback: old behaviour
+                }
             } else {
                 $this->_json(['result' => 0, 'message' => $res['error']], 400);
             }
