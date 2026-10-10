@@ -63,8 +63,21 @@ class Tiger_Update_Composer
         }
         $add('preflight', true, 'Composer runnable, composer.json present, vendor/ writable.');
 
-        $verFile = $root . '/vendor/' . $package . '/library/Tiger/Version.php';   // tiger-core layout
+        $pkgDir  = $root . '/vendor/' . $package;
+        $verFile = $pkgDir . '/library/Tiger/Version.php';   // tiger-core layout
         $before  = self::_versionIn($verFile);
+
+        // DEEP writability preflight. is_writable(vendor) above only checks the TOP dir; the real-world
+        // failure (which white-screened a panel) is a NESTED dir the web user doesn't own — deleting a
+        // file needs write on its CONTAINING dir, so Composer aborts part-way and leaves a half-installed
+        // package. Catch it here and fail CLEAN, before anything is touched.
+        $unwritable = self::_firstUnwritableDir($root . '/vendor');
+        if ($unwritable !== null) {
+            return $fail('Update aborted — nothing was changed. "' . $unwritable . '" is not writable by the '
+                . 'web user (' . self::_procUser() . '), so Composer would fail part-way and break the install. '
+                . 'Make the vendor tree writable by the web user (e.g. `chown -R <owner>:' . self::_procGroup()
+                . ' vendor && find vendor -type d -exec chmod 2775 {} +`), then retry.');
+        }
 
         // A writable HOME/COMPOSER_HOME (web users often have none), unbounded memory, no TTY.
         $composerHome = $root . '/var/composer-home';
@@ -79,6 +92,20 @@ class Tiger_Update_Composer
         // log). Seed our HOME's gitconfig to trust any path so the update log stays clean.
         @file_put_contents($composerHome . '/.gitconfig', "[safe]\n\tdirectory = *\n");
 
+        // ATOMIC: stage the current package ASIDE as a rollback point BEFORE Composer runs. This also
+        // removes the exact failure mode above — with the old dir gone, Composer does a clean fresh
+        // INSTALL into an empty slot (nothing to delete). Any failure below restores it, so the site is
+        // never left half-updated.
+        $backup = null;
+        if (is_dir($pkgDir)) {
+            $backup = $root . '/var/update-rollback-' . preg_replace('/[^a-z0-9]+/i', '-', $package) . '-' . time();
+            @mkdir(dirname($backup), 0775, true);
+            if (!@rename($pkgDir, $backup)) {
+                return $fail('Update aborted — nothing was changed. Could not stage a rollback of ' . $package
+                    . ' (rename failed); check that ' . $root . '/var is writable by the web user.');
+            }
+        }
+
         // --with-all-dependencies so a required tigerzf/polyfill bump comes along; --no-dev for a
         // production-shaped tree; --no-scripts so a post-update hook can't fail the update mid-request.
         $cmd = $binary . ' update ' . escapeshellarg($package)
@@ -86,9 +113,19 @@ class Tiger_Update_Composer
         list($code, $out) = self::_run($cmd, $root, self::TIMEOUT);
         $tail = self::_tail($out, 4000);
 
-        if ($code !== 0) {
-            return $fail("Composer exited with code {$code}." . ($tail !== '' ? "\n" . $tail : ''));
+        // Restore-on-failure: Composer errored, OR it "succeeded" but the package is missing/incomplete
+        // (the half-extracted state). Either way, put the previous version back so the site stays up.
+        if ($code !== 0 || !self::_packageIntact($pkgDir, $verFile)) {
+            $restored = self::_restore($pkgDir, $backup);
+            $why = ($code !== 0)
+                ? "Composer exited with code {$code}."
+                : 'Composer finished but ' . $package . ' is missing or incomplete on disk.';
+            return $fail($why . ($restored ? ' Rolled back to the previous version — the site is unchanged.' : '')
+                . ($tail !== '' ? "\n" . $tail : ''));
         }
+
+        // Success — drop the rollback copy.
+        if ($backup !== null) { self::_rmrf($backup); }
         $add('composer', true, 'composer update ' . $package . ' finished.' . ($tail !== '' ? "\n" . $tail : ''));
 
         // Re-read from disk — the running process still holds the old Version constant.
@@ -98,6 +135,82 @@ class Tiger_Update_Composer
                 : 'Composer reported success')
             . '. The new code serves the next request.');
         return ['ok' => true, 'version' => $after, 'log' => $log];
+    }
+
+    // ---- atomicity helpers -----------------------------------------------------
+
+    /**
+     * The first directory at/under $root that this process cannot write (so Composer could not delete a
+     * file in it), or null if the whole tree is writable. Deletion needs write on the CONTAINING dir, so
+     * we test dirs, not files. Symlinked dirs are skipped (not ours to chmod).
+     */
+    protected static function _firstUnwritableDir($root)
+    {
+        if (!is_dir($root)) { return null; }
+        if (!is_writable($root)) { return $root; }
+        try {
+            $it = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS),
+                RecursiveIteratorIterator::SELF_FIRST);
+            foreach ($it as $path) {
+                if ($path->isDir() && !$path->isLink() && !is_writable((string) $path)) {
+                    return (string) $path;
+                }
+            }
+        } catch (Exception $e) {
+            return null;   // never let the check itself block an update
+        }
+        return null;
+    }
+
+    /** Whether the package is fully installed on disk (dir + composer.json; +Version/functions for tiger-core). */
+    protected static function _packageIntact($pkgDir, $verFile)
+    {
+        if (!is_dir($pkgDir) || !is_file($pkgDir . '/composer.json')) { return false; }
+        if (basename($pkgDir) === 'tiger-core') {          // the classic half-extracted fatal is a missing one of these
+            return is_file($verFile) && is_file($pkgDir . '/functions.php');
+        }
+        return true;
+    }
+
+    /** Restore the staged rollback over a (possibly partial) package dir. Returns whether it was restored. */
+    protected static function _restore($pkgDir, $backup)
+    {
+        if ($backup === null || !is_dir($backup)) { return false; }
+        self::_rmrf($pkgDir);
+        return @rename($backup, $pkgDir);
+    }
+
+    /** Recursively remove a path. */
+    protected static function _rmrf($path)
+    {
+        if ($path === '' || !file_exists($path)) { return; }
+        if (is_file($path) || is_link($path)) { @unlink($path); return; }
+        try {
+            $it = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS),
+                RecursiveIteratorIterator::CHILD_FIRST);
+            foreach ($it as $p) { ($p->isDir() && !$p->isLink()) ? @rmdir((string) $p) : @unlink((string) $p); }
+        } catch (Exception $e) { /* best effort */ }
+        @rmdir($path);
+    }
+
+    protected static function _procUser()
+    {
+        if (function_exists('posix_geteuid') && function_exists('posix_getpwuid')) {
+            $u = @posix_getpwuid(@posix_geteuid());
+            if (is_array($u) && !empty($u['name'])) { return $u['name']; }
+        }
+        return get_current_user() ?: 'the web user';
+    }
+
+    protected static function _procGroup()
+    {
+        if (function_exists('posix_getegid') && function_exists('posix_getgrgid')) {
+            $g = @posix_getgrgid(@posix_getegid());
+            if (is_array($g) && !empty($g['name'])) { return $g['name']; }
+        }
+        return 'apache';
     }
 
     // ---- helpers ---------------------------------------------------------------
