@@ -6,6 +6,8 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.21.0] — 2026-10-10
+
 ### Added
 
 - **Per-module auto-update — the WordPress "Enable auto-updates" toggle.** Opt-in and OFF by default: an
