@@ -53,6 +53,8 @@ class System_ModulesController extends Tiger_Controller_Admin_Action
                 'active'    => $active,
                 'is_default' => $isDefault,
                 'source'    => $source,
+                // WordPress-style per-module auto-update opt-in (off by default); the row renders a toggle.
+                'auto_update' => Tiger_Update_AutoUpdate::isOn($slug),
                 // Advisory: tested-version compat notice (never blocks) + who requires this module
                 // (drives the "required by X, Y — deactivate anyway?" confirm; empty for most).
                 'compat'      => Tiger_Module_Compat::check($m),

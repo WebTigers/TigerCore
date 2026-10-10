@@ -108,6 +108,21 @@ $typeIcon = static function ($t) {
                             <?php if (!empty($m['is_default'])): ?><span class="badge text-bg-primary ms-1" title="<?= $this->escape($this->t('system.modules.default_theme_title')) ?>"><i class="fa-solid fa-star me-1"></i><?= $this->t('system.modules.default_theme') ?></span><?php endif; ?>
                         </td>
                         <td class="text-end text-nowrap">
+                            <?php // Auto-update opt-in (the WP "Enable auto-updates" analogue). Hidden for bundled/core
+                                  // modules — those update with the platform, not individually. Shown for protected
+                                  // modules (they can be updated, just not deactivated). ?>
+                            <?php if ((($m['source'] ?? '') !== 'bundled') && (($m['area'] ?? '') !== 'core')): ?>
+                                <div class="form-check form-switch d-inline-block align-middle me-3">
+                                    <input class="form-check-input" type="checkbox" role="switch"
+                                           id="mod-autoupdate-<?= $this->escape($m['slug']) ?>"
+                                           data-mod-autoupdate
+                                           data-slug="<?= $this->escape($m['slug']) ?>"
+                                           data-name="<?= $this->escape($m['name']) ?>"
+                                           aria-label="<?= $this->escape($this->t('system.modules.autoupdate_aria', $m['name'])) ?>"
+                                           <?= !empty($m['auto_update']) ? 'checked' : '' ?>>
+                                    <label class="form-check-label small text-body-secondary" for="mod-autoupdate-<?= $this->escape($m['slug']) ?>" title="<?= $this->escape($this->t('system.modules.autoupdate_title')) ?>"><?= $this->t('system.modules.autoupdate') ?></label>
+                                </div>
+                            <?php endif; ?>
                             <?php if ($m['protected']): ?>
                                 <span class="text-body-secondary small"><?= $this->t('system.modules.always_on') ?></span>
                             <?php elseif ($m['active']): ?>
@@ -170,6 +185,8 @@ $this->i18n([
     'activateThemeTitle' => 'system.js.activate_theme_title',
     'activateThemeBody' => 'system.js.activate_theme_body',
     'activateThemeMakeDefault' => 'system.js.activate_theme_make_default',
+    'autoUpdateOn' => 'system.modules.autoupdate_on',
+    'autoUpdateOff' => 'system.modules.autoupdate_off',
 ]);
 ?>
 <script>
@@ -281,6 +298,30 @@ document.addEventListener('DOMContentLoaded', function () {
         run();
     }
 
+    /* ---- auto-update opt-in (per module) — DELEGATED change handler so it survives DataTables redraws ---- */
+    function handleAutoUpdate(input) {
+        var slug = input.getAttribute('data-slug');
+        var on   = input.checked;
+        var prev = !on;                         // state to restore if the request fails
+        input.disabled = true;                  // keep it disabled in-flight
+        var body = new URLSearchParams({ module: 'system', service: 'modules', method: 'autoUpdate', slug: slug, on: on ? '1' : '0' });
+        fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (res && res.result === 1) {
+                    TigerDOM.toast(Tiger.t(on ? 'autoUpdateOn' : 'autoUpdateOff'), { type: 'success' });
+                } else {
+                    input.checked = prev;
+                    TigerDOM.toast(Tiger.t('networkError'), { type: 'error' });
+                }
+            })
+            .catch(function () {
+                input.checked = prev;
+                TigerDOM.toast(Tiger.t('networkError'), { type: 'error' });
+            })
+            .finally(function () { input.disabled = false; });
+    }
+
     /* ---- delete (nuclear): dependents block → toast; else type-to-confirm DANGER modal ---- */
     var delEl    = document.getElementById('mod-delete-modal');
     var delModal = (delEl && window.bootstrap) ? bootstrap.Modal.getOrCreateInstance(delEl) : null;
@@ -314,6 +355,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if (toggle) { handleToggle(toggle); return; }
         var del = e.target.closest('[data-mod-delete]');
         if (del) { handleDeleteTrigger(del); return; }
+    });
+
+    /* A delegated CHANGE listener for the auto-update switches (click fires toggles/deletes; change fires switches). */
+    document.addEventListener('change', function (e) {
+        var sw = e.target.closest('[data-mod-autoupdate]');
+        if (sw) { handleAutoUpdate(sw); }
     });
 
     if (delInput) {

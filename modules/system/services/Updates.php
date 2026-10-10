@@ -85,6 +85,44 @@ class System_Service_Updates extends Tiger_Service_Service
     }
 
     /**
+     * Apply updates for the modules an admin opted into auto-update ({@see Tiger_Update_AutoUpdate}) —
+     * the unattended half of the WordPress model. Called by the daily `system.update_check` job (headless,
+     * no request/identity), NOT /api: it installs only versions that are genuinely available AND whose
+     * slug was explicitly toggled on, so there is nothing to authorize here beyond that prior opt-in.
+     * Best-effort and self-contained: a failure on one item is recorded and never aborts the rest, and the
+     * whole thing is caught so a bad run can never break the scheduler. Returns a per-item summary.
+     *
+     * @return array<int,array> the applied results (empty when nothing was opted-in or pending)
+     */
+    public static function runScheduledAutoUpdates(): array
+    {
+        try {
+            $on = Tiger_Update_AutoUpdate::onSlugs();
+            if (!$on) { return []; }
+
+            $index = [];
+            foreach (Tiger_Update_Checker::available(true) as $u) { $index[$u['slug']] = $u; }
+
+            $svc     = new self();
+            $results = [];
+            foreach ($on as $slug) {
+                if (!isset($index[$slug])) { continue; }   // opted-in but nothing to do
+                $res = $svc->_applyOne($index[$slug]);
+                $results[] = $res;
+                Tiger_Log::info('update.auto', ['item' => $slug, 'ok' => !empty($res['ok']), 'version' => $res['version'] ?? null]);
+            }
+            if ($results) {
+                $svc->_recordHistory($results, $index);
+                Tiger_Update_Checker::refreshPending();
+            }
+            return $results;
+        } catch (Throwable $e) {
+            Tiger_Log::error('update.auto.failed', ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
+
+    /**
      * The recent update-run history (durable "what ran / what broke").
      *
      * @param  array $params {limit?}
