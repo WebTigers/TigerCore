@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tiger\Tests\Support\IntegrationTestCase;
 use Tiger_Model_Module;
 use Tiger_Update_Checker;
+use Tiger_Update_Provider;
 
 /**
  * Tiger_Update_Checker::modules() — the per-module update diff, which the unit CheckerTest can't reach
@@ -32,6 +33,7 @@ final class CheckerTest extends IntegrationTestCase
         foreach ($this->planted as $d) { $this->rrmdir($d); }
         foreach ($this->wrote as $f) { @unlink($f); }
         @rmdir(APPLICATION_PATH . '/modules');
+        Tiger_Update_Provider::_reset();
         parent::tearDown();
     }
 
@@ -81,6 +83,32 @@ final class CheckerTest extends IntegrationTestCase
         $this->assertArrayHasKey('license', $byslug['w4upd'], 'a licensed module carries its license verdict');
 
         $this->assertArrayNotHasKey('w4local', $byslug, 'a module with no repository is skipped');
+    }
+
+    #[Test]
+    public function modulesSurfacesAProviderOwnedModuleWithoutARepo(): void
+    {
+        $mod = new Tiger_Model_Module();
+
+        // A repo-less "discovered" row that WOULD be skipped — but a provider is registered for it, so it
+        // must appear in the Updates screen as a standard descriptor with method 'provider'. Core never
+        // learns where the bytes come from; the provider decides latest (and may correct installed).
+        $mod->setActive('w4prov', true, ['source' => Tiger_Model_Module::SOURCE_DISCOVERED, 'name' => 'W4 Prov', 'version' => '1.0.0']);
+        Tiger_Update_Provider::register('w4prov', [
+            'id'    => 'acme-authority',
+            'check' => static fn($slug, $installed) => ['latest' => '1.5.0'],
+            'apply' => static fn($slug, $desc) => ['ok' => true, 'version' => '1.5.0'],
+        ]);
+
+        $byslug = [];
+        foreach (Tiger_Update_Checker::modules() as $r) { $byslug[$r['slug']] = $r; }
+
+        $this->assertArrayHasKey('w4prov', $byslug, 'a provider-owned repo-less module still lists');
+        $this->assertSame('provider', $byslug['w4prov']['method']);
+        $this->assertSame('acme-authority', $byslug['w4prov']['provider']);
+        $this->assertTrue($byslug['w4prov']['update'], '1.0.0 < 1.5.0 → an update is available');
+        $this->assertSame('1.5.0', $byslug['w4prov']['latest']);
+        $this->assertSame('1.0.0', $byslug['w4prov']['installed']);
     }
 
     private function rrmdir(string $dir): void

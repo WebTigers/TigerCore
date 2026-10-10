@@ -110,24 +110,25 @@ final class FormsTest extends IntegrationTestCase
     // ----- Cms_Form_Settings --------------------------------------------------------------------
 
     #[Test]
-    public function settings_form_requires_a_site_name_and_lists_published_pages_as_home_options(): void
+    public function settings_form_requires_a_site_name_and_validates_the_home_page_value(): void
     {
-        $this->seedPublishedPage();
+        // The home page is ANY valid path now, so home_page is a free value the combobox fills in (the
+        // discoverable list of pages lives in Cms_Service_Paths, tested in HomePageSelectorTest) — the
+        // form only holds the value and validates its SHAPE.
         $form = new Cms_Form_Settings();
-
         $this->assertTrue($form->getElement('site_name')->isRequired());
-        $home = $form->getElement('home_page')->getMultiOptions();
-        $this->assertArrayHasKey('', $home, 'the built-in landing is the empty option');
 
-        // The list is now GROUPED (content pages / module pages / custom path), so a page label sits
-        // one level down inside its optgroup rather than at the top level. Flatten before asserting.
-        $labels = [];
-        array_walk_recursive($home, static function ($v) use (&$labels) { $labels[] = $v; });
-        $this->assertContains('Home (en)', $labels, 'a published page is a home-page choice');
+        $this->assertTrue($form->isValid(['site_name' => 'My Site', 'home_page' => '']), 'blank home = built-in landing');
 
-        $this->assertTrue($form->isValid(['site_name' => 'My Site', 'home_page' => '']));
+        $this->assertTrue((new Cms_Form_Settings())->isValid(['site_name' => 'My Site', 'home_page' => '/marketplace']), 'a module path is valid');
+        $this->assertTrue((new Cms_Form_Settings())->isValid(['site_name' => 'My Site', 'home_page' => '@theme:grey-mist']), 'a theme page is valid');
+
         $bad = new Cms_Form_Settings();
-        $this->assertFalse($bad->isValid(['site_name' => '', 'home_page' => '']));
+        $this->assertFalse($bad->isValid(['site_name' => '', 'home_page' => '']), 'the site name is required');
         $this->assertArrayHasKey('site_name', $bad->getMessages());
+
+        $junk = new Cms_Form_Settings();
+        $this->assertFalse($junk->isValid(['site_name' => 'My Site', 'home_page' => 'https://evil.test/x']), 'an absolute URL is refused');
+        $this->assertArrayHasKey('home_page', $junk->getMessages());
     }
 }

@@ -160,6 +160,42 @@ class Tiger_Model_Page extends Tiger_Model_Table
     }
 
     /**
+     * PUBLISHED-page summaries for a pick-list (the home-page selector), bounded in the model — small
+     * columns only (never `body`/`meta`), an optional case-insensitive search over title/slug/key, and
+     * a hard row cap. Keeps query construction in the model (not the calling service) and keeps a
+     * per-keystroke search from ever loading full page rows.
+     *
+     * @param  string $q     optional substring filter on title / slug / page_key ('' = all)
+     * @param  int    $limit max rows (clamped 1..200)
+     * @param  string $type  the page type (default TYPE_PAGE)
+     * @return array<int,array<string,string>> [page_id, title, slug, page_key, locale], title then locale
+     */
+    public function publishedSummaries($q = '', $limit = 50, $type = self::TYPE_PAGE)
+    {
+        $db     = $this->getAdapter();
+        $limit  = max(1, min(200, (int) $limit));
+        $select = $db->select()
+            ->from($this->_name, ['page_id', 'title', 'slug', 'page_key', 'locale'])
+            ->where('type = ?', (string) $type)
+            ->where('deleted = ?', 0)
+            ->where('status = ?', self::STATUS_PUBLISHED)
+            ->where('published_at IS NULL OR published_at <= NOW()')
+            ->order(['title ASC', 'locale ASC'])
+            ->limit($limit);
+
+        $q = trim((string) $q);
+        if ($q !== '') {
+            $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $q) . '%';
+            $select->where(
+                $db->quoteInto('title LIKE ?', $like)
+                . ' OR ' . $db->quoteInto('slug LIKE ?', $like)
+                . ' OR ' . $db->quoteInto('page_key LIKE ?', $like)
+            );
+        }
+        return $db->fetchAll($select);
+    }
+
+    /**
      * Every active row of any of the given types.
      *
      * @param  array $types TYPE_* constants

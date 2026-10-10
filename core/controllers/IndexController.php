@@ -11,21 +11,6 @@
 class IndexController extends Zend_Controller_Action
 {
     /**
-     * Append the marketing-only stylesheet (a larger base font, etc.) to the END of the CSS stack so
-     * it wins the cascade. Done once per request in init() (not per action), and only here — the
-     * admin/auth/CMS surfaces never dispatch through IndexController, so they're untouched and no
-     * body-class scoping is needed.
-     *
-     * @return void
-     */
-    public function init()
-    {
-        if (isset($this->view->themeAssets)) {
-            $this->view->headLink()->appendStylesheet($this->view->asset($this->view->themeAssets . '/marketing.css'));
-        }
-    }
-
-    /**
      * Serve the home page at "/": an admin-chosen CMS page, else the active theme's shipped
      * home (`content/index.phtml`), else the built-in landing.
      *
@@ -34,6 +19,18 @@ class IndexController extends Zend_Controller_Action
     public function indexAction()
     {
         $home = $this->_homePageId();
+
+        // 1a-theme) An admin picked a THEME PAGE — any installed theme's shipped page, whether or not
+        //     that theme is the active site theme: `@theme:<key>` (its home) or `@theme:<key>:<slug>`.
+        //     Forwarded to render that theme's page (its own layout + assets) AT "/".
+        if (strncmp($home, '@theme:', 7) === 0) {
+            $rest  = substr($home, 7);
+            $colon = strpos($rest, ':');
+            $key   = $colon === false ? $rest : substr($rest, 0, $colon);
+            $slug  = $colon === false ? 'index' : (string) substr($rest, $colon + 1);
+            if ($this->_forwardToThemePage($key, $slug)) { return; }
+            // Unknown/uninstalled theme or missing page — fall through to the built-in landing.
+        }
 
         // 1a) An admin picked a PATH — a public module page (`/marketplace`, `/docs`) or any ad-hoc
         //     route. Forwarded, not redirected: the content has to be served AT "/" or it isn't the
@@ -66,112 +63,6 @@ class IndexController extends Zend_Controller_Action
         $this->view->tigerVersion = Tiger_Version::VERSION;
         $this->view->zendVersion  = Zend_Version::VERSION;
         $this->view->localeView();   // index/index.es.phtml for es, else index/index.phtml
-    }
-
-    /**
-     * `/vibe` — the SaaS-startup / "vibe coding" pitch (the former home page). A shipped marketing
-     * page; the view owns its content. Routed via _initMarketingAliases.
-     *
-     * @return void
-     */
-    public function vibeAction()
-    {
-        $this->view->localeView();   // index/vibe.es.phtml for es, else index/vibe.phtml
-    }
-
-    /**
-     * `/agency` — the agency story (one client or a hundred). A shipped marketing page.
-     *
-     * @return void
-     */
-    public function agencyAction()
-    {
-        $this->view->localeView();
-    }
-
-    /**
-     * `/developers` — the open-source / builder story (free, BSD, extend via modules). Shipped marketing.
-     *
-     * @return void
-     */
-    public function developersAction()
-    {
-        $this->view->localeView();
-    }
-
-    /**
-     * `/creators` — the plugin/theme creator story (build for the marketplace, keep your license).
-     *
-     * @return void
-     */
-    public function creatorsAction()
-    {
-        $this->view->localeView();
-    }
-
-    /**
-     * `/hosting` — the hosting-partner story (add Tiger to the stack, zero licensing fees).
-     *
-     * @return void
-     */
-    public function hostingAction()
-    {
-        $this->view->localeView();
-    }
-
-    /**
-     * `/features` — the full feature catalog: sectioned cards drawn from across the audience pages.
-     * A shipped marketing page; the view owns its content.
-     *
-     * @return void
-     */
-    public function featuresAction()
-    {
-        $this->view->localeView();
-    }
-
-    /**
-     * `/get-tiger` — the "Get Tiger" page: the four ways to run Tiger, the vibe-stack comparison, and
-     * portability. A shipped marketing page; the view owns its content.
-     *
-     * @return void
-     */
-    public function getTigerAction()
-    {
-        $this->view->localeView();
-    }
-
-    /**
-     * `/saas-vs-sias` — "You don't own your app. Your platform does." SaaS vs SiaS (Software *in* a
-     * Service): the vibe-coding lock-in trap and what real ownership looks like. Shipped marketing.
-     *
-     * @return void
-     */
-    public function saasVsSiasAction()
-    {
-        $this->view->localeView();
-    }
-
-    /**
-     * `/how-it-works` — "How Tiger Works": one framework, three paths (website / vibe-code / enterprise),
-     * what ships in the box, the composition model, portability, and the comparisons. Shipped marketing.
-     *
-     * @return void
-     */
-    public function howItWorksAction()
-    {
-        $this->view->localeView();
-    }
-
-    /**
-     * `/tech-stack` — "The Technology Stack": why each layer was chosen (proven, portable, fast,
-     * secure, AI-native, owned). A shipped marketing page; the view owns its content.
-     *
-     * @return void
-     */
-    public function techStackAction()
-    {
-        $this->view->localeView();
     }
 
     /**
@@ -227,8 +118,35 @@ class IndexController extends Zend_Controller_Action
     }
 
     /**
+     * Forward "/" to a NAMED theme's shipped content page — the home-page selector can point at any
+     * installed theme's page (default theme or not). Validates the theme is installed and actually
+     * ships that page before forwarding; the segments are sanitized so a stored value can't traverse
+     * out of the theme's `content/` dir.
+     *
+     * @param  string $key  the theme's manifest key
+     * @param  string $slug the content page slug (nested allowed; '' → `index`)
+     * @return bool         true when the request was forwarded
+     */
+    protected function _forwardToThemePage($key, $slug)
+    {
+        $key  = (string) preg_replace('/[^a-zA-Z0-9_-]/', '', (string) $key);
+        $slug = trim((string) $slug, '/');
+        $slug = $slug !== '' ? (string) preg_replace('#[^a-zA-Z0-9/_-]#', '', $slug) : 'index';
+        if ($key === '') { return false; }
+
+        $dir = Tiger_Theme::dirForKey($key);
+        if ($dir === '' || !is_file($dir . '/content/' . $slug . '.phtml')) { return false; }
+
+        $this->_forward('theme-content', 'page', null, [
+            'theme_content_slug'  => $slug,
+            'theme_content_theme' => $key,
+        ]);
+        return true;
+    }
+
+    /**
      * The configured home page (`tiger.site.home_page`): a CMS `page_id`, a PATH beginning with "/",
-     * or '' for the built-in landing.
+     * a theme page (`@theme:<key>` / `@theme:<key>:<slug>`), or '' for the built-in landing.
      */
     protected function _homePageId()
     {

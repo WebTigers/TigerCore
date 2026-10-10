@@ -10,8 +10,14 @@
  * **live API** (a marketplace endpoint that serves the same index-shaped payload, *enriched* —
  * ratings, download counts, a paid catalog). Both fetch a URL and yield the same
  * `{modules, taxonomy}` shape; the `kind` records **provenance and trust** (a git index is
- * public/reviewable; a live API is operator-run) and is the seam where a live-API fetch later
- * gains authenticated / ETag-aware behavior.
+ * public/reviewable; a live API is operator-run).
+ *
+ * A source may be **authenticated** — a private registry. It names the GitHub `org` its credential
+ * covers and an `auth` **reference** (a credential `type` plus the config key, `ref`, that holds the
+ * secret); the raw secret is NEVER stored on the source, so it cannot leak through {@see toArray()},
+ * a settings UI, or a diagnostics dump. The registry resolves the reference to a token at fetch time
+ * and scopes it to that org's repos (see {@see Tiger_Module_Github::setAuthResolver()}). A source with
+ * no `auth` is public, exactly as before — this is the seam the `kind` docblock long reserved.
  *
  * Sources are ordered by `priority` **ascending** — lower is earlier and *wins a slug collision*,
  * so an enriching marketplace (priority 0) overlays the plain directory (priority 10). Shipped
@@ -53,6 +59,10 @@ class Tiger_Module_Source
     public $origin = 'connected';
     /** @var string the module slug that contributed this source (origin='module'), else '' */
     public $provider = '';
+    /** @var string the GitHub org this source's credential (if any) is scoped to; '' = public/no auth */
+    public $org = '';
+    /** @var array a credential REFERENCE for a private source — ['type'=>'github-token','ref'=>'<config-key>']; NEVER the raw secret */
+    public $auth = [];
 
     /**
      * Build a source from a spec array (missing keys take sane defaults).
@@ -72,6 +82,8 @@ class Tiger_Module_Source
         $this->cache     = (string) ($spec['cache'] ?? ($this->id !== '' ? 'registry-' . $this->id . '.json' : ''));
         $this->origin    = in_array($spec['origin'] ?? '', ['default', 'module', 'connected'], true) ? (string) $spec['origin'] : 'connected';
         $this->provider  = (string) ($spec['provider'] ?? '');
+        $this->org       = trim((string) ($spec['org'] ?? ''));
+        $this->auth      = self::_auth($spec);
     }
 
     /**
@@ -90,6 +102,8 @@ class Tiger_Module_Source
         if (array_key_exists('enabled', $spec))   { $this->enabled = self::_bool($spec['enabled']); }
         if (array_key_exists('removable', $spec)) { $this->removable = self::_bool($spec['removable']); }
         if (array_key_exists('cache', $spec))     { $this->cache = (string) $spec['cache']; }
+        if (array_key_exists('org', $spec))       { $this->org = trim((string) $spec['org']); }
+        if (array_key_exists('auth', $spec) || array_key_exists('auth_ref', $spec)) { $this->auth = self::_auth($spec); }
     }
 
     /**
@@ -124,6 +138,7 @@ class Tiger_Module_Source
             'priority' => $this->priority, 'enabled' => $this->enabled, 'removable' => $this->removable,
             'default' => $this->default, 'cache' => $this->cache,
             'origin' => $this->origin, 'provider' => $this->provider,
+            'org' => $this->org, 'auth' => $this->auth,
         ];
     }
 
@@ -137,5 +152,35 @@ class Tiger_Module_Source
     protected static function _bool($v): bool
     {
         return is_bool($v) ? $v : (bool) filter_var($v, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /** True when this source carries a credential reference (an authenticated / private registry). */
+    public function hasAuth(): bool
+    {
+        return ($this->auth['ref'] ?? '') !== '';
+    }
+
+    /** The config key that holds this source's secret (the registry resolves + decrypts it), or ''. */
+    public function authRef(): string
+    {
+        return (string) ($this->auth['ref'] ?? '');
+    }
+
+    /**
+     * Whitelist a credential REFERENCE to exactly {type, ref}, dropping everything else — so a raw secret
+     * (a stray `token`/`password`/`secret` key) can NEVER be stored on the source and thus can never
+     * surface through toArray(), a settings UI, or a log. Accepts BOTH shapes: the nested programmatic
+     * form `['auth' => ['type'=>, 'ref'=>]]`, and the FLAT config form (one `config` row per field)
+     * `['auth_ref'=>, 'auth_type'=>]`. `ref` is required (it names the config key holding the secret);
+     * `type` defaults to 'github-token'. No ref → no auth (a public source).
+     */
+    protected static function _auth($spec): array
+    {
+        if (!is_array($spec)) { return []; }
+        $nested = (isset($spec['auth']) && is_array($spec['auth'])) ? $spec['auth'] : [];
+        $ref  = (string) ($nested['ref']  ?? ($spec['auth_ref']  ?? ''));
+        $type = (string) ($nested['type'] ?? ($spec['auth_type'] ?? 'github-token'));
+        if ($ref === '') { return []; }
+        return ['type' => ($type !== '' ? $type : 'github-token'), 'ref' => $ref];
     }
 }

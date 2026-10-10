@@ -85,6 +85,44 @@ class System_Service_Updates extends Tiger_Service_Service
     }
 
     /**
+     * Apply updates for the modules an admin opted into auto-update ({@see Tiger_Update_AutoUpdate}) —
+     * the unattended half of the WordPress model. Called by the daily `system.update_check` job (headless,
+     * no request/identity), NOT /api: it installs only versions that are genuinely available AND whose
+     * slug was explicitly toggled on, so there is nothing to authorize here beyond that prior opt-in.
+     * Best-effort and self-contained: a failure on one item is recorded and never aborts the rest, and the
+     * whole thing is caught so a bad run can never break the scheduler. Returns a per-item summary.
+     *
+     * @return array<int,array> the applied results (empty when nothing was opted-in or pending)
+     */
+    public static function runScheduledAutoUpdates(): array
+    {
+        try {
+            $on = Tiger_Update_AutoUpdate::onSlugs();
+            if (!$on) { return []; }
+
+            $index = [];
+            foreach (Tiger_Update_Checker::available(true) as $u) { $index[$u['slug']] = $u; }
+
+            $svc     = new self();
+            $results = [];
+            foreach ($on as $slug) {
+                if (!isset($index[$slug])) { continue; }   // opted-in but nothing to do
+                $res = $svc->_applyOne($index[$slug]);
+                $results[] = $res;
+                Tiger_Log::info('update.auto', ['item' => $slug, 'ok' => !empty($res['ok']), 'version' => $res['version'] ?? null]);
+            }
+            if ($results) {
+                $svc->_recordHistory($results, $index);
+                Tiger_Update_Checker::refreshPending();
+            }
+            return $results;
+        } catch (Throwable $e) {
+            Tiger_Log::error('update.auto.failed', ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
+
+    /**
      * The recent update-run history (durable "what ran / what broke").
      *
      * @param  array $params {limit?}
@@ -212,6 +250,22 @@ class System_Service_Updates extends Tiger_Service_Service
         // Module — the real one-click, no-shell path.
         try {
             $step('resolve', true, "{$u['name']} {$u['installed']} → {$u['latest']}  ({$u['repository']})");
+
+            // Provider-owned update channel ({@see Tiger_Update_Provider}): the module supplied its own
+            // apply — it downloads/verifies/installs however it distributes (e.g. through a vendor authority).
+            // Dispatch to it and fold its log into ours; core never touches its source. Runs before the Git
+            // path and the licensed gate (a provider module is distributed, and gated, on its own terms).
+            if (!empty($u['provider']) && Tiger_Update_Provider::has((string) $u['slug'])) {
+                $res = Tiger_Update_Provider::apply((string) $u['slug'], $u);
+                foreach (($res['log'] ?? []) as $l) {
+                    $step((string) ($l['step'] ?? 'provider'), !empty($l['ok']), (string) ($l['detail'] ?? ''));
+                }
+                $ok = !empty($res['ok']);
+                $ver = $res['version'] ?? ($ok ? $u['latest'] : null);
+                $step($ok ? 'done' : 'error', $ok, $ok ? ("Updated to {$ver}.") : 'Provider update failed.');
+                if (!$ok) { Tiger_Log::error('update.failed', ['item' => $u['slug'], 'via' => 'provider']); }
+                return ['slug' => $u['slug'], 'name' => $u['name'], 'ok' => $ok, 'version' => $ver, 'log' => $log];
+            }
 
             // Licensed module whose license is definitively LAPSED: withhold the update — nag, never disable.
             // The installed version keeps running; renewing the license lets the update proceed next time.

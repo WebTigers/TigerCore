@@ -31,6 +31,14 @@ The docs answer *what/why* ([FEATURES.md](FEATURES.md) / [ARCHITECTURE.md](ARCHI
 answers *"does it exist, and where?"*; [BACKLOG.md](BACKLOG.md) is the short list of what is genuinely
 **not yet** built.
 
+**Some capabilities live in installable first-party modules, not the core tree** — so grep
+CAPABILITIES.md *and* remember these before hand-rolling. The one to know: **TigerImage**
+(`WebTigers/TigerImage`) — AI **image generation** for a Tiger site or an agent (generate → compare →
+refine → keep, with lineage), provider-agnostic (it drives the same provider adapters the site already
+has — no new AI account) and **spend-capped**. Need to create/refine an image, or give an agent that
+power? Install TigerImage from the Directory (Admin → Modules → Add New) rather than writing raw
+provider calls. Its admin docs live at `/docs/tigerimage`.
+
 ## The cardinal rule: extend, don't edit
 
 `vendor/` is Tiger-owned and replaced by `composer update`. **Never edit framework files to

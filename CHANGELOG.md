@@ -6,8 +6,6 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
-## [1.15.1] — 2026-09-24
-
 ### Fixed
 - **Self-update is now atomic + permission-safe** (`Tiger_Update_Composer`). A web-driven core update
   that failed part-way (Composer could not delete a vendor file the web user didn't own) previously left
@@ -17,6 +15,151 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
   rollback point before Composer runs (so Composer does a clean fresh install with nothing to delete); and
   on any failure — or a "success" that left the package missing/incomplete — the previous version is
   **restored**, so a failed update never breaks the site. (TIGER-225.)
+## [1.21.0] — 2026-10-10
+
+### Added
+
+- **Per-module auto-update — the WordPress "Enable auto-updates" toggle.** Opt-in and OFF by default: an
+  admin flips a switch per module on the Modules screen, and the daily update job then applies new versions
+  for those (and only those) unattended, leaving every other module manual. `Tiger_Update_AutoUpdate` stores
+  the opt-in set as one site-wide option (a slug list, like WP's `auto_update_plugins`);
+  `System_Service_Modules::autoUpdate()` toggles it; `System_Service_Updates::runScheduledAutoUpdates()` is the
+  headless, best-effort apply the scheduler calls. Channel-agnostic — a module updated over GitHub, a provider,
+  or any route opts in the same way.
+
+- **A module may own its own update channel — `Tiger_Update_Provider`.** A neutral register() seam (like
+  `Tiger_Audience`/`Tiger_Search`): a module registers a provider for its slug with a `check()` (detection)
+  and an `apply()` (install), and the Updates screen then lists and applies it exactly like a GitHub- or
+  Packagist-managed module — same descriptor (`method: 'provider'`), same apply result. `Tiger_Update_Checker`
+  consults a registered provider before the Git path (so even a repo-less row still lists), and
+  `System_Service_Updates` dispatches apply to it. Lets a module be distributed behind its own authority /
+  signed-artifact feed without teaching open-source core where those bytes come from — detection and apply are
+  fail-safe (a broken provider never flags a phantom update or bubbles an exception).
+
+## [1.20.1] — 2026-10-09
+
+### Fixed
+
+- **Private module repos now install, not just detect.** `Tiger_Module_Github::tarballUrl()` returned
+  GitHub's web archive URL (`github.com/<org>/<repo>/archive/<ref>.tar.gz`), which 404s for a PRIVATE
+  repo even with a valid bearer token — so an authenticated module source could *detect* an update but
+  fail to *apply* it. It now uses the API tarball endpoint (`api.github.com/repos/<org>/<repo>/tarball/<ref>`),
+  which honours the token and redirects to a signed codeload URL, and works for public repos too. The
+  licensed/authority install path is unaffected (it mints its own signed URL).
+
+## [1.20.0] — 2026-10-08
+
+### Added
+
+- **Authenticated module sources (private registries).** A module source may now carry a credential, so
+  the Module Manager can read and install from a PRIVATE registry/repo it is authorized for — not just
+  public ones. A source names the GitHub `org` its credential covers and an `auth` **reference** (a
+  credential type plus the config key, `ref`, that holds the secret); the raw secret is never stored on
+  the source, so it cannot leak through `toArray()`, a settings UI, or a diagnostics dump.
+  `Tiger_Module_Github` gains an org-scoped auth resolver (`setAuthResolver()`) plus a testable transport
+  seam, and the registry wires the resolver from the configured authenticated sources — so update
+  detection (`Tiger_Update_Checker`) and one-click install (`Tiger_Module_Installer`) both work for an
+  authorized private repo. With no authenticated source configured, everything stays public exactly as
+  before, and no shipped-default source is ever authenticated.
+
+## [1.19.1] — 2026-10-07
+
+### Fixed
+
+- **Scheduler cron line runs from a pasted crontab (#328).** `Schedule_Service_Schedule::cronCommand()`
+  emitted `php <root>/vendor/bin/tiger schedule:run`, but `bin/tiger` resolves the app root from the
+  working directory, so a pasted line failed with "run this from a Tiger app root." It now `cd`s into the
+  app root first.
+- **CMS home-page picker lists only ACTIVATED themes (#325).** A theme shipped as a module that is
+  deactivated no longer appears in the home-page picker — you can't serve a page from a theme that's off.
+  Plain `themes/<name>` themes have no module to deactivate and stay available.
+
+## [1.19.0] — 2026-10-01
+
+### Changed
+
+- **Active-only UNIQUE indexes on `user.email` + `user.username` — soft-delete now frees the value
+  (TIGER-274).** A plain `UNIQUE(col)` spans soft-deleted (`deleted=1`) rows, so soft-deleting a user
+  never freed their email/username and a re-signup with that address collided on the index. Migration
+  `0053` moves each unique index onto a generated `<col>_active = IF(deleted=0, col, NULL)` column —
+  MySQL/MariaDB allow multiple NULLs in a unique index, so soft-deleted rows drop out and the value is
+  reusable, while live rows stay unique. The real `email`/`username` columns are untouched and the
+  finders already filter `deleted=0`, so there is no behavioral change for live rows. This is the
+  platform-wide convention for every unique + soft-deletable column (TIGER-274).
+
+## [1.18.1] — 2026-09-27
+
+### Fixed
+
+- **CMS home-page picker (TigerPathbox) now shows the full list on open, including the active theme.**
+  On focus the control was sending its current label ("— Built-in landing page —") as the search query,
+  so opening it filtered every other option out — an active theme's home never appeared. It now searches
+  with an empty query while the box still shows the committed label (full list), filters only once you
+  type, and selects the text on focus so typing replaces it. The discovery service was already correct.
+- **CMS Settings: the "Advanced search" toggle sits beside the home-page combobox** (its help text moved
+  to a tooltip) for a tidier row.
+
+## [1.18.0] — 2026-09-26
+
+### Changed
+
+- **Bare core ships a neutral, blank home — WebTigers marketing removed from tiger-core (TIGER-230).**
+  A fresh install with no theme now renders an empty home in the active layout, not WebTigers'
+  marketing site. Removed from core: the built-in home body (now deliberately blank), every marketing
+  view (`/vibe`, `/agency`, `/get-tiger`, `/how-it-works`, `/features`, `/creators`, `/developers`,
+  `/hosting`, `/saas-vs-sias`, `/tech-stack` + all locales), their route aliases, `IndexController`'s
+  marketing actions, `themes/puma/assets/marketing.css`, and the PUMA public header's Solutions/Why-Tiger
+  mega-menus (nav is now Docs + GitHub). `IndexController`'s home-resolution chain is unchanged, so a
+  site still gets `/` from ComingSoon, an admin-chosen CMS page/path, or a theme that ships
+  `content/index.phtml`. The WebTigers marketing now lives in the private **TigerMarketing** theme.
+
+### Added
+
+- **The pluggable password factor is now read *and* write.** `Tiger_Auth_Credential_Adapter_Abstract`
+  gains `canSetPassword($user)` + `setPassword($user, $newPassword)`, and a new write seam
+  `Tiger_Service_Authentication::setPasswordFor($userId, $newPassword)` routes **every** password
+  write — self-service change (`Profile_Service_Security`), forgot-password
+  (`Authentication::resetPassword`), and admin reset (`Access_Service_User`) — through the same
+  provider decision `login()`/`unlock()` already use. So when a credential provider owns a user
+  (e.g. TigerServer's system credential), changing or resetting their password rewrites **that**
+  authority (the OS password — one password for the web login and SSH), not an ignored DB row.
+  Defaults are unchanged for the ~all installs with no provider: no provider → the DB
+  `user_credential` path exactly as before. A provider that owns a user but is read-only
+  (`canSetPassword` false — an external IdP) is left untouched and the write is refused rather than
+  silently landing in the superseded DB credential.
+
+### Changed
+
+- **Updates screen shows the installed TigerCore version.** The screen reported "up to date" but never
+  said *which* version you're on. It now shows `Tiger_Version::VERSION` in the header ("Currently running
+  TigerCore x.y.z", always visible) and names it on the up-to-date card ("TigerCore x.y.z — the latest
+  release"). No change to the update checker.
+
+## [1.16.0] — 2026-09-26
+
+### Added
+
+- **Multiple active themes + an opt-in default (#311/#312).** "Active" (a module flag, many allowed) is
+  decoupled from the **default site theme** (`tiger.theme`). Activating a theme no longer silently
+  switches the site; a "Make [name] the default theme" checkbox is the only thing that sets `tiger.theme`,
+  and the Modules screen notices/labels the default. `Tiger_Theme::activate($slug, $makeDefault)`.
+- **CMS home page: a searchable path selector over ANY valid path (#313/#314).** The home-page field is a
+  reusable **`tiger.pathbox.js`** "pick or type" combobox over a new admin-only discovery service
+  (`Cms_Service_Paths`): built-in landing, published CMS pages, each installed theme's home, and module
+  home prefixes, with an **Advanced Search** toggle for every theme page — and it always accepts a
+  free-typed path. **Any installed theme's page can serve at `/`** (default theme or not) via a stored
+  `@theme:<key>[:<slug>]` value that `IndexController` forwards to `PageController::themeContentAction`
+  (which honors a `theme_content_theme` param, setting that theme active for the request). New
+  `Tiger_Theme::inventory()`/`dirForKey()`/`assetBaseForKey()`/`pagesForKey()` (all four bootstrap theme
+  locations) and `Tiger_Model_Page::publishedSummaries()` (bounded, small-column pick-list finder).
+- **Auth: a config-selected, pluggable password-factor provider (#315, TIGER-242 core seam).**
+  `Tiger_Auth_Credential` (registry + `tiger.auth.credential.provider`, default `db` = unchanged) +
+  `Tiger_Auth_Credential_Adapter_Abstract` — the same provider-agnostic pattern as `Tiger_Location`/
+  `Tiger_Mail`/`Tiger_Log`. A deployment can point the password factor at another authority (e.g.
+  TigerServer verifying an account owner against the OS/system credential) as a provider chain (the
+  adapter owns only the users it `appliesTo()`; everyone else falls back to the DB). Only the password
+  factor moves — TOTP/2FA, brute-force lockout, login audit and session issuance are unchanged. Wired
+  into `Tiger_Service_Authentication::login()` + `unlock()`.
 
 ## [1.15.0] — 2026-09-23
 

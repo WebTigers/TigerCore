@@ -112,6 +112,8 @@ return [
     'system.updates.update_all'     => 'सभी अपडेट करें',
     'system.updates.uptodate_title' => 'सब कुछ अद्यतन है',
     'system.updates.uptodate_body'  => 'TigerCore और सभी मॉड्यूल अपने नवीनतम संस्करणों पर हैं।',
+    'system.updates.current_version'=> 'वर्तमान संस्करण',
+    'system.updates.latest_release' => 'नवीनतम रिलीज़',
     'system.updates.select_all'     => 'सभी अपडेट चुनें',
     'system.updates.available_one'  => '%d अपडेट उपलब्ध',
     'system.updates.available_many' => '%d अपडेट उपलब्ध',

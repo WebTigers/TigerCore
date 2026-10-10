@@ -73,7 +73,10 @@ class System_Bootstrap extends Zend_Application_Module_Bootstrap
             'label'   => 'Check for Tiger and module updates',
             'every'   => Tiger_Schedule::DAILY,
             'at'      => '03:30',
-            'run'     => static function () { Tiger_Update_Checker::all(true); },
+            'run'     => static function () {
+                Tiger_Update_Checker::all(true);                 // refresh detection + the badge summary
+                System_Service_Updates::runScheduledAutoUpdates(); // then apply opted-in modules (WP-style)
+            },
             'managed' => false,
         ]);
     }

@@ -115,6 +115,8 @@ class Schedule_Service_Schedule extends Tiger_Service_Service
     public static function cronCommand()
     {
         $root = defined('APPLICATION_ROOT') ? APPLICATION_ROOT : (defined('APPLICATION_PATH') ? dirname(APPLICATION_PATH) : '/path/to/app');
-        return 'php ' . $root . '/vendor/bin/tiger schedule:run >/dev/null 2>&1';
+        // `bin/tiger` resolves the app root from the WORKING DIRECTORY, so the command must cd there first;
+        // without it a pasted line fails with "run this from a Tiger app root".
+        return 'cd ' . $root . ' && php vendor/bin/tiger schedule:run >/dev/null 2>&1';
     }
 }

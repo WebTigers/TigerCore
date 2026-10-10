@@ -105,8 +105,11 @@ class Access_Service_User extends Tiger_Service_Service
                 }
                 // Admin authority: set/reset the password outright when provided (no current-password
                 // step — that's the self-service Profile_Service_Security path). Blank = unchanged.
-                if ($newPw !== '') {
-                    (new Tiger_Model_UserCredential())->setPassword($newId, $newPw);
+                // Route through the auth write seam so a registered credential provider is honoured:
+                // for an ordinary DB user this is the same setPassword; for a provider-owned identity
+                // (e.g. the account owner on TigerServer) it rewrites the system password instead.
+                if ($newPw !== '' && !(new Tiger_Service_Authentication())->setPasswordFor($newId, $newPw)) {
+                    throw new RuntimeException('Could not set the password for this user.');
                 }
                 return $newId;
             });

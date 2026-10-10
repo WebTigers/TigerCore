@@ -59,21 +59,22 @@ final class PagesDiscoveryTest extends IntegrationTestCase
     // ----- the shipped pages --------------------------------------------------------------------
 
     #[Test]
-    public function it_finds_the_shipped_marketing_pages(): void
+    public function core_ships_only_the_neutral_home_page(): void
     {
+        // Marketing pages left core (TIGER-230): the default-namespace index dir now ships only the
+        // neutral home stub, so discovery finds `index` (the site root) and none of the old pages.
         $keys = array_column(Seo_Service_Pages::discover(), 'key');
 
-        $this->assertContains('agency', $keys);
-        $this->assertContains('vibe', $keys);
-        $this->assertContains('get-tiger', $keys);
-        $this->assertContains('how-it-works', $keys);
         $this->assertContains('index', $keys);
+        $this->assertNotContains('agency', $keys);
+        $this->assertNotContains('vibe', $keys);
+        $this->assertNotContains('get-tiger', $keys);
     }
 
     #[Test]
     public function a_locale_variant_never_becomes_a_page_of_its_own(): void
     {
-        // agency.es.phtml / index.tlh.phtml are the SAME pages in another language — one key each.
+        // A locale variant (e.g. index.tlh.phtml) shares its base page's key — never a key of its own.
         $keys = array_column(Seo_Service_Pages::discover(), 'key');
 
         $this->assertSame(array_unique($keys), $keys, 'keys are unique');
@@ -151,8 +152,9 @@ final class PagesDiscoveryTest extends IntegrationTestCase
     #[Test]
     public function exists_accepts_a_real_page_and_refuses_anything_else(): void
     {
-        $this->assertTrue(Seo_Service_Pages::exists('agency'));
-        $this->assertTrue(Seo_Service_Pages::exists('AGENCY'), 'normalised before the check');
+        // `index` (the neutral home) is the one shipped view page in core now.
+        $this->assertTrue(Seo_Service_Pages::exists('index'));
+        $this->assertTrue(Seo_Service_Pages::exists('INDEX'), 'normalised before the check');
         $this->assertFalse(Seo_Service_Pages::exists('not-a-real-page'));
         $this->assertFalse(Seo_Service_Pages::exists(''));
     }

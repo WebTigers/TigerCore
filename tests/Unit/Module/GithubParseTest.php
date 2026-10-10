@@ -11,7 +11,7 @@ use Tiger_Module_Github;
 
 /**
  * Tiger_Module_Github — the pure, network-free surface: parseRepo (every URL/slug shape it must accept or
- * reject) and tarballUrl (the codeload archive URL it builds, ref-encoded). The HTTP methods (fetchRaw /
+ * reject) and tarballUrl (the API tarball URL it builds, ref-encoded). The HTTP methods (fetchRaw /
  * latestRef / download / get / _http) are live-network territory and are exercised only in integration.
  */
 #[CoversClass(Tiger_Module_Github::class)]
@@ -41,15 +41,15 @@ final class GithubParseTest extends UnitTestCase
     }
 
     #[Test]
-    public function tarball_url_builds_a_ref_encoded_codeload_archive_url(): void
+    public function tarball_url_builds_a_ref_encoded_api_tarball_url(): void
     {
         $this->assertSame(
-            'https://github.com/acme/widget/archive/v1.2.0.tar.gz',
+            'https://api.github.com/repos/acme/widget/tarball/v1.2.0',
             Tiger_Module_Github::tarballUrl('acme', 'widget', 'v1.2.0')
         );
         // A ref with a slash (a branch like release/1.x) is percent-encoded.
         $this->assertSame(
-            'https://github.com/acme/widget/archive/release%2F1.x.tar.gz',
+            'https://api.github.com/repos/acme/widget/tarball/release%2F1.x',
             Tiger_Module_Github::tarballUrl('acme', 'widget', 'release/1.x')
         );
     }

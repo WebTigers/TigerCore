@@ -102,7 +102,57 @@ final class SourceTest extends UnitTestCase
     {
         $spec = ['id' => 'acme', 'label' => 'Acme', 'kind' => 'live-api', 'url' => 'https://a/i.json',
                  'priority' => 3, 'enabled' => true, 'removable' => false, 'default' => true, 'cache' => 'registry-acme.json',
-                 'origin' => 'module', 'provider' => 'acme-mod'];
+                 'origin' => 'module', 'provider' => 'acme-mod',
+                 'org' => 'Acme', 'auth' => ['type' => 'github-token', 'ref' => 'k']];
         $this->assertSame($spec, (new Tiger_Module_Source($spec))->toArray());
+    }
+
+    #[Test]
+    public function auth_keeps_only_a_reference_and_never_a_raw_secret(): void
+    {
+        $s = new Tiger_Module_Source([
+            'id' => 'company', 'org' => 'WebTigers',
+            'auth' => ['type' => 'github-token', 'ref' => 'tiger.modules.sources.company.token',
+                       'token' => 'ghp_SHOULD_NOT_STICK', 'secret' => 'nope'],   // stray secrets must be dropped
+        ]);
+        $this->assertSame('WebTigers', $s->org);
+        $this->assertTrue($s->hasAuth());
+        $this->assertSame('tiger.modules.sources.company.token', $s->authRef());
+        $this->assertSame(['type' => 'github-token', 'ref' => 'tiger.modules.sources.company.token'], $s->auth,
+            'only {type, ref} survive — the raw secret keys are dropped');
+
+        $json = json_encode($s->toArray());
+        $this->assertStringNotContainsString('ghp_SHOULD_NOT_STICK', $json, 'a raw token never rides in the public shape');
+        $this->assertStringNotContainsString('"token"', $json);
+        $this->assertStringNotContainsString('secret', $json);
+    }
+
+    #[Test]
+    public function a_source_without_auth_is_public(): void
+    {
+        $s = new Tiger_Module_Source(['id' => 'x', 'url' => 'u']);
+        $this->assertSame('', $s->org);
+        $this->assertFalse($s->hasAuth());
+        $this->assertSame('', $s->authRef());
+        $this->assertSame([], $s->auth);
+    }
+
+    #[Test]
+    public function auth_requires_a_ref_to_count(): void
+    {
+        $this->assertFalse((new Tiger_Module_Source(['id' => 'x', 'auth' => ['type' => 'github-token']]))->hasAuth(),
+            'a type with no ref is not a usable reference');
+        $this->assertSame([], (new Tiger_Module_Source(['id' => 'x', 'auth' => ['ref' => '']]))->auth, 'an empty ref is dropped');
+        $this->assertSame([], (new Tiger_Module_Source(['id' => 'x', 'auth' => 'not-an-array']))->auth, 'a non-array auth is dropped');
+    }
+
+    #[Test]
+    public function apply_can_overlay_org_and_auth(): void
+    {
+        $s = new Tiger_Module_Source(['id' => 'x', 'url' => 'u']);
+        $s->apply(['org' => 'WebTigers', 'auth' => ['ref' => 'k']]);
+        $this->assertSame('WebTigers', $s->org);
+        $this->assertTrue($s->hasAuth());
+        $this->assertSame('k', $s->authRef());
     }
 }

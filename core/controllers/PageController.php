@@ -92,6 +92,20 @@ class PageController extends Tiger_Controller_Action
     public function themeContentAction()
     {
         $slug = (string) $this->getParam('theme_content_slug', '');
+
+        // A NAMED theme (`theme_content_theme`): the home-page selector can point "/" at ANY installed
+        // theme's page, not only the active one. Make that theme active for THIS request so the whole
+        // render pipeline — dir, assets, layout, skins — resolves to it, exactly as if it were the site
+        // theme. (Unknown key → ignored, falls through to the active theme.)
+        $key = (string) $this->getParam('theme_content_theme', '');
+        if ($key !== '') {
+            $kdir = Tiger_Theme::dirForKey($key);
+            if ($kdir !== '') {
+                Zend_Registry::set('Tiger_ThemeDir', $kdir);          // Tiger_Theme::dir()/assetBase() now point here
+                $this->view->themeAssets = Tiger_Theme::assetBase();  // the layout's own asset() base
+            }
+        }
+
         $dir  = Tiger_Theme::dir();
         $file = ($dir !== '' && $slug !== '') ? $dir . '/content/' . $slug . '.phtml' : '';
 

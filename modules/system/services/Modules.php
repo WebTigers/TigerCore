@@ -51,6 +51,30 @@ class System_Service_Modules extends Tiger_Service_Service
     public function deactivate(array $params): void { $this->_toggle($params, false); }
 
     /**
+     * Turn per-module auto-update on/off — the WordPress "Enable auto-updates" toggle. Opt-in and OFF by
+     * default; the daily update job then applies new versions for opted-in modules only, leaving every
+     * other module manual ("Update now" on the Updates screen). Admin+ (same gate as activate). Works for
+     * any module regardless of its update channel (GitHub, provider, …) — it only records the opt-in.
+     *
+     * @param  array $params the /api payload (expects `slug`, `on`)
+     * @return void
+     */
+    public function autoUpdate(array $params): void
+    {
+        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($params['slug'] ?? ''));
+        if ($slug === '') { $this->_error('core.api.error.general'); return; }
+        if (!isset(Tiger_Module_Discovery::all()[$slug])) { $this->_error('system.error.unknown'); return; }
+
+        $on    = filter_var($params['on'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $state = Tiger_Update_AutoUpdate::set($slug, $on);
+        $this->_success(
+            ['slug' => $slug, 'auto_update' => $state],
+            $state ? 'system.modules.autoupdate_on' : 'system.modules.autoupdate_off'
+        );
+    }
+
+    /**
      * NUCLEAR delete of a NON-CORE module (by `slug`): drops its tables + data, then removes its files,
      * assets, and install row. **Irreversible.** Guarded four ways: superadmin-only (the service ACL);
      * never a bundled/core or PROTECTED module; a typed-confirmation `confirm` token that must match the
@@ -104,13 +128,9 @@ class System_Service_Modules extends Tiger_Service_Service
         }
     }
 
-    /** Whether a module is currently active — a theme by its `tiger.theme` config, else its registry flag. */
+    /** Whether a module is currently active — the registry flag, themes included (multiple can be active). */
     private function _isModuleActive(string $slug, array $d): bool
     {
-        if (($d['type'] ?? '') === 'theme') {
-            $active = (string) (new Tiger_Model_Config())->get(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.theme');
-            return $active === (string) ($d['key'] ?? $slug);
-        }
         $row = (new Tiger_Model_Module())->bySlug($slug);
         return $row ? ((int) $row->active === 1) : true;
     }
@@ -172,7 +192,7 @@ class System_Service_Modules extends Tiger_Service_Service
             // Themes activate differently (THEMES.md §5a): not the module.active flag, but the
             // `tiger.theme` config (one active per scope) + the asset-base symlink. No build/deploy.
             if (($d['type'] ?? 'module') === 'theme') {
-                $this->_toggleTheme($slug, $d, $on);
+                $this->_toggleTheme($slug, $d, $on, $params);
                 return;
             }
 
@@ -198,19 +218,30 @@ class System_Service_Modules extends Tiger_Service_Service
     }
 
     /**
-     * Activate/deactivate a THEME (THEMES.md §5a) — through the one authority, Tiger_Theme::activate()
-     * / deactivate(), which the headless installer calls too. Activation writes `tiger.theme` and links
-     * the theme's assets; deactivation clears the config back to the platform base theme.
+     * Activate/deactivate a THEME (THEMES.md §5a). Multiple themes can be active at once — activation is
+     * the module active FLAG plus publishing the theme's assets. Making it the DEFAULT site theme
+     * (`tiger.theme`) is opt-in: only when `make_default` is set (the Module manager's checkbox), so
+     * activating a theme never silently hijacks the site. Deactivation clears the flag and, if this was
+     * the default, `Tiger_Theme::deactivate` clears `tiger.theme` (home falls back to blank).
      *
-     * @param  string $slug the theme slug
-     * @param  array  $d     its discovery row (unused here; kept for the caller's signature)
-     * @param  bool   $on    activate (true) or deactivate (false)
+     * @param  string $slug   the theme slug
+     * @param  array  $d       its discovery row (name/version for the module row)
+     * @param  bool   $on      activate (true) or deactivate (false)
+     * @param  array  $params  the /api payload (reads `make_default`)
      * @return void
      */
-    protected function _toggleTheme($slug, array $d, $on): void
+    protected function _toggleTheme($slug, array $d, $on, array $params = []): void
     {
-        if ($on) { Tiger_Theme::activate($slug); }
-        else     { Tiger_Theme::deactivate($slug); }
+        $model = new Tiger_Model_Module();
+        $meta  = ['name' => $d['name'] ?? $slug, 'version' => $d['version'] ?? null];
+        if ($on) {
+            $makeDefault = ((string) ($params['make_default'] ?? '')) === '1';
+            $model->setActive($slug, true, $meta);
+            Tiger_Theme::activate($slug, $makeDefault);
+        } else {
+            $model->setActive($slug, false, $meta);
+            Tiger_Theme::deactivate($slug);
+        }
         $this->_success(
             ['slug' => $slug, 'theme' => true, 'active' => (bool) $on],
             $on ? 'system.theme.activated' : 'system.theme.deactivated',
