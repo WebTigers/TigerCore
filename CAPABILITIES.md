@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**213 classes** across **33 capabilities** · **22 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**222 classes** across **33 capabilities** · **23 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -320,6 +320,15 @@
 - **Tiger_Comment** `@api` — the subject registry and policy gate for comments, ratings and reviews.  ·  `library/Tiger/Comment.php`
 - **Tiger_Comment_Spam** `@api` — the spam-check registry, and the first checker: the in-platform AI agent.  ·  `library/Tiger/Comment/Spam.php`
 - **Tiger_Message** `@api` — the platform's way of telling people things (TIGER-114).  ·  `library/Tiger/Message.php`
+- **Tiger_Secret** `@api` — provider-neutral resolution of secrets and sensitive config values.  ·  `library/Tiger/Secret.php`
+- **Tiger_Secret_Adapter_Chain** `@api` — try several backends in order; the first hit wins.  ·  `library/Tiger/Secret/Adapter/Chain.php`
+- **Tiger_Secret_Adapter_Env** `@api` — resolve a secret from an environment variable (the 12-factor backend).  ·  `library/Tiger/Secret/Adapter/Env.php`
+- **Tiger_Secret_Adapter_File** `@api` — resolve a secret from a file on disk (the mounted-secret backend).  ·  `library/Tiger/Secret/Adapter/File.php`
+- **Tiger_Secret_Adapter_Interface** `@api` — the contract every secret backend implements.  ·  `library/Tiger/Secret/Adapter/Interface.php`
+- **Tiger_Secret_Adapter_Local** `@api` — the default backend: an inline ciphertext decrypted by Tiger_Crypto.  ·  `library/Tiger/Secret/Adapter/Local.php`
+- **Tiger_Secret_Adapter_SecretsManager** `@api` — AWS Secrets Manager backend (the rotation-managed sibling of SSM).  ·  `library/Tiger/Secret/Adapter/SecretsManager.php`
+- **Tiger_Secret_Adapter_Ssm** `@api` — AWS Systems Manager Parameter Store (SecureString) backend.  ·  `library/Tiger/Secret/Adapter/Ssm.php`
+- **Tiger_Secret_Writer_Interface** `@api` — the OPTIONAL write side of a secret backend.  ·  `library/Tiger/Secret/Writer/Interface.php`
 
 ## Modules (`modules/*` — activatable features)
 
@@ -341,6 +350,7 @@
 - **Register** (`register`, plugin)  ·  services: Registration, Status  ·  `modules/register`
 - **Schedule** (`schedule`, developer)  ·  services: Schedule  ·  `modules/schedule`
 - **Search** (`search`, plugin)  ·  services: Search  ·  `modules/search`
+- **Secrets** (`secret`, app) — Provider-neutral secrets / key-store resolution (Tiger_Secret) — local-encrypted by default, with SSM / Secrets Manager / env / file / Vault adapters selectable by config.  ·  `modules/secret`
 - **SEO** (`seo`, app)  ·  services: Head, Pages, Schema, Social  ·  `modules/seo`
 - **Signup** (`signup`, plugin)  ·  services: Signup  ·  `modules/signup`
 - **System** (`system`, plugin)  ·  services: Acl, Dashboard, Logs, Modules, Nav, Settings, Sites, Updates  ·  `modules/system`
