@@ -1,0 +1,79 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * Matomo settings — self-hosted analytics. One form, three cards: the Matomo connection (URL + site
+ * id), affiliate attribution (the custom-dimension index that the /a/<name> cookie populates), and
+ * privacy & consent. ViewHelper-only form (the view owns markup); saving is an /api call to
+ * Matomo_Service_Matomo. Semantic Bootstrap only — no bespoke CSS (keeps it reskinnable), per ADMIN.md.
+ */
+$form = $this->form;
+$el   = function ($name) use ($form) { return $form->getElement($name); };
+?>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1"><?= $this->t('matomo.title') ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('matomo.subtitle') ?></p>
+    </div>
+    <div class="text-nowrap">
+        <button type="button" id="matomo-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->t('matomo.save') ?></button>
+    </div>
+</div>
+
+<div id="matomo-feedback"></div>
+
+<form id="matomo-form" onsubmit="return false;" novalidate>
+    <?= $el('_csrf') ?>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+
+            <div class="card mb-4">
+                <div class="card-header fw-semibold"><i class="fa-solid fa-chart-simple me-2"></i><?= $this->t('matomo.card.connection') ?></div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" role="switch" id="matomo-enabled" name="enabled" value="1"<?= $this->enabled ? ' checked' : '' ?>>
+                        <label class="form-check-label" for="matomo-enabled"><?= $this->t('matomo.enable') ?></label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="matomo_url"><?= $this->t('matomo.url') ?></label>
+                        <?= $el('matomo_url') ?>
+                        <div class="form-text"><?= $this->t('matomo.url_help') ?></div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label" for="matomo_site_id"><?= $this->t('matomo.site_id') ?></label>
+                        <?= $el('matomo_site_id') ?>
+                        <div class="form-text"><?= $this->t('matomo.site_id_help') ?></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header fw-semibold"><i class="fa-solid fa-people-arrows me-2"></i><?= $this->t('matomo.card.affiliate') ?></div>
+                <div class="card-body">
+                    <p class="text-body-secondary"><?= $this->t('matomo.affiliate_help') ?></p>
+                    <div class="mb-0" style="max-width: 10rem;">
+                        <label class="form-label" for="matomo_affiliate_dimension_id"><?= $this->t('matomo.affiliate_dimension') ?></label>
+                        <?= $el('matomo_affiliate_dimension_id') ?>
+                        <div class="form-text"><?= $this->t('matomo.affiliate_dimension_help') ?></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header fw-semibold"><i class="fa-solid fa-user-shield me-2"></i><?= $this->t('matomo.card.privacy') ?></div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" role="switch" id="matomo-exclude-staff" name="exclude_signed_in" value="1"<?= $this->excludeSignedIn ? ' checked' : '' ?>>
+                        <label class="form-check-label" for="matomo-exclude-staff"><?= $this->t('matomo.exclude_staff') ?></label>
+                    </div>
+                    <div class="form-text mb-3"><?= $this->t('matomo.exclude_staff_help') ?></div>
+                    <p class="small text-body-secondary mb-0"><i class="fa-solid fa-circle-info me-2"></i><?= $this->t('matomo.privacy_note') ?></p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</form>
+<?php
+$this->pageScript($this->asset('/_modules/matomo/js/matomo.settings.js'));
