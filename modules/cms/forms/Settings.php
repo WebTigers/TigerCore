@@ -35,6 +35,12 @@ class Cms_Form_Settings extends Tiger_Form
                 'validators' => [['Regex', false, ['pattern' => self::HOME_PATTERN]]],
                 'attribs'    => ['id' => 'set-home-page'],
             ]],
+            // The opt-out for the public <meta name="generator" content="Tiger">. CHECKED = HIDDEN.
+            // The stored flag is the positive `tiger.site.generator_meta` (shipped on in core.ini);
+            // Cms_Service_Settings is the single place the two polarities are reconciled.
+            ['checkbox', 'hide_generator', [
+                'attribs' => ['id' => 'set-hide-generator', 'class' => 'form-check-input'],
+            ]],
         ];
     }
 }

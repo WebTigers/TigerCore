@@ -78,6 +78,8 @@ return [
     'cms.settings.help_site_name'      => 'Affiché dans l\'en-tête du site et l\'onglet du navigateur, et utilisé comme titre de page par défaut.',
     'cms.settings.label_home_page'     => 'Page d\'accueil',
     'cms.settings.help_home_page'      => 'Quelle page servir sur %s. « Page d\'accueil intégrée » conserve la page marketing par défaut.',
+    'cms.settings.label_hide_generator' => 'Masquer la balise meta Tiger',
+    'cms.settings.help_hide_generator'  => 'Les pages publiques contiennent une petite balise « generator » qui nomme Tiger. Elle ne contient jamais de numéro de version. Cochez cette case pour l\'omettre.',
     'cms.settings.opt_builtin_landing' => '— Page d\'accueil intégrée —',
     'cms.settings.optgroup_general'      => 'Général',
     'cms.settings.optgroup_pages'        => 'Pages de contenu',

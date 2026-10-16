@@ -10,6 +10,7 @@
  */
 $form = $this->form;
 $el = function ($name) use ($form) { return $form->getElement($name); };
+$hideGenerator = !empty($el('hide_generator')->getValue());
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
@@ -35,7 +36,7 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
                         <?= $el('site_name') ?>
                         <div class="form-text"><?= $this->t('cms.settings.help_site_name') ?></div>
                     </div>
-                    <div class="mb-0">
+                    <div class="mb-3">
                         <label class="form-label" for="set-home-page-search"><?= $this->t('cms.settings.label_home_page') ?></label>
 
                         <?php // The committed value the form submits — hidden; the combobox writes into it. ?>
@@ -60,6 +61,12 @@ $el = function ($name) use ($form) { return $form->getElement($name); };
                         </div>
 
                         <div class="form-text"><?= $this->t('cms.settings.help_home_page', '<code>/</code>') ?></div>
+                    </div>
+                    <hr class="my-3">
+                    <div class="form-check mb-0">
+                        <input class="form-check-input" type="checkbox" id="set-hide-generator" name="hide_generator" value="1" <?= $hideGenerator ? 'checked' : '' ?>>
+                        <label class="form-check-label fw-semibold" for="set-hide-generator"><?= $this->t('cms.settings.label_hide_generator') ?></label>
+                        <div class="form-text"><?= $this->t('cms.settings.help_hide_generator') ?></div>
                     </div>
                 </div>
             </div>

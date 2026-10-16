@@ -34,6 +34,12 @@ $_lang = defined('LANG') ? LANG : 'en';
 ?>
     <?= $this->headTitle() ?>
     <?= $this->headMeta() ?>
+<?php /* "Built with Tiger" — the signal the technology surveys count sites by. NAME ONLY: no version
+         ever goes in here. Seeded by Tiger_Application_Bootstrap; unset (a view built outside the
+         bootstrap) reads as on. A theme shipping its own layout owns its own head. */ ?>
+<?php if (!isset($this->showGenerator) || $this->showGenerator): ?>
+    <meta name="generator" content="Tiger">
+<?php endif; ?>
 
     <!-- No-FOUC theme resolver: MUST run before the stylesheets below paint. -->
     <script src="<?= $this->asset($this->themeAssets . '/js/theme-init.js') ?>"></script>

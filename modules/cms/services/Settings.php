@@ -38,6 +38,12 @@ class Cms_Service_Settings extends Tiger_Service_Service
             // free-typed path) put in the field. IndexController resolves it; the form validated its shape.
             $cfg->set($g, '', 'tiger.site.home_page', trim((string) $v['home_page']));
 
+            // The flag is stored POSITIVELY (tiger.site.generator_meta, shipped = 1 in configs/core.ini);
+            // the checkbox asks the opposite question, so this is the ONE place the two are reconciled.
+            // An unchecked box doesn't submit at all, so cms.settings.js sends an explicit "0" —
+            // otherwise un-ticking "hide" could never turn the tag back on.
+            $cfg->set($g, '', 'tiger.site.generator_meta', !empty($v['hide_generator']) ? '0' : '1');
+
             $this->_success([], 'cms.settings.saved', '/cms/settings');
         } catch (Throwable $e) {
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
