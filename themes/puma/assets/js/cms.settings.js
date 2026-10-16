@@ -24,6 +24,8 @@
             if (window.TigerPathbox) { TigerPathbox.flushAll(form); }
 
             var fd = new URLSearchParams(new FormData(form));
+            // An unchecked box doesn't submit — send an explicit "0" so un-ticking it persists.
+            if (!fd.has('hide_generator')) { fd.set('hide_generator', '0'); }
             fd.set('module', 'cms'); fd.set('service', 'settings'); fd.set('method', 'save');
 
             TigerButton.run(btn, function () {

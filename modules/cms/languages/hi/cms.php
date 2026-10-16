@@ -78,6 +78,8 @@ return [
     'cms.settings.help_site_name'      => 'साइट हेडर और ब्राउज़र टैब में दिखाया जाता है, और डिफ़ॉल्ट पेज शीर्षक के रूप में उपयोग किया जाता है।',
     'cms.settings.label_home_page'     => 'होम पेज',
     'cms.settings.help_home_page'      => '%s पर कौन सा पेज परोसना है। “बिल्ट-इन लैंडिंग पेज” डिफ़ॉल्ट मार्केटिंग पेज बनाए रखता है।',
+    'cms.settings.label_hide_generator' => 'Tiger मेटा टैग छिपाएँ',
+    'cms.settings.help_hide_generator'  => 'सार्वजनिक पृष्ठों में एक छोटा “generator” टैग होता है जो Tiger का नाम देता है। इसमें कभी भी संस्करण संख्या नहीं होती। इसे छोड़ने के लिए यह चुनें।',
     'cms.settings.opt_builtin_landing' => '— बिल्ट-इन लैंडिंग पेज —',
     'cms.settings.optgroup_general'      => 'सामान्य',
     'cms.settings.optgroup_pages'        => 'सामग्री पृष्ठ',

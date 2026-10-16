@@ -104,6 +104,52 @@ final class SettingsServiceTest extends IntegrationTestCase
         $this->assertSame('Spaced Site', $this->globalConfig('tiger.site.name'));
     }
 
+    // ----- the generator-meta flag --------------------------------------------------------------
+
+    #[Test]
+    public function the_flag_is_stored_positively_and_defaults_to_on(): void
+    {
+        $this->loginAs('admin');
+        // The box unticked doesn't submit at all; cms.settings.js sends the explicit '0' modelled here.
+        $this->call('save', ['site_name' => 'S', 'home_page' => '', 'hide_generator' => '0']);
+
+        $this->assertSame('1', $this->globalConfig('tiger.site.generator_meta'),
+            'not hidden is stored as generator_meta=1 — the same polarity configs/core.ini ships');
+    }
+
+    #[Test]
+    public function ticking_hide_turns_the_flag_off(): void
+    {
+        $this->loginAs('admin');
+        $res = $this->call('save', ['site_name' => 'S', 'home_page' => '', 'hide_generator' => '1']);
+
+        $this->assertSame(1, (int) $res->result);
+        $this->assertSame('0', $this->globalConfig('tiger.site.generator_meta'),
+            'the checkbox asks the opposite question from the flag; the service reconciles it');
+    }
+
+    #[Test]
+    public function un_ticking_hide_turns_the_flag_back_on(): void
+    {
+        // The regression this guards: an unchecked checkbox submits NOTHING, so without the explicit
+        // '0' from the JS the flag would keep its old value and the tag could never come back.
+        $this->loginAs('admin');
+        $this->call('save', ['site_name' => 'S', 'home_page' => '', 'hide_generator' => '1']);
+        $this->call('save', ['site_name' => 'S', 'home_page' => '', 'hide_generator' => '0']);
+
+        $this->assertSame('1', $this->globalConfig('tiger.site.generator_meta'), 'the opt-out is reversible');
+    }
+
+    #[Test]
+    public function a_missing_param_leaves_the_tag_on(): void
+    {
+        $this->loginAs('admin');
+        $this->call('save', ['site_name' => 'S', 'home_page' => '']);
+
+        $this->assertSame('1', $this->globalConfig('tiger.site.generator_meta'),
+            'absent reads as not-hidden — nothing silently opts a site out');
+    }
+
     // ----- validation ---------------------------------------------------------------------------
 
     #[Test]

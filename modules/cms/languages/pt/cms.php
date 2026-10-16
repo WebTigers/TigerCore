@@ -78,6 +78,8 @@ return [
     'cms.settings.help_site_name'      => 'Exibido no cabeçalho do site e na aba do navegador, e usado como título de página padrão.',
     'cms.settings.label_home_page'     => 'Página inicial',
     'cms.settings.help_home_page'      => 'Qual página servir em %s. “Página inicial integrada” mantém a página de marketing padrão.',
+    'cms.settings.label_hide_generator' => 'Ocultar a meta tag do Tiger',
+    'cms.settings.help_hide_generator'  => 'As páginas públicas incluem uma pequena tag “generator” que menciona o Tiger. Nunca inclui um número de versão. Marque esta opção para omiti-la.',
     'cms.settings.opt_builtin_landing' => '— Página inicial integrada —',
     'cms.settings.optgroup_general'      => 'Geral',
     'cms.settings.optgroup_pages'        => 'Páginas de conteúdo',

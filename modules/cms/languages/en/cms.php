@@ -80,6 +80,8 @@ return [
     'cms.settings.help_site_name'      => 'Shown in the site header and browser tab, and used as the default page title.',
     'cms.settings.label_home_page'     => 'Home page',
     'cms.settings.help_home_page'      => 'Which page to serve at %s. “Built-in landing page” keeps the default marketing page.',
+    'cms.settings.label_hide_generator' => 'Hide Tiger meta tag',
+    'cms.settings.help_hide_generator'  => 'Public pages carry a small “generator” tag naming Tiger. It never includes a version number. Tick this to leave it out.',
     'cms.settings.opt_builtin_landing' => '— Built-in landing page —',
     'cms.settings.optgroup_general'      => 'General',
     'cms.settings.optgroup_pages'        => 'Content pages',

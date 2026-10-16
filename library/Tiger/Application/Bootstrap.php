@@ -522,6 +522,14 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
         $site = ($cfg && $cfg->get('tiger')) ? $cfg->tiger->get('site') : null;
         $view->siteName = ($site && (string) $site->get('name') !== '') ? (string) $site->name : 'Tiger';
 
+        // The public layout's generator meta: NAME ONLY, never a version. A version string would hand a
+        // vulnerability scanner the exact build to match CVEs against, across an install base nobody
+        // patches on our schedule. The shipped default is ON and lives in configs/core.ini
+        // (tiger.site.generator_meta); the admin's "Hide Tiger meta tag" writes the config row that
+        // overrides it. Absent entirely (a stripped ini) still reads as on — the flag fails VISIBLE.
+        $gen = $site ? (string) $site->get('generator_meta') : '';
+        $view->showGenerator = ($gen === '' || filter_var($gen, FILTER_VALIDATE_BOOLEAN));
+
         Zend_Controller_Action_HelperBroker::getStaticHelper('viewRenderer')->setView($view);
 
         // Global layout from the CHROME theme (the active theme for a 'site' theme; the base theme for a

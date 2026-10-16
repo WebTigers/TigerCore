@@ -36,6 +36,9 @@ class Cms_SettingsController extends Tiger_Controller_Admin_Action
         $form->populate([
             'site_name' => ($site && (string) $site->get('name') !== '') ? (string) $site->name : 'Tiger',
             'home_page' => $home,
+            // Config holds the flag positively; the checkbox asks "hide?" — invert on the way in.
+            'hide_generator' => ($site && (string) $site->get('generator_meta') !== ''
+                                 && !filter_var((string) $site->get('generator_meta'), FILTER_VALIDATE_BOOLEAN)) ? 1 : 0,
         ]);
 
         $this->view->title = 'Settings — Tiger Admin';

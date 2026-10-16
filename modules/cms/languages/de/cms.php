@@ -78,6 +78,8 @@ return [
     'cms.settings.help_site_name'      => 'Wird im Website-Header und im Browser-Tab angezeigt und als Standard-Seitentitel verwendet.',
     'cms.settings.label_home_page'     => 'Startseite',
     'cms.settings.help_home_page'      => 'Welche Seite unter %s ausgeliefert wird. „Integrierte Landingpage“ behält die Standard-Marketingseite bei.',
+    'cms.settings.label_hide_generator' => 'Tiger-Meta-Tag ausblenden',
+    'cms.settings.help_hide_generator'  => 'Öffentliche Seiten enthalten ein kleines „generator“-Tag, das Tiger nennt. Eine Versionsnummer steht nie darin. Aktivieren Sie dies, um es wegzulassen.',
     'cms.settings.opt_builtin_landing' => '— Integrierte Landingpage —',
     'cms.settings.optgroup_general'      => 'Allgemein',
     'cms.settings.optgroup_pages'        => 'Inhaltsseiten',
