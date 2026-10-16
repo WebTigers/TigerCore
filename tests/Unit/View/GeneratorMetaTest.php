@@ -16,7 +16,7 @@ use Zend_View;
  * 1. The GATE works. The tag is on by default so every install is countable by the technology
  *    surveys (W3Techs/BuiltWith/Wappalyzer) — that visibility is the whole point of shipping it —
  *    and a site hides it with "Hide Tiger meta tag" (Settings > CMS > Site Settings), which sets
- *    `tiger.site.hide_generator` and makes Tiger_Application_Bootstrap seed `showGenerator = false`.
+ *    `tiger.site.generator_meta` to `0` and makes Tiger_Application_Bootstrap seed `showGenerator = false`.
  *    A view built outside the bootstrap has no such property at all, and must still emit.
  *    So the real block is lifted out of the shipped layout and RENDERED in all three states.
  *
