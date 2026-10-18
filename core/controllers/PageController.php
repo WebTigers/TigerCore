@@ -107,7 +107,10 @@ class PageController extends Tiger_Controller_Action
         }
 
         $dir  = Tiger_Theme::dir();
-        $file = ($dir !== '' && $slug !== '') ? $dir . '/content/' . $slug . '.phtml' : '';
+        // Locale-aware: content/<slug>.<LANG>.phtml when the theme ships that translation, else the
+        // base content/<slug>.phtml. The hint (title etc.) is read from whichever file is chosen, so a
+        // translated page renders fully in-locale.
+        $file = $slug !== '' ? Tiger_Theme::contentFile($slug, $dir) : '';
 
         if ($file === '' || !is_file($file)) {
             throw new Zend_Controller_Action_Exception('Page not found', 404);
