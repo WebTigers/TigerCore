@@ -540,6 +540,43 @@ class Tiger_Theme
     }
 
     /**
+     * The locale-aware content file for a slug — the active request's locale variant
+     * (`content/<slug>.<LANG>.phtml`) when the theme ships one, else the base `content/<slug>.phtml`.
+     *
+     * The theme sibling of {@see Tiger_View_Helper_LocaleView}: a theme's long-form `content/` pages
+     * are translated as whole sibling views (`index.es.phtml`, `index.tlh.phtml`), not string keys
+     * (THEMES.md §8a / I18N.md). This resolves the right one off the single locale already decided for
+     * the request (`LANG`, set by Tiger_Controller_Plugin_LocalePrefix), so a translated marketing page
+     * renders in-locale and any untranslated page falls through to English. Same strict, dot-free slug
+     * guard as {@see template()} / Tiger_Controller_Plugin_ThemeContent — no traversal out of `content/`.
+     *
+     * @param  string      $slug the content slug (may be nested)
+     * @param  string|null $dir  the theme dir to read from (null = the active theme)
+     * @param  string|null $lang the locale to resolve (null = the request locale, `LANG`)
+     * @return string            absolute path to the chosen file, or '' if the base is missing
+     */
+    public static function contentFile($slug, $dir = null, $lang = null)
+    {
+        $root = ($dir !== null && $dir !== '') ? (string) $dir : self::dir();
+        $slug = trim((string) $slug, '/');
+        if ($slug === '' || $root === '' || !preg_match('#^[A-Za-z0-9][A-Za-z0-9/_-]*$#', $slug)) {
+            return '';
+        }
+        $base = $root . '/content/' . $slug . '.phtml';
+        if (!is_file($base)) {
+            return '';   // the base English page is the canonical one; a lone locale file is an orphan
+        }
+        $lang = $lang !== null ? (string) $lang : (defined('LANG') ? (string) LANG : '');
+        if ($lang !== '' && preg_match('/^[a-z]{2,3}$/', $lang)) {
+            $variant = $root . '/content/' . $slug . '.' . $lang . '.phtml';
+            if (is_file($variant)) {
+                return $variant;   // a translated sibling ships for this locale → use it
+            }
+        }
+        return $base;
+    }
+
+    /**
      * Parse a leading `<!-- <tag> key="value" … -->` hint comment into an assoc array (empty if none).
      * The shared parser behind `tiger:page` (theme static pages) and `tiger:block` (components).
      *
