@@ -67,4 +67,47 @@ class Tiger_Update_AutoUpdate
         (new Tiger_Model_Option())->setJson(Tiger_Model_Option::SCOPE_GLOBAL, '', self::OPTION_KEY, array_values($slugs));
         return $on;
     }
+
+    /**
+     * Turn auto-update ON for the platform (`tiger-core`) and every installed module and skill — the
+     * "keep this install current" switch a fresh provision flips so the box both arrives current (an
+     * immediate pass via {@see System_Service_Updates::runScheduledAutoUpdates}) and STAYS current
+     * through the daily `system.update_check` job. Network-free: it enrolls what is installed, it does
+     * not check for updates. Idempotent, merges with anything already enrolled, writes the option once.
+     *
+     * @param  bool $includeCore enroll `tiger-core` too — pass false on a control plane whose core is
+     *                           deploy-driven (a booting member must never swap the shared-RDS schema)
+     * @return string[] the full opt-in slug set after the call
+     */
+    public static function enableAll(bool $includeCore = true): array
+    {
+        $slugs = [];
+        if ($includeCore) { $slugs[] = 'tiger-core'; }
+        try {
+            foreach (array_keys((new Tiger_Model_Module())->bySlugMap()) as $slug) {
+                $slugs[] = (string) $slug;
+            }
+        } catch (Throwable $e) { /* no module table yet — core-only is still a valid enrollment */ }
+        if (class_exists('Tiger_Agent_Skills')) {
+            try {
+                foreach (Tiger_Agent_Skills::installed() as $s) {
+                    $slugs[] = (string) ($s['key'] ?? '');
+                }
+            } catch (Throwable $e) { /* no skills store on this core — fine */ }
+        }
+        $merged = array_values(array_unique(array_filter(array_merge(self::onSlugs(), $slugs), 'strlen')));
+        (new Tiger_Model_Option())->setJson(Tiger_Model_Option::SCOPE_GLOBAL, '', self::OPTION_KEY, $merged);
+        return $merged;
+    }
+
+    /**
+     * Turn auto-update OFF for every currently enrolled slug (the inverse of {@see enableAll}).
+     *
+     * @return string[] the now-empty opt-in set
+     */
+    public static function disableAll(): array
+    {
+        (new Tiger_Model_Option())->setJson(Tiger_Model_Option::SCOPE_GLOBAL, '', self::OPTION_KEY, []);
+        return [];
+    }
 }
