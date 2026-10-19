@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**222 classes** across **33 capabilities** · **24 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**226 classes** across **33 capabilities** · **25 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -329,6 +329,10 @@
 - **Tiger_Secret_Adapter_SecretsManager** `@api` — AWS Secrets Manager backend (the rotation-managed sibling of SSM).  ·  `library/Tiger/Secret/Adapter/SecretsManager.php`
 - **Tiger_Secret_Adapter_Ssm** `@api` — AWS Systems Manager Parameter Store (SecureString) backend.  ·  `library/Tiger/Secret/Adapter/Ssm.php`
 - **Tiger_Secret_Writer_Interface** `@api` — the OPTIONAL write side of a secret backend.  ·  `library/Tiger/Secret/Writer/Interface.php`
+- **Tiger_Sms** `@api` — provider-agnostic SMS send, the SMS sibling of Tiger_Mail.  ·  `library/Tiger/Sms.php`
+- **Tiger_Sms_Adapter_Abstract** `@api` — the base every SMS provider adapter extends.  ·  `library/Tiger/Sms/Adapter/Abstract.php`
+- **Tiger_Sms_Adapter_Sns** `@api` — the Amazon SNS SMS adapter (native to an AWS-hosted Tiger).  ·  `library/Tiger/Sms/Adapter/Sns.php`
+- **Tiger_Sms_Adapter_Twilio** `@api` — the Twilio SMS adapter (the industry-standard API).  ·  `library/Tiger/Sms/Adapter/Twilio.php`
 
 ## Modules (`modules/*` — activatable features)
 
@@ -354,6 +358,7 @@
 - **Secrets** (`secret`, app) — Provider-neutral secrets / key-store resolution (Tiger_Secret) — local-encrypted by default, with SSM / Secrets Manager / env / file / Vault adapters selectable by config.  ·  `modules/secret`
 - **SEO** (`seo`, app)  ·  services: Head, Pages, Schema, Social  ·  `modules/seo`
 - **Signup** (`signup`, plugin)  ·  services: Signup  ·  `modules/signup`
+- **SMS** (`sms`, app)  ·  services: Settings  ·  `modules/sms`
 - **System** (`system`, plugin)  ·  services: Acl, Dashboard, Logs, Modules, Nav, Settings, Sites, Updates  ·  `modules/system`
 - **Translations** (`translations`, app)  ·  services: Translation  ·  `modules/translations`
 
