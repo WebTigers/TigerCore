@@ -56,4 +56,41 @@ class Tiger_Sms_Adapter_Twilio extends Tiger_Sms_Adapter_Abstract
         $err = is_array($json) ? (string) ($json['message'] ?? $json['error_message'] ?? '') : '';
         return ['ok' => false, 'error' => 'Twilio error (HTTP ' . $status . ')' . ($err !== '' ? ': ' . $err : '')];
     }
+
+    // ----- inbound (two-way) ------------------------------------------------------------------------
+
+    /**
+     * Validate Twilio's `X-Twilio-Signature`: base64(HMAC-SHA1(url + each POST key.value sorted by key,
+     * auth_token)). Constant-time compared. A missing token or signature fails closed.
+     */
+    public function verifyInbound(string $url, array $post, array $headers): bool
+    {
+        $token = $this->_secret('auth_token');
+        $sig   = (string) ($headers['X-Twilio-Signature'] ?? $headers['x-twilio-signature'] ?? '');
+        if ($token === '' || $sig === '') { return false; }
+        ksort($post);
+        $data = $url;
+        foreach ($post as $k => $v) { $data .= $k . (is_array($v) ? implode('', $v) : (string) $v); }
+        $expected = base64_encode(hash_hmac('sha1', $data, $token, true));
+        return hash_equals($expected, $sig);
+    }
+
+    /** Normalize a Twilio inbound webhook (null for a non-message payload, e.g. a status callback). */
+    public function parseInbound(array $post): ?array
+    {
+        if (!isset($post['From']) && !isset($post['Body'])) { return null; }
+        $media = [];
+        for ($i = 0, $n = (int) ($post['NumMedia'] ?? 0); $i < $n; $i++) {
+            if (!empty($post['MediaUrl' . $i])) { $media[] = (string) $post['MediaUrl' . $i]; }
+        }
+        return [
+            'provider'   => 'twilio',
+            'message_id' => (string) ($post['MessageSid'] ?? ''),
+            'from'       => (string) ($post['From'] ?? ''),
+            'to'         => (string) ($post['To'] ?? ''),
+            'body'       => (string) ($post['Body'] ?? ''),
+            'media'      => $media,
+            'raw'        => $post,
+        ];
+    }
 }

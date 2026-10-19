@@ -13,6 +13,11 @@
  * Note: a brand-new AWS account is in the SMS sandbox ($1/mo, verified destinations only) until
  * production access is requested — this adapter sends fine in the sandbox to verified numbers.
  *
+ * Inbound (two-way) is NOT wired here: AWS doesn't POST a webhook like Twilio — inbound SMS routes
+ * through End User Messaging → an SNS topic you subscribe to (an HTTP/S subscription confirmation +
+ * notification envelope). So it inherits the base refuse-by-default (verifyInbound → false) until that
+ * topic-subscription path is built; Twilio inbound works out of the box.
+ *
  * @api
  */
 class Tiger_Sms_Adapter_Sns extends Tiger_Sms_Adapter_Abstract

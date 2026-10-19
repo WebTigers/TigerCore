@@ -40,6 +40,34 @@ abstract class Tiger_Sms_Adapter_Abstract
     /** Whether this adapter has the minimum config to send (credentials + a sender). @return bool */
     abstract public function isConfigured(): bool;
 
+    /**
+     * Verify an inbound webhook is authentic BEFORE it is trusted (the provider's request signature).
+     * The default REFUSES — an adapter opts in by overriding, so a provider that can't be verified can
+     * never be spoofed into the inbound event stream.
+     *
+     * @param  string $url     the full request URL the provider signed
+     * @param  array  $post    the POST parameters
+     * @param  array  $headers the request headers
+     * @return bool
+     */
+    public function verifyInbound(string $url, array $post, array $headers): bool
+    {
+        return false;
+    }
+
+    /**
+     * Parse a VERIFIED inbound webhook into the normalized message, or null when the payload is not an
+     * inbound message (e.g. a delivery-status callback). Shape: `{provider, message_id, from, to, body,
+     * media[], raw}` — `received_at` is stamped by the webhook controller.
+     *
+     * @param  array $post the POST parameters
+     * @return array|null
+     */
+    public function parseInbound(array $post): ?array
+    {
+        return null;
+    }
+
     /** The adapter's own default sender (`from`), or ''. */
     public function defaultFrom(): string
     {
