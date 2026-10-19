@@ -1,0 +1,84 @@
+<?php
+/** SMS settings — provider + credentials + a test send. Admin template (ADMIN.md): header, feedback
+ *  mount, cards, save/test over /api via the house primitives. No inline script/style. */
+$t = function ($k) { return Zend_Registry::get('Zend_Translate')->translate($k); };
+?>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1"><i class="fa-solid fa-comment-sms me-2"></i>SMS</h1>
+        <p class="text-body-secondary mb-0">Send text messages through a provider — one-time codes, 2FA, and operational alerts.</p>
+    </div>
+    <div class="text-nowrap">
+        <button type="button" id="sms-save" class="btn btn-primary">
+            <i class="fa-solid fa-floppy-disk me-2"></i>Save
+        </button>
+    </div>
+</div>
+
+<div id="sms-feedback"></div>
+
+<?php if (!$this->cryptoReady): ?>
+    <div class="alert alert-warning"><i class="fa-solid fa-triangle-exclamation me-2"></i>No encryption key is configured, so provider secrets can't be stored safely. Run <code>tiger install:secrets</code> first.</div>
+<?php endif; ?>
+
+<form id="sms-settings-form" onsubmit="return false;" novalidate>
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header fw-semibold"><i class="fa-solid fa-tower-broadcast me-2"></i>Provider</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="sms-provider">SMS provider</label>
+                        <select class="form-select" id="sms-provider" name="provider">
+                            <option value="">— Off —</option>
+                            <?php foreach ($this->providers as $p): ?>
+                                <option value="<?= $this->escape($p['name']) ?>"<?= $this->provider === $p['name'] ? ' selected' : '' ?>><?= $this->escape($p['label']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <?php foreach ($this->providers as $p): ?>
+                        <div data-sms-fields="<?= $this->escape($p['name']) ?>"<?= $this->provider === $p['name'] ? '' : ' hidden' ?>>
+                            <hr>
+                            <div class="fw-semibold mb-2"><?= $this->escape($p['label']) ?> credentials</div>
+                            <?php foreach ($p['fields'] as $f): ?>
+                                <div class="mb-3">
+                                    <label class="form-label" for="sms-f-<?= $this->escape($p['name'] . '-' . $f['key']) ?>"><?= $this->escape($f['label']) ?></label>
+                                    <?php if (!empty($f['secret'])): ?>
+                                        <input type="password" class="form-control" id="sms-f-<?= $this->escape($p['name'] . '-' . $f['key']) ?>"
+                                               data-sms-field="<?= $this->escape($p['name']) ?>" name="<?= $this->escape($f['key']) ?>" autocomplete="new-password"
+                                               placeholder="<?= !empty($f['set']) ? '•••••••• (stored — leave blank to keep)' : ($this->escape($f['placeholder'] ?? '')) ?>">
+                                    <?php else: ?>
+                                        <input type="text" class="form-control" id="sms-f-<?= $this->escape($p['name'] . '-' . $f['key']) ?>"
+                                               data-sms-field="<?= $this->escape($p['name']) ?>" name="<?= $this->escape($f['key']) ?>"
+                                               value="<?= $this->escape($f['value']) ?>" placeholder="<?= $this->escape($f['placeholder'] ?? '') ?>">
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card">
+                <div class="card-header fw-semibold"><i class="fa-solid fa-paper-plane me-2"></i>Send a test</div>
+                <div class="card-body">
+                    <p class="text-body-secondary small">Sends through the saved provider. Save first.</p>
+                    <div class="mb-3">
+                        <label class="form-label" for="sms-test-to">To (E.164)</label>
+                        <input type="text" class="form-control" id="sms-test-to" placeholder="+15551234567">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="sms-test-msg">Message</label>
+                        <input type="text" class="form-control" id="sms-test-msg" value="Tiger SMS test message.">
+                    </div>
+                    <button type="button" id="sms-test" class="btn btn-outline-secondary"<?= $this->configured ? '' : ' disabled' ?>>
+                        <i class="fa-solid fa-paper-plane me-2"></i>Send test
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<?php $this->pageScript($this->asset('js/sms.settings.js', 'sms')); ?>
