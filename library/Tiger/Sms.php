@@ -30,6 +30,9 @@ class Tiger_Sms
     /** @var bool whether the built-in adapters have been registered this request */
     protected static $_seeded = false;
 
+    /** @var callable[] inbound-message listeners (modules subscribe via onInbound) */
+    protected static $_inbound = [];
+
     /**
      * Register (or replace) a provider name → adapter class. Case-insensitive.
      *
@@ -49,6 +52,48 @@ class Tiger_Sms
         self::$_seeded = true;
         if (!isset(self::$_registry['twilio'])) { self::$_registry['twilio'] = 'Tiger_Sms_Adapter_Twilio'; }
         if (!isset(self::$_registry['sns']))    { self::$_registry['sns']    = 'Tiger_Sms_Adapter_Sns'; }
+    }
+
+    /**
+     * Subscribe to inbound SMS — the loose-coupling seam. Call from a module Bootstrap. The listener is
+     * handed the normalized message `{provider, message_id, from, to, body, media[], received_at, raw}`
+     * whenever a VERIFIED inbound webhook arrives. Receiving is deliberately application-specific:
+     * TigerSMS ingests + verifies + normalizes, and YOUR module decides what the message means (reply,
+     * STOP/opt-out, a keyword flow, an order lookup…). TigerSMS never knows or cares. Many modules may
+     * subscribe; a throwing listener is isolated so it can't break the webhook or the others.
+     *
+     * @param  callable $listener fn(array $message): void
+     * @return void
+     */
+    public static function onInbound(callable $listener): void
+    {
+        self::$_inbound[] = $listener;
+    }
+
+    /** The registered inbound listeners. @return callable[] */
+    public static function inboundListeners(): array
+    {
+        return self::$_inbound;
+    }
+
+    /**
+     * Fan a normalized inbound message out to every subscriber (fail-soft — one bad listener never
+     * breaks the webhook or the others). The inbound webhook controller calls this after it verifies +
+     * parses a message; app modules receive it through {@see onInbound}.
+     *
+     * @param  array $message the normalized inbound message
+     * @return int   how many listeners were notified
+     */
+    public static function dispatchInbound(array $message): int
+    {
+        $n = 0;
+        foreach (self::$_inbound as $listener) {
+            try { $listener($message); $n++; }
+            catch (Throwable $e) {
+                if (class_exists('Tiger_Log')) { try { Tiger_Log::error('sms.inbound.listener_failed', ['error' => $e->getMessage()]); } catch (Throwable $e2) { /* never fatal */ } }
+            }
+        }
+        return $n;
     }
 
     /** The configured provider name (`tiger.sms.provider`), lowercased; '' when unset. */
@@ -124,16 +169,28 @@ class Tiger_Sms
         return '+' . $digits;
     }
 
-    /** The configured adapter instance, or null when none is selected / the class is missing. */
-    protected static function _adapter(): ?Tiger_Sms_Adapter_Abstract
+    /**
+     * A built adapter for a named provider (configured with its own `tiger.sms.adapters.<name>.*`). The
+     * inbound webhook uses this to resolve the adapter the request's URL names. Null when unregistered.
+     *
+     * @param  string $name the provider name
+     * @return Tiger_Sms_Adapter_Abstract|null
+     */
+    public static function adapterFor(string $name): ?Tiger_Sms_Adapter_Abstract
     {
         self::_seed();
-        $name = self::provider();
+        $name = strtolower(trim($name));
         if ($name === '' || !isset(self::$_registry[$name])) { return null; }
         $class = self::$_registry[$name];
         if (!class_exists($class)) { return null; }
         $a = new $class(self::_adapterConfig($name));
         return $a instanceof Tiger_Sms_Adapter_Abstract ? $a : null;
+    }
+
+    /** The configured adapter instance, or null when none is selected / the class is missing. */
+    protected static function _adapter(): ?Tiger_Sms_Adapter_Abstract
+    {
+        return self::adapterFor(self::provider());
     }
 
     /** The `tiger.sms.adapters.<name>.*` config map for one adapter. */

@@ -41,6 +41,33 @@ $res = Tiger_Sms::send('+14075551234', 'Your code is 123456');
 Unconfigured or on a provider error it returns `['ok' => false, 'error' => '…']` — it never throws.
 Add another provider by extending `Tiger_Sms_Adapter_Abstract` and `Tiger_Sms::register('name', Class)`.
 
+## Receiving messages (two-way)
+
+Receiving is **application-specific**, so TigerSMS only does the transport — it verifies the webhook,
+normalizes the message, and **publishes an event**. *Your* module decides what an inbound text means
+(a reply, a STOP/opt-out, a keyword, an order lookup), so the two stay loosely coupled.
+
+1. **Point your provider's inbound webhook** at `https://your-site/sms/inbound/<provider>` — e.g.
+   `…/sms/inbound/twilio` (in the Twilio Console, the number's *"A message comes in"* webhook). The
+   endpoint verifies the provider's signature and 403s anything it can't authenticate.
+2. **Subscribe** from any module's `Bootstrap` — you get the normalized message:
+
+```php
+protected function _initSmsInbound()
+{
+    if (!class_exists('Tiger_Sms')) { return; }
+    Tiger_Sms::onInbound(function (array $m) {
+        // $m = ['provider','message_id','from','to','body','media'=>[],'received_at','raw']
+        if (strtoupper(trim($m['body'])) === 'STOP') { /* your opt-out logic */ }
+        // … reply with Tiger_Sms::send($m['from'], '…'), look something up, etc.
+    });
+}
+```
+
+Many modules can subscribe; a listener that throws is isolated so it can't break the webhook or the
+others. **Twilio inbound works out of the box**; **AWS/SNS inbound is a follow-up** (AWS routes inbound
+through an SNS topic subscription, not a direct webhook).
+
 ## Compliance
 
 SMS carries strict consent rules (TCPA, US 10DLC registration, opt-in + STOP handling). Transactional

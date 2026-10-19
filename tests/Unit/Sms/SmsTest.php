@@ -155,6 +155,66 @@ final class SmsTest extends UnitTestCase
     }
 
     #[Test]
+    public function inbound_dispatch_fans_out_and_isolates_a_bad_listener(): void
+    {
+        $seen = [];
+        Tiger_Sms::onInbound(function (array $m) use (&$seen) { $seen[] = $m['body']; });
+        Tiger_Sms::onInbound(function () { throw new \RuntimeException('boom'); });   // must not break the rest
+        Tiger_Sms::onInbound(function (array $m) use (&$seen) { $seen[] = strtoupper($m['body']); });
+
+        // The isolated listener logs its failure; point Tiger_Log at the null sink so the test stays quiet.
+        $prev = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
+        Zend_Registry::set('Zend_Config', new Zend_Config(['tiger' => ['log' => ['writer' => 'null']]]));
+        \Tiger_Log::reset();
+        try {
+            $delivered = Tiger_Sms::dispatchInbound(['provider' => 'twilio', 'from' => '+1555', 'body' => 'help']);
+        } finally {
+            if ($prev !== null) { Zend_Registry::set('Zend_Config', $prev); }
+            else { Zend_Registry::getInstance()->offsetUnset('Zend_Config'); }
+            \Tiger_Log::reset();
+        }
+        $this->assertSame(2, $delivered, 'two good listeners notified, the throwing one isolated');
+        $this->assertSame(['help', 'HELP'], $seen);
+    }
+
+    #[Test]
+    public function twilio_verifies_its_webhook_signature(): void
+    {
+        $a     = new Tiger_Sms_Adapter_Twilio(['account_sid' => 'ACx', 'auth_token' => 'tok', 'from' => '+1555']);
+        $url   = 'https://app.example.com/sms/inbound/twilio';
+        $post  = ['Body' => 'hello', 'From' => '+14075551234', 'To' => '+18885551234'];
+        // Twilio's scheme: url + each key.value sorted by key, HMAC-SHA1, base64.
+        ksort($post);
+        $data  = $url; foreach ($post as $k => $v) { $data .= $k . $v; }
+        $good  = base64_encode(hash_hmac('sha1', $data, 'tok', true));
+
+        $this->assertTrue($a->verifyInbound($url, $post, ['X-Twilio-Signature' => $good]));
+        $this->assertFalse($a->verifyInbound($url, $post, ['X-Twilio-Signature' => 'wrong']));
+        $this->assertFalse($a->verifyInbound($url, $post, []), 'missing signature fails closed');
+        $this->assertFalse((new Tiger_Sms_Adapter_Twilio([]))->verifyInbound($url, $post, ['X-Twilio-Signature' => $good]), 'no token fails closed');
+    }
+
+    #[Test]
+    public function twilio_parses_inbound_message_and_ignores_non_messages(): void
+    {
+        $a = new Tiger_Sms_Adapter_Twilio([]);
+        $msg = $a->parseInbound(['MessageSid' => 'SM9', 'From' => '+14075551234', 'To' => '+18885551234', 'Body' => 'STOP', 'NumMedia' => '1', 'MediaUrl0' => 'https://x/y.jpg']);
+        $this->assertSame('twilio', $msg['provider']);
+        $this->assertSame('+14075551234', $msg['from']);
+        $this->assertSame('STOP', $msg['body']);
+        $this->assertSame(['https://x/y.jpg'], $msg['media']);
+        $this->assertNull($a->parseInbound(['MessageStatus' => 'delivered', 'MessageSid' => 'SM9']), 'a status callback is not an inbound message');
+    }
+
+    #[Test]
+    public function sns_inbound_refuses_by_default(): void
+    {
+        $a = new Tiger_Sms_Adapter_Sns(['region' => 'us-east-1']);
+        $this->assertFalse($a->verifyInbound('https://x/sms/inbound/sns', ['Message' => 'hi'], []));
+        $this->assertNull($a->parseInbound(['Message' => 'hi']));
+    }
+
+    #[Test]
     public function sns_send_signs_and_parses_message_id(): void
     {
         $a = new class(['region' => 'us-east-1', 'key' => 'AKIATEST', 'secret_key' => 'secret', 'from' => '+18885551234']) extends Tiger_Sms_Adapter_Sns {
