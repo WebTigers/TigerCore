@@ -26,6 +26,30 @@ Native to an AWS-hosted Tiger. You need:
 > A brand-new AWS account is in the **SMS sandbox** ($1/month, verified destinations only) until you
 > request production access. In the sandbox you can still send to verified test numbers.
 
+### Vonage
+The classic SMS API (formerly Nexmo). You need:
+- An **API key** and **API secret** (Vonage dashboard → *API settings*).
+- A **From** — an E.164 number you own, **or** an alphanumeric sender ID (e.g. `MyBrand`) where the
+  destination country allows one. Non-GSM text is sent as unicode automatically.
+- *For two-way:* a **signature secret** + the matching **signature method** (set both in the dashboard)
+  so inbound webhooks are verified — see "Receiving messages" below.
+
+### Plivo
+You need:
+- An **Auth ID** and **Auth token** (Plivo console → *Account*).
+- Either a **From number** (a Plivo number you own, in E.164) **or** a **PowerPack UUID** (a Plivo
+  number pool). A message prefers the PowerPack when set.
+
+### Telnyx
+You need:
+- An **API key** (Telnyx portal → *Auth → API Keys*, begins `KEY…`).
+- Either a **From** (an E.164 number or a sender ID) **or** a **Messaging Profile ID** (a number pool).
+  Both may be set — the profile picks the pool, the From pins a specific number within it.
+
+> **Which to pick?** Any of them sends the same way through `Tiger_Sms::send()` — the choice is about
+> your carrier relationship, pricing, and number inventory. Twilio and Vonage are the broadest; Amazon
+> SNS is the zero-key choice on AWS; Plivo and Telnyx are strong on price and programmable-number pools.
+
 ## Numbers
 
 Destinations are normalized to **E.164** (`+<country><number>`) automatically — a bare US 10-digit
@@ -65,8 +89,20 @@ protected function _initSmsInbound()
 ```
 
 Many modules can subscribe; a listener that throws is isolated so it can't break the webhook or the
-others. **Twilio inbound works out of the box**; **AWS/SNS inbound is a follow-up** (AWS routes inbound
-through an SNS topic subscription, not a direct webhook).
+others.
+
+**Inbound support by provider** (every one verifies the request before a listener ever sees it):
+
+| Provider | Inbound | How it's verified | Set the webhook to |
+|---|---|---|---|
+| **Twilio** | ✅ out of the box | `X-Twilio-Signature` (HMAC-SHA1) | the number's *"A message comes in"* webhook |
+| **Vonage** | ✅ when signed | the `sig` param (your signature secret + method) | the number's inbound webhook, **method POST** |
+| **Plivo** | ✅ out of the box | `X-Plivo-Signature-V3` (HMAC-SHA256 of URL + nonce) | the number's Message URL (POST) |
+| **Amazon SNS** | ⏳ follow-up | — | AWS routes inbound through an SNS topic subscription, not a direct webhook |
+| **Telnyx** | ⏳ follow-up | — | Telnyx POSTs JSON signed with Ed25519 (a raw-body path, not the form webhook) |
+
+For Vonage, set a **signature secret** in the dashboard and enter it (plus the matching method) in the
+SMS settings, and set the inbound webhook to **HTTP POST** — an unsigned request is refused.
 
 ## Compliance
 

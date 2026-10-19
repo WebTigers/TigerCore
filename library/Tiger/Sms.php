@@ -7,15 +7,19 @@
  * One facade, pluggable adapters. The configured provider is chosen by config and every adapter
  * returns the same shape, so callers never care who delivered it:
  *
- *   tiger.sms.provider               = "twilio" | "sns"        ; which adapter sends
+ *   tiger.sms.provider               = "twilio"|"sns"|"vonage"|"plivo"|"telnyx"  ; which adapter sends
  *   tiger.sms.from                   = "+15551234567"           ; default sender (an origination number)
  *   tiger.sms.adapters.twilio.*      = account_sid / auth_token_enc / from
  *   tiger.sms.adapters.sns.*         = key / secret_key_enc / region / from   (or the instance role on AWS)
+ *   tiger.sms.adapters.vonage.*      = api_key / api_secret_enc / from
+ *   tiger.sms.adapters.plivo.*       = auth_id / auth_token_enc / from
+ *   tiger.sms.adapters.telnyx.*      = api_key_enc / from (or messaging_profile_id)
  *
  * Graceful by design (the Tiger_Location contract): an unset provider, a missing/incapable adapter, or a
  * provider error yields a clean `['ok'=>false,'error'=>...]` — never a fatal and never an exception into
  * the caller. Numbers are normalized to E.164 before sending. Register more adapters with
- * Tiger_Sms::register(). The built-in Twilio + SNS adapters self-register on first use.
+ * Tiger_Sms::register(). The five built-in adapters (Twilio, SNS, Vonage, Plivo, Telnyx) self-register
+ * on first use.
  *
  * It powers the platform's SMS needs the same way Tiger_Mail powers email: auth one-time codes / 2FA,
  * operational alerts (e.g. the Fleet Observer's sev-1 pages), and consent-gated campaigns.
@@ -52,6 +56,9 @@ class Tiger_Sms
         self::$_seeded = true;
         if (!isset(self::$_registry['twilio'])) { self::$_registry['twilio'] = 'Tiger_Sms_Adapter_Twilio'; }
         if (!isset(self::$_registry['sns']))    { self::$_registry['sns']    = 'Tiger_Sms_Adapter_Sns'; }
+        if (!isset(self::$_registry['vonage'])) { self::$_registry['vonage'] = 'Tiger_Sms_Adapter_Vonage'; }
+        if (!isset(self::$_registry['plivo']))  { self::$_registry['plivo']  = 'Tiger_Sms_Adapter_Plivo'; }
+        if (!isset(self::$_registry['telnyx'])) { self::$_registry['telnyx'] = 'Tiger_Sms_Adapter_Telnyx'; }
     }
 
     /**

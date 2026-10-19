@@ -14,6 +14,9 @@ class Sms_Bootstrap extends Zend_Application_Module_Bootstrap
         if (!class_exists('Tiger_Sms')) { return; }
         Tiger_Sms::register('twilio', 'Tiger_Sms_Adapter_Twilio');
         Tiger_Sms::register('sns', 'Tiger_Sms_Adapter_Sns');
+        Tiger_Sms::register('vonage', 'Tiger_Sms_Adapter_Vonage');
+        Tiger_Sms::register('plivo', 'Tiger_Sms_Adapter_Plivo');
+        Tiger_Sms::register('telnyx', 'Tiger_Sms_Adapter_Telnyx');
     }
 
     /** Add the SMS settings page to the shared admin Settings tree (ACL-filtered, no core edit). */
