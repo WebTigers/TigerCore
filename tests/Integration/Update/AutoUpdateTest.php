@@ -49,4 +49,38 @@ final class AutoUpdateTest extends IntegrationTestCase
         $this->assertFalse(Tiger_Update_AutoUpdate::set('', true));
         $this->assertFalse(Tiger_Update_AutoUpdate::isOn(''));
     }
+
+    #[Test]
+    public function enableAllEnrollsCoreAndMergesExisting(): void
+    {
+        Tiger_Update_AutoUpdate::set('panel', true);        // a prior opt-in must survive
+        $set = Tiger_Update_AutoUpdate::enableAll();
+        $this->assertContains('tiger-core', $set, 'the platform is enrolled');
+        $this->assertTrue(Tiger_Update_AutoUpdate::isOn('tiger-core'));
+        $this->assertContains('panel', $set, 'enableAll merges with what was already on');
+
+        // Idempotent — a second call keeps a single tiger-core entry.
+        $again = Tiger_Update_AutoUpdate::enableAll();
+        $this->assertSame(1, count(array_keys($again, 'tiger-core', true)), 'no duplicate core on re-run');
+    }
+
+    #[Test]
+    public function enableAllCanSkipCore(): void
+    {
+        Tiger_Update_AutoUpdate::disableAll();
+        $set = Tiger_Update_AutoUpdate::enableAll(false);   // --modules-only (control plane: core is deploy-driven)
+        $this->assertNotContains('tiger-core', $set);
+        $this->assertFalse(Tiger_Update_AutoUpdate::isOn('tiger-core'));
+    }
+
+    #[Test]
+    public function disableAllClearsEverything(): void
+    {
+        Tiger_Update_AutoUpdate::set('panel', true);
+        Tiger_Update_AutoUpdate::enableAll();
+        $this->assertNotSame([], Tiger_Update_AutoUpdate::onSlugs());
+        $this->assertSame([], Tiger_Update_AutoUpdate::disableAll());
+        $this->assertSame([], Tiger_Update_AutoUpdate::onSlugs());
+        $this->assertFalse(Tiger_Update_AutoUpdate::isOn('tiger-core'));
+    }
 }

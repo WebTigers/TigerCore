@@ -405,6 +405,58 @@ switch ($cmd) {
         }
         break;
 
+    case 'update:auto':
+        // Manage unattended auto-updates (the WordPress "enable auto-updates" opt-in).
+        //   update:auto on  --all [--modules-only]   enroll core + every module & skill (skip core)
+        //   update:auto on  <slug>                   enroll one slug (`tiger-core` for the platform)
+        //   update:auto off --all | off <slug>       un-enroll everything / one slug
+        //   update:auto list                         show what's enrolled
+        tiger_db();
+        $sub         = isset($argv[2]) ? $argv[2] : '';
+        $all         = in_array('--all', $argv, true);
+        $modulesOnly = in_array('--modules-only', $argv, true);
+        $slug        = (isset($argv[3]) && strlen($argv[3]) && $argv[3][0] !== '-') ? $argv[3] : '';
+        if ($sub === 'list') {
+            $on = Tiger_Update_AutoUpdate::onSlugs();
+            echo $on ? '  ' . implode("\n  ", $on) . "\n" : "  (nothing enrolled)\n";
+            break;
+        }
+        if ($sub === 'on') {
+            if ($all) {
+                $set = Tiger_Update_AutoUpdate::enableAll(!$modulesOnly);
+                echo "  \xE2\x9C\x93 auto-update ON for " . count($set) . ' item(s): ' . implode(', ', $set) . "\n";
+            } elseif ($slug !== '') {
+                Tiger_Update_AutoUpdate::set($slug, true);
+                echo "  \xE2\x9C\x93 auto-update ON for {$slug}\n";
+            } else {
+                fwrite(STDERR, "  usage: update:auto on <slug> | update:auto on --all [--modules-only]\n"); exit(1);
+            }
+            break;
+        }
+        if ($sub === 'off') {
+            if ($all) { Tiger_Update_AutoUpdate::disableAll(); echo "  \xE2\x9C\x93 auto-update OFF for all\n"; }
+            elseif ($slug !== '') { Tiger_Update_AutoUpdate::set($slug, false); echo "  \xE2\x9C\x93 auto-update OFF for {$slug}\n"; }
+            else { fwrite(STDERR, "  usage: update:auto off <slug> | update:auto off --all\n"); exit(1); }
+            break;
+        }
+        fwrite(STDERR, "  usage: update:auto <on|off|list> [<slug>|--all] [--modules-only]\n"); exit(1);
+
+    case 'update:apply':
+        // Apply the enrolled auto-update set NOW (the immediate pass firstboot/the installer runs so a
+        // just-provisioned box is current from minute one). Same engine as the daily scheduled job.
+        tiger_db();
+        if (!in_array('--auto', $argv, true)) {
+            fwrite(STDERR, "  usage: update:apply --auto   (apply the enrolled auto-update set now)\n"); exit(1);
+        }
+        $results = System_Service_Updates::runScheduledAutoUpdates();
+        if (!$results) { $log('  nothing to apply (nothing enrolled, or everything current)'); break; }
+        foreach ($results as $res) {
+            $log(sprintf('  [%s] %s%s', !empty($res['ok']) ? 'ok' : 'ERR',
+                (string) ($res['name'] ?? ($res['slug'] ?? '?')),
+                !empty($res['version']) ? ' -> ' . $res['version'] : ''));
+        }
+        break;
+
     case 'version':
         echo 'Tiger Core ' . Tiger_Version::VERSION . "\n";
         break;
@@ -431,6 +483,9 @@ switch ($cmd) {
         echo "  user:password          Reset a user's password (console recovery when email can't\n";
         echo "                         be delivered) — [--user=<email|username>] [--password=] [--force]\n";
         echo "  make:module <name>     Scaffold a new application module (controller + /api service + acl)\n";
+        echo "  update:auto <on|off|list>  Manage unattended auto-updates — `on --all` enrolls core +\n";
+        echo "                         every installed module & skill ([--modules-only] skips core)\n";
+        echo "  update:apply --auto    Apply the enrolled auto-update set now (the immediate pass)\n";
         echo "  version                Show the Tiger Core version\n";
         break;
 }
