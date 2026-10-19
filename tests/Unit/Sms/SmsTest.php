@@ -11,6 +11,9 @@ use Tiger_Sms;
 use Tiger_Sms_Adapter_Abstract;
 use Tiger_Sms_Adapter_Twilio;
 use Tiger_Sms_Adapter_Sns;
+use Tiger_Sms_Adapter_Vonage;
+use Tiger_Sms_Adapter_Plivo;
+use Tiger_Sms_Adapter_Telnyx;
 use Zend_Config;
 use Zend_Registry;
 
@@ -24,11 +27,15 @@ final class StubSmsAdapter extends Tiger_Sms_Adapter_Abstract
     }
 }
 
-/** The provider-agnostic SMS facade + the Twilio/SNS adapters (request shaping, response parsing,
- *  config detection) — all network-free (the HTTP seam is overridden). */
+/** The provider-agnostic SMS facade + every built-in adapter (Twilio/SNS/Vonage/Plivo/Telnyx) —
+ *  request shaping, response parsing, config detection, and inbound verify/parse — all network-free
+ *  (the HTTP seam is overridden). */
 #[CoversClass(Tiger_Sms::class)]
 #[CoversClass(Tiger_Sms_Adapter_Twilio::class)]
 #[CoversClass(Tiger_Sms_Adapter_Sns::class)]
+#[CoversClass(Tiger_Sms_Adapter_Vonage::class)]
+#[CoversClass(Tiger_Sms_Adapter_Plivo::class)]
+#[CoversClass(Tiger_Sms_Adapter_Telnyx::class)]
 final class SmsTest extends UnitTestCase
 {
     #[Test]
@@ -90,8 +97,9 @@ final class SmsTest extends UnitTestCase
         $r = Tiger_Sms::send('+14075551234', 'hi');          // nothing configured in a unit run
         $this->assertFalse($r['ok']);
         $this->assertStringContainsString('no SMS provider', $r['error']);
-        $this->assertContains('twilio', Tiger_Sms::providers());   // the built-ins self-seed
-        $this->assertContains('sns', Tiger_Sms::providers());
+        foreach (['twilio', 'sns', 'vonage', 'plivo', 'telnyx'] as $p) {       // the built-ins self-seed
+            $this->assertContains($p, Tiger_Sms::providers());
+        }
     }
 
     #[Test]
@@ -232,5 +240,198 @@ final class SmsTest extends UnitTestCase
         $this->assertStringContainsString('AWS4-HMAC-SHA256 Credential=AKIATEST/', $auth);
         $this->assertStringContainsString('us-east-1/sns/aws4_request', $auth);
         $this->assertStringContainsString('PhoneNumber=%2B14075551234', $a->body);
+    }
+
+    // ----- Vonage -----------------------------------------------------------------------------------
+
+    #[Test]
+    public function vonage_config_detection(): void
+    {
+        $this->assertFalse((new Tiger_Sms_Adapter_Vonage([]))->isConfigured());
+        $this->assertFalse((new Tiger_Sms_Adapter_Vonage(['api_key' => 'k', 'api_secret' => 's']))->isConfigured(), 'no sender');
+        $this->assertTrue((new Tiger_Sms_Adapter_Vonage(['api_key' => 'k', 'api_secret' => 's', 'from' => 'Brand']))->isConfigured());
+    }
+
+    #[Test]
+    public function vonage_send_shapes_request_marks_unicode_and_parses_id(): void
+    {
+        $a = new class(['api_key' => 'k', 'api_secret' => 's', 'from' => 'Brand']) extends Tiger_Sms_Adapter_Vonage {
+            public $url = ''; public $body = '';
+            protected function _http(string $method, string $url, array $headers = [], string $body = '', int $timeout = 15): array
+            {
+                $this->url = $url; $this->body = $body;
+                return [200, json_encode(['message-count' => '1', 'messages' => [['status' => '0', 'message-id' => 'VON1']]])];
+            }
+        };
+        $r = $a->send('+14075551234', "caf\u{00e9}", 'Brand');   // a non-ASCII body must flip type=unicode
+        $this->assertTrue($r['ok']);
+        $this->assertSame('VON1', $r['id']);
+        $this->assertStringContainsString('rest.nexmo.com/sms/json', $a->url);
+        $this->assertStringContainsString('to=14075551234', $a->body);   // digits, no leading +
+        $this->assertStringContainsString('type=unicode', $a->body);
+        $this->assertSame('Vonage', $a->label());
+    }
+
+    #[Test]
+    public function vonage_reports_api_error_even_on_http_200(): void
+    {
+        $a = new class(['api_key' => 'k', 'api_secret' => 's', 'from' => 'Brand']) extends Tiger_Sms_Adapter_Vonage {
+            protected function _http(string $method, string $url, array $headers = [], string $body = '', int $timeout = 15): array
+            {
+                return [200, json_encode(['messages' => [['status' => '2', 'error-text' => 'Missing api_secret']]])];
+            }
+        };
+        $r = $a->send('+14075551234', 'hi', 'Brand');
+        $this->assertFalse($r['ok']);
+        $this->assertStringContainsString('Missing api_secret', $r['error']);
+    }
+
+    #[Test]
+    public function vonage_verifies_signed_inbound_and_parses(): void
+    {
+        $a    = new Tiger_Sms_Adapter_Vonage(['api_key' => 'k', 'api_secret' => 's', 'from' => 'Brand', 'signature_secret' => 'sig-secret']);
+        $post = ['msisdn' => '14075551234', 'to' => '447700900000', 'text' => 'hello', 'messageId' => 'abc', 'timestamp' => '1600000000'];
+        // The scheme: sorted &key=value (with &/= in values → _), HMAC-SHA256 (default), compared case-insensitive.
+        $p = $post; ksort($p);
+        $data = ''; foreach ($p as $k => $v) { $data .= '&' . $k . '=' . str_replace(['&', '='], '_', (string) $v); }
+        $good = strtoupper(hash_hmac('sha256', $data, 'sig-secret'));
+
+        $this->assertTrue($a->verifyInbound('https://x/sms/inbound/vonage', $post + ['sig' => $good], []));
+        $this->assertFalse($a->verifyInbound('https://x/sms/inbound/vonage', $post + ['sig' => 'nope'], []));
+        $this->assertFalse($a->verifyInbound('https://x/sms/inbound/vonage', $post, []), 'missing sig fails closed');
+        $this->assertFalse((new Tiger_Sms_Adapter_Vonage([]))->verifyInbound('https://x', $post + ['sig' => $good], []), 'no secret fails closed');
+
+        $msg = $a->parseInbound(['msisdn' => '14075551234', 'to' => '447700900000', 'text' => 'STOP', 'messageId' => 'abc']);
+        $this->assertSame('vonage', $msg['provider']);
+        $this->assertSame('+14075551234', $msg['from']);
+        $this->assertSame('STOP', $msg['body']);
+        $this->assertNull($a->parseInbound(['status' => 'delivered', 'messageId' => 'abc']), 'a delivery receipt is not an inbound message');
+    }
+
+    // ----- Plivo ------------------------------------------------------------------------------------
+
+    #[Test]
+    public function plivo_config_detection(): void
+    {
+        $this->assertFalse((new Tiger_Sms_Adapter_Plivo([]))->isConfigured());
+        $this->assertFalse((new Tiger_Sms_Adapter_Plivo(['auth_id' => 'MA', 'auth_token' => 't']))->isConfigured(), 'no sender');
+        $this->assertTrue((new Tiger_Sms_Adapter_Plivo(['auth_id' => 'MA', 'auth_token' => 't', 'from' => '+15551230000']))->isConfigured());
+        $this->assertTrue((new Tiger_Sms_Adapter_Plivo(['auth_id' => 'MA', 'auth_token' => 't', 'powerpack_uuid' => 'pp']))->isConfigured());
+    }
+
+    #[Test]
+    public function plivo_send_shapes_request_and_parses_uuid(): void
+    {
+        $a = new class(['auth_id' => 'MA123', 'auth_token' => 'tok', 'from' => '+15551230000']) extends Tiger_Sms_Adapter_Plivo {
+            public $url = ''; public $body = ''; public $auth = '';
+            protected function _http(string $method, string $url, array $headers = [], string $body = '', int $timeout = 15): array
+            {
+                $this->url = $url; $this->body = $body; $this->auth = implode("\n", $headers);
+                return [202, json_encode(['message' => 'message(s) queued', 'message_uuid' => ['PL-1'], 'api_id' => 'x'])];
+            }
+        };
+        $r = $a->send('+14075551234', 'hi', '+15551230000');
+        $this->assertTrue($r['ok']);
+        $this->assertSame('PL-1', $r['id']);
+        $this->assertStringContainsString('Account/MA123/Message/', $a->url);
+        $this->assertStringContainsString('"dst":"14075551234"', $a->body);
+        $this->assertStringContainsString('"src":"15551230000"', $a->body);
+        $this->assertStringContainsString('Authorization: Basic ' . base64_encode('MA123:tok'), $a->auth);
+        $this->assertSame('Plivo', $a->label());
+    }
+
+    #[Test]
+    public function plivo_uses_powerpack_and_reports_api_error(): void
+    {
+        $a = new class(['auth_id' => 'MA', 'auth_token' => 't', 'powerpack_uuid' => 'pp-9']) extends Tiger_Sms_Adapter_Plivo {
+            public $body = '';
+            protected function _http(string $method, string $url, array $headers = [], string $body = '', int $timeout = 15): array
+            {
+                $this->body = $body;
+                return [400, json_encode(['error' => 'invalid destination number'])];
+            }
+        };
+        $r = $a->send('+14075551234', 'hi', '');   // no From → the PowerPack is the sender
+        $this->assertFalse($r['ok']);
+        $this->assertStringContainsString('invalid destination number', $r['error']);
+        $this->assertStringContainsString('"powerpack_uuid":"pp-9"', $a->body);
+    }
+
+    #[Test]
+    public function plivo_verifies_v3_signature_and_parses(): void
+    {
+        $a     = new Tiger_Sms_Adapter_Plivo(['auth_id' => 'MA', 'auth_token' => 'tok', 'from' => '+1555']);
+        $url   = 'https://app.example.com/sms/inbound/plivo';
+        $nonce = 'nonce-123';
+        $good  = base64_encode(hash_hmac('sha256', $url . $nonce, 'tok', true));
+        $hdr   = ['X-Plivo-Signature-V3' => $good, 'X-Plivo-Signature-V3-Nonce' => $nonce];
+
+        $this->assertTrue($a->verifyInbound($url, [], $hdr));
+        $this->assertTrue($a->verifyInbound($url, [], ['X-Plivo-Signature-V3' => 'other,' . $good, 'X-Plivo-Signature-V3-Nonce' => $nonce]), 'any of a comma list passes');
+        $this->assertFalse($a->verifyInbound($url, [], ['X-Plivo-Signature-V3' => 'wrong', 'X-Plivo-Signature-V3-Nonce' => $nonce]));
+        $this->assertFalse($a->verifyInbound($url, [], []), 'missing header fails closed');
+
+        $msg = $a->parseInbound(['From' => '14075551234', 'To' => '18885551234', 'Text' => 'STOP', 'MessageUUID' => 'PL-1', 'Type' => 'sms']);
+        $this->assertSame('plivo', $msg['provider']);
+        $this->assertSame('+14075551234', $msg['from']);
+        $this->assertSame('STOP', $msg['body']);
+        $this->assertNull($a->parseInbound(['Type' => 'mms_status']), 'a status payload is not an inbound message');
+    }
+
+    // ----- Telnyx -----------------------------------------------------------------------------------
+
+    #[Test]
+    public function telnyx_config_detection(): void
+    {
+        $this->assertFalse((new Tiger_Sms_Adapter_Telnyx([]))->isConfigured());
+        $this->assertFalse((new Tiger_Sms_Adapter_Telnyx(['api_key' => 'KEY']))->isConfigured(), 'no sender');
+        $this->assertTrue((new Tiger_Sms_Adapter_Telnyx(['api_key' => 'KEY', 'from' => '+15551230000']))->isConfigured());
+        $this->assertTrue((new Tiger_Sms_Adapter_Telnyx(['api_key' => 'KEY', 'messaging_profile_id' => 'mp']))->isConfigured());
+    }
+
+    #[Test]
+    public function telnyx_send_shapes_request_and_parses_id(): void
+    {
+        $a = new class(['api_key' => 'KEYabc', 'from' => '+15551230000']) extends Tiger_Sms_Adapter_Telnyx {
+            public $url = ''; public $body = ''; public $auth = '';
+            protected function _http(string $method, string $url, array $headers = [], string $body = '', int $timeout = 15): array
+            {
+                $this->url = $url; $this->body = $body; $this->auth = implode("\n", $headers);
+                return [200, json_encode(['data' => ['id' => 'TLX-1', 'record_type' => 'message']])];
+            }
+        };
+        $r = $a->send('+14075551234', 'hi', '+15551230000');
+        $this->assertTrue($r['ok']);
+        $this->assertSame('TLX-1', $r['id']);
+        $this->assertStringContainsString('/v2/messages', $a->url);
+        $this->assertStringContainsString('"to":"+14075551234"', $a->body);     // Telnyx keeps the leading +
+        $this->assertStringContainsString('"from":"+15551230000"', $a->body);
+        $this->assertStringContainsString('Authorization: Bearer KEYabc', $a->auth);
+        $this->assertSame('Telnyx', $a->label());
+    }
+
+    #[Test]
+    public function telnyx_uses_messaging_profile_and_reports_api_error(): void
+    {
+        $a = new class(['api_key' => 'KEY', 'messaging_profile_id' => 'mp-9']) extends Tiger_Sms_Adapter_Telnyx {
+            public $body = '';
+            protected function _http(string $method, string $url, array $headers = [], string $body = '', int $timeout = 15): array
+            {
+                $this->body = $body;
+                return [422, json_encode(['errors' => [['title' => 'Invalid request', 'detail' => 'from is required']]])];
+            }
+        };
+        $r = $a->send('+14075551234', 'hi', '');   // no From → the messaging profile selects the number
+        $this->assertFalse($r['ok']);
+        $this->assertStringContainsString('from is required', $r['error']);
+        $this->assertStringContainsString('"messaging_profile_id":"mp-9"', $a->body);
+    }
+
+    #[Test]
+    public function telnyx_inbound_refuses_by_default(): void
+    {
+        $a = new Tiger_Sms_Adapter_Telnyx(['api_key' => 'KEY', 'from' => '+1555']);
+        $this->assertFalse($a->verifyInbound('https://x/sms/inbound/telnyx', [], []));
+        $this->assertNull($a->parseInbound([]));
     }
 }

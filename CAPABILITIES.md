@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**226 classes** across **33 capabilities** · **25 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**229 classes** across **33 capabilities** · **25 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -331,8 +331,11 @@
 - **Tiger_Secret_Writer_Interface** `@api` — the OPTIONAL write side of a secret backend.  ·  `library/Tiger/Secret/Writer/Interface.php`
 - **Tiger_Sms** `@api` — provider-agnostic SMS send, the SMS sibling of Tiger_Mail.  ·  `library/Tiger/Sms.php`
 - **Tiger_Sms_Adapter_Abstract** `@api` — the base every SMS provider adapter extends.  ·  `library/Tiger/Sms/Adapter/Abstract.php`
+- **Tiger_Sms_Adapter_Plivo** `@api` — the Plivo SMS adapter.  ·  `library/Tiger/Sms/Adapter/Plivo.php`
 - **Tiger_Sms_Adapter_Sns** `@api` — the Amazon SNS SMS adapter (native to an AWS-hosted Tiger).  ·  `library/Tiger/Sms/Adapter/Sns.php`
+- **Tiger_Sms_Adapter_Telnyx** `@api` — the Telnyx SMS adapter.  ·  `library/Tiger/Sms/Adapter/Telnyx.php`
 - **Tiger_Sms_Adapter_Twilio** `@api` — the Twilio SMS adapter (the industry-standard API).  ·  `library/Tiger/Sms/Adapter/Twilio.php`
+- **Tiger_Sms_Adapter_Vonage** `@api` — the Vonage (formerly Nexmo) SMS adapter.  ·  `library/Tiger/Sms/Adapter/Vonage.php`
 
 ## Modules (`modules/*` — activatable features)
 
