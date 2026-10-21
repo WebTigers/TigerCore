@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**241 classes** across **33 capabilities** · **26 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**242 classes** across **33 capabilities** · **26 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -330,6 +330,7 @@
 - **Tiger_Git_Exception** `@api` — a structured, agent-readable, SECRET-FREE git failure (TIGER-334).  ·  `library/Tiger/Git/Exception.php`
 - **Tiger_Git_Transport_Api** `@api` — git operations through the GitHub API, with NO `.git` directory (TIGER-364).  ·  `library/Tiger/Git/Transport/Api.php`
 - **Tiger_Git_Transport_Interface** `@api` — HOW a git operation is carried out (TIGER-334).  ·  `library/Tiger/Git/Transport/Interface.php`
+- **Tiger_Git_Transport_Shell** `@api` — git operations driven by the `git` binary (TIGER-364).  ·  `library/Tiger/Git/Transport/Shell.php`
 - **Tiger_Git_WorkingTree** `@api` — one module's git working tree (TIGER-334).  ·  `library/Tiger/Git/WorkingTree.php`
 - **Tiger_Message** `@api` — the platform's way of telling people things (TIGER-114).  ·  `library/Tiger/Message.php`
 - **Tiger_Secret** `@api` — provider-neutral resolution of secrets and sensitive config values.  ·  `library/Tiger/Secret.php`
