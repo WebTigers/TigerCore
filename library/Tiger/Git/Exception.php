@@ -30,6 +30,8 @@ class Tiger_Git_Exception extends RuntimeException
     const INVALID_REF          = 'INVALID_REF';
     const API_ERROR            = 'API_ERROR';
     const SHELL_ERROR          = 'SHELL_ERROR';
+    const NOT_IMPLEMENTED      = 'NOT_IMPLEMENTED';   // a transport method not yet built (phased delivery)
+    const NOTHING_TO_COMMIT    = 'NOTHING_TO_COMMIT';
 
     /** @var string the stable error code */
     protected $gitCode;

@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**240 classes** across **33 capabilities** · **26 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**241 classes** across **33 capabilities** · **26 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -328,6 +328,7 @@
 - **Tiger_Git_Credential** `@api` — the write-only credential manager (TIGER-334 / TIGER-365).  ·  `library/Tiger/Git/Credential.php`
 - **Tiger_Git_Environment** `@api` — detect which transport this instance can use (TIGER-334).  ·  `library/Tiger/Git/Environment.php`
 - **Tiger_Git_Exception** `@api` — a structured, agent-readable, SECRET-FREE git failure (TIGER-334).  ·  `library/Tiger/Git/Exception.php`
+- **Tiger_Git_Transport_Api** `@api` — git operations through the GitHub API, with NO `.git` directory (TIGER-364).  ·  `library/Tiger/Git/Transport/Api.php`
 - **Tiger_Git_Transport_Interface** `@api` — HOW a git operation is carried out (TIGER-334).  ·  `library/Tiger/Git/Transport/Interface.php`
 - **Tiger_Git_WorkingTree** `@api` — one module's git working tree (TIGER-334).  ·  `library/Tiger/Git/WorkingTree.php`
 - **Tiger_Message** `@api` — the platform's way of telling people things (TIGER-114).  ·  `library/Tiger/Message.php`
@@ -359,7 +360,7 @@
 - **CMS** (`cms`, app)  ·  services: Menu, Page, Paths, Settings  ·  `modules/cms`
 - **Code** (`code`, developer)  ·  services: Code  ·  `modules/code`
 - **Comments** (`comment`, app)  ·  services: Comment, Render, Settings, Subjects  ·  `modules/comment`
-- **Git** (`git`, app)  ·  `modules/git`
+- **TigerGit** (`git`, app)  ·  `modules/git`
 - **Identity** (`identity`, plugin)  ·  services: Identity  ·  `modules/identity`
 - **Matomo** (`matomo`, app)  ·  services: Matomo  ·  `modules/matomo`
 - **Mcp** (`mcp`, module)  ·  services: Settings  ·  `modules/mcp`
