@@ -40,11 +40,11 @@ class Message_IndexController extends Tiger_Controller_Account_Action
         $this->view->headTitle($this->view->t('message.blocked.title'));
     }
 
-    /** Same rule the service applies, so the Compose button never offers what the API will refuse. */
+    /** Same rule the service applies (Tiger_Message::maySend), so the Compose button never offers what
+     *  the API will refuse — one shared capability answer, no role-string compare (TIGER-335). */
     protected function _maySend()
     {
         $identity = Zend_Auth::getInstance()->getIdentity();
-        $role     = (string) ($identity->role ?? 'guest');
-        return Tiger_Message::isAtLeastAdmin($role) || Tiger_Message::isUserToUserEnabled();
+        return Tiger_Message::maySend($identity->role ?? 'guest');
     }
 }

@@ -20,15 +20,20 @@ conventions read the root **AGENTS.md**. This file is the module-specific layer.
 
 - **Org-scoped.** Every recipient must be an active member of the caller's org. Another org's member is
   "unknown", not "forbidden" — existence is private too.
-- **Who may compose.** Admin-or-higher always; anyone else only when `user_to_user` is on. This is a
-  question about the ROLE — use `Tiger_Message::isAtLeastAdmin($identity->role)`, **not `_isAdmin()`**,
-  which asks "is this role allowed on this service" and every signed-in user is (that is how they read
-  their inbox). Getting this wrong let plain users send with the flag off; a test now pins it.
+- **Who may compose.** Admin-or-higher always; anyone else only when `user_to_user` is on. Gate the
+  *capability*, not the role: `Tiger_Message::maySend($role)`, which asks
+  `isAllowed($role, Tiger_Message::RESOURCE_COMPOSE, 'send')` and ORs the flag. Never compare a role
+  string, and never use a *resource-level* check here — the service is granted at `user` per privilege,
+  so a resource-level check is the wrong question (and is how plain users once sent with the flag off; a
+  test pins it). Ask `_isAllowed('send', RESOURCE_COMPOSE)` about the caller,
+  `_roleIsAllowed($role, 'send', RESOURCE_COMPOSE)` about anyone else (TIGER-335).
 - **Blocks are silent.** Applied per recipient at send time; the sender's call reports success even if
   every recipient dropped it. Telling them turns a mute into a confrontation.
 - **System messages ignore blocks.** An operator must not be able to make the platform unable to reach them.
 - **Cannot block admin-or-higher — in THIS org.** Role lives on `org_user`, not `user`; ask the
-  membership. Seniority comes from the live ACL chain (`Zend_Acl::inheritsRole`), not a hard-coded list.
+  membership. Seniority comes from an **allow rule on the capability resource** — ask the target's role
+  via `_roleIsAllowed($membership->role, 'send', Tiger_Message::RESOURCE_COMPOSE)` — not
+  `Zend_Acl::inheritsRole` (which means "inherits admin's *rules*", not "is at least as senior").
 - **Read / archive / delete act on the caller's COPY.** The message row and other recipients' copies are
   never touched. Deleting is a soft-delete on `message_recipient`.
 - **Only a recipient or the sender may read a message.** Same org is not enough; an admin cannot read a
@@ -38,7 +43,7 @@ conventions read the root **AGENTS.md**. This file is the module-specific layer.
 ## Where things live
 
 - `library/Tiger/Message.php` — the facade other modules call (`toAdmins`, `toUser`, `isUserToUserEnabled`,
-  `isAtLeastAdmin`). Fail-soft: a message is never the reason a backup job throws.
+  `maySend`). Fail-soft: a message is never the reason a backup job throws.
 - `library/Tiger/Model/Message*.php` — three tables (migrations 0047–0049). One body row per message;
   one `message_recipient` row per person (read/archive/delete state); `message_block` per (org, user,
   blocked). Named finders only — a service never builds a `$db` predicate.

@@ -8,6 +8,7 @@ use Message_Service_Message;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tiger\Tests\Support\IntegrationTestCase;
+use Tiger_Acl_Acl;
 use Tiger_Message;
 use Tiger_Model_Message;
 use Tiger_Model_MessageBlock;
@@ -46,6 +47,11 @@ final class MessageServiceTest extends IntegrationTestCase
         $this->seedIdentityRows('u-mgr',    self::ORG,   'manager');
         $this->seedIdentityRows('u-out',    self::OTHER, 'admin');
         $this->userToUser(false);
+        // The facade's compose-capability check (Tiger_Message::maySend / _adminIdsOf) reads the live
+        // ACL and fails CLOSED when none is registered (TIGER-335). login() registers it, but the
+        // toAdmins tests run without logging in, so register the real shipped policy here — exactly as
+        // production does at bootstrap. (login() rebuilds it per login; this is just the floor.)
+        Zend_Registry::set('Zend_Acl', new Tiger_Acl_Acl());
     }
 
     private function userToUser(bool $on): void

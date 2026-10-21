@@ -6,6 +6,28 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.28.0] — 2026-10-21
+
+### Added
+- **One authorization primitive — `_isAllowed()` / `_roleIsAllowed()`** on `Tiger_Service_Service`
+  (TIGER-335). Access is decided by `Zend_Acl::isAllowed()` with a **required, first** `$privilege`
+  argument, so a resource-level ("any privilege") check — the TIGER-114/F5 anonymous-access footgun —
+  can no longer be written by accident. `_isAllowed($privilege, $resource = null)` asks about the
+  caller; `_roleIsAllowed($role, $privilege, $resource = null)` asks about any role (a third party's,
+  e.g. "may the member I'm about to act on compose?"). Both fail **closed**, and neither compares a
+  role string — "who is admin-class" is expressed as ACL grants + inheritance, per ARCHITECTURE §8.
+- **`Tiger_Message::maySend($role)`** + the `Tiger_Message_Compose` capability resource — the
+  reference conversion (TIGER-335): the compose/notify/block questions are now a privilege on a
+  capability resource granted to `admin` (rename-safe via inheritance), never `inheritsRole()` as a
+  seniority test. `modules/message/configs/acl.ini` enumerates the service's methods **per privilege**
+  (no blanket resource-level grant), the pattern every other module follows next.
+
+### Deprecated
+- **`Tiger_Service_Service::_isAdmin()` / `_isAtLeastAdmin()` and `Tiger_Message::isAtLeastAdmin()`**
+  (TIGER-335). Still functional through this release's deprecation window; replaced by the primitive
+  above and removed in a later release once every module's call sites are migrated (the TIGER-335
+  subtasks). Do not add new calls — see root `AGENTS.md` § Authorization for the four-point convention.
+
 ### Fixed
 - **Self-update is now atomic + permission-safe** (`Tiger_Update_Composer`). A web-driven core update
   that failed part-way (Composer could not delete a vendor file the web user didn't own) previously left

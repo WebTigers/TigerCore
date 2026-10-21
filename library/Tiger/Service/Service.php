@@ -204,6 +204,52 @@ abstract class Tiger_Service_Service
     // ----- authorization -----------------------------------------------------
 
     /**
+     * Does the CALLER hold $privilege on $resource? The ONE authorization primitive (TIGER-335).
+     *
+     * $privilege is REQUIRED and FIRST so a resource-level ("any privilege") check can never be
+     * written by accident — that default is what made the TIGER-114/F5 anonymous-access bug possible.
+     * $resource defaults to the calling service, which is exactly what the /api dispatcher gates on
+     * (resource = the service class, privilege = the method). No role string appears anywhere; "who
+     * counts as admin" is an ACL grant (role inheritance), never an `if ($role === 'admin')`.
+     *
+     * @param  string      $privilege the named privilege, e.g. 'moderate', 'save', 'delete'
+     * @param  string|null $resource  defaults to static::class
+     * @return bool
+     */
+    protected function _isAllowed($privilege, $resource = null)
+    {
+        $identity = Zend_Auth::getInstance()->getIdentity();
+        return $this->_roleIsAllowed($identity->role ?? 'guest', $privilege, $resource);
+    }
+
+    /**
+     * Does $role hold $privilege on $resource? Answers a question about ANY role — the caller's, or a
+     * THIRD PARTY's (e.g. "may the person I'm about to block compose?") — entirely from ACL data
+     * (TIGER-335). No role literal, no `inheritsRole()` seniority test: `Zend_Acl::isAllowed()` accepts
+     * any role, so "is this other person admin-class" is answered by the same rule that gates the
+     * caller. Fails CLOSED (no ACL registered, empty role, or ungoverned resource → false).
+     *
+     * @param  string      $role      the role to ask about (a third party's, or the caller's)
+     * @param  string      $privilege the named privilege
+     * @param  string|null $resource  defaults to static::class
+     * @return bool
+     */
+    protected function _roleIsAllowed($role, $privilege, $resource = null)
+    {
+        if (!Zend_Registry::isRegistered('Zend_Acl')) {
+            return false;                       // fail CLOSED
+        }
+        $acl      = Zend_Registry::get('Zend_Acl');
+        $role     = (string) $role;
+        $resource = $resource ?? static::class;
+
+        if ($role === '' || !$acl->has($resource)) {
+            return false;                       // an empty role or an ungoverned resource can't grant access
+        }
+        return $acl->isAllowed($role, $resource, $privilege);
+    }
+
+    /**
      * ACL gate — never a raw role-string compare. Resolves the caller's role from
      * the authenticated identity (guest when unauthenticated) and asks Zend_Acl.
      * Defaults the resource to the calling service's own class.
@@ -214,6 +260,9 @@ abstract class Tiger_Service_Service
      *
      * @param string|null $resource  defaults to static::class
      * @param string|null $privilege null = resource-level
+     * @deprecated TIGER-335 — misleading name + incoherent `$privilege = null` default (see the ticket).
+     *   Use `_isAllowed($privilege)` about the caller, `_roleIsAllowed($role, $privilege)` about anyone
+     *   else. Removed once every module's call site is migrated (the per-module subtasks of TIGER-335).
      */
     protected function _isAdmin($resource = null, $privilege = null)
     {
@@ -238,6 +287,11 @@ abstract class Tiger_Service_Service
      * public service must ask THIS.
      *
      * @return bool
+     * @deprecated TIGER-335 — reads the inheritance graph as a trust ladder (`inheritsRole` means
+     *   "inherits admin's RULES", not "is at least as senior"), inverts privilege when the ACL is not
+     *   registered, and is org-blind. Express the gate as a privilege on a capability resource and ask
+     *   `_isAllowed($privilege, $resource)` / `_roleIsAllowed($role, $privilege, $resource)` instead.
+     *   Removed once the comment/newsletter call sites are migrated (TIGER-335 subtasks).
      */
     protected function _isAtLeastAdmin()
     {

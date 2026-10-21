@@ -195,7 +195,12 @@ class Message_Service_Message extends Tiger_Service_Service
         $memberships = new Tiger_Model_OrgUser();
         $membership  = $memberships->activeMembership($this->_org_id, $target);
         if (!$membership) { $this->_error('message.error.unknown_recipient'); return; }
-        if (Tiger_Message::isAtLeastAdmin($membership->role)) { $this->_error('message.error.cannot_block_admin'); return; }
+        // Cannot block an admin-class member. Asked of the TARGET's role via the capability resource —
+        // not a role-string compare, and not inheritsRole() seniority (TIGER-335).
+        if ($this->_roleIsAllowed($membership->role, 'send', Tiger_Message::RESOURCE_COMPOSE)) {
+            $this->_error('message.error.cannot_block_admin');
+            return;
+        }
 
         $blocks = new Tiger_Model_MessageBlock();
         if (!$blocks->getBlock($this->_org_id, $this->_user_id, $target)) {
@@ -231,14 +236,15 @@ class Message_Service_Message extends Tiger_Service_Service
     /**
      * Admins may always compose; everyone else only when the install has enabled it.
      *
-     * NOT _isAdmin(): that asks "is this role allowed on this service", and every signed-in user is —
-     * that is how they read their inbox. The question here is about the ROLE itself, answered the same
-     * way the controller answers it, so the Compose button and the API can never disagree.
+     * Delegates to Tiger_Message::maySend() — a privilege on the Tiger_Message_Compose capability ORed
+     * with the user-to-user flag (TIGER-335) — so the Compose button (controller) and the API can never
+     * disagree, and no role string is compared. NOT a resource-level _isAdmin(): the service is granted
+     * to `user` per privilege precisely so every member can read their inbox.
      */
     protected function _maySend()
     {
         $identity = Zend_Auth::getInstance()->getIdentity();
-        return Tiger_Message::isAtLeastAdmin($identity->role ?? null) || Tiger_Message::isUserToUserEnabled();
+        return Tiger_Message::maySend($identity->role ?? 'guest');
     }
 
     /** A reply must be to a message I actually received or sent. */
