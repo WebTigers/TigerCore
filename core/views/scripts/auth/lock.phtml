@@ -32,8 +32,11 @@ $who      = $this->escape(($identity && $identity->username) ? $identity->userna
     <form id="lock-pw-form" novalidate>
         <div class="mb-3">
             <label class="form-label" for="lock-password"><?= $this->escape($this->t('core.auth.password')) ?></label>
-            <input type="password" class="form-control form-control-lg" id="lock-password" name="password"
-                   autocomplete="current-password" autofocus required>
+            <div class="input-group">
+                <input type="password" class="form-control form-control-lg" id="lock-password" name="password"
+                       autocomplete="current-password" autofocus required>
+                <span class="input-group-text" data-tiger-pw-toggle role="button" tabindex="-1" aria-label="<?= $this->escape($this->t('core.auth.show_password')) ?>" style="cursor:pointer;"><i class="fa-solid fa-eye"></i></span>
+            </div>
         </div>
         <div class="d-grid mb-2">
             <button type="submit" id="lock-pw-submit" class="btn btn-primary btn-lg"><?= $this->escape($this->t('core.auth.lock.unlock')) ?></button>

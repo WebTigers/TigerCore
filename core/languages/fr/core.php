@@ -58,6 +58,7 @@ return [
     // --- Authentification : libellés partagés ---
     'core.auth.email'                => 'E-mail',
     'core.auth.password'             => 'Mot de passe',
+    'core.auth.show_password'        => 'Afficher le mot de passe',
     'core.auth.email_code'           => 'M’envoyer un code par e-mail',
     'core.auth.back_to_login'        => 'Retour à la connexion',
     'core.auth.return_to'            => 'Retour à %s',
