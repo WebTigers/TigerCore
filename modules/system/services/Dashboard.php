@@ -25,7 +25,7 @@ class System_Service_Dashboard extends Tiger_Service_Service
      */
     public function saveLayout(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('saveLayout')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $uid = $this->_uid();
         if ($uid === '') { $this->_error('core.api.error.not_allowed'); return; }
@@ -70,7 +70,7 @@ class System_Service_Dashboard extends Tiger_Service_Service
      */
     public function saveWidgetPrefs(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('saveWidgetPrefs')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $uid = $this->_uid();
         if ($uid === '') { $this->_error('core.api.error.not_allowed'); return; }
@@ -107,7 +107,7 @@ class System_Service_Dashboard extends Tiger_Service_Service
      */
     public function widgetBody(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('widgetBody')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $id = (string) ($params['id'] ?? '');
         foreach (Tiger_Dashboard::allowed() as $w) {

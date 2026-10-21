@@ -19,7 +19,7 @@ class Agent_Service_Skills extends Tiger_Service_Service
      */
     public function search(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('search')) { $this->_error('core.api.error.not_allowed'); return; }
         $installed = [];
         foreach (Tiger_Agent_Skills::installed() as $s) { $installed[$s['key']] = true; }
 
@@ -45,7 +45,7 @@ class Agent_Service_Skills extends Tiger_Service_Service
     /** Installed skills + their active state (drives the "Installed" list). */
     public function installed(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('installed')) { $this->_error('core.api.error.not_allowed'); return; }
         $this->_success(['skills' => Tiger_Agent_Skills::installed()], null);
     }
 
@@ -61,7 +61,7 @@ class Agent_Service_Skills extends Tiger_Service_Service
      */
     public function datatable(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('datatable')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $dt      = $this->_dtParams($params);
         $search  = strtolower(trim((string) $dt['search']));
@@ -146,7 +146,7 @@ class Agent_Service_Skills extends Tiger_Service_Service
      */
     public function install(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('install')) { $this->_error('core.api.error.not_allowed'); return; }
         try {
             $keys = [];
             if (!empty($params['url'])) {
@@ -176,7 +176,7 @@ class Agent_Service_Skills extends Tiger_Service_Service
     /** Turn an installed skill on/off. */
     public function toggle(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('toggle')) { $this->_error('core.api.error.not_allowed'); return; }
         $key = (string) ($params['key'] ?? '');
         if ($key === '' || !Tiger_Agent_Skills::isInstalled($key)) { $this->_error('core.api.error.general'); return; }
         $on = !empty($params['active']) && $params['active'] !== '0' && $params['active'] !== 'false';
@@ -187,7 +187,7 @@ class Agent_Service_Skills extends Tiger_Service_Service
     /** Uninstall a skill (files + active set). */
     public function remove(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('remove')) { $this->_error('core.api.error.not_allowed'); return; }
         $key = (string) ($params['key'] ?? '');
         if ($key === '' || !Tiger_Agent_Skills::isInstalled($key)) { $this->_error('core.api.error.general'); return; }
         Tiger_Agent_Skills::remove($key);
@@ -203,7 +203,7 @@ class Agent_Service_Skills extends Tiger_Service_Service
      */
     public function source(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('source')) { $this->_error('core.api.error.not_allowed'); return; }
         $key = (string) ($params['key'] ?? '');
         if ($key !== '' && Tiger_Agent_Skills::isInstalled($key)) {
             $this->_success(['source' => Tiger_Agent_Skills::body($key)], null);

@@ -20,7 +20,7 @@ class System_Service_Updates extends Tiger_Service_Service
      */
     public function check(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('check')) { $this->_error('core.api.error.not_allowed'); return; }
         $this->_success(['updates' => Tiger_Update_Checker::all(!empty($params['refresh']))]);
     }
 
@@ -32,7 +32,7 @@ class System_Service_Updates extends Tiger_Service_Service
      */
     public function apply(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('apply')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $slugs = $params['items'] ?? [];
         if (is_string($slugs)) { $slugs = array_filter(array_map('trim', explode(',', $slugs))); }
@@ -130,7 +130,7 @@ class System_Service_Updates extends Tiger_Service_Service
      */
     public function history(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('history')) { $this->_error('core.api.error.not_allowed'); return; }
         $limit = (int) ($params['limit'] ?? 20);
         try {
             $this->_success(['history' => (new Tiger_Model_UpdateHistory())->recent($limit)]);

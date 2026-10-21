@@ -21,7 +21,7 @@ class System_Service_Settings extends Tiger_Service_Service
      */
     public function save(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $form = new System_Form_Settings();
         if (!$form->isValid($params)) { $this->_formErrors($form); return; }
@@ -123,7 +123,7 @@ class System_Service_Settings extends Tiger_Service_Service
      */
     public function locationTest(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('locationTest')) { $this->_error('core.api.error.not_allowed'); return; }
         if (!class_exists('Tiger_Location') || !method_exists('Tiger_Location', 'test')) {
             $this->_error('core.api.error.general'); return;
         }
@@ -176,7 +176,7 @@ class System_Service_Settings extends Tiger_Service_Service
 
     public function mailTest(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('mailTest')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $to = trim((string) ($params['to'] ?? ''));
         if ($to === '' || !Zend_Validate::is($to, 'EmailAddress')) {

@@ -22,7 +22,7 @@ class System_Service_Sites extends Tiger_Service_Service
      */
     public function datatable(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('datatable')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $dt   = $this->_dtParams($params);
         $data = (new Tiger_Model_SiteDomain())->datatable([
@@ -33,7 +33,7 @@ class System_Service_Sites extends Tiger_Service_Service
             'limit'    => $dt['length'],
         ]);
 
-        $canDelete = $this->_isAdmin(static::class, 'delete');
+        $canDelete = $this->_isAllowed('delete');
 
         $rows = [];
         foreach ($data['rows'] as $r) {
@@ -60,7 +60,7 @@ class System_Service_Sites extends Tiger_Service_Service
      */
     public function save(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $form = new System_Form_Site();
         if (!$form->isValid($params)) { $this->_formErrors($form); return; }
@@ -101,7 +101,7 @@ class System_Service_Sites extends Tiger_Service_Service
      */
     public function delete(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
         $id = !empty($params['site_domain_id']) ? (string) $params['site_domain_id'] : '';
         if ($id === '') { $this->_error('core.api.error.general'); return; }
 

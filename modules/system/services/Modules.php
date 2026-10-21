@@ -85,7 +85,7 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function datatable(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('datatable')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $dt  = $this->_dtParams($params);
         $all = self::catalog();
@@ -241,7 +241,7 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function autoUpdate(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('autoUpdate')) { $this->_error('core.api.error.not_allowed'); return; }
         $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($params['slug'] ?? ''));
         if ($slug === '') { $this->_error('core.api.error.general'); return; }
         if (!isset(Tiger_Module_Discovery::all()[$slug])) { $this->_error('system.error.unknown'); return; }
@@ -265,7 +265,7 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function delete(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($params['slug'] ?? ''));
         if ($slug === '') { $this->_error('core.api.error.general'); return; }
@@ -325,7 +325,7 @@ class System_Service_Modules extends Tiger_Service_Service
 
     protected function _toggle(array $params, $on): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('_toggle')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($params['slug'] ?? ''));
         if ($slug === '') { $this->_error('core.api.error.general'); return; }
@@ -440,7 +440,7 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function search(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('search')) { $this->_error('core.api.error.not_allowed'); return; }
         $sort    = (string) ($params['sort'] ?? 'featured');
         $refresh = !empty($params['refresh']);   // "Refresh directory" — bypass the 3h cache
 
@@ -467,7 +467,7 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function passInfo(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('passInfo')) { $this->_error('core.api.error.not_allowed'); return; }
         $this->_success(['pass' => self::_passState(), 'nag' => self::_passNagState()]);
     }
 
@@ -481,7 +481,7 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function snoozePassNag(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('snoozePassNag')) { $this->_error('core.api.error.not_allowed'); return; }
         $uid = self::_currentUserId();
         if ($uid !== '') {
             (new Tiger_Model_Option())->set(Tiger_Model_Option::SCOPE_USER, $uid, self::NAG_DISMISSED_KEY, (string) time());
@@ -498,7 +498,7 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function setPassNag(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('setPassNag')) { $this->_error('core.api.error.not_allowed'); return; }
         $uid = self::_currentUserId();
         if ($uid === '') { $this->_error('core.api.error.general'); return; }
         $disabled = in_array((string) ($params['disabled'] ?? ''), ['1', 'true', 'on'], true);
@@ -523,7 +523,7 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function sources(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('sources')) { $this->_error('core.api.error.not_allowed'); return; }
         $this->_success(['sources' => self::_sourceList()]);
     }
 
@@ -537,7 +537,7 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function connectSource(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('connectSource')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $label = trim((string) ($params['label'] ?? ''));
         $url   = trim((string) ($params['url'] ?? ''));
@@ -579,7 +579,7 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function updateSource(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('updateSource')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $id = self::_slugId((string) ($params['id'] ?? ''));
         if ($id === '' || !self::_sourceExists($id)) { $this->_error('system.source.err_unknown'); return; }
@@ -608,7 +608,7 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function removeSource(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('removeSource')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $id = self::_slugId((string) ($params['id'] ?? ''));
         $src = null;
@@ -668,7 +668,7 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function activatePass(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('activatePass')) { $this->_error('core.api.error.not_allowed'); return; }
 
         // A TigerPASS key is the license key TigerLicense mints — a lowercase v7 UUID (not a branded
         // "TPASS-…" string). Normalize + shape-check as a UUID before any authority call.
@@ -710,7 +710,7 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function deactivatePass(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('deactivatePass')) { $this->_error('core.api.error.not_allowed'); return; }
         Tiger_License_Checker::forget(self::PASS_SLUG);
         $this->_success(['pass' => self::_passState()], 'system.pass.removed');
     }
@@ -825,7 +825,7 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function inspect(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('inspect')) { $this->_error('core.api.error.not_allowed'); return; }
 
         // A marketplace (live-api) listing serves its OWN review copy: a paid/PASS module's code repo is
         // private, so its "View more" detail comes from the index (the marketplace vouches for + serves
@@ -953,7 +953,7 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function install(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('install')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $url = (string) ($params['url'] ?? '');
         if (!Tiger_Module_Github::parseRepo($url)) { $this->_error('system.error.repo_url'); return; }
@@ -978,7 +978,7 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function upload(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('upload')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $f = $_FILES['archive'] ?? null;
         if (!is_array($f) || ($f['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
@@ -1013,7 +1013,7 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function connectVendor(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('connectVendor')) { $this->_error('core.api.error.not_allowed'); return; }
         $vendor = trim((string) ($params['vendor'] ?? ''));
         if ($vendor === '') { $this->_error('system.vendor.required'); return; }
 
@@ -1032,7 +1032,7 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function pinVendor(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('pinVendor')) { $this->_error('core.api.error.not_allowed'); return; }
         $vendor = trim((string) ($params['vendor'] ?? ''));
         if ($vendor === '') { $this->_error('system.vendor.required'); return; }
 
@@ -1056,7 +1056,7 @@ class System_Service_Modules extends Tiger_Service_Service
      */
     public function installLicensed(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('installLicensed')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $vendor  = trim((string) ($params['vendor'] ?? ''));
         $product = trim((string) ($params['product'] ?? $params['slug'] ?? ''));

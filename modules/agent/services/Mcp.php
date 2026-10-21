@@ -15,14 +15,14 @@ class Agent_Service_Mcp extends Tiger_Service_Service
     /** The configured connections (token replaced by a has_token flag). */
     public function connections(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('connections')) { $this->_error('core.api.error.not_allowed'); return; }
         $this->_success(['connections' => Tiger_Agent_Mcp::forAdmin()]);
     }
 
     /** Create or update a connection (a blank token keeps the existing one). */
     public function save(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
         $url = trim((string) ($params['url'] ?? ''));
         if (!preg_match('#^https?://#i', $url)) { $this->_error('agent.mcp.bad_url'); return; }
         $label = trim((string) ($params['label'] ?? ''));
@@ -46,7 +46,7 @@ class Agent_Service_Mcp extends Tiger_Service_Service
     /** Remove a connection. */
     public function remove(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('remove')) { $this->_error('core.api.error.not_allowed'); return; }
         Tiger_Agent_Mcp::remove((string) ($params['id'] ?? ''));
         $this->_success(['connections' => Tiger_Agent_Mcp::forAdmin()], 'agent.mcp.removed');
     }
@@ -54,7 +54,7 @@ class Agent_Service_Mcp extends Tiger_Service_Service
     /** Test a connection — list its tools live. */
     public function test(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('test')) { $this->_error('core.api.error.not_allowed'); return; }
         $conn = Tiger_Agent_Mcp::connection((string) ($params['id'] ?? ''));
         if ($conn === null) { $this->_error('agent.mcp.not_found'); return; }
 

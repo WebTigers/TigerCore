@@ -257,7 +257,7 @@ class Agent_Service_Agent extends Tiger_Service_Service
     /** The agent must be enabled, connected, and the caller allowed. */
     protected function _ready(): bool
     {
-        if (!$this->_isAdmin(Tiger_Agent::RESOURCE_CHAT, 'send')) {
+        if (!$this->_isAllowed('send', Tiger_Agent::RESOURCE_CHAT)) {
             $this->_error('core.api.error.not_allowed');
             return false;
         }

@@ -25,7 +25,7 @@ class System_Service_Nav extends Tiger_Service_Service
      */
     public function sort(array $params): void
     {
-        if (!$this->_isAdmin()) {
+        if (!$this->_isAllowed('sort')) {
             $this->_error('core.api.error.not_allowed');
             return;
         }

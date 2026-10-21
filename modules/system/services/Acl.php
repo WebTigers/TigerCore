@@ -18,7 +18,7 @@ class System_Service_Acl extends Tiger_Service_Service
      */
     public function simulate(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('simulate')) { $this->_error('core.api.error.not_allowed'); return; }
         $acl = $this->_acl();
         if (!$acl) { $this->_error('system.acl.unavailable'); return; }
 
@@ -37,7 +37,7 @@ class System_Service_Acl extends Tiger_Service_Service
      */
     public function catalog(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('catalog')) { $this->_error('core.api.error.not_allowed'); return; }
         $acl = $this->_acl();
         if (!$acl) { $this->_error('system.acl.unavailable'); return; }
 
