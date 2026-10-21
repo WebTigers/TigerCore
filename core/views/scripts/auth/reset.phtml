@@ -24,13 +24,19 @@ $code = $this->escape($this->code ?? '');
     <input type="text" name="username" id="reset-username" autocomplete="username" value="" hidden>
     <div class="mb-3">
         <label class="form-label" for="reset-password"><?= $this->escape($this->t('core.auth.reset.new_password')) ?></label>
-        <input type="password" class="form-control form-control-lg" id="reset-password" name="password"
-               autocomplete="new-password" autofocus required>
+        <div class="input-group">
+            <input type="password" class="form-control form-control-lg" id="reset-password" name="password"
+                   autocomplete="new-password" autofocus required>
+            <span class="input-group-text" data-tiger-pw-toggle role="button" tabindex="-1" aria-label="<?= $this->escape($this->t('core.auth.show_password')) ?>" style="cursor:pointer;"><i class="fa-solid fa-eye"></i></span>
+        </div>
     </div>
     <div class="mb-3">
         <label class="form-label" for="reset-confirm"><?= $this->escape($this->t('core.auth.reset.confirm_password')) ?></label>
-        <input type="password" class="form-control form-control-lg" id="reset-confirm" name="confirm"
-               autocomplete="new-password" required>
+        <div class="input-group">
+            <input type="password" class="form-control form-control-lg" id="reset-confirm" name="confirm"
+                   autocomplete="new-password" required>
+            <span class="input-group-text" data-tiger-pw-toggle role="button" tabindex="-1" aria-label="<?= $this->escape($this->t('core.auth.show_password')) ?>" style="cursor:pointer;"><i class="fa-solid fa-eye"></i></span>
+        </div>
     </div>
     <?php $rc = $this->formRecaptcha(); if ($rc): ?>
     <div class="mb-3 d-flex justify-content-center"><?= $rc ?></div>

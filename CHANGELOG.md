@@ -6,7 +6,14 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
-## [1.29.0] — 2026-10-21
+## [1.30.0] — 2026-10-21
+
+### Added
+- **Show-password eyeball toggle on every login + signup screen** (TIGER-360). The sign-in password
+  field now has a show/hide eye button, and the same control is present on the password-reset (new +
+  confirm), lock-screen, and signup fields. Reuses the existing global `[data-tiger-pw-toggle]` handler
+  (`tiger.password-strength.js`, already loaded on the auth layout) — markup only, no new JS. New i18n
+  key `core.auth.show_password` across all seven core locales.
 
 ### Changed
 - **A signed-in user who hits a page above their role is now redirected to their own dashboard, not

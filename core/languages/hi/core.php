@@ -58,6 +58,7 @@ return [
     // --- प्रमाणीकरण: साझा लेबल ---
     'core.auth.email'                => 'ईमेल',
     'core.auth.password'             => 'पासवर्ड',
+    'core.auth.show_password'        => 'पासवर्ड दिखाएं',
     'core.auth.email_code'           => 'मुझे एक कोड ईमेल करें',
     'core.auth.back_to_login'        => 'लॉग इन पर वापस जाएँ',
     'core.auth.return_to'            => '%s पर वापस जाएँ',

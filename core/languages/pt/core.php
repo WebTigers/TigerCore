@@ -58,6 +58,7 @@ return [
     // --- Autenticação: rótulos compartilhados ---
     'core.auth.email'                => 'E-mail',
     'core.auth.password'             => 'Senha',
+    'core.auth.show_password'        => 'Mostrar senha',
     'core.auth.email_code'           => 'Enviar um código por e-mail',
     'core.auth.back_to_login'        => 'Voltar ao login',
     'core.auth.return_to'            => 'Voltar para %s',

@@ -58,6 +58,7 @@ return [
     // --- Authentifizierung: gemeinsame Beschriftungen ---
     'core.auth.email'                => 'E-Mail',
     'core.auth.password'             => 'Passwort',
+    'core.auth.show_password'        => 'Passwort anzeigen',
     'core.auth.email_code'           => 'Mir einen Code per E-Mail senden',
     'core.auth.back_to_login'        => 'Zurück zur Anmeldung',
     'core.auth.return_to'            => 'Zurück zu %s',

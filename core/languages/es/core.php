@@ -58,6 +58,7 @@ return [
     // --- Autenticación: etiquetas compartidas ---
     'core.auth.email'                => 'Correo electrónico',
     'core.auth.password'             => 'Contraseña',
+    'core.auth.show_password'        => 'Mostrar contraseña',
     'core.auth.email_code'           => 'Enviarme un código',
     'core.auth.back_to_login'        => 'Volver a iniciar sesión',
     'core.auth.return_to'            => 'Volver a %s',

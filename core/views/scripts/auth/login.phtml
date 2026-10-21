@@ -31,8 +31,11 @@
     </div>
     <div class="mb-2">
         <label class="form-label" for="login-password"><?= $this->escape($this->t('core.auth.password')) ?></label>
-        <input type="password" class="form-control form-control-lg" id="login-password" name="password"
-               autocomplete="current-password" required>
+        <div class="input-group">
+            <input type="password" class="form-control form-control-lg" id="login-password" name="password"
+                   autocomplete="current-password" required>
+            <span class="input-group-text" data-tiger-pw-toggle role="button" tabindex="-1" aria-label="<?= $this->escape($this->t('core.auth.show_password')) ?>" style="cursor:pointer;"><i class="fa-solid fa-eye"></i></span>
+        </div>
     </div>
     <div class="d-flex justify-content-end mb-3">
         <a href="/auth/forgot" class="small text-decoration-none"><?= $this->escape($this->t('core.auth.login.forgot')) ?></a>

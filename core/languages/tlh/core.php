@@ -62,6 +62,7 @@ return [
     // --- Auth: shared labels ---
     'core.auth.email'                => 'Email',
     'core.auth.password'             => 'Password',
+    'core.auth.show_password'        => 'Show password',
     'core.auth.email_code'           => 'Email me a code',
     'core.auth.back_to_login'        => 'Back to sign in',
     'core.auth.return_to'            => 'Return to %s',
