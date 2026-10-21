@@ -23,7 +23,7 @@ class Agent_Service_Settings extends Tiger_Service_Service
      */
     public function save(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $form = new Agent_Form_Settings();
         if (!$form->isValid($params)) { $this->_formErrors($form); return; }
@@ -74,7 +74,7 @@ class Agent_Service_Settings extends Tiger_Service_Service
      */
     public function mode(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('mode')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $modeMax = (string) ($params['mode_max'] ?? '');
         if (!isset(Tiger_Agent::MODES[$modeMax])) { $modeMax = 'auto'; }
@@ -101,7 +101,7 @@ class Agent_Service_Settings extends Tiger_Service_Service
      */
     public function models(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('models')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $provider = preg_replace('/[^a-z]/', '', strtolower((string) ($params['provider'] ?? 'anthropic')));
         if (!array_key_exists($provider, Tiger_Agent_Provider_Factory::options())) {

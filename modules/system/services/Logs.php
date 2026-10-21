@@ -34,7 +34,7 @@ class System_Service_Logs extends Tiger_Service_Service
      */
     public function search(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }   // defense-in-depth; acl.ini gates to superadmin
+        if (!$this->_isAllowed('search')) { $this->_error('core.api.error.not_allowed'); return; }   // defense-in-depth; acl.ini gates to superadmin
 
         $cfg    = Zend_Registry::get('Zend_Config');
         $logCfg = ($cfg->tiger && $cfg->tiger->log) ? $cfg->tiger->log : null;

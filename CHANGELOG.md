@@ -6,6 +6,14 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.34.0] — 2026-10-21
+
+### Changed
+- **TIGER-335 migration (batch 3)** — `_isAdmin()` → `_isAllowed('<method>')` across **system**
+  (TIGER-336, 8 services incl. the Modules superadmin surface + the Sites datatable flag) and **agent**
+  (TIGER-338, incl. `_isAllowed('send', Tiger_Agent::RESOURCE_CHAT)`). Behavior-preserving; all services
+  are wildcard-privilege grants to their role (admin/superadmin/manager).
+
 ## [1.33.0] — 2026-10-21
 
 ### Changed

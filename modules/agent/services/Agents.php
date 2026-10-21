@@ -32,7 +32,7 @@ class Agent_Service_Agents extends Tiger_Service_Service
      */
     public function list(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('list')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $agents = [];
         foreach ((new Tiger_Model_Agent())->allForOrg($this->_scope()) as $row) {
@@ -51,7 +51,7 @@ class Agent_Service_Agents extends Tiger_Service_Service
      */
     public function save(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $form = new Agent_Form_Agent();
         if (!$form->isValid($params)) { $this->_formErrors($form); return; }
@@ -123,7 +123,7 @@ class Agent_Service_Agents extends Tiger_Service_Service
      */
     public function delete(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $scope   = $this->_scope();
         $model   = new Tiger_Model_Agent();
