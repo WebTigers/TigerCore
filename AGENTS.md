@@ -300,6 +300,35 @@ controllers/services. Two resource shapes: a **controller** dispatch gates on
 `isAllowed($role, <ServiceClass>, <method>)` (privilege = method). Declaring the rule is part of
 writing the call — see "Services (`/api`)".
 
+### In-method authorization — the one primitive (TIGER-335)
+
+The dispatcher gates every `/api` call, but a public service often needs a finer, in-method check
+(an admin-only method on a user-reachable service, or a question about *someone else's* role). There
+is **ONE primitive for this, and it never compares a role string**:
+
+- **`_isAllowed($privilege, $resource = null)`** — "does the CALLER hold `$privilege`?" `$privilege`
+  is required and first (so a resource-level "any privilege" check — the TIGER-114/F5 footgun — can't
+  be written by accident); `$resource` defaults to the service class.
+- **`_roleIsAllowed($role, $privilege, $resource = null)`** — the same question about **any** role,
+  including a third party's (e.g. "may the member I'm about to act on do this?"). Both fail **closed**.
+
+The four rules that keep the F5 class from recurring — follow them in every new service + `acl.ini`:
+
+1. **Name the privilege = the method**, one rule per privilege. **No blanket resource-level grant on
+   any service a non-admin role can reach.** A blanket grant is only acceptable where the whole
+   service shares one role (an admin-only settings service). Adding a method then *requires* adding
+   its rule — access is never granted by omission.
+2. **A cross-cutting capability gets its own named resource** (`Tiger_Message_Compose`,
+   `Tiger_Agent_Forge`) — named for the **capability**, never a role tier. A resource named after a
+   role tier (`..._Admin`) is a role compare with one level of indirection.
+3. **Ask `_isAllowed($privilege)` about the caller, `_roleIsAllowed($role, $privilege)` about anyone
+   else.** Never a role string, never `inheritsRole()` as a seniority test — role inheritance in
+   `acl.ini` already makes a renamed/added admin-class role Just Work.
+4. **A feature flag is checked AFTER authorization, never instead of it** (authz before the flag).
+
+`_isAdmin()` / `_isAtLeastAdmin()` / `Tiger_Message::isAtLeastAdmin()` are **`@deprecated`** (TIGER-335)
+and being removed — never add a new call to them. `modules/message` is the reference conversion.
+
 ## Internationalization
 
 - **Never hardcode user-facing strings.** Use a semantic, **owner-prefixed** key: `core.*`
