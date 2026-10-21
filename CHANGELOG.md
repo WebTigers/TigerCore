@@ -6,6 +6,33 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.38.0] — 2026-10-21
+
+### Added
+- **TigerGit (`modules/git` + `Tiger_Git_*`) — first-class git/GitHub for a Tiger install** (TIGER-334).
+  Version a custom module in a private repo, cut a release through QA, and receive approved updates —
+  with no local machine, no terminal, and (on shared hosting with `exec` disabled) no git binary. No
+  other module talks to GitHub directly.
+  - **Two interchangeable transports behind one interface** (`Tiger_Git_Transport_Interface`): a
+    `ShellTransport` (the `git` binary via `proc_open`, host-agnostic) and an `ApiTransport` that commits
+    through the GitHub Git Data API with **no `.git` directory** — blob → tree → commit → fast-forward
+    ref — the path that makes shared hosting work. `Tiger_Git_Environment` detects which the host can use.
+  - **`Tiger_Git_Provider_GitHub`** composes them: it picks the working transport per connection and
+    routes the provider-API operations (releases, archives) to the API even on a shell connection. The
+    provider/transport split (`Tiger_Git_Provider_Interface`) keeps the door open for other hosts.
+  - **The no-`.git` reconciler** — `status` / `diff` / `pull` / `switchBranch` over the API, using a
+    `.tiger-git/head` merge-base marker so an exec-disabled host can tell local edits from the remote
+    advancing; `pull` fast-forwards while preserving non-conflicting local work.
+  - **Write-only credentials** (`Tiger_Git_Credential`, encrypted at rest; a single `resolve()` read
+    path for transports), an **active-only-unique** data model so reconnect-after-disconnect never
+    collides, and an append-only operation log.
+  - **`/api` services** — `Git_Service_Repo` (connect / status / recheck / list / log / disconnect),
+    `Git_Service_Release` (tag / submit / decide / list; tag + submit are owner-only via the
+    `Tiger_Git::RESOURCE_RELEASE` capability, not a role compare), and `Git_Service_Update` (check /
+    apply / setPolicy / rollback — an update only ever installs an **approved** release at its exact
+    tag). An admin dashboard at `/git/admin`, and the whole surface is runnable over **MCP** (the git
+    tools reflect into `tools/list`; `git` is in the curated default token set).
+
 ## [1.37.0] — 2026-10-21
 
 ### Removed

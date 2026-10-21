@@ -59,10 +59,10 @@ final class RepoServiceTest extends IntegrationTestCase
     {
         if (self::$gitSchema) { return; }
         $this->db->rollBack();   // DDL auto-commits; close the per-test txn around it
-        if (!$this->tableExists('git_repo_connection')) {
-            $m = require dirname(__DIR__, 3) . '/modules/git/migrations/20261021000001_create_git_tables.php';
-            foreach ($m['up'] as $sql) { $this->db->query($sql); }
-        }
+        // Via the migrator so the version is recorded in the tiger_migration ledger — otherwise a later
+        // installFromTarball()->_migrate() (which scans modules/git/migrations) re-runs it and collides
+        // with these tables. Idempotent: an already-applied version is skipped.
+        (new \Tiger_Db_Migrator($this->db, [dirname(__DIR__, 3) . '/modules/git/migrations']))->migrate();
         $this->db->beginTransaction();
         self::$gitSchema = true;
     }
