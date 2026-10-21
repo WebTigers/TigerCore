@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**229 classes** across **33 capabilities** · **25 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**244 classes** across **33 capabilities** · **26 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -120,6 +120,8 @@
 - **Tiger_License_Store_Option** `@api` — the default license store, backed by the lazy `option` tier.  ·  `library/Tiger/License/Store/Option.php`
 - **Tiger_License_Vendor** `@api` — CONNECT + pin a paid module's vendor (its `[owner]/TigerVendor` repo).  ·  `library/Tiger/License/Vendor.php`
 - **Tiger_Model_Module** `@api` — the module lifecycle registry (see migration 0023).  ·  `library/Tiger/Model/Module.php`
+- **Tiger_Model_ModuleInstallPin** `@api` — a consumer install's version policy + rollback anchor (TIGER-334, 0054).  ·  `library/Tiger/Model/ModuleInstallPin.php`
+- **Tiger_Model_ModuleRelease** `@api` — a module release moving through QA (TIGER-334, migration 0054).  ·  `library/Tiger/Model/ModuleRelease.php`
 - **Tiger_Model_UpdateHistory** `@api` — the durable log of one-click update runs (table `update_history`).  ·  `library/Tiger/Model/UpdateHistory.php`
 - **Tiger_Module_Compat** `@api` — advisory "which Tiger versions was this module tested for?" metadata.  ·  `library/Tiger/Module/Compat.php`
 - **Tiger_Module_Dependency** `@api` — lightweight, lazy inter-module dependency alerts.  ·  `library/Tiger/Module/Dependency.php`
@@ -306,6 +308,9 @@
 - **Tiger_Model_AgentRun** `@api` — one turn's execution + control record (see migration 0036).  ·  `library/Tiger/Model/AgentRun.php`
 - **Tiger_Model_Comment** `@api` — the one comment/review store (migration 0045).  ·  `library/Tiger/Model/Comment.php`
 - **Tiger_Model_CommentAggregate** `@api` — the denormalized per-subject rollup (migration 0046).  ·  `library/Tiger/Model/CommentAggregate.php`
+- **Tiger_Model_GitCredential** `@api` — a least-privilege, encrypted-at-rest credential (TIGER-334, migration 0054).  ·  `library/Tiger/Model/GitCredential.php`
+- **Tiger_Model_GitOperationLog** `@api` — the append-only git audit trail (TIGER-334, migration 0054).  ·  `library/Tiger/Model/GitOperationLog.php`
+- **Tiger_Model_GitRepoConnection** `@api` — a module's connection to its GitHub repo (TIGER-334, migration 0054).  ·  `library/Tiger/Model/GitRepoConnection.php`
 - **Tiger_Model_Menu** `@api` — Menu — custom navigation menus (see migration 0017).  ·  `library/Tiger/Model/Menu.php`
 - **Tiger_Model_Message** `@api` — the message body store (migration 0047, TIGER-114).  ·  `library/Tiger/Model/Message.php`
 - **Tiger_Model_MessageBlock** `@api` — one user muting another, within an org (migration 0049).  ·  `library/Tiger/Model/MessageBlock.php`
@@ -319,6 +324,16 @@
 
 - **Tiger_Comment** `@api` — the subject registry and policy gate for comments, ratings and reviews.  ·  `library/Tiger/Comment.php`
 - **Tiger_Comment_Spam** `@api` — the spam-check registry, and the first checker: the in-platform AI agent.  ·  `library/Tiger/Comment/Spam.php`
+- **Tiger_Git** `@api` — the facade + shared constants for the platform's one git/GitHub layer (TIGER-334).  ·  `library/Tiger/Git.php`
+- **Tiger_Git_Credential** `@api` — the write-only credential manager (TIGER-334 / TIGER-365).  ·  `library/Tiger/Git/Credential.php`
+- **Tiger_Git_Environment** `@api` — detect which transport this instance can use (TIGER-334).  ·  `library/Tiger/Git/Environment.php`
+- **Tiger_Git_Exception** `@api` — a structured, agent-readable, SECRET-FREE git failure (TIGER-334).  ·  `library/Tiger/Git/Exception.php`
+- **Tiger_Git_Provider_GitHub** `@api` — the GitHub adapter: WHICH host, composing the two transports (TIGER-334).  ·  `library/Tiger/Git/Provider/GitHub.php`
+- **Tiger_Git_Provider_Interface** `@api` — WHICH host a connection talks to (TIGER-334).  ·  `library/Tiger/Git/Provider/Interface.php`
+- **Tiger_Git_Transport_Api** `@api` — git operations through the GitHub API, with NO `.git` directory (TIGER-364).  ·  `library/Tiger/Git/Transport/Api.php`
+- **Tiger_Git_Transport_Interface** `@api` — HOW a git operation is carried out (TIGER-334).  ·  `library/Tiger/Git/Transport/Interface.php`
+- **Tiger_Git_Transport_Shell** `@api` — git operations driven by the `git` binary (TIGER-364).  ·  `library/Tiger/Git/Transport/Shell.php`
+- **Tiger_Git_WorkingTree** `@api` — one module's git working tree (TIGER-334).  ·  `library/Tiger/Git/WorkingTree.php`
 - **Tiger_Message** `@api` — the platform's way of telling people things (TIGER-114).  ·  `library/Tiger/Message.php`
 - **Tiger_Secret** `@api` — provider-neutral resolution of secrets and sensitive config values.  ·  `library/Tiger/Secret.php`
 - **Tiger_Secret_Adapter_Chain** `@api` — try several backends in order; the first hit wins.  ·  `library/Tiger/Secret/Adapter/Chain.php`
@@ -348,6 +363,7 @@
 - **CMS** (`cms`, app)  ·  services: Menu, Page, Paths, Settings  ·  `modules/cms`
 - **Code** (`code`, developer)  ·  services: Code  ·  `modules/code`
 - **Comments** (`comment`, app)  ·  services: Comment, Render, Settings, Subjects  ·  `modules/comment`
+- **TigerGit** (`git`, app)  ·  services: Base, Release, Repo, Update  ·  `modules/git`
 - **Identity** (`identity`, plugin)  ·  services: Identity  ·  `modules/identity`
 - **Matomo** (`matomo`, app)  ·  services: Matomo  ·  `modules/matomo`
 - **Mcp** (`mcp`, module)  ·  services: Settings  ·  `modules/mcp`

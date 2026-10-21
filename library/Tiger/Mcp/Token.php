@@ -23,7 +23,7 @@ class Tiger_Mcp_Token
     const OPT_METER = 'mcp.meter';
 
     /** The curated starter set a fresh MCP token is scoped to (the mainstream, mostly-content verbs). */
-    const DEFAULT_MODULES = ['cms', 'blog', 'media', 'search', 'docs'];
+    const DEFAULT_MODULES = ['cms', 'blog', 'media', 'search', 'docs', 'git'];
 
     /** Soft rate limit: at most CAP tool calls per WINDOW seconds, per token. */
     const RATE_CAP    = 600;
