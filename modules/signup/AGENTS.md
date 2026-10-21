@@ -30,7 +30,7 @@ picker). Match it rather than inventing.
 ## The `/api` surface (guest)
 
 - **`Signup_Service_Signup`** — `create`: validate the form → one `_transaction()` building the tenant
-  graph → email verification. No in-service `_isAdmin` gate (the `/api` factory already authorized
+  graph → email verification. No in-service `_isAllowed` gate (the `/api` factory already authorized
   guest). Plus `verifyEmail($cid, $code)` (redeems the `email_verify` challenge, flips the user to
   `active`).
 

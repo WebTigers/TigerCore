@@ -359,7 +359,8 @@ final class SignupServiceTest extends IntegrationTestCase
         $acl = Zend_Registry::get('Zend_Acl');
 
         $this->assertTrue($acl->has('Signup_Service_Signup'), 'the service is a governed resource (loaded from signup/acl.ini)');
-        $this->assertTrue($acl->isAllowed('guest', 'Signup_Service_Signup'), 'a guest is allowed — public signup');
+        $this->assertTrue($acl->isAllowed('guest', 'Signup_Service_Signup', 'create'), 'a guest may create() — public signup');
+        $this->assertFalse($acl->isAllowed('guest', 'Signup_Service_Signup'), 'but NOT at the resource level — the guest grant is privilege-scoped, never blanket (TIGER-335)');
     }
 
     #[Test]

@@ -15,7 +15,7 @@
  *   {
  *       public function create(array $params): void
  *       {
- *           if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+ *           if (!$this->_isAllowed('create')) { $this->_error('core.api.error.not_allowed'); return; }
  *           // ... do work with $params ...
  *           $this->_success($invoice);
  *       }
@@ -247,65 +247,6 @@ abstract class Tiger_Service_Service
             return false;                       // an empty role or an ungoverned resource can't grant access
         }
         return $acl->isAllowed($role, $resource, $privilege);
-    }
-
-    /**
-     * ACL gate — never a raw role-string compare. Resolves the caller's role from
-     * the authenticated identity (guest when unauthenticated) and asks Zend_Acl.
-     * Defaults the resource to the calling service's own class.
-     *
-     * NOTE (Tiger evolution): the role will be read from the caller's CURRENT
-     * org_user membership (role-on-membership) once Tiger_Service_Acl lands; the
-     * gate signature stays the same, only where `role` comes from sharpens.
-     *
-     * @param string|null $resource  defaults to static::class
-     * @param string|null $privilege null = resource-level
-     * @deprecated TIGER-335 — misleading name + incoherent `$privilege = null` default (see the ticket).
-     *   Use `_isAllowed($privilege)` about the caller, `_roleIsAllowed($role, $privilege)` about anyone
-     *   else. Removed once every module's call site is migrated (the per-module subtasks of TIGER-335).
-     */
-    protected function _isAdmin($resource = null, $privilege = null)
-    {
-        if (!Zend_Registry::isRegistered('Zend_Acl')) {
-            return false;
-        }
-        $acl      = Zend_Registry::get('Zend_Acl');
-        $identity = Zend_Auth::getInstance()->getIdentity();
-        $role     = $identity->role ?? 'guest';
-        $resource = $resource ?? static::class;
-
-        if (!$acl->has($resource)) {
-            return false;   // an ungoverned resource can't grant access
-        }
-        return $acl->isAllowed($role, $resource, $privilege);
-    }
-
-    /**
-     * "Is the caller an admin (or a role that inherits admin)?" — the question _isAdmin() does NOT
-     * answer. _isAdmin() asks whether the role is ALLOWED ON THIS SERVICE; on a service granted to
-     * guests (comments, search, signup) every caller is. A method that is admin-only inside a
-     * public service must ask THIS.
-     *
-     * @return bool
-     * @deprecated TIGER-335 — reads the inheritance graph as a trust ladder (`inheritsRole` means
-     *   "inherits admin's RULES", not "is at least as senior"), inverts privilege when the ACL is not
-     *   registered, and is org-blind. Express the gate as a privilege on a capability resource and ask
-     *   `_isAllowed($privilege, $resource)` / `_roleIsAllowed($role, $privilege, $resource)` instead.
-     *   Removed once the comment/newsletter call sites are migrated (TIGER-335 subtasks).
-     */
-    protected function _isAtLeastAdmin()
-    {
-        $identity = Zend_Auth::getInstance()->getIdentity();
-        $role     = (string) ($identity->role ?? '');
-        if ($role === '') { return false; }
-        if ($role === 'admin') { return true; }
-        if (!Zend_Registry::isRegistered('Zend_Acl')) { return false; }
-        try {
-            $acl = Zend_Registry::get('Zend_Acl');
-            return $acl->hasRole($role) && $acl->hasRole('admin') && $acl->inheritsRole($role, 'admin');
-        } catch (Throwable $e) {
-            return false;
-        }
     }
 
     // ----- data / transactions ----------------------------------------------

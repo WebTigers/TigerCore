@@ -926,7 +926,7 @@ class Tiger_Service_Authentication
      * session identity. While the screen is locked the authorization plugin downgrades
      * the stored identity to 'guest' (so /api services see guest too); call this right
      * after a successful unlock so the SAME request — the post-unlock redirect and any
-     * _isAdmin() read — sees the real role again instead of the stale guest. (Without
+     * _isAllowed() read — sees the real role again instead of the stale guest. (Without
      * it the role only self-corrects on the next request's _resolveRole.)
      *
      * @return void
