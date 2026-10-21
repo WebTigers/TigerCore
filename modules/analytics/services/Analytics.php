@@ -19,7 +19,7 @@ class Analytics_Service_Analytics extends Tiger_Service_Service
      */
     public function save(array $params): void
     {
-        if (!$this->_isAdmin()) {
+        if (!$this->_isAllowed('save')) {
             $this->_error('core.api.error.not_allowed');
             return;
         }

@@ -28,7 +28,7 @@ class Access_Service_Org extends Tiger_Service_Service
      */
     public function datatable(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('datatable')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $dt = $this->_dtParams($params);
 
@@ -41,8 +41,8 @@ class Access_Service_Org extends Tiger_Service_Service
             'limit'    => $dt['length'],
         ]);
 
-        $canEdit   = $this->_isAdmin(static::class, 'save');
-        $canDelete = $this->_isAdmin(static::class, 'delete');
+        $canEdit   = $this->_isAllowed('save');
+        $canDelete = $this->_isAllowed('delete');
 
         $rows = [];
         foreach ($data['rows'] as $r) {
@@ -72,7 +72,7 @@ class Access_Service_Org extends Tiger_Service_Service
      */
     public function save(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $form = new Access_Form_Org();
         if (!$form->isValid($params)) { $this->_formErrors($form); return; }
@@ -114,7 +114,7 @@ class Access_Service_Org extends Tiger_Service_Service
      */
     public function delete(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
         $id = !empty($params['org_id']) ? (string) $params['org_id'] : '';
         if ($id === '') { $this->_error('core.api.error.general'); return; }
         if ($id === $this->_org_id) { $this->_error('access.org.no_self_delete'); return; }

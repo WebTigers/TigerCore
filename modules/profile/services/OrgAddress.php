@@ -21,7 +21,7 @@ class Profile_Service_OrgAddress extends Profile_Service_Base
      */
     public function save(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
         $orgId = (string) $this->_org_id;
         if ($orgId === '') { $this->_error('core.api.error.not_allowed'); return; }
 
@@ -81,7 +81,7 @@ class Profile_Service_OrgAddress extends Profile_Service_Base
      */
     public function delete(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
         $orgId = (string) $this->_org_id;
         if ($orgId === '') { $this->_error('core.api.error.not_allowed'); return; }
         if (!$this->_validCsrf(Profile_Form_Address::class, $params)) { $this->_error('core.api.error.csrf'); return; }

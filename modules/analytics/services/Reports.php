@@ -18,7 +18,7 @@ class Analytics_Service_Reports extends Tiger_Service_Service
      */
     public function summary(array $params): void
     {
-        if (!$this->_isAdmin()) {
+        if (!$this->_isAllowed('summary')) {
             $this->_error('core.api.error.not_allowed');
             return;
         }
@@ -53,7 +53,7 @@ class Analytics_Service_Reports extends Tiger_Service_Service
      */
     public function test(array $params): void
     {
-        if (!$this->_isAdmin()) {
+        if (!$this->_isAllowed('test')) {
             $this->_error('core.api.error.not_allowed');
             return;
         }
