@@ -18,7 +18,7 @@ class Comment_Service_Settings extends Tiger_Service_Service
      */
     public function save(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $wanted = !empty($params['spam_agent']);
 

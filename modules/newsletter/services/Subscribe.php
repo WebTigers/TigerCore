@@ -162,7 +162,7 @@ class Newsletter_Service_Subscribe extends Tiger_Service_Service
      */
     public function datatable(array $params): void
     {
-        if (!$this->_isAtLeastAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('datatable')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $dt     = $this->_dtParams($params);
         $status = (string) ($params['status'] ?? '');

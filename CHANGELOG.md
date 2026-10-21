@@ -6,6 +6,17 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.36.0] — 2026-10-21
+
+### Changed
+- **TIGER-335 migration (batch 5)** — migrated the `_isAtLeastAdmin()` call sites (the worst-defect form)
+  in **comment** (TIGER-343) and **newsletter** (TIGER-344). Comment's "is a moderator" checks (edit/
+  delete-another's, the edit-window bypass, the moderate + datatable gates) now ask the **moderation
+  capability** `_isAllowed('moderate')` instead of `inheritsRole('admin')`; newsletter's admin gates ask
+  `_isAllowed('<method>')`. Behavior-preserving — `moderate`/`datatable`/the Audience grants resolve to
+  the same admin-and-inheriting-roles set the old helper matched. Updated the acl.ini comments that cited
+  the removed helper. After this, no non-test code calls `_isAtLeastAdmin()`.
+
 ## [1.35.0] — 2026-10-21
 
 ### Changed
