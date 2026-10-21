@@ -23,13 +23,19 @@ $ta = isset($this->themeAssets) && $this->themeAssets ? $this->themeAssets : '/_
         <div class="row g-3">
             <div class="col-md-6">
                 <label class="form-label" for="profile-new-password"><?= $this->t('profile.security.new') ?></label>
-                <input type="password" class="form-control" id="profile-new-password" name="new_password" autocomplete="new-password" data-tiger-strength="1">
-                <div class="invalid-feedback"></div>
+                <div class="input-group has-validation">
+                    <input type="password" class="form-control" id="profile-new-password" name="new_password" autocomplete="new-password" data-tiger-strength="1">
+                    <span class="input-group-text" data-tiger-pw-toggle role="button" tabindex="-1" aria-label="<?= $this->escape($this->t('core.auth.show_password')) ?>" style="cursor:pointer;"><i class="fa-solid fa-eye"></i></span>
+                    <div class="invalid-feedback"></div>
+                </div>
             </div>
             <div class="col-md-6">
                 <label class="form-label" for="profile-confirm-password"><?= $this->t('profile.security.confirm') ?></label>
-                <input type="password" class="form-control" id="profile-confirm-password" name="confirm_password" autocomplete="new-password">
-                <div class="invalid-feedback"></div>
+                <div class="input-group has-validation">
+                    <input type="password" class="form-control" id="profile-confirm-password" name="confirm_password" autocomplete="new-password">
+                    <span class="input-group-text" data-tiger-pw-toggle role="button" tabindex="-1" aria-label="<?= $this->escape($this->t('core.auth.show_password')) ?>" style="cursor:pointer;"><i class="fa-solid fa-eye"></i></span>
+                    <div class="invalid-feedback"></div>
+                </div>
             </div>
         </div>
     </div>

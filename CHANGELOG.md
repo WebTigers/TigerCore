@@ -6,6 +6,14 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.31.0] — 2026-10-21
+
+### Added
+- **Show-password eye on the account Security (change-password) screen** (TIGER-361) — the new-password
+  and confirm fields now carry the same eyeball toggle as the login/signup screens. Markup only
+  (`tiger.password-strength.js` is already loaded there); the inputs use `.input-group.has-validation`
+  so convenience-validation feedback still renders. Reuses `core.auth.show_password`.
+
 ## [1.30.0] — 2026-10-21
 
 ### Added
