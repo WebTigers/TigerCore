@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tiger\Tests\Support\IntegrationTestCase;
 use Tiger_Controller_Plugin_Authorization;
+use Tiger_Service_Authentication;
 use Tiger_Model_Org;
 use Tiger_Model_OrgUser;
 use Tiger_Model_Table;
@@ -62,7 +63,41 @@ final class AuthorizationPluginTest extends IntegrationTestCase
         return new class extends Tiger_Controller_Plugin_Authorization {
             public function pubResolveRole() { return $this->_resolveRole(); }
             public function pubResourceFor($request) { return $this->_resourceFor($request); }
+            public function pubForbiddenRedirect($path, $identity) { return $this->_forbiddenRedirect($path, $identity); }
         };
+    }
+
+    // ----- authenticated-but-forbidden → dashboard, not a themed 403 wall (TIGER-359) ------------
+
+    #[Test]
+    public function home_for_sends_admins_to_the_back_office_and_everyone_else_to_account(): void
+    {
+        $this->assertSame('/admin',   Tiger_Service_Authentication::homeFor((object) ['role' => 'admin']));
+        $this->assertSame('/admin',   Tiger_Service_Authentication::homeFor((object) ['role' => 'superadmin']));
+        $this->assertSame('/admin',   Tiger_Service_Authentication::homeFor((object) ['role' => 'developer']));
+        $this->assertSame('/account', Tiger_Service_Authentication::homeFor((object) ['role' => 'user']));
+        $this->assertSame('/account', Tiger_Service_Authentication::homeFor((object) ['role' => 'manager']));
+        $this->assertSame('/account', Tiger_Service_Authentication::homeFor(null), 'no identity → the account surface');
+    }
+
+    #[Test]
+    public function a_forbidden_caller_is_routed_to_their_own_dashboard(): void
+    {
+        $p = $this->plugin();
+        $this->assertSame('/account', $p->pubForbiddenRedirect('/admin/users', (object) ['role' => 'user']),
+            'a plain user who reached an admin page goes to their account dashboard, not a 403');
+        $this->assertSame('/admin', $p->pubForbiddenRedirect('/billing/secret', (object) ['role' => 'admin']),
+            'an admin forbidden some other resource goes to the back office');
+    }
+
+    #[Test]
+    public function the_loop_guard_falls_back_to_403_when_the_dashboard_itself_is_forbidden(): void
+    {
+        $p = $this->plugin();
+        $this->assertNull($p->pubForbiddenRedirect('/account', (object) ['role' => 'user']),
+            'forbidden their OWN dashboard → null (themed 403), never a redirect loop');
+        $this->assertNull($p->pubForbiddenRedirect('/admin/', (object) ['role' => 'admin']),
+            'trailing slash is normalized so the guard still catches it');
     }
 
     /** Seed a user + org + an active membership carrying $role; sign the user in. Returns [userId, orgId]. */

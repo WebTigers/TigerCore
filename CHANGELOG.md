@@ -6,6 +6,22 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.29.0] — 2026-10-21
+
+### Changed
+- **A signed-in user who hits a page above their role is now redirected to their own dashboard, not
+  walled with a themed 403** (TIGER-359). `Tiger_Controller_Plugin_Authorization::_deny()` now, for an
+  authenticated-but-forbidden caller, **logs the attempt** (`Tiger_Log::warn('acl.denied', …)`,
+  auto-enriched with user/org/role) and redirects to `Tiger_Service_Authentication::homeFor()` — the
+  back office (`/admin`) for an admin-class role, else the account surface (`/account`). A loop guard
+  falls back to the themed 403 only when the forbidden resource *is* the caller's own dashboard. Guests
+  still go to `/auth/login` and a locked screen still goes to `/auth/lock`, unchanged.
+
+### Added
+- **`Tiger_Service_Authentication::homeFor($identity)`** — the one authority for an identity's
+  post-login landing (dashboard), shared by the login flow (`AuthController`) and the authorization
+  gate, so "where does this person belong" is answered the same way everywhere.
+
 ## [1.28.0] — 2026-10-21
 
 ### Added

@@ -34,6 +34,24 @@ class Tiger_Service_Authentication
     /** Role for an unauthenticated request. */
     const ROLE_GUEST = 'guest';
 
+    /** Roles whose dashboard is the back office (`/admin`); every other role lands on `/account`. */
+    const ADMIN_HOME_ROLES = ['admin', 'superadmin', 'developer'];
+
+    /**
+     * The post-login landing — the identity's "dashboard": the back office for an admin-class role,
+     * otherwise the account surface. ONE authority shared by the login flow (AuthController) and the
+     * authorization gate (Tiger_Controller_Plugin_Authorization), so "where does this person belong"
+     * is answered the same way whether they just signed in or were bounced off a forbidden page.
+     *
+     * @param  object|null $identity the Zend_Auth identity (reads ->role; null/role-less → /account)
+     * @return string                a local path — '/admin' or '/account'
+     */
+    public static function homeFor($identity)
+    {
+        $role = ($identity && isset($identity->role)) ? (string) $identity->role : '';
+        return in_array($role, self::ADMIN_HOME_ROLES, true) ? '/admin' : '/account';
+    }
+
     /**
      * Sentinel returned by login() when the password was correct but a second factor
      * (TOTP/recovery) is still required. Distinguishable from an identity object and
