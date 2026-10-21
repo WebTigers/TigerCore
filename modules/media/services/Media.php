@@ -22,7 +22,7 @@ class Media_Service_Media extends Tiger_Service_Service
      */
     public function upload(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('upload')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $file = isset($_FILES['file']) ? $_FILES['file'] : null;
         if (!$file || !is_uploaded_file((string) $file['tmp_name']) || $file['error'] !== UPLOAD_ERR_OK) {
@@ -126,7 +126,7 @@ class Media_Service_Media extends Tiger_Service_Service
      */
     public function datatable(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('datatable')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $dt   = $this->_dtParams($params);
         $kinds = [Tiger_Model_Media::KIND_IMAGE, Tiger_Model_Media::KIND_DOCUMENT, Tiger_Model_Media::KIND_PDF,
@@ -173,7 +173,7 @@ class Media_Service_Media extends Tiger_Service_Service
             ])
             : ['rows' => [], 'total' => 0, 'filtered' => 0];
 
-        $canDelete = $this->_isAdmin(static::class, 'delete');
+        $canDelete = $this->_isAllowed('delete');
         $rows = [];
         foreach ($staticSlice as $e) { $rows[] = $this->_presentStatic($e); }
         if ($need > 0) {
@@ -197,7 +197,7 @@ class Media_Service_Media extends Tiger_Service_Service
      */
     public function copyToLibrary(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('copyToLibrary')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $src = Tiger_Media_Manifest::file((string) ($params['media_id'] ?? $params['ref'] ?? ''));
         if ($src === '') { $this->_error('media.error.static_missing'); return; }
@@ -306,7 +306,7 @@ class Media_Service_Media extends Tiger_Service_Service
      */
     public function update(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('update')) { $this->_error('core.api.error.not_allowed'); return; }
         $id = (string) ($params['media_id'] ?? '');
         $model = new Tiger_Model_Media();
         // Ownership, not just role: the ACL says this caller is an admin, not that this row is theirs.
@@ -338,7 +338,7 @@ class Media_Service_Media extends Tiger_Service_Service
      */
     public function delete(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
         $id  = (string) ($params['media_id'] ?? '');
         $model = new Tiger_Model_Media();
         // Ownership FIRST — below this point the stored bytes are destroyed, which is not undoable by

@@ -30,7 +30,7 @@ class Register_Service_Registration extends Tiger_Service_Service
     /** The current registration progress. @param array $params @return void */
     public function status(array $params): void
     {
-        if (!$this->_isAdmin('Register_AdminController')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('status')) { $this->_error('core.api.error.not_allowed'); return; }
         $this->_success(['state' => Register_Service_Status::state()]);
     }
 
@@ -43,7 +43,7 @@ class Register_Service_Registration extends Tiger_Service_Service
      */
     public function register(array $params): void
     {
-        if (!$this->_isAdmin('Register_AdminController')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('register')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $form = new Register_Form_Register();
         if (!$form->isValid($params)) { $this->_formErrors($form); return; }
@@ -79,7 +79,7 @@ class Register_Service_Registration extends Tiger_Service_Service
     /** (Re)confirm domain control via the registry. @param array $params @return void */
     public function verifyDomain(array $params): void
     {
-        if (!$this->_isAdmin('Register_AdminController')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('verifyDomain')) { $this->_error('core.api.error.not_allowed'); return; }
         if (!Register_Service_Status::hasStarted()) { $this->_error('register.error.not_registered'); return; }
         $this->_selfVerifyDomain();
         $verified = Register_Service_Status::isDomainVerified();
@@ -89,7 +89,7 @@ class Register_Service_Registration extends Tiger_Service_Service
     /** Resend the admin email verification link. @param array $params @return void */
     public function resendEmail(array $params): void
     {
-        if (!$this->_isAdmin('Register_AdminController')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('resendEmail')) { $this->_error('core.api.error.not_allowed'); return; }
         $email = (string) (new Tiger_Model_Config())->get(Tiger_Model_Config::SCOPE_GLOBAL, '', 'register.email');
         if ($email === '') { $this->_error('register.error.not_registered'); return; }
         $this->_issueEmailToken($email, (string) (new Tiger_Model_Config())->get(Tiger_Model_Config::SCOPE_GLOBAL, '', 'register.domain'));

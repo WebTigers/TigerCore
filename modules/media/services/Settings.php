@@ -43,7 +43,7 @@ class Media_Service_Settings extends Tiger_Service_Service
      */
     public function save(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $form = new Media_Form_Settings();
         if (!$form->isValid($params)) { $this->_formErrors($form); return; }
@@ -71,7 +71,7 @@ class Media_Service_Settings extends Tiger_Service_Service
      */
     public function migrateDisk(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('migrateDisk')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $to   = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($params['to'] ?? ''));
         $move = (string) ($params['move'] ?? '') === '1';
@@ -105,7 +105,7 @@ class Media_Service_Settings extends Tiger_Service_Service
      */
     public function saveStorage(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('saveStorage')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $adapter = $this->_storageAdapter($params);
         if ($adapter === null) { $this->_error('media.storage.bad_adapter'); return; }
@@ -157,7 +157,7 @@ class Media_Service_Settings extends Tiger_Service_Service
      */
     public function testConnection(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('testConnection')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $settings = $this->_storageSettings($params);
         if ($settings === null) { $this->_error('media.storage.bad_adapter'); return; }

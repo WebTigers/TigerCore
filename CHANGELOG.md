@@ -6,6 +6,17 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.35.0] — 2026-10-21
+
+### Changed
+- **TIGER-335 migration (batch 4)** — `_isAdmin()` → `_isAllowed('<method>')` across seven modules whose
+  admin services are wildcard-privilege grants: **sms** (TIGER-352), **seo** (TIGER-353), **mcp**
+  (TIGER-348), **register** (TIGER-347, incl. the `_isAdmin('Register_AdminController')` cross-resource
+  form), **media** (TIGER-341), **blog** (TIGER-342), **cms** (TIGER-337). Behavior-preserving.
+  **Audit note:** these modules' `guest` grants were confirmed to sit on genuinely public *controllers*
+  (sms inbound webhook, seo sitemap/robots/llms, mcp server, register verify, blog/cms index) — **not**
+  on the admin services carrying the in-method checks, so there was no F5 hole here (no acl.ini change).
+
 ## [1.34.0] — 2026-10-21
 
 ### Changed
