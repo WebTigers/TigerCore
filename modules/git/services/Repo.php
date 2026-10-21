@@ -25,6 +25,7 @@ class Git_Service_Repo extends Git_Service_Base
      * transport, verifies read access against the real repo, then records the connection.
      *
      * @param  array $params module_key, repo_owner, repo_name, token, default_branch?, write_enabled?
+     * @apiRequest Git_Form_Connect
      * @return void
      */
     public function connect(array $params): void

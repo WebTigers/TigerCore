@@ -3,6 +3,31 @@
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /** TigerGit module — English strings (TIGER-334 / TIGER-367). Sibling locales follow with the UI. */
 return [
+    // admin screen
+    'git.nav.label'                  => 'Git',
+    'git.admin.title'                => 'Git',
+    'git.admin.subtitle'             => 'Version your modules in a private repo, cut releases through QA, and receive approved updates.',
+    'git.admin.connect'              => 'Connect a module',
+    'git.admin.connect_a_module'     => 'Connect a module to its repository',
+    'git.admin.loading'              => 'Loading connections…',
+    'git.admin.field.module_key'     => 'Module',
+    'git.admin.field.module_key_help'=> 'The installed module’s slug (its folder under modules/).',
+    'git.admin.field.repo_owner'     => 'Repo owner',
+    'git.admin.field.repo_name'      => 'Repo name',
+    'git.admin.field.default_branch' => 'Default branch',
+    'git.admin.field.token'          => 'Access token',
+    'git.admin.field.token_help'     => 'A fine-grained token with contents access. Stored encrypted; never shown again.',
+    'git.admin.field.write_enabled'  => 'Allow pushes (write)',
+    'git.admin.field.version'        => 'Version',
+    'git.admin.field.commit_sha'     => 'Commit SHA',
+    'git.admin.releases.title'       => 'Releases',
+    'git.admin.releases.tag'         => 'Tag',
+    'git.admin.releases.submit'      => 'Submit to QA',
+    'git.admin.releases.status'      => 'Status',
+    'git.admin.releases.actions'     => 'Actions',
+    'git.admin.releases.help'        => 'Tag a semantic version, then submit it to QA. A released version is immutable.',
+    'git.admin.activity.title'       => 'Activity',
+
     // success
     'git.repo.connected'        => 'Repository connected.',
     'git.repo.disconnected'     => 'Repository disconnected.',

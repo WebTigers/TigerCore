@@ -55,6 +55,7 @@ class Git_Service_Release extends Git_Service_Base
      * Submit a tagged release to QA (owner-only). Records a `submitted` module_release row.
      *
      * @param  array $params module_key, version, commit_sha, qa_report_ref?
+     * @apiRequest Git_Form_Submit
      */
     public function submit(array $params): void
     {
