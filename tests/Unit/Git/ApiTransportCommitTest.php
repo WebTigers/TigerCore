@@ -35,6 +35,8 @@ final class ApiTransportCommitTest extends UnitTestCase
     {
         @unlink($this->dir . '/src/a.php');
         @rmdir($this->dir . '/src');
+        @unlink($this->dir . '/.tiger-git/head');   // commit() now records the merge-base marker
+        @rmdir($this->dir . '/.tiger-git');
         @rmdir($this->dir);
         parent::tearDown();
     }
@@ -213,16 +215,6 @@ final class ApiTransportCommitTest extends UnitTestCase
         $this->assertTrue($res['pushed']);
         $this->assertSame('HEAD1', $res['ref']);
     }
-
-    #[Test]
-    public function deferred_methods_report_not_implemented(): void
-    {
-        $t = []; $api = new Tiger_Git_Transport_Api($this->creds('ghp_token'), $this->http($t));
-        try {
-            $api->status($this->tree());
-            $this->fail('expected NOT_IMPLEMENTED');
-        } catch (Tiger_Git_Exception $e) {
-            $this->assertSame(Tiger_Git_Exception::NOT_IMPLEMENTED, $e->code());
-        }
-    }
+    // status / diff / pull / switchBranch over the API are the reconciler — covered by
+    // ApiTransportReconcileTest (they are no longer NOT_IMPLEMENTED).
 }

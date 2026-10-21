@@ -11,8 +11,15 @@
  *
  * The provider-API operations (listReleases / fetchArchive) also live here, because a GitHub *release*
  * is not a git concept — there is no git command for it. The GitHub adapter (Tiger_Git_Provider_GitHub)
- * routes those to this transport even for a shell-transport connection. (status/diff/switch/pull/tag over
- * the API are the remaining phased work and report NOT_IMPLEMENTED.)
+ * routes those to this transport even for a shell-transport connection.
+ *
+ * status / diff / pull / switchBranch are the no-`.git` RECONCILER: with no local repo there is no index
+ * or HEAD, so this transport keeps a tiny merge-base marker (`.tiger-git/head`, the last commit the
+ * working tree was synced to — written by commit() and pull()) and compares the on-disk files to it by
+ * hashing each as a git blob. That marker is what lets status tell the operator's uncommitted edits from
+ * the remote branch simply advancing, and lets pull fast-forward while preserving non-conflicting local
+ * work (a file changed on both sides is a MERGE_CONFLICT). The marker dir is never committed (commit()
+ * takes explicit paths) and is skipped by the working-tree walk.
  *
  * The spike at the centre of the module is `commit()` — creating a commit with no local repo via the
  * four-step Git Data API dance:
@@ -130,6 +137,8 @@ class Tiger_Git_Transport_Api implements Tiger_Git_Transport_Interface
         // 4. fast-forward the branch to the new commit (force:false → NON_FAST_FORWARD if it moved).
         $this->api($tree, 'PATCH', $repo . '/git/refs/heads/' . $branch, ['sha' => $newSha, 'force' => false]);
 
+        // The working tree is now synced to this commit — record the merge base for status/diff/pull.
+        $this->_setBaseSha($tree, $newSha);
         return $newSha;
     }
 
@@ -266,34 +275,323 @@ class Tiger_Git_Transport_Api implements Tiger_Git_Transport_Interface
         return ['tag' => $tag, 'sha' => $sha];
     }
 
-    // --- deferred to the rest of TIGER-364 (status/diff/switch/pull over the API) -----------------
+    // --- the reconciler: working-tree ↔ remote-tree, with no local .git -------------------------
 
+    /**
+     * Working-tree status without a `.git`: the on-disk files compared to the last-synced commit (the
+     * `.tiger-git/head` MARKER — the merge base this transport keeps so it can tell MY uncommitted edits
+     * from the remote simply moving on). `changed` is disk vs that base (A/M/D); `behind` is how many
+     * commits the remote branch head is ahead of the base (GitHub's compare API); `ahead` is always 0 —
+     * the API transport has no local-only commits (a commit goes straight to the remote).
+     */
     public function status(Tiger_Git_WorkingTree $tree): array
     {
-        throw $this->notImplemented('status');
+        $branch = $tree->currentBranch();
+        $head   = $this->_headSha($tree, $branch);
+        $base   = $this->_baseSha($tree);
+
+        $baseTree = [];
+        $behind   = 0;
+        try {
+            $baseTree = $this->_treeOf($tree, $base ?? $head);
+            if ($base !== null && $base !== $head) {
+                $cmp    = $this->_compare($tree, $base, $head);   // base...head → head ahead_by N
+                $behind = (int) ($cmp['ahead_by'] ?? 0);
+            }
+        } catch (Tiger_Git_Exception $e) {
+            // A stale/garbage-collected base must never break status — fall back to the head tree.
+            $baseTree = $this->_treeOf($tree, $head);
+        }
+
+        $changed = $this->_workingChanges($tree, $baseTree);
+        return ['branch' => $branch, 'ahead' => 0, 'behind' => $behind, 'changed' => $changed, 'clean' => $changed === []];
     }
 
+    /**
+     * A size-capped diff summary of the working tree against the base (the committed baseline). Added
+     * lines / removed lines per changed file via a line LCS (bounded); binary files are flagged, never
+     * counted. `opts.paths` restricts the set; `opts.max_bytes`, when > 0, caps the number of files
+     * reported (mirroring the shell transport's cap) and sets `truncated`.
+     */
     public function diff(Tiger_Git_WorkingTree $tree, array $opts = []): array
     {
-        throw $this->notImplemented('diff');
+        $base     = $this->_baseSha($tree) ?? $this->_headSha($tree, $tree->currentBranch());
+        $baseTree = $this->_treeOf($tree, $base);
+        $only     = (!empty($opts['paths']) && is_array($opts['paths'])) ? array_flip(array_map('strval', $opts['paths'])) : null;
+        $cap      = (int) ($opts['max_bytes'] ?? 0) > 0 ? (int) $opts['max_bytes'] : self::MAX_FILES;
+
+        $files = [];
+        $truncated = false;
+        foreach ($this->_workingChanges($tree, $baseTree) as $c) {
+            if ($only !== null && !isset($only[$c['path']])) { continue; }
+            if (count($files) >= $cap) { $truncated = true; break; }
+            $files[] = $this->_fileDiff($tree, $baseTree, $c);
+        }
+        return ['files' => $files, 'truncated' => $truncated];
     }
 
+    /**
+     * Switch the working tree to an existing branch by MATERIALISING that branch's tree to disk — the
+     * no-`.git` equivalent of a checkout. Refuses a dirty tree (uncommitted edits would be lost) and a
+     * missing branch (INVALID_REF). The caller re-points the connection's current branch (the tree is
+     * immutable); this does the on-disk checkout and resets the base marker to the new head.
+     */
     public function switchBranch(Tiger_Git_WorkingTree $tree, string $name): void
     {
-        throw $this->notImplemented('switchBranch');
+        $target = $this->_headSha($tree, $name);   // 404 → INVALID_REF
+        $base   = $this->_baseSha($tree) ?? $this->_headSha($tree, $tree->currentBranch());
+        $baseTree = $this->_treeOf($tree, $base);
+        if ($this->_workingChanges($tree, $baseTree) !== []) {
+            throw new Tiger_Git_Exception(Tiger_Git_Exception::DIRTY_TREE, 'refusing to switch with uncommitted changes');
+        }
+        $targetTree = $this->_treeOf($tree, $target);
+        $apply = [];
+        foreach ($targetTree as $path => $meta) { $apply[$path] = $meta['sha']; }
+        foreach ($baseTree as $path => $meta) { if (!isset($targetTree[$path])) { $apply[$path] = null; } }
+        $this->_materialize($tree, $apply);
+        $this->_setBaseSha($tree, $target);
     }
 
+    /**
+     * Fast-forward the working tree to the remote branch head. No local commit graph, so "FF" means:
+     * bring disk up to the files that changed between the base and the head, PRESERVING non-conflicting
+     * local edits. A file edited BOTH locally and remotely is a MERGE_CONFLICT — the tree is left
+     * untouched and the conflicting paths are reported (detail). Already-current is a clean no-op.
+     */
     public function pull(Tiger_Git_WorkingTree $tree, string $branch): array
     {
-        throw $this->notImplemented('pull');
+        $head = $this->_headSha($tree, $branch);
+        $base = $this->_baseSha($tree);
+        if ($base === null || $base === $head) {
+            if ($base === null) { $this->_setBaseSha($tree, $head); }   // first sync: adopt the head as the base
+            return ['ref' => $head, 'updated' => false, 'conflicts' => []];
+        }
+
+        $cmp = $this->_compare($tree, $base, $head);
+        $remote = [];
+        foreach (($cmp['files'] ?? []) as $f) { $remote[(string) $f['filename']] = (string) ($f['status'] ?? 'modified'); }
+        if ($remote === []) { $this->_setBaseSha($tree, $head); return ['ref' => $head, 'updated' => false, 'conflicts' => []]; }
+
+        $local = [];
+        foreach ($this->_workingChanges($tree, $this->_treeOf($tree, $base)) as $c) { $local[$c['path']] = true; }
+        $conflicts = array_values(array_intersect(array_keys($remote), array_keys($local)));
+        if ($conflicts !== []) {
+            sort($conflicts);
+            throw new Tiger_Git_Exception(Tiger_Git_Exception::MERGE_CONFLICT, 'local changes conflict with incoming changes', ['files' => $conflicts]);
+        }
+
+        $headTree = $this->_treeOf($tree, $head);
+        $apply = [];
+        foreach ($remote as $path => $st) {
+            $apply[$path] = ($st === 'removed') ? null : ($headTree[$path]['sha'] ?? null);
+        }
+        $this->_materialize($tree, $apply);
+        $this->_setBaseSha($tree, $head);
+        return ['ref' => $head, 'updated' => true, 'conflicts' => []];
     }
 
-    // --- internals -------------------------------------------------------------------------------
+    // --- internals: reconciler helpers -----------------------------------------------------------
 
-    private function notImplemented(string $op): Tiger_Git_Exception
+    /** Directories never walked as part of the working tree (noise + our own marker). */
+    private const SKIP = ['.git', '.tiger-git', 'node_modules', 'vendor', '.DS_Store'];
+    /** Hard caps so a pathological tree can't hang the host. */
+    private const MAX_FILES = 2000;
+    private const DIFF_CELL_CAP = 4000000;
+
+    /** Resolve a branch head to its commit sha (404 → INVALID_REF). */
+    private function _headSha(Tiger_Git_WorkingTree $tree, string $branch): string
     {
-        return new Tiger_Git_Exception(Tiger_Git_Exception::NOT_IMPLEMENTED, "ApiTransport::$op lands in the rest of TIGER-364");
+        $this->assertTag($branch);
+        $ref = $this->api($tree, 'GET', $this->repoPath($tree) . '/git/ref/heads/' . $branch);
+        $sha = (string) ($ref['object']['sha'] ?? '');
+        if ($sha === '') { throw new Tiger_Git_Exception(Tiger_Git_Exception::INVALID_REF, 'could not resolve the branch head'); }
+        return $sha;
     }
+
+    /** A commit's full (recursive) blob tree: path => {sha, mode}. */
+    private function _treeOf(Tiger_Git_WorkingTree $tree, string $commitSha): array
+    {
+        $commit  = $this->api($tree, 'GET', $this->repoPath($tree) . '/git/commits/' . $commitSha);
+        $treeSha = (string) ($commit['tree']['sha'] ?? '');
+        if ($treeSha === '') { return []; }
+        $data = $this->api($tree, 'GET', $this->repoPath($tree) . '/git/trees/' . $treeSha . '?recursive=1');
+        $map  = [];
+        foreach (($data['tree'] ?? []) as $e) {
+            if (($e['type'] ?? '') === 'blob') {
+                $map[(string) $e['path']] = ['sha' => (string) ($e['sha'] ?? ''), 'mode' => (string) ($e['mode'] ?? '100644')];
+            }
+        }
+        return $map;
+    }
+
+    /** GitHub's two-dot-three compare: base...head → {ahead_by, behind_by, files:[{filename,status}]}. */
+    private function _compare(Tiger_Git_WorkingTree $tree, string $base, string $head): array
+    {
+        return $this->api($tree, 'GET', $this->repoPath($tree) . '/compare/' . $base . '...' . $head);
+    }
+
+    /** One blob's decoded content. */
+    private function _fetchBlob(Tiger_Git_WorkingTree $tree, string $sha): string
+    {
+        $b   = $this->api($tree, 'GET', $this->repoPath($tree) . '/git/blobs/' . $sha);
+        $enc = (string) ($b['encoding'] ?? 'base64');
+        $content = (string) ($b['content'] ?? '');
+        return $enc === 'base64' ? (string) base64_decode($content) : $content;
+    }
+
+    /** Write (or, with a null sha, delete) each path — every target resolved under the tree root. */
+    private function _materialize(Tiger_Git_WorkingTree $tree, array $paths): void
+    {
+        foreach ($paths as $rel => $sha) {
+            $abs = $tree->resolve((string) $rel);   // PATH_ESCAPE guard
+            if ($sha === null) { if (is_file($abs)) { @unlink($abs); } continue; }
+            $dir = dirname($abs);
+            if (!is_dir($dir)) { @mkdir($dir, 0775, true); }
+            file_put_contents($abs, $this->_fetchBlob($tree, (string) $sha));
+        }
+    }
+
+    /** On-disk files (relative => absolute), skipping the SKIP dirs, capped at MAX_FILES. */
+    private function _walkDisk(Tiger_Git_WorkingTree $tree): array
+    {
+        $out = [];
+        $this->_walk($tree->dir(), '', $out);
+        return $out;
+    }
+
+    private function _walk(string $dir, string $prefix, array &$out): void
+    {
+        foreach ((scandir($dir) ?: []) as $e) {
+            if ($e === '.' || $e === '..' || in_array($e, self::SKIP, true)) { continue; }
+            $abs = $dir . '/' . $e;
+            $rel = $prefix === '' ? $e : $prefix . '/' . $e;
+            if (is_dir($abs)) {
+                if (count($out) < self::MAX_FILES) { $this->_walk($abs, $rel, $out); }
+            } elseif (is_file($abs) && count($out) < self::MAX_FILES) {
+                $out[$rel] = $abs;
+            }
+        }
+    }
+
+    /** The git blob sha of some content (sha1 of "blob <len>\0<content>") — matches GitHub's object id. */
+    private function _blobSha(string $content): string
+    {
+        return sha1('blob ' . strlen($content) . "\0" . $content);
+    }
+
+    /**
+     * The working-tree changes vs a base tree: A (on disk, not tracked), M (tracked, content differs),
+     * D (tracked, gone from disk). Sorted by path.
+     *
+     * @return array<int,array{path:string,state:string}>
+     */
+    private function _workingChanges(Tiger_Git_WorkingTree $tree, array $baseTree): array
+    {
+        $disk    = $this->_walkDisk($tree);
+        $changed = [];
+        foreach ($baseTree as $path => $meta) {
+            if (!isset($disk[$path])) { $changed[] = ['path' => $path, 'state' => 'D']; continue; }
+            if ($this->_blobSha((string) file_get_contents($disk[$path])) !== $meta['sha']) {
+                $changed[] = ['path' => $path, 'state' => 'M'];
+            }
+            unset($disk[$path]);
+        }
+        foreach ($disk as $path => $abs) { $changed[] = ['path' => $path, 'state' => 'A']; }
+        usort($changed, static fn ($a, $b) => strcmp($a['path'], $b['path']));
+        return $changed;
+    }
+
+    /** Added/removed/binary for one changed file (fetches the base blob for a modify/delete). */
+    private function _fileDiff(Tiger_Git_WorkingTree $tree, array $baseTree, array $c): array
+    {
+        $path = $c['path'];
+        if ($c['state'] === 'D') {
+            $old = isset($baseTree[$path]) ? $this->_fetchBlob($tree, $baseTree[$path]['sha']) : '';
+            return $this->_isBinary($old)
+                ? ['path' => $path, 'added' => 0, 'removed' => 0, 'binary' => true]
+                : ['path' => $path, 'added' => 0, 'removed' => $this->_lineCount($old), 'binary' => false];
+        }
+        $new = (string) file_get_contents($tree->resolve($path));
+        if ($c['state'] === 'A') {
+            return $this->_isBinary($new)
+                ? ['path' => $path, 'added' => 0, 'removed' => 0, 'binary' => true]
+                : ['path' => $path, 'added' => $this->_lineCount($new), 'removed' => 0, 'binary' => false];
+        }
+        $old = isset($baseTree[$path]) ? $this->_fetchBlob($tree, $baseTree[$path]['sha']) : '';
+        if ($this->_isBinary($old) || $this->_isBinary($new)) {
+            return ['path' => $path, 'added' => 0, 'removed' => 0, 'binary' => true];
+        }
+        [$added, $removed] = $this->_lineDiff($old, $new);
+        return ['path' => $path, 'added' => $added, 'removed' => $removed, 'binary' => false];
+    }
+
+    private function _isBinary(string $s): bool
+    {
+        return strpos($s, "\0") !== false;
+    }
+
+    /** Content → line array (a trailing newline does not count as an extra empty line). */
+    private function _lines(string $s): array
+    {
+        if ($s === '') { return []; }
+        $lines = explode("\n", $s);
+        if (end($lines) === '') { array_pop($lines); }
+        return $lines;
+    }
+
+    private function _lineCount(string $s): int
+    {
+        return count($this->_lines($s));
+    }
+
+    /**
+     * Added/removed line counts via a bounded line-LCS (rolling two-row, O(n·m) time, O(m) memory).
+     * Over DIFF_CELL_CAP cells it falls back to the net delta — a summary, never exact for huge files.
+     *
+     * @return array{0:int,1:int} [added, removed]
+     */
+    private function _lineDiff(string $old, string $new): array
+    {
+        $a = $this->_lines($old);
+        $b = $this->_lines($new);
+        $n = count($a);
+        $m = count($b);
+        if ($n === 0) { return [$m, 0]; }
+        if ($m === 0) { return [0, $n]; }
+        if ($n * $m > self::DIFF_CELL_CAP) { return [max(0, $m - $n), max(0, $n - $m)]; }
+
+        $prev = array_fill(0, $m + 1, 0);
+        for ($i = 1; $i <= $n; $i++) {
+            $cur = array_fill(0, $m + 1, 0);
+            $ai  = $a[$i - 1];
+            for ($j = 1; $j <= $m; $j++) {
+                $cur[$j] = ($ai === $b[$j - 1]) ? $prev[$j - 1] + 1 : max($prev[$j], $cur[$j - 1]);
+            }
+            $prev = $cur;
+        }
+        $lcs = $prev[$m];
+        return [$m - $lcs, $n - $lcs];
+    }
+
+    /** The merge-base marker file (`.tiger-git/head`) — the last commit this working tree was synced to. */
+    private function _baseSha(Tiger_Git_WorkingTree $tree): ?string
+    {
+        $f = $tree->dir() . '/.tiger-git/head';
+        if (!is_file($f)) { return null; }
+        $s = trim((string) file_get_contents($f));
+        return preg_match('/^[0-9a-f]{40}$/', $s) ? $s : null;
+    }
+
+    /** Record the synced commit sha in the marker (so status/pull can tell local edits from a moved remote). */
+    private function _setBaseSha(Tiger_Git_WorkingTree $tree, string $sha): void
+    {
+        if (!preg_match('/^[0-9a-f]{40}$/', $sha)) { return; }
+        $dir = $tree->dir() . '/.tiger-git';
+        if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) { return; }
+        @file_put_contents($dir . '/head', $sha . "\n");
+    }
+
+    // --- internals: HTTP + helpers ---------------------------------------------------------------
 
     /** A tag name GitHub will accept in a URL path and that carries no traversal/option trickery. */
     private function assertTag(string $tag): void

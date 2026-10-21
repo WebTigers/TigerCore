@@ -83,8 +83,14 @@ final class RepoServiceTest extends IntegrationTestCase
 
     private function okHttp(): callable
     {
+        // Enough of the GitHub API for connect (releases/branches) AND the reconciler status
+        // (ref → commit → an empty tree, so every on-disk module file reads as a new add).
         return function (string $method, string $url, array $headers, ?string $body): array {
-            if (str_contains($url, '/releases')) { return ['status' => 200, 'body' => '[]']; }
+            if (str_contains($url, '/releases'))          { return ['status' => 200, 'body' => '[]']; }
+            if (str_contains($url, '/branches'))          { return ['status' => 200, 'body' => json_encode([['name' => 'main']])]; }
+            if (str_contains($url, '/git/ref/heads/'))    { return ['status' => 200, 'body' => json_encode(['object' => ['sha' => str_repeat('a', 40)]])]; }
+            if (str_contains($url, '/git/commits/'))      { return ['status' => 200, 'body' => json_encode(['tree' => ['sha' => 'T0']])]; }
+            if (str_contains($url, '/git/trees/'))        { return ['status' => 200, 'body' => json_encode(['tree' => []])]; }
             return ['status' => 200, 'body' => '{}'];
         };
     }
@@ -171,19 +177,20 @@ final class RepoServiceTest extends IntegrationTestCase
     }
 
     #[Test]
-    public function status_is_graceful_when_the_transport_cannot_do_it(): void
+    public function status_reports_the_working_tree_over_the_api_reconciler(): void
     {
         $this->login('u-admin', self::ORG, 'admin');
         $this->connect();
-        // Force the API transport, where status is not yet implemented — the service must degrade, not error.
+        // Pin the API transport: the no-.git reconciler compares the on-disk module to the remote tree.
         $conn = (new Tiger_Model_GitRepoConnection())->forModule(self::ORG, self::MODULE);
         $conn->transport = Tiger_Git::TRANSPORT_API;
         $conn->save();
 
         $res = $this->call('status', ['module_key' => self::MODULE]);
         $this->assertSame(1, $res['result']);
-        $this->assertFalse($res['data']['status_available']);
-        $this->assertNull($res['data']['working']);
+        $this->assertTrue($res['data']['status_available'], 'the API transport now does status');
+        $this->assertSame('main', $res['data']['working']['branch']);
+        $this->assertIsArray($res['data']['working']['changed']);
     }
 
     #[Test]
