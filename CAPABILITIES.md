@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**242 classes** across **33 capabilities** · **26 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**244 classes** across **33 capabilities** · **26 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -328,6 +328,8 @@
 - **Tiger_Git_Credential** `@api` — the write-only credential manager (TIGER-334 / TIGER-365).  ·  `library/Tiger/Git/Credential.php`
 - **Tiger_Git_Environment** `@api` — detect which transport this instance can use (TIGER-334).  ·  `library/Tiger/Git/Environment.php`
 - **Tiger_Git_Exception** `@api` — a structured, agent-readable, SECRET-FREE git failure (TIGER-334).  ·  `library/Tiger/Git/Exception.php`
+- **Tiger_Git_Provider_GitHub** `@api` — the GitHub adapter: WHICH host, composing the two transports (TIGER-334).  ·  `library/Tiger/Git/Provider/GitHub.php`
+- **Tiger_Git_Provider_Interface** `@api` — WHICH host a connection talks to (TIGER-334).  ·  `library/Tiger/Git/Provider/Interface.php`
 - **Tiger_Git_Transport_Api** `@api` — git operations through the GitHub API, with NO `.git` directory (TIGER-364).  ·  `library/Tiger/Git/Transport/Api.php`
 - **Tiger_Git_Transport_Interface** `@api` — HOW a git operation is carried out (TIGER-334).  ·  `library/Tiger/Git/Transport/Interface.php`
 - **Tiger_Git_Transport_Shell** `@api` — git operations driven by the `git` binary (TIGER-364).  ·  `library/Tiger/Git/Transport/Shell.php`
