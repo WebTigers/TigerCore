@@ -26,9 +26,6 @@ class Tiger_Message
     /** Person-to-person messaging. Off by default; `1` enables it for the install. */
     const CFG_USER_TO_USER = 'tiger.message.user_to_user';
 
-    /** Roles at or above this cannot be blocked, and receive `toAdmins()`. */
-    const ADMIN_ROLE = 'admin';
-
     /**
      * The composing CAPABILITY, as an ACL resource (TIGER-335). "Who is admin-class for messaging"
      * is a privilege (`send`) on this resource in `modules/message/configs/acl.ini`, granted to
@@ -96,32 +93,6 @@ class Tiger_Message
     public static function maySend($role)
     {
         return self::_roleAllowed($role, 'send', self::RESOURCE_COMPOSE) || self::isUserToUserEnabled();
-    }
-
-    /**
-     * Is this role admin-or-higher?
-     *
-     * @param  string|null $role
-     * @return bool
-     * @deprecated TIGER-335 — reads the ACL inheritance graph as a seniority ladder (`inheritsRole`
-     *   means "inherits admin's RULES", not "is at least as senior"), returns true for `admin` before
-     *   the ACL-registered check (so the more-privileged `superadmin`/`developer` fail where `admin`
-     *   passes in a partial boot), and conflates a missing identity differently from its service twin.
-     *   Use `maySend($role)` for the compose/notify/block questions, or `_roleAllowed()` directly for a
-     *   bare capability check. Removed once the message module's own call sites are gone (TIGER-335).
-     */
-    public static function isAtLeastAdmin($role)
-    {
-        $role = (string) $role;
-        if ($role === '') { return false; }
-        if ($role === self::ADMIN_ROLE) { return true; }
-        if (!Zend_Registry::isRegistered('Zend_Acl')) { return false; }
-        try {
-            $acl = Zend_Registry::get('Zend_Acl');
-            return $acl->hasRole($role) && $acl->hasRole(self::ADMIN_ROLE) && $acl->inheritsRole($role, self::ADMIN_ROLE);
-        } catch (Throwable $e) {
-            return false;
-        }
     }
 
     /**

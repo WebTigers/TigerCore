@@ -87,7 +87,7 @@ class Account_Service_User extends Tiger_Service_Service
     // Called for { service: 'user', method: 'save', ... }
     public function save(array $params): void
     {
-        if (!$this->_isAdmin()) {           // ACL gate — never a role-string compare
+        if (!$this->_isAllowed('save')) {    // ACL gate — never a role-string compare
             $this->_error('api.error.not_allowed');
             return;
         }

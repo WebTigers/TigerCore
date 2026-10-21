@@ -6,6 +6,26 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.37.0] — 2026-10-21
+
+### Removed
+- **The role comparers are gone** (TIGER-335/358) — `Tiger_Service_Service::_isAdmin()` /
+  `_isAtLeastAdmin()` and `Tiger_Message::isAtLeastAdmin()` (+ the dead `Tiger_Message::ADMIN_ROLE`) are
+  **deleted**. Every one of the ~160 call sites across 21 modules was migrated to the privilege
+  primitives `_isAllowed($privilege)` / `_roleIsAllowed($role, $privilege)` in the preceding releases;
+  no code calls a role comparer any more. Authorization is decided only through `Zend_Acl::isAllowed()`.
+
+### Added / Changed
+- **Guest grants are privilege-scoped, never blanket** (TIGER-357) — scoped the remaining blanket
+  `guest` service grants to their actual public methods: `Signup_Service_Signup` (create/verifyEmail),
+  `Tiger_Service_Validate` (field), `Tiger_Service_Location` (suggest/reverse/ip), `Search_Service_Search`
+  (query). No service hands `guest` a resource-level (any-method) allow.
+- **Structural guards** (`tests/Unit/Acl/AuthorizationGuardTest`) — the build now fails if a role-string
+  comparison (`_isAdmin`/`_isAtLeastAdmin`/`inheritsRole`/`=== 'admin'` …) reappears in any `/api`
+  service, or if any `acl.ini` grants `guest` a blanket service resource. Both are mutation-tested (the
+  detector is proven to catch the exact defect it forbids). Docs (`AGENTS.md`, `WEBSERVICES.md`) updated
+  to the primitive.
+
 ## [1.36.0] — 2026-10-21
 
 ### Changed

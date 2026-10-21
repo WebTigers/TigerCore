@@ -261,7 +261,7 @@ class Tiger_Ajax_ServiceFactory
         $this->_identityResolved = true;
 
         // An explicit override (e.g. an org-acting MCP identity) wins — write it to REQUEST-ONLY storage so
-        // the service's helpers (_isAdmin, _userId) see it, and never touch the session.
+        // the service's helpers (_isAllowed, _userId) see it, and never touch the session.
         if ($this->_identityOverride !== null) {
             Zend_Registry::set('tiger.auth.stateless', true);
             $auth = Zend_Auth::getInstance();
@@ -275,7 +275,7 @@ class Tiger_Ajax_ServiceFactory
             $identity = (new Tiger_Service_Authentication())->identityFromToken($token);
             if ($identity !== null) {
                 Zend_Registry::set('tiger.auth.stateless', true);
-                // Make the token identity visible to the service + its helpers (_isAdmin, _userId)
+                // Make the token identity visible to the service + its helpers (_isAllowed, _userId)
                 // via Zend_Auth — but through REQUEST-ONLY storage, so NOTHING is written to the
                 // session. This is what keeps the token path truly stateless.
                 $auth = Zend_Auth::getInstance();

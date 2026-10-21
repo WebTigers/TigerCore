@@ -238,7 +238,7 @@ class Message_Service_Message extends Tiger_Service_Service
      *
      * Delegates to Tiger_Message::maySend() — a privilege on the Tiger_Message_Compose capability ORed
      * with the user-to-user flag (TIGER-335) — so the Compose button (controller) and the API can never
-     * disagree, and no role string is compared. NOT a resource-level _isAdmin(): the service is granted
+     * disagree, and no role string is compared. NOT a resource-level check: the service is granted
      * to `user` per privilege precisely so every member can read their inbox.
      */
     protected function _maySend()

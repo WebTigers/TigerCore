@@ -133,7 +133,7 @@ class Tiger_Controller_Plugin_Authorization extends Zend_Controller_Plugin_Abstr
         }
         Tiger_Model_Table::setOrg($orgId);   // org_id (tenant) flow
 
-        $identity->role = $role;   // refresh for services (_isAdmin)
+        $identity->role = $role;   // refresh for services (_isAllowed)
         return $role;
     }
 

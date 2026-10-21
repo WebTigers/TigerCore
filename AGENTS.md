@@ -195,7 +195,7 @@ transaction:**
 ```php
 public function create(array $params): void
 {
-    if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+    if (!$this->_isAllowed('create')) { $this->_error('core.api.error.not_allowed'); return; }
 
     $form = new Billing_Form_Invoice();
     if (!$form->isValid($params)) { $this->_formErrors($form); return; }   // isValidPartial() for PATCH
@@ -231,8 +231,9 @@ acl.rules.billing_invoice_svc.permission   = "allow"
 Adding a method to an already-allowed service inherits that blanket allow — correct when the whole
 service shares one role (an admin-only settings service, a guest-allowed search service). When
 methods need *different* access (a public read on an otherwise-admin service), name the method as
-the `privilege` on a scoped rule instead of a blanket one. The in-method `_isAdmin()` guard is
-defense-in-depth — it does not replace the `acl.ini` rule.
+the `privilege` on a scoped rule instead of a blanket one. The in-method `_isAllowed('<method>')`
+guard is defense-in-depth (and the only gate for an in-process caller) — it does not replace the
+`acl.ini` rule.
 
 ## Forms
 
@@ -326,8 +327,9 @@ The four rules that keep the F5 class from recurring — follow them in every ne
    `acl.ini` already makes a renamed/added admin-class role Just Work.
 4. **A feature flag is checked AFTER authorization, never instead of it** (authz before the flag).
 
-`_isAdmin()` / `_isAtLeastAdmin()` / `Tiger_Message::isAtLeastAdmin()` are **`@deprecated`** (TIGER-335)
-and being removed — never add a new call to them. `modules/message` is the reference conversion.
+The old role comparers `_isAdmin()` / `_isAtLeastAdmin()` / `Tiger_Message::isAtLeastAdmin()` were
+**removed** (TIGER-335/358) — do not reintroduce them; a guard test fails the build on a role-string
+comparison in a service. `modules/message` is the reference conversion.
 
 ## Internationalization
 
