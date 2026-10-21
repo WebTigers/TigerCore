@@ -6,6 +6,17 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.32.0] — 2026-10-21
+
+### Changed
+- **TIGER-335 migration (batch 1 of the per-module sweep)** — replaced the deprecated resource-level
+  `_isAdmin()` guards with privilege-scoped `_isAllowed('<method>')` in five admin-only modules:
+  **identity** (TIGER-356), **matomo** (TIGER-355), **schedule** (TIGER-351), **backup** (TIGER-349),
+  **ally** (TIGER-350). Behavior-preserving (each service is granted to `admin` at the resource, so the
+  wildcard grant covers every method privilege); the in-method guard stays as defense-in-depth for any
+  in-process caller, now expressed without a role comparer. The deprecated comparers are removed in a
+  later release once every module is migrated (TIGER-358).
+
 ## [1.31.0] — 2026-10-21
 
 ### Added

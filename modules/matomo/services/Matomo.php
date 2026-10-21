@@ -20,7 +20,7 @@ class Matomo_Service_Matomo extends Tiger_Service_Service
      */
     public function save(array $params): void
     {
-        if (!$this->_isAdmin()) {
+        if (!$this->_isAllowed('save')) {
             $this->_error('core.api.error.not_allowed');
             return;
         }

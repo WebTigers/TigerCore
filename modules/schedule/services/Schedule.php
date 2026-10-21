@@ -21,7 +21,7 @@ class Schedule_Service_Schedule extends Tiger_Service_Service
      */
     public function jobs(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('jobs')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $latest = (new Tiger_Model_ScheduleRun())->latestPerJob();
         $now = time();
@@ -65,7 +65,7 @@ class Schedule_Service_Schedule extends Tiger_Service_Service
      */
     public function setSchedule(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('setSchedule')) { $this->_error('core.api.error.not_allowed'); return; }
         $key = preg_replace('/[^a-zA-Z0-9._-]/', '', (string) ($params['key'] ?? ''));
         if ($key === '' || !Tiger_Schedule::get($key)) { $this->_error('schedule.unknown_job'); return; }
 
@@ -96,7 +96,7 @@ class Schedule_Service_Schedule extends Tiger_Service_Service
      */
     public function runNow(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('runNow')) { $this->_error('core.api.error.not_allowed'); return; }
         $key = preg_replace('/[^a-zA-Z0-9._-]/', '', (string) ($params['key'] ?? ''));
         if ($key === '' || !Tiger_Schedule::get($key)) { $this->_error('schedule.unknown_job'); return; }
         $r = Tiger_Schedule::runNow($key);

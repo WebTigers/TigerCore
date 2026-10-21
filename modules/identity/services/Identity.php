@@ -43,7 +43,7 @@ class Identity_Service_Identity extends Tiger_Service_Service
      */
     public function save(array $params): void
     {
-        if (!$this->_isAdmin()) {
+        if (!$this->_isAllowed('save')) {
             $this->_error('core.api.error.not_allowed');
             return;
         }
