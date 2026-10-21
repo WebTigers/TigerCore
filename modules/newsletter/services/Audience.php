@@ -23,14 +23,14 @@ class Newsletter_Service_Audience extends Tiger_Service_Service
     /** /api (admin): the newsletter segments an email tool / export can target. */
     public function segments(array $params): void
     {
-        if (!$this->_isAtLeastAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('segments')) { $this->_error('core.api.error.not_allowed'); return; }
         $this->_success(['segments' => self::listSegments((string) ($this->_org_id ?? ''))]);
     }
 
     /** /api (admin): resolve a segment to its contacts. @param array $params segment */
     public function members(array $params): void
     {
-        if (!$this->_isAtLeastAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('members')) { $this->_error('core.api.error.not_allowed'); return; }
         $this->_success(['members' => self::resolveMembers((string) ($this->_org_id ?? ''), (string) ($params['segment'] ?? ''))]);
     }
 
