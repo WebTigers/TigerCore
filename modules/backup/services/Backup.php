@@ -21,7 +21,7 @@ class Backup_Service_Backup extends Tiger_Service_Service
      */
     public function run(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('run')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $components = $this->_components($params);
         if (!$components) { $this->_error('backup.bad_component', ['field' => 'components']); return; }
@@ -53,7 +53,7 @@ class Backup_Service_Backup extends Tiger_Service_Service
      */
     public function remove(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('remove')) { $this->_error('core.api.error.not_allowed'); return; }
         $id = (string) ($params['backup_id'] ?? '');
         if ($id === '' || !(new Tiger_Model_Backup())->findById($id)) { $this->_error('backup.not_found'); return; }
         Tiger_Backup::delete($id);
@@ -68,7 +68,7 @@ class Backup_Service_Backup extends Tiger_Service_Service
      */
     public function restore(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('restore')) { $this->_error('core.api.error.not_allowed'); return; }
         if ((string) ($params['confirm'] ?? '') !== 'RESTORE') { $this->_error('backup.restore.confirm', ['field' => 'confirm']); return; }
 
         $model = new Tiger_Model_Backup();
@@ -103,7 +103,7 @@ class Backup_Service_Backup extends Tiger_Service_Service
      */
     public function saveSettings(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('saveSettings')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $components = $this->_components($params);
         $disk = $this->_disk($params['disk'] ?? 'local');

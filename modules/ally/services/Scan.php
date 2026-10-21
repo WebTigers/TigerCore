@@ -22,7 +22,7 @@ class Ally_Service_Scan extends Tiger_Service_Service
      */
     public function scan(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('scan')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $html   = (string) ($params['html'] ?? '');
         $pageId = trim((string) ($params['page_id'] ?? ''));
@@ -63,7 +63,7 @@ class Ally_Service_Scan extends Tiger_Service_Service
      */
     public function scanModule(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('scanModule')) { $this->_error('core.api.error.not_allowed'); return; }
         $mod = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($params['module'] ?? ''));
         if ($mod === '' || !defined('MODULES_PATH')) { $this->_error('ally.scan.module_not_found'); return; }
 
@@ -106,7 +106,7 @@ class Ally_Service_Scan extends Tiger_Service_Service
      */
     public function pages(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('pages')) { $this->_error('core.api.error.not_allowed'); return; }
         $this->_success(['pages' => $this->_pageList()], 'core.api.success');
     }
 
@@ -118,7 +118,7 @@ class Ally_Service_Scan extends Tiger_Service_Service
      */
     public function scanAll(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('scanAll')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $renderer = new Tiger_Cms_Renderer();
         $results  = [];
