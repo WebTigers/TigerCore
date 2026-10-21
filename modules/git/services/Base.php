@@ -20,10 +20,31 @@ abstract class Git_Service_Base extends Tiger_Service_Service
     /** @var null|callable():Tiger_Git_Provider_Interface test seam for the provider */
     protected static $adapterFactory = null;
 
+    /** @var null|callable(string,array,array):array test seam for the tarball installer */
+    protected static $installer = null;
+
     /** Swap the provider factory (tests inject a seam-wired adapter). Null restores the real one. */
     public static function setAdapterFactory(?callable $factory): void
     {
         self::$adapterFactory = $factory;
+    }
+
+    /**
+     * Swap the tarball-install step (tests avoid touching the modules dir). The callable mirrors
+     * Tiger_Module_Installer::installFromTarball($tar, $provenance, $opts). Null restores the real one.
+     */
+    public static function setInstaller(?callable $factory): void
+    {
+        self::$installer = $factory;
+    }
+
+    /** Install (update-in-place) a module from a local archive — the test seam if set, else the real installer. */
+    protected function _installTarball(string $tarPath, array $provenance, array $opts): array
+    {
+        if (self::$installer !== null) {
+            return (self::$installer)($tarPath, $provenance, $opts);
+        }
+        return Tiger_Module_Installer::installFromTarball($tarPath, $provenance, $opts);
     }
 
     /** Signed in with an org, or an error + false. (The ACL already gated the method at dispatch.) */
@@ -125,6 +146,19 @@ abstract class Git_Service_Base extends Tiger_Service_Service
             'outbound'    => (bool) ($env['outbound'] ?? false),
             'git_version' => $env['git_version'] ?? null,
             'remediation' => $env['remediation'] ?? null,
+        ];
+    }
+
+    /** The safe view of a module_install_pin row (installed/pinned versions + policy). */
+    protected function _pinView($pin): array
+    {
+        return [
+            'module_key'        => (string) $pin->module_key,
+            'installed_version' => $pin->installed_version !== null ? (string) $pin->installed_version : null,
+            'pinned_version'    => $pin->pinned_version !== null ? (string) $pin->pinned_version : null,
+            'previous_version'  => $pin->previous_version !== null ? (string) $pin->previous_version : null,
+            'channel'           => (string) $pin->channel,
+            'status'            => (string) $pin->status,
         ];
     }
 

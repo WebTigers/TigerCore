@@ -363,7 +363,7 @@
 - **CMS** (`cms`, app)  ·  services: Menu, Page, Paths, Settings  ·  `modules/cms`
 - **Code** (`code`, developer)  ·  services: Code  ·  `modules/code`
 - **Comments** (`comment`, app)  ·  services: Comment, Render, Settings, Subjects  ·  `modules/comment`
-- **TigerGit** (`git`, app)  ·  services: Base, Release, Repo  ·  `modules/git`
+- **TigerGit** (`git`, app)  ·  services: Base, Release, Repo, Update  ·  `modules/git`
 - **Identity** (`identity`, plugin)  ·  services: Identity  ·  `modules/identity`
 - **Matomo** (`matomo`, app)  ·  services: Matomo  ·  `modules/matomo`
 - **Mcp** (`mcp`, module)  ·  services: Settings  ·  `modules/mcp`

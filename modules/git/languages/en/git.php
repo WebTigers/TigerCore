@@ -9,6 +9,9 @@ return [
     'git.release.tagged'        => 'Release tag created.',
     'git.release.submitted'     => 'Release submitted for QA.',
     'git.release.decided'       => 'Release decision recorded.',
+    'git.update.applied'        => 'Update applied.',
+    'git.update.policy_set'     => 'Update policy saved.',
+    'git.update.rolled_back'    => 'Rolled back to the previous version.',
 
     // input / state errors
     'git.error.invalid_module'  => 'That module key is not valid.',
@@ -22,6 +25,12 @@ return [
     'git.error.invalid_decision'=> 'The decision must be approve or reject.',
     'git.error.release_not_found'=> 'That release could not be found.',
     'git.error.release_decided' => 'That release has already been decided.',
+    'git.error.no_update'       => 'There is no newer approved release to apply.',
+    'git.error.not_approved'    => 'That version is not an approved release.',
+    'git.error.version_pinned'  => 'That version is pinned after a rollback — choose a different one.',
+    'git.error.no_previous'     => 'There is no previous version to roll back to.',
+    'git.error.invalid_channel' => 'The update policy must be auto, notify, or pinned.',
+    'git.error.install_failed'  => 'The update downloaded but could not be installed.',
 
     // transport / provider errors (mapped from Tiger_Git_Exception codes)
     'git.error.credential_invalid'    => 'GitHub rejected the credential. Check the token and its access.',
