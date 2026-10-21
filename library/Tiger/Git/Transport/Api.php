@@ -235,7 +235,38 @@ class Tiger_Git_Transport_Api implements Tiger_Git_Transport_Interface
         return $destFile;
     }
 
-    // --- deferred to the rest of TIGER-364 (status/diff/switch/pull/tag over the API) -------------
+    /**
+     * Create an annotated tag over the API and point a tag ref at it — no local repo. The target is the
+     * commit resolved from $ref (a branch, tag or sha) or, by default, the current branch head. Mirrors
+     * the shell transport's annotated-tag semantics; the returned `sha` is the tagged COMMIT (not the
+     * tag object), so both transports agree.
+     */
+    public function tag(Tiger_Git_WorkingTree $tree, string $tag, ?string $ref = null): array
+    {
+        $this->assertTag($tag);
+        $repo = $this->repoPath($tree);
+
+        if ($ref !== null && $ref !== '') {
+            $this->assertTag($ref);
+            $commit = $this->api($tree, 'GET', $repo . '/commits/' . $ref);   // resolves a branch/tag/sha → a commit
+            $sha    = (string) ($commit['sha'] ?? '');
+        } else {
+            $head = $this->api($tree, 'GET', $repo . '/git/ref/heads/' . $tree->currentBranch());
+            $sha  = (string) ($head['object']['sha'] ?? '');
+        }
+        if ($sha === '') {
+            throw new Tiger_Git_Exception(Tiger_Git_Exception::INVALID_REF, 'could not resolve the commit to tag');
+        }
+
+        // The annotated tag object, then the ref that points at it (lightweight if the object step is skipped).
+        $obj    = $this->api($tree, 'POST', $repo . '/git/tags', ['tag' => $tag, 'message' => $tag, 'object' => $sha, 'type' => 'commit']);
+        $tagSha = (string) ($obj['sha'] ?? '');
+        $this->api($tree, 'POST', $repo . '/git/refs', ['ref' => 'refs/tags/' . $tag, 'sha' => $tagSha !== '' ? $tagSha : $sha]);
+
+        return ['tag' => $tag, 'sha' => $sha];
+    }
+
+    // --- deferred to the rest of TIGER-364 (status/diff/switch/pull over the API) -----------------
 
     public function status(Tiger_Git_WorkingTree $tree): array
     {
@@ -255,11 +286,6 @@ class Tiger_Git_Transport_Api implements Tiger_Git_Transport_Interface
     public function pull(Tiger_Git_WorkingTree $tree, string $branch): array
     {
         throw $this->notImplemented('pull');
-    }
-
-    public function tag(Tiger_Git_WorkingTree $tree, string $tag, ?string $ref = null): array
-    {
-        throw $this->notImplemented('tag');
     }
 
     // --- internals -------------------------------------------------------------------------------

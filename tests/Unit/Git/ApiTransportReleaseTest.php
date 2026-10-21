@@ -139,6 +139,33 @@ final class ApiTransportReleaseTest extends UnitTestCase
     }
 
     #[Test]
+    public function tag_creates_an_annotated_tag_object_then_the_ref(): void
+    {
+        $calls = [];
+        $http = $this->http($calls, function (string $m, string $url): array {
+            if ($m === 'GET'  && str_contains($url, '/git/ref/heads/main')) { return ['status' => 200, 'body' => json_encode(['object' => ['sha' => 'HEADSHA']])]; }
+            if ($m === 'POST' && str_contains($url, '/git/tags'))           { return ['status' => 201, 'body' => json_encode(['sha' => 'TAGOBJ'])]; }
+            if ($m === 'POST' && str_contains($url, '/git/refs'))           { return ['status' => 201, 'body' => json_encode(['ref' => 'refs/tags/v1.0.0'])]; }
+            return ['status' => 404, 'body' => '{}'];
+        });
+        $api = new Tiger_Git_Transport_Api($this->creds('ghp_token'), $http);
+
+        $out = $api->tag($this->tree(), 'v1.0.0');
+
+        $this->assertSame('v1.0.0', $out['tag']);
+        $this->assertSame('HEADSHA', $out['sha'], 'the returned sha is the tagged COMMIT, not the tag object');
+
+        $seq = array_map(fn ($c) => $c['method'] . ' ' . parse_url($c['url'], PHP_URL_PATH), $calls);
+        $this->assertSame([
+            'GET /repos/acme/mod/git/ref/heads/main',
+            'POST /repos/acme/mod/git/tags',
+            'POST /repos/acme/mod/git/refs',
+        ], $seq);
+        $this->assertSame('refs/tags/v1.0.0', json_decode($calls[2]['body'], true)['ref']);
+        $this->assertSame('TAGOBJ', json_decode($calls[2]['body'], true)['sha'], 'the ref points at the annotated tag object');
+    }
+
+    #[Test]
     public function fetch_archive_refuses_a_bad_tag_before_any_call(): void
     {
         $calls = [];

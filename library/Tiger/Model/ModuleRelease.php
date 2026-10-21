@@ -34,6 +34,17 @@ class Tiger_Model_ModuleRelease extends Tiger_Model_Table
         );
     }
 
+    /** Every active release for a module, newest first (the release list — any status). */
+    public function forModule($orgId, $moduleKey)
+    {
+        return $this->fetchAll(
+            $this->activeSelect()
+                ->where('org_id = ?', (string) $orgId)
+                ->where('module_key = ?', (string) $moduleKey)
+                ->order('created_at DESC')
+        );
+    }
+
     /** A specific release by tag (to check status / prevent tag reuse), or null. */
     public function byTag($orgId, $moduleKey, $tag)
     {
