@@ -46,7 +46,7 @@ class Translations_Service_Translation extends Tiger_Service_Service
      */
     public function datatable(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('datatable')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $dt      = $this->_dtParams($params);
         $default = $this->_default();
@@ -95,7 +95,7 @@ class Translations_Service_Translation extends Tiger_Service_Service
         });
 
         $page     = array_slice($rows, $dt['start'], $dt['length']);
-        $canEdit  = $this->_isAdmin(static::class, 'save');
+        $canEdit  = $this->_isAllowed('save');
 
         $data = [];
         foreach ($page as $r) {
@@ -118,7 +118,7 @@ class Translations_Service_Translation extends Tiger_Service_Service
      */
     public function entry(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('entry')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $key = trim((string) ($params['key'] ?? ''));
         if ($key === '') { $this->_error('translations.error.no_key'); return; }
@@ -162,7 +162,7 @@ class Translations_Service_Translation extends Tiger_Service_Service
      */
     public function save(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $key    = trim((string) ($params['key'] ?? ''));
         $values = (array) ($params['values'] ?? []);
@@ -200,7 +200,7 @@ class Translations_Service_Translation extends Tiger_Service_Service
      */
     public function revert(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('revert')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $key = trim((string) ($params['key'] ?? ''));
         if ($key === '') { $this->_error('translations.error.no_key'); return; }
@@ -233,7 +233,7 @@ class Translations_Service_Translation extends Tiger_Service_Service
      */
     public function translate(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('translate')) { $this->_error('core.api.error.not_allowed'); return; }
         if (!Tiger_Agent::isConnected()) { $this->_error('translations.error.no_ai'); return; }
 
         $source = (string) ($params['source'] ?? '');
@@ -264,7 +264,7 @@ class Translations_Service_Translation extends Tiger_Service_Service
      */
     public function context(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('context')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $key = trim((string) ($params['key'] ?? ''));
         if ($key === '') { $this->_error('translations.error.no_key'); return; }

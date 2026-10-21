@@ -34,7 +34,7 @@ class Profile_Service_OrgLogo extends Tiger_Service_Service
      */
     public function upload(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('upload')) { $this->_error('core.api.error.not_allowed'); return; }
         $orgId = (string) $this->_org_id;
         if ($orgId === '') { $this->_error('core.api.error.not_allowed'); return; }
 
@@ -105,7 +105,7 @@ class Profile_Service_OrgLogo extends Tiger_Service_Service
      */
     public function remove(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('remove')) { $this->_error('core.api.error.not_allowed'); return; }
         $orgId = (string) $this->_org_id;
         if ($orgId === '') { $this->_error('core.api.error.not_allowed'); return; }
         (new Tiger_Model_Option())->forget(Tiger_Model_Option::SCOPE_ORG, $orgId, self::OPTION_KEY);

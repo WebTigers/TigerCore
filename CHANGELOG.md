@@ -6,6 +6,15 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.33.0] — 2026-10-21
+
+### Changed
+- **TIGER-335 migration (batch 2)** — `_isAdmin()` → `_isAllowed('<method>')` in five more
+  blanket-granted modules: **analytics** (TIGER-354), **code** (TIGER-345, incl. the datatable
+  `can_edit`/`can_delete` privilege flags), **translations** (TIGER-346), **profile** (TIGER-340, the
+  admin `Org*` services), **access** (TIGER-339, incl. the User/Org datatable flags). Behavior-preserving;
+  no `acl.ini` changes (each service is a wildcard-privilege grant to its role).
+
 ## [1.32.0] — 2026-10-21
 
 ### Changed
