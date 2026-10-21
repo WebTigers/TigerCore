@@ -154,11 +154,12 @@ class Tiger_Controller_Plugin_Authorization extends Zend_Controller_Plugin_Abstr
         return $class;
     }
 
-    /** Denied: locked -> lock card; guests -> login (302); authed-but-forbidden -> themed 403. */
+    /** Denied: locked -> lock card; guests -> login (302); authed-but-forbidden -> their dashboard (logged). */
     protected function _deny($role)
     {
         $auth = new Tiger_Service_Authentication();
-        $path = (string) $this->getRequest()->getPathInfo();
+        $request = $this->getRequest();
+        $path = (string) $request->getPathInfo();
         $redirector = Zend_Controller_Action_HelperBroker::getStaticHelper('redirector');
 
         // Remember where they were headed (in SESSION, not a URL param) so login /
@@ -176,15 +177,45 @@ class Tiger_Controller_Plugin_Authorization extends Zend_Controller_Plugin_Abstr
             $redirector->gotoUrlAndExit('/auth/login');
         }
 
-        // Authenticated but forbidden: re-dispatch to the themed 403 page instead of
-        // emitting a bare string. ErrorController is public in acl.ini, so the
-        // re-dispatch passes this same gate cleanly (no deny loop).
-        $request = $this->getRequest();
+        // Authenticated but forbidden. They likely just reached for something above their role, so
+        // DON'T wall them with a themed 403 — LOG the attempt (audit; Tiger_Log auto-enriches with
+        // user/org/role) and send them back to their own dashboard (TIGER-359). The themed 403 stays
+        // as the loop-guard fallback for the one case where the forbidden resource IS their dashboard.
+        Tiger_Log::warn('acl.denied', [
+            'resource' => $this->_resourceFor($request),
+            'action'   => (string) $request->getActionName(),
+            'path'     => $path,
+            'role'     => $role,
+        ]);
+
+        $target = $this->_forbiddenRedirect($path, Zend_Auth::getInstance()->getIdentity());
+        if ($target !== null) {
+            $redirector->gotoUrlAndExit($target);
+            return;
+        }
+
+        // Loop guard: forbidden their OWN dashboard — re-dispatch to the themed 403 instead of
+        // bouncing. ErrorController is public in acl.ini, so the re-dispatch passes this gate cleanly.
         $request->setModuleName('default')
                 ->setControllerName('error')
                 ->setActionName('forbidden')
                 ->setDispatched(false);
         $this->getResponse()->setHttpResponseCode(403);
+    }
+
+    /**
+     * Where an authenticated-but-forbidden caller who hit $path should be sent: their dashboard
+     * (Tiger_Service_Authentication::homeFor), unless the forbidden resource IS that dashboard — then
+     * null, so _deny() falls back to the themed 403 and no redirect loop can form.
+     *
+     * @param  string      $path     the forbidden request path
+     * @param  object|null $identity the Zend_Auth identity
+     * @return string|null           the dashboard path, or null to show the themed 403
+     */
+    protected function _forbiddenRedirect($path, $identity)
+    {
+        $home = Tiger_Service_Authentication::homeFor($identity);
+        return (rtrim((string) $path, '/') === rtrim($home, '/')) ? null : $home;
     }
 
     /** hyphen/dot/underscore-slug -> StudlyCase (user-admin -> UserAdmin). */

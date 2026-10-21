@@ -399,8 +399,8 @@ class AuthController extends Tiger_Controller_Action
     /** Role-appropriate landing after auth: admin back office for admin+, else the "My Account" dashboard. */
     protected function _roleHome($identity)
     {
-        $role = ($identity && isset($identity->role)) ? $identity->role : '';
-        return in_array($role, self::ADMIN_ROLES, true) ? '/admin' : '/account';
+        // One authority for "the identity's dashboard", shared with the authorization gate (TIGER-359).
+        return Tiger_Service_Authentication::homeFor($identity);
     }
 
     /**

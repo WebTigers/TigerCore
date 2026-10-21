@@ -8,6 +8,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tiger\Tests\Support\ControllerTestCase;
 use Tiger_Controller_Plugin_Authorization;
+use Tiger_Log;
+use Zend_Config;
 use Zend_Controller_Front;
 use Zend_Controller_Request_Http;
 use Zend_Controller_Response_Http;
@@ -23,10 +25,11 @@ use Zend_Session;
  *     to login for a URL that doesn't exist);
  *   - the gate fails OPEN when no `Zend_Acl` is registered (a partial boot never locks the app out);
  *   - a guest-allowed controller (IndexController) proceeds untouched;
- *   - an authenticated-but-forbidden caller is DENIED → re-dispatched to the themed 403 (error/forbidden,
- *     HTTP 403) rather than emitting a bare string. That forbidden branch of `_deny()` doesn't exit the
- *     process, so it's assertable in-process (the guest/locked branches call gotoUrlAndExit — a real
- *     process exit — so they stay at the functional/smoke level).
+ *   - an authenticated-but-forbidden caller is DENIED → redirected to their own dashboard (TIGER-359),
+ *     EXCEPT when the forbidden resource IS that dashboard, which falls back to the themed 403
+ *     (error/forbidden, HTTP 403) — the loop-guard branch, which doesn't exit the process, so it's
+ *     assertable in-process. The ordinary redirect + the guest/locked branches call gotoUrlAndExit (a
+ *     real process exit), so the redirect TARGET is pinned by `_forbiddenRedirect` in the sibling test.
  *
  * Uses Zend's array-backed unit-test session so `setReturnTo()` / `isLocked()` (session reads/writes in
  * the deny path) run for real under CLI.
@@ -109,16 +112,33 @@ final class AuthorizationPluginExtraTest extends ControllerTestCase
     }
 
     #[Test]
-    public function an_authenticated_but_forbidden_caller_is_forwarded_to_the_403(): void
+    public function an_authenticated_forbidden_caller_hitting_their_own_dashboard_falls_back_to_403(): void
     {
-        $this->loginAsReal('user');                  // a plain user...
-        $req = $this->request('admin');          // ...hitting AdminController, which has no allow rule
-        $res = $this->runGate($req);
+        // The ordinary forbidden case now REDIRECTS to the dashboard via gotoUrlAndExit (a real exit —
+        // its target is pinned by _forbiddenRedirect in the sibling test). The one in-process-assertable
+        // branch is the LOOP GUARD: an authenticated user forbidden their OWN dashboard path must NOT be
+        // bounced to the dashboard again — it re-dispatches to the themed 403 instead (TIGER-359).
+        $this->loginAsReal('user');                  // a plain user → dashboard is /account...
+        $req = $this->request('admin');              // ...hitting AdminController (no allow rule for user)
+        $req->setPathInfo('/account');               // ...reached AT the dashboard path → loop guard fires
 
-        // _deny(): not a guest, not locked → re-dispatch to the themed 403 (no process exit).
+        // _deny() logs the attempt via Tiger_Log; route it to a null writer so the diagnostic line
+        // doesn't print during the test (the established Tiger_Log test pattern).
+        $prior = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
+        $arr = $prior ? $prior->toArray() : [];
+        $arr['tiger']['log']['writer'] = 'null';
+        Zend_Registry::set('Zend_Config', new Zend_Config($arr));
+        Tiger_Log::reset();
+        try {
+            $res = $this->runGate($req);
+        } finally {
+            if ($prior !== null) { Zend_Registry::set('Zend_Config', $prior); }
+            Tiger_Log::reset();
+        }
+
         $this->assertSame(403, $res->getHttpResponseCode());
         $this->assertSame('error', $req->getControllerName());
         $this->assertSame('forbidden', $req->getActionName());
-        $this->assertFalse($req->isDispatched(), 'the request is re-queued for the error controller');
+        $this->assertFalse($req->isDispatched(), 'the request is re-queued for the error controller, no redirect loop');
     }
 }
