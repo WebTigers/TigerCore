@@ -18,7 +18,7 @@ class Sms_Service_Settings extends Tiger_Service_Service
      */
     public function save(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $provider = strtolower(trim((string) ($params['provider'] ?? '')));
         if ($provider !== '' && !in_array($provider, Tiger_Sms::providers(), true)) {
@@ -60,7 +60,7 @@ class Sms_Service_Settings extends Tiger_Service_Service
      */
     public function test(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('test')) { $this->_error('core.api.error.not_allowed'); return; }
         $to  = (string) ($params['to'] ?? '');
         $msg = trim((string) ($params['message'] ?? '')) ?: 'Tiger SMS test message.';
         if ($to === '') { $this->_error('sms.settings.error.to'); return; }

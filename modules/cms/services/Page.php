@@ -29,7 +29,7 @@ class Cms_Service_Page extends Tiger_Service_Service
      */
     public function datatable(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('datatable')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $dt = $this->_dtParams($params);
 
@@ -48,8 +48,8 @@ class Cms_Service_Page extends Tiger_Service_Service
 
         // Server-authoritative control permissions (per-caller, privilege-checked so
         // tightening save/delete in the ACL flows straight through to the buttons).
-        $canEdit   = $this->_isAdmin(static::class, 'save');
-        $canDelete = $this->_isAdmin(static::class, 'delete');
+        $canEdit   = $this->_isAllowed('save');
+        $canDelete = $this->_isAllowed('delete');
 
         $rows = [];
         foreach ($data['rows'] as $r) {
@@ -83,7 +83,7 @@ class Cms_Service_Page extends Tiger_Service_Service
      */
     public function themeTemplates(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('themeTemplates')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $dt = $this->_dtParams($params);
 
@@ -137,7 +137,7 @@ class Cms_Service_Page extends Tiger_Service_Service
         // Paginate.
         $page = array_slice($rows, (int) $dt['start'], ((int) $dt['length'] > 0) ? (int) $dt['length'] : null);
 
-        $canEdit = $this->_isAdmin(static::class, 'save');
+        $canEdit = $this->_isAllowed('save');
         foreach ($page as &$r) { $r['can_edit'] = $canEdit; }
         unset($r);
 
@@ -172,7 +172,7 @@ class Cms_Service_Page extends Tiger_Service_Service
      */
     public function forkTheme(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('forkTheme')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $kind = (string) ($params['kind'] ?? 'page');
         if (!in_array($kind, ['page', 'layout', 'partial'], true)) { $kind = 'page'; }
@@ -264,7 +264,7 @@ class Cms_Service_Page extends Tiger_Service_Service
      */
     public function save(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $form = new Cms_Form_Page();
         if (!$form->isValid($params)) { $this->_formErrors($form); return; }
@@ -354,7 +354,7 @@ class Cms_Service_Page extends Tiger_Service_Service
      */
     public function saveDesign(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('saveDesign')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $pageId = trim((string) ($params['page_id'] ?? ''));
         if ($pageId === '') { $this->_error('core.api.error.general'); return; }
@@ -423,7 +423,7 @@ class Cms_Service_Page extends Tiger_Service_Service
      */
     public function saveBlock(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('saveBlock')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $name = trim((string) ($params['name'] ?? ''));
         if ($name === '') { $this->_error('cms.block.name_required'); return; }
@@ -478,7 +478,7 @@ class Cms_Service_Page extends Tiger_Service_Service
      */
     public function delete(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
         $id = !empty($params['page_id']) ? (string) $params['page_id'] : '';
         if ($id === '') { $this->_error('core.api.error.general'); return; }
 
@@ -498,7 +498,7 @@ class Cms_Service_Page extends Tiger_Service_Service
      */
     public function restore(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('restore')) { $this->_error('core.api.error.not_allowed'); return; }
         $id      = !empty($params['page_id']) ? (string) $params['page_id'] : '';
         $version = isset($params['version']) ? (int) $params['version'] : 0;
         if ($id === '' || $version < 1) { $this->_error('core.api.error.general'); return; }

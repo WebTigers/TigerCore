@@ -19,7 +19,7 @@ class Mcp_Service_Settings extends Tiger_Service_Service
      */
     public function save(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $on = !empty($params['enabled']) && $params['enabled'] !== '0' && $params['enabled'] !== 'false';
         try {
@@ -39,7 +39,7 @@ class Mcp_Service_Settings extends Tiger_Service_Service
      */
     public function mintToken(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('mintToken')) { $this->_error('core.api.error.not_allowed'); return; }
         $identity = Zend_Auth::getInstance()->getIdentity();
         $userId   = $identity->user_id ?? null;
         if ($userId === null) { $this->_error('core.api.error.login_required'); return; }
@@ -62,7 +62,7 @@ class Mcp_Service_Settings extends Tiger_Service_Service
     /** List the caller's MCP tokens with their scope (prefix + timestamps + modules/read_only/org_scoped). */
     public function tokens(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('tokens')) { $this->_error('core.api.error.not_allowed'); return; }
         $userId = Zend_Auth::getInstance()->getIdentity()->user_id ?? null;
         if ($userId === null) { $this->_error('core.api.error.login_required'); return; }
 
@@ -80,7 +80,7 @@ class Mcp_Service_Settings extends Tiger_Service_Service
     /** Revoke one of the caller's tokens + drop its MCP policy. */
     public function revokeToken(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('revokeToken')) { $this->_error('core.api.error.not_allowed'); return; }
         $userId = Zend_Auth::getInstance()->getIdentity()->user_id ?? null;
         $id     = (string) ($params['credential_id'] ?? '');
         if ($userId === null || $id === '') { $this->_error('core.api.error.general'); return; }

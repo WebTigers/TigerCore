@@ -54,11 +54,11 @@ class Cms_Service_Menu extends Tiger_Service_Service
      */
     public function datatable(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('datatable')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $dt        = $this->_dtParams($params);
-        $canEdit   = $this->_isAdmin(static::class, 'save');
-        $canDelete = $this->_isAdmin(static::class, 'deleteMenu');
+        $canEdit   = $this->_isAllowed('save');
+        $canDelete = $this->_isAllowed('deleteMenu');
 
         // Theme display names (all installed) so a menu shows its origin theme even after deactivation.
         $active = Tiger_Theme::active();                 // {key, name, dir}
@@ -158,7 +158,7 @@ class Cms_Service_Menu extends Tiger_Service_Service
      */
     public function save(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $menuKey = trim((string) ($params['menu_key'] ?? ''));
         if ($menuKey === '') { $this->_error('cms.menu.key_required'); return; }
@@ -218,7 +218,7 @@ class Cms_Service_Menu extends Tiger_Service_Service
      */
     public function delete(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
         $id = (string) ($params['menu_id'] ?? '');
         if ($id === '') { $this->_error('core.api.error.general'); return; }
         $menuKey = (string) ($params['menu_key'] ?? '');
@@ -243,7 +243,7 @@ class Cms_Service_Menu extends Tiger_Service_Service
      */
     public function deleteMenu(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('deleteMenu')) { $this->_error('core.api.error.not_allowed'); return; }
         $menuKey = (string) ($params['menu_key'] ?? '');
         $orgId = $this->_scopedOrgId($params);
         if ($orgId === null) { $this->_error('core.api.error.not_allowed'); return; }
@@ -267,7 +267,7 @@ class Cms_Service_Menu extends Tiger_Service_Service
      */
     public function reorder(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('reorder')) { $this->_error('core.api.error.not_allowed'); return; }
         $menuKey = (string) ($params['menu_key'] ?? '');
         $orgId = $this->_scopedOrgId($params);
         if ($orgId === null) { $this->_error('core.api.error.not_allowed'); return; }
@@ -305,7 +305,7 @@ class Cms_Service_Menu extends Tiger_Service_Service
      */
     public function importFromTheme(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('importFromTheme')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $themeMenus = Tiger_Theme_Menus::all();
         if (!$themeMenus) { $this->_error('cms.menu.import_none'); return; }
@@ -362,7 +362,7 @@ class Cms_Service_Menu extends Tiger_Service_Service
      */
     public function revertToTheme(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('revertToTheme')) { $this->_error('core.api.error.not_allowed'); return; }
         $menuKey = (string) ($params['menu_key'] ?? '');
         $orgId = $this->_scopedOrgId($params);
         if ($orgId === null) { $this->_error('core.api.error.not_allowed'); return; }

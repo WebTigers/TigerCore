@@ -31,7 +31,7 @@ class Cms_Service_Paths extends Tiger_Service_Service
      */
     public function search(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('search')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $q        = trim((string) ($params['q'] ?? ''));
         $advanced = !empty($params['advanced']) && (string) $params['advanced'] !== '0';

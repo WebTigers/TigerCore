@@ -22,7 +22,7 @@ class Blog_Service_Post extends Tiger_Service_Service
      */
     public function datatable(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('datatable')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $dt    = $this->_dtParams($params);
         $model = new Blog_Model_Post();
@@ -35,8 +35,8 @@ class Blog_Service_Post extends Tiger_Service_Service
             'limit'    => $dt['length'],
         ]);
 
-        $canEdit   = $this->_isAdmin(static::class, 'save');
-        $canDelete = $this->_isAdmin(static::class, 'delete');
+        $canEdit   = $this->_isAllowed('save');
+        $canDelete = $this->_isAllowed('delete');
 
         $rows = [];
         foreach ($data['rows'] as $r) {
@@ -69,7 +69,7 @@ class Blog_Service_Post extends Tiger_Service_Service
      */
     public function save(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $form = new Blog_Form_Post();
         if (!$form->isValid($params)) { $this->_formErrors($form); return; }
@@ -138,7 +138,7 @@ class Blog_Service_Post extends Tiger_Service_Service
      */
     public function delete(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
         $id = !empty($params['post_id']) ? (string) $params['post_id'] : '';
         if ($id === '') { $this->_error('core.api.error.general'); return; }
 
@@ -158,7 +158,7 @@ class Blog_Service_Post extends Tiger_Service_Service
      */
     public function restore(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('restore')) { $this->_error('core.api.error.not_allowed'); return; }
         $id      = !empty($params['post_id']) ? (string) $params['post_id'] : '';
         $version = isset($params['version']) ? (int) $params['version'] : 0;
         if ($id === '' || $version < 1) { $this->_error('core.api.error.general'); return; }

@@ -21,7 +21,7 @@ class Blog_Service_Taxonomy extends Tiger_Service_Service
      */
     public function listTerms(array $params): void
     {
-        if (!$this->_isAdmin()) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_isAllowed('listTerms')) { $this->_error('core.api.error.not_allowed'); return; }
 
         $vocab = ($params['vocabulary'] ?? '') === Blog_Model_Taxonomy::VOCAB_CATEGORY
             ? Blog_Model_Taxonomy::VOCAB_CATEGORY : Blog_Model_Taxonomy::VOCAB_TAG;
