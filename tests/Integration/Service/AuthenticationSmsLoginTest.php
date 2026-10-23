@@ -12,6 +12,9 @@ use Tiger_Model_SmsConsent;
 use Tiger_Model_User;
 use Tiger_Model_UserCredential;
 use Tiger_Service_Authentication;
+use Zend_Auth;
+use Zend_Auth_Storage_Session;
+use Zend_Session;
 
 /**
  * Tiger_Service_Authentication — passwordless login BY PHONE (sms_otp), TIGER-376.
@@ -24,11 +27,27 @@ use Tiger_Service_Authentication;
 final class AuthenticationSmsLoginTest extends IntegrationTestCase
 {
     private Tiger_Service_Authentication $auth;
+    private $priorUnitTestMode;
 
     protected function setUp(): void
     {
         parent::setUp();
+        // _finishLogin regenerates the session id (fixation guard); use Zend's array-backed unit-test
+        // session mode so that runs without an active PHP session (else a warning fails the suite).
+        $this->priorUnitTestMode = Zend_Session::$_unitTestEnabled;
+        Zend_Session::$_unitTestEnabled = true;
+        $_SESSION = [];
+        Zend_Auth::getInstance()->setStorage(new Zend_Auth_Storage_Session());
+        Zend_Auth::getInstance()->clearIdentity();
         $this->auth = new Tiger_Service_Authentication();
+    }
+
+    protected function tearDown(): void
+    {
+        Zend_Auth::getInstance()->clearIdentity();
+        $_SESSION = [];
+        Zend_Session::$_unitTestEnabled = $this->priorUnitTestMode;
+        parent::tearDown();
     }
 
     /** Create an active user with a VERIFIED sms factor for $e164; returns the user_id. */
