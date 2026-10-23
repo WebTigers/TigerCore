@@ -19,7 +19,7 @@
  *     through unchanged. mtime lookups are memoized per request.
  *
  *   $this->asset($this->themeAssets . '/css/default.css')
- *   // → /_theme/css/default.css?v=1713900000
+ *   // (theme asset)→ /_theme/css/default.css?v=1713900000
  *
  * @api
  */
@@ -37,12 +37,27 @@ class Tiger_View_Helper_Asset extends Zend_View_Helper_Abstract
      * Remote/protocol-relative/empty paths, and paths whose file can't be stat'd, pass
      * through unchanged. Results are memoized per request.
      *
-     * @param  string $path the root-relative asset path (e.g. `/_theme/css/app.css`)
-     * @return string       the versioned URL, or the original path when it can't be versioned
+     * With a module slug as the second argument the path resolves against that module's published
+     * assets dir — `asset('js/x.js', 'sms')` → `/_modules/sms/js/x.js`. This is the intended form for a
+     * module view: before it, a bare `asset('js/x.js', 'sms')` passed a RELATIVE path straight through
+     * (no leading `/`), so the file 404'd and the JS silently never loaded. Prefer it over hand-writing
+     * the `/_modules/<slug>/…` path.
+     *
+     * @param  string      $path   the asset path — root-relative (`/_theme/css/app.css`), or module-
+     *                             relative (`js/app.js`) when $module is given
+     * @param  string|null $module a module slug; resolves $path against `/_modules/<slug>/`
+     * @return string              the versioned URL, or the original path when it can't be versioned
      */
-    public function asset($path)
+    public function asset($path, $module = null)
     {
         $path = (string) $path;
+
+        // Module asset: resolve against the module's published dir (public/_modules/<slug>), so the
+        // natural "name the module" call works instead of silently emitting a 404-ing relative path.
+        if ($module !== null && (string) $module !== '') {
+            $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) $module);
+            $path = '/_modules/' . $slug . '/' . ltrim($path, '/');
+        }
 
         // Off, empty, or not a local same-origin path -> pass through untouched.
         if (!$this->_enabled() || $path === '' || $path[0] !== '/' || strpos($path, '//') === 0) {

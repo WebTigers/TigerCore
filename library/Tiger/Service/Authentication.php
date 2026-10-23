@@ -364,22 +364,14 @@ class Tiger_Service_Authentication
 
     // ----- one-time-code login (passwordless) --------------------------------
     //
-    // CHANNEL = EMAIL. The challenge → verify → establish machinery is channel-
-    // AGNOSTIC: only (a) how the user is identified and (b) how the code is delivered
-    // differ. The substrate for SMS already exists (user_credential type 'sms' + a
-    // phone identifier; auth_challenge type 'sms_otp'), so ADDING SMS OTP later is a
-    // small, additive change — do NOT rework the machinery below:
-    //
-    //   1. Build a Tiger_Sms transport (a Tiger_Mail sibling: config-driven SNS/Twilio,
-    //      creds in the DB config layer like mail.smtp.*). NOT part of this version.
-    //   2. Add requestLoginCodeSms($e164): resolve the user via
-    //      Tiger_Model_UserCredential::findVerifiedByIdentifier('sms', $e164), enforce
-    //      the same send-cap, issue an 'sms_otp' challenge, deliver via Tiger_Sms.
-    //   3. Add verifyLoginCodeSms($e164, $code): resolve the same user, then call
-    //      $this->_completeCodeLogin($user, 'sms_otp', $e164, $code) — verify +
-    //      _establish + audit are REUSED verbatim; no new session logic.
-    //
-    // See the "SMS / OTP flow" backlog item. Not implemented in this version.
+    // The challenge → verify → establish machinery is channel-AGNOSTIC: only (a) how the
+    // user is identified and (b) how the code is delivered differ. BOTH channels ship:
+    // EMAIL (requestLoginCode / verifyLoginCode) and SMS (requestLoginCodeSms /
+    // verifyLoginCodeSms, TIGER-376), and both delegate to _completeCodeLogin() — verify +
+    // _establish + audit are reused verbatim. SMS resolves the user via a VERIFIED `sms`
+    // factor (Tiger_Model_UserCredential::findVerifiedByIdentifier), which is globally
+    // unique (migration 0056), so a number maps to exactly one account. Do NOT fork the
+    // machinery for a new channel — add a request/verify pair that reuses _completeCodeLogin.
 
     const OTP_TTL      = 600;   // one-time code lifetime, seconds (10 min)
     const OTP_SEND_CAP = 5;     // max codes emailed per user per hour (anti-bombing)
@@ -432,6 +424,70 @@ class Tiger_Service_Authentication
     {
         $user = (new Tiger_Model_User())->findByEmail($email);
         return $this->_completeCodeLogin($user, 'email_login', (string) $email, $code);
+    }
+
+    /**
+     * Text a one-time login code. If the number maps to an ACTIVE user via a VERIFIED `sms` factor
+     * (globally unique — migration 0056) and is under the hourly send cap, issue an sms_otp challenge
+     * and send a 6-digit code via Tiger_Sms. ALWAYS returns void (no enumeration: the response never
+     * reveals whether a number is enrolled), and never sends to a number that has texted STOP.
+     *
+     * @param  string $phone the mobile number (any form; normalized to E.164)
+     * @return void
+     */
+    public function requestLoginCodeSms($phone)
+    {
+        $e164 = Tiger_Sms::e164((string) $phone);
+        if ($e164 === '') { return; }
+
+        $cred = (new Tiger_Model_UserCredential())->findVerifiedByIdentifier('sms', $e164);
+        if (!$cred) { return; }   // no verified number → silent (no enumeration)
+        $user = (new Tiger_Model_User())->activeById((string) $cred->user_id);
+        if (!$user) { return; }
+
+        // Respect a STOP — never text a suppressed number, even a login code.
+        if ((new Tiger_Model_SmsConsent())->isSuppressed($e164)) { return; }
+
+        $model = new Tiger_Model_AuthChallenge();
+        if ($model->countRecent($user->user_id, 'sms_otp', 3600) >= self::OTP_SEND_CAP) {
+            return;   // throttled — stop texting, but the caller/UI can't tell
+        }
+
+        $model->invalidateActive($user->user_id, 'sms_otp');   // a fresh code voids the previous one
+        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);   // leading zeros kept
+        $model->issue($user->user_id, 'sms_otp', $code, self::OTP_TTL);
+
+        $brand = $this->_siteName();
+        Tiger_Sms::send($e164, $brand . ' sign-in code: ' . $code . '. It expires in 10 minutes. Reply HELP for help, STOP to opt out.');
+    }
+
+    /**
+     * Verify a texted login code and establish the session (passwordless sign-in by phone).
+     * Resolves the user from the verified `sms` factor, then reuses _completeCodeLogin.
+     *
+     * @param  string $phone the mobile number the code was sent to
+     * @param  string $code  the 6-digit code the user entered
+     * @return object|false
+     */
+    public function verifyLoginCodeSms($phone, $code)
+    {
+        $e164 = Tiger_Sms::e164((string) $phone);
+        $cred = $e164 !== '' ? (new Tiger_Model_UserCredential())->findVerifiedByIdentifier('sms', $e164) : null;
+        $user = $cred ? (new Tiger_Model_User())->findById((string) $cred->user_id) : null;
+        return $this->_completeCodeLogin($user, 'sms_otp', $e164, $code);
+    }
+
+    /**
+     * The configured site/brand name (for an SMS/email code), or 'Tiger' when unset.
+     *
+     * @return string
+     */
+    protected function _siteName()
+    {
+        $cfg  = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
+        $site = ($cfg && $cfg->get('tiger')) ? $cfg->tiger->get('site') : null;
+        $name = ($site && (string) $site->get('name') !== '') ? (string) $site->get('name') : 'Tiger';
+        return $name;
     }
 
     /**

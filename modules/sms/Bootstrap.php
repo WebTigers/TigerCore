@@ -19,6 +19,27 @@ class Sms_Bootstrap extends Zend_Application_Module_Bootstrap
         Tiger_Sms::register('telnyx', 'Tiger_Sms_Adapter_Telnyx');
     }
 
+    /**
+     * Honor STOP / START on inbound SMS — the carrier-required opt-out/opt-in that suppresses (or
+     * re-enables) alerts to a number. Transport is TigerSMS's job; interpreting the keyword is ours, so
+     * we subscribe to the inbound event and record it against the consent ledger (Tiger_Model_SmsConsent).
+     * HELP is left to the carrier's canned auto-reply (and our help message copy) — no state change.
+     */
+    protected function _initSmsInboundConsent()
+    {
+        if (!class_exists('Tiger_Sms') || !class_exists('Tiger_Model_SmsConsent')) { return; }
+        Tiger_Sms::onInbound(function (array $m) {
+            $from = (string) ($m['from'] ?? '');
+            if ($from === '') { return; }
+            $body = strtoupper(trim((string) ($m['body'] ?? '')));
+            $stop  = ['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT', 'OPTOUT'];
+            $start = ['START', 'YES', 'UNSTOP', 'OPTIN'];
+            $consent = new Tiger_Model_SmsConsent();
+            if (in_array($body, $stop, true))  { $consent->optOutByPhone($from); }
+            elseif (in_array($body, $start, true)) { $consent->optInByPhone($from); }
+        });
+    }
+
     /** Add the SMS settings page to the shared admin Settings tree (ACL-filtered, no core edit). */
     protected function _initSmsSettings()
     {
