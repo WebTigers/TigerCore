@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**244 classes** across **33 capabilities** · **26 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**245 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -308,6 +308,7 @@
 - **Tiger_Model_AgentRun** `@api` — one turn's execution + control record (see migration 0036).  ·  `library/Tiger/Model/AgentRun.php`
 - **Tiger_Model_Comment** `@api` — the one comment/review store (migration 0045).  ·  `library/Tiger/Model/Comment.php`
 - **Tiger_Model_CommentAggregate** `@api` — the denormalized per-subject rollup (migration 0046).  ·  `library/Tiger/Model/CommentAggregate.php`
+- **Tiger_Model_EmailTemplate** `@api` — EmailTemplate — the DB-override tier for Tiger_Mail's transactional templates (see migration 0054).  ·  `library/Tiger/Model/EmailTemplate.php`
 - **Tiger_Model_GitCredential** `@api` — a least-privilege, encrypted-at-rest credential (TIGER-334, migration 0054).  ·  `library/Tiger/Model/GitCredential.php`
 - **Tiger_Model_GitOperationLog** `@api` — the append-only git audit trail (TIGER-334, migration 0054).  ·  `library/Tiger/Model/GitOperationLog.php`
 - **Tiger_Model_GitRepoConnection** `@api` — a module's connection to its GitHub repo (TIGER-334, migration 0054).  ·  `library/Tiger/Model/GitRepoConnection.php`
@@ -363,6 +364,7 @@
 - **CMS** (`cms`, app)  ·  services: Menu, Page, Paths, Settings  ·  `modules/cms`
 - **Code** (`code`, developer)  ·  services: Code  ·  `modules/code`
 - **Comments** (`comment`, app)  ·  services: Comment, Render, Settings, Subjects  ·  `modules/comment`
+- **Email Templates** (`email`, app)  ·  services: Template  ·  `modules/email`
 - **TigerGit** (`git`, app)  ·  services: Base, Release, Repo, Update  ·  `modules/git`
 - **Identity** (`identity`, plugin)  ·  services: Identity  ·  `modules/identity`
 - **Matomo** (`matomo`, app)  ·  services: Matomo  ·  `modules/matomo`
