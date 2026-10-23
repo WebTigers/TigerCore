@@ -1,0 +1,95 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * Email template editor — the authored subject + HTML body for one event. Left: the editor form; right:
+ * the variable palette (click a chip to insert its `{{placeholder}}` at the cursor) and a live preview
+ * refreshed from Email_Service_Template::preview. Save/reset/preview run over /api via the house
+ * primitives (TigerButton/TigerDOM/TigerModal) — no inline script, no bespoke CSS.
+ */
+$form = $this->form;
+$el   = function ($name) use ($form) { return $form->getElement($name); };
+$def  = $this->def;
+?>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1"><i class="fa-solid fa-envelope-open-text me-2"></i><?= $this->escape($this->t($def['label'])) ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->escape($this->t($def['description'])) ?></p>
+    </div>
+    <div class="text-nowrap">
+        <a href="/email/admin" class="btn btn-light me-1"><i class="fa-solid fa-arrow-left me-2"></i><?= $this->t('email.action.back') ?></a>
+        <?php if ($this->customized): ?>
+            <button type="button" id="email-tpl-reset" class="btn btn-outline-danger me-1"><i class="fa-solid fa-rotate-left me-2"></i><?= $this->t('email.action.reset') ?></button>
+        <?php endif; ?>
+        <button type="button" id="email-tpl-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->t('email.action.save') ?></button>
+    </div>
+</div>
+
+<div id="email-feedback"></div>
+
+<div class="row g-4" data-email-key="<?= $this->escape($this->templateKey) ?>">
+    <div class="col-lg-7">
+        <form id="email-tpl-form" onsubmit="return false;" novalidate>
+            <?= $el('_csrf') ?>
+            <?= $el('template_key') ?>
+            <?= $el('scope') ?>
+            <div class="card">
+                <div class="card-header fw-semibold"><i class="fa-solid fa-pen-nib me-2"></i><?= $this->t('email.edit.card_content') ?></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="email-tpl-subject"><?= $this->t('email.edit.label_subject') ?></label>
+                        <?= $el('subject') ?>
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label" for="email-tpl-body"><?= $this->t('email.edit.label_body') ?></label>
+                        <?= $el('body') ?>
+                        <div class="form-text"><?= $this->t('email.edit.help_body') ?></div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card mb-4">
+            <div class="card-header fw-semibold"><i class="fa-solid fa-code me-2"></i><?= $this->t('email.edit.card_variables') ?></div>
+            <div class="card-body">
+                <p class="text-body-secondary small mb-2"><?= $this->t('email.edit.variables_help') ?></p>
+                <div class="d-flex flex-wrap gap-2">
+                    <?php foreach (($def['vars'] ?? []) as $name => $descKey): ?>
+                        <button type="button" class="btn btn-sm btn-outline-secondary font-monospace"
+                                data-email-var="<?= $this->escape($name) ?>"
+                                title="<?= $this->escape($this->t($descKey)) ?>">{{<?= $this->escape($name) ?>}}</button>
+                    <?php endforeach; ?>
+                    <button type="button" class="btn btn-sm btn-outline-secondary font-monospace" data-email-var="siteName" title="<?= $this->escape($this->t('email.var.site_name')) ?>">{{siteName}}</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary font-monospace" data-email-var="siteUrl" title="<?= $this->escape($this->t('email.var.site_url')) ?>">{{siteUrl}}</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
+                <span><i class="fa-solid fa-eye me-2"></i><?= $this->t('email.edit.card_preview') ?></span>
+                <button type="button" id="email-tpl-preview" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-rotate me-1"></i><?= $this->t('email.action.refresh') ?></button>
+            </div>
+            <div class="card-body">
+                <p class="text-body-secondary small mb-1"><?= $this->t('email.edit.preview_subject') ?> <span id="email-preview-subject" class="fw-semibold text-body"></span></p>
+                <iframe id="email-preview-frame" title="<?= $this->escape($this->t('email.edit.card_preview')) ?>" class="w-100 border rounded" style="height:520px;background:#fff;"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php
+$this->i18n([
+    'saved'             => 'email.saved',
+    'resetDone'         => 'email.reset',
+    'confirmResetTitle' => 'email.list.confirm_reset_title',
+    'confirmResetBody'  => 'email.list.confirm_reset_body',
+    'actionReset'       => 'email.action.reset',
+    'networkError'      => 'email.js.network_error',
+    'fixFields'         => 'email.js.fix_fields',
+    'general'           => 'core.api.error.general',
+]);
+$this->pageScript($this->asset('js/email.templates.js', 'email'));
+?>

@@ -1,0 +1,51 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * Email Templates — the list of every authorable transactional email. A DataTables grid whose rows load
+ * over AJAX from Email_Service_Template::datatable (client/server: the server renders only this shell).
+ * Each row links to the editor; a customized row can be reset to its shipped default. Behaviour lives in
+ * email.templates.js (no inline script); markup is semantic Bootstrap only (reskinnable).
+ */
+?>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1"><i class="fa-solid fa-envelope me-2"></i><?= $this->t('email.list.heading') ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('email.list.subtitle') ?></p>
+    </div>
+</div>
+
+<div id="email-feedback"></div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table id="email-templates-table" class="table table-hover align-middle" style="width:100%;">
+                <thead>
+                    <tr>
+                        <th><?= $this->t('email.col.template') ?></th>
+                        <th><?= $this->t('email.col.key') ?></th>
+                        <th><?= $this->t('email.col.group') ?></th>
+                        <th><?= $this->t('email.col.status') ?></th>
+                        <th class="text-end" data-orderable="false"><?= $this->t('email.col.actions') ?></th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+<?php
+$this->i18n([
+    'confirmResetTitle' => 'email.list.confirm_reset_title',
+    'confirmResetBody'  => 'email.list.confirm_reset_body',
+    'statusCustomized'  => 'email.status.customized',
+    'statusDefault'     => 'email.status.default',
+    'actionEdit'        => 'email.action.edit',
+    'actionReset'       => 'email.action.reset',
+    'resetDone'         => 'email.reset',
+    'networkError'      => 'email.js.network_error',
+    'general'           => 'core.api.error.general',
+]);
+$this->pageScript($this->asset('js/email.templates.js', 'email'));
+?>
