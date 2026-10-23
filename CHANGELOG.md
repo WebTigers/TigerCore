@@ -6,6 +6,25 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.39.0] — 2026-10-23
+
+### Added
+- **Authorable transactional email templates (`modules/email` + `Tiger_Model_EmailTemplate`)** (TIGER-267).
+  A DB-override tier over `Tiger_Mail`'s file-based template engine — the same live-override pattern as
+  Config/Translation (file = base, an active DB row = the override, last wins), scoped by `org_id`
+  (`''` = global default, else per-tenant). Owners/agents author a subject + HTML body with `{{var}}`
+  placeholders from an admin screen; no code change, no deploy.
+  - **Engine** — migration `0054` (`email_template`, plain `UNIQUE(org_id, template_key)` because
+    `store()` revives soft-deleted rows rather than freeing the key); `Tiger_Model_EmailTemplate`
+    (`resolve` org-wins-over-global, `byKey`, upsert-with-revive `store`, soft-delete `reset`);
+    `Tiger_Mail` gains a registered-template registry (`registerTemplate`/`registeredTemplates`),
+    `forOrg()`, `{{var}}` substitution, a `template()` that prefers an authored row over the `.phtml`
+    (fail-safe fallback to the file on any error), and a `renderTemplate()` preview (incl. unsaved drafts).
+  - **Admin** — `/email/admin`: a DataTables list (Default vs Customized) + an editor with a variable
+    palette and a live iframe preview. Every `/api` method `_isAllowed`-guarded; admin-gated ACL
+    deny-by-default; house primitives only (no browser dialogs); full `en` i18n. The 5 core emails
+    (`reset`, `otp`, `verify`, `register-verify`, `backup`) are registered with their real variables.
+
 ## [1.38.0] — 2026-10-21
 
 ### Added

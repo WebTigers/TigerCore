@@ -36,6 +36,8 @@ class Tiger_Mail
     protected $_text;
     /** @var Zend_Config|null */
     protected $_config;
+    /** The org whose authored template override template() prefers; '' = the global/platform default. */
+    protected $_orgId = '';
 
     /**
      * A process-wide transport override. When set, it wins over the config-resolved transport for
@@ -57,6 +59,62 @@ class Tiger_Mail
     public static function setDefaultTransport($transport = null)
     {
         self::$_defaultTransport = $transport;
+    }
+
+    /**
+     * The registry of known transactional-email events, keyed by template key.
+     *
+     * A module declares each email it sends — the key (which matches its `emails/<key>.phtml` default),
+     * a human label + description, and the `{{var}}` placeholders the template may use — so the
+     * authoring UI (TIGER-267) can list every editable email and show its variable palette, without
+     * scanning the filesystem. Registration is how a module OPTS its mail into being owner/agent-
+     * authorable; an unregistered `template()` call still works (file default + any override), it just
+     * won't appear in the management screen.
+     *
+     * @var array<string,array{key:string,label:string,description:string,group:string,vars:array<string,string>}>
+     */
+    protected static $_templates = [];
+
+    /**
+     * Register a transactional-email event so it's authorable in the admin (and documents its vars).
+     *
+     * @param  array $def {key, label, description?, group?, vars?: map of placeholder => description}
+     * @return void
+     */
+    public static function registerTemplate(array $def)
+    {
+        $key = isset($def['key']) ? trim((string) $def['key']) : '';
+        if ($key === '') { return; }
+        self::$_templates[$key] = [
+            'key'         => $key,
+            'label'       => (string) ($def['label'] ?? $key),
+            'description' => (string) ($def['description'] ?? ''),
+            'group'       => (string) ($def['group'] ?? 'general'),
+            'vars'        => is_array($def['vars'] ?? null) ? $def['vars'] : [],
+        ];
+    }
+
+    /**
+     * Every registered email event (for the management screen), keyed by template key.
+     *
+     * @return array<string,array{key:string,label:string,description:string,group:string,vars:array<string,string>}>
+     */
+    public static function registeredTemplates()
+    {
+        ksort(self::$_templates);
+        return self::$_templates;
+    }
+
+    /**
+     * Scope which org's authored override template() prefers (chainable). '' keeps the global default.
+     *
+     * @param  string $orgId the org id, or '' for the global/platform override
+     * @return self          this instance, for chaining
+     */
+    public function forOrg($orgId)
+    {
+        $this->_orgId = (string) $orgId;
+        return $this;
     }
 
     /**
@@ -323,11 +381,23 @@ class Tiger_Mail
      */
     public function template($name, array $vars = [])
     {
+        $vars += ['siteName' => $this->_siteName(), 'siteUrl' => $this->_siteUrl()];
+
+        // DB override tier (TIGER-267): an authored row for this key wins over the file default, exactly
+        // as a `config`/`translation` row overrides its ini/file base. Its subject + body carry `{{var}}`
+        // placeholders substituted here; the body is author HTML (raw), only the VALUES are escaped.
+        $override = $this->_override($name);
+        if ($override !== null) {
+            if ($this->_subject === '' && (string) $override->subject !== '') {
+                $this->_subject = self::_substitute((string) $override->subject, $vars);
+            }
+            $this->_html = $this->_wrapLayout(self::_substitute((string) $override->body, $vars), $vars);
+            return $this;
+        }
+
         $view = new Zend_View();
         $view->setEncoding('UTF-8');
         foreach (self::_templatePaths() as $path) { $view->addScriptPath($path); }
-
-        $vars += ['siteName' => $this->_siteName(), 'siteUrl' => $this->_siteUrl()];
         $view->assign($vars);
 
         $content = $view->render($name . '.phtml');
@@ -336,6 +406,90 @@ class Tiger_Mail
         $this->_html = $view->render('layout.phtml');
 
         return $this;
+    }
+
+    /**
+     * Resolve this message's authored template override (org-scoped, global fallback), or null.
+     *
+     * Fail-safe: any lookup error (table absent on a pre-0054 install, no DB) yields null, so a send
+     * silently falls back to the file default rather than throwing.
+     *
+     * @param  string $name the template key
+     * @return Zend_Db_Table_Row_Abstract|null the override row, or null when none / unavailable
+     */
+    protected function _override($name)
+    {
+        if (!class_exists('Tiger_Model_EmailTemplate')) { return null; }
+        try {
+            return (new Tiger_Model_EmailTemplate())->resolve((string) $name, $this->_orgId);
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Wrap already-rendered body HTML in the shared branded layout (the same shell file templates use).
+     *
+     * @param  string $contentHtml the message body HTML
+     * @param  array  $vars        layout variables (siteName/siteUrl/preheader honored)
+     * @return string              the full HTML email
+     */
+    protected function _wrapLayout($contentHtml, array $vars = [])
+    {
+        $view = new Zend_View();
+        $view->setEncoding('UTF-8');
+        foreach (self::_templatePaths() as $path) { $view->addScriptPath($path); }
+        $view->assign($vars);
+        $view->assign('content', $contentHtml);
+        return $view->render('layout.phtml');
+    }
+
+    /**
+     * Substitute `{{var}}` placeholders with HTML-escaped values; strip any that go unmatched.
+     *
+     * The body/subject are authored (trusted) text, so they're not escaped — only the substituted
+     * VALUES are (`htmlspecialchars`), which keeps a value safe inside markup or an href. A leftover
+     * `{{unknown}}` is removed rather than mailed verbatim.
+     *
+     * @param  string $text the authored text with placeholders
+     * @param  array  $vars placeholder name => value
+     * @return string       the substituted text
+     */
+    protected static function _substitute($text, array $vars)
+    {
+        return preg_replace_callback('/\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}/', static function ($m) use ($vars) {
+            $key = $m[1];
+            if (!array_key_exists($key, $vars)) { return ''; }
+            return htmlspecialchars((string) $vars[$key], ENT_QUOTES, 'UTF-8');
+        }, (string) $text);
+    }
+
+    /**
+     * Render a template to {subject, html} WITHOUT sending — for the authoring screen's live preview.
+     *
+     * Resolves the same override → file cascade template() uses, so a preview is exactly what a send
+     * would produce. When $subject/$body are passed (the editor's unsaved draft), they're previewed
+     * directly instead of the stored/file version.
+     *
+     * @param  string      $name    the template key
+     * @param  array       $vars    sample placeholder values
+     * @param  string      $orgId   the scope to resolve a stored override in ('' = global)
+     * @param  string|null $subject an unsaved subject draft to preview (null = use stored/file)
+     * @param  string|null $body    an unsaved body draft to preview (null = use stored/file)
+     * @return array{subject:string,html:string} the rendered subject + full HTML
+     */
+    public static function renderTemplate($name, array $vars = [], $orgId = '', $subject = null, $body = null)
+    {
+        $mail = (new self())->forOrg((string) $orgId);
+        $vars += ['siteName' => $mail->_siteName(), 'siteUrl' => $mail->_siteUrl()];
+
+        if ($body !== null) {
+            $sub = self::_substitute((string) ($subject ?? ''), $vars);
+            return ['subject' => $sub, 'html' => $mail->_wrapLayout(self::_substitute((string) $body, $vars), $vars)];
+        }
+        if ($subject !== null) { $mail->subject((string) $subject); }
+        $mail->template((string) $name, $vars);
+        return ['subject' => $mail->_subject, 'html' => (string) $mail->_html];
     }
 
     /** The install's site name, for the email header/footer. */
