@@ -92,3 +92,99 @@ $ta = isset($this->themeAssets) && $this->themeAssets ? $this->themeAssets : '/_
     });
 })();
 </script>
+
+<?php
+// Phone & SMS card — two-step opt-in (number + consent → code → verified). Config + strings ride a
+// single data-config JSON (no inline <script> — house rule); the logic is profile.sms.js.
+$smsCfg = [
+    'phoneDefault' => strtolower((string) $this->phoneDefault),
+    'configured'   => (bool) $this->smsConfigured,
+    'str'          => [
+        'send_code'      => $this->t('profile.sms.send_code'),
+        'verify'         => $this->t('profile.sms.verify'),
+        'resend'         => $this->t('profile.sms.resend'),
+        'change'         => $this->t('profile.sms.change'),
+        'remove'         => $this->t('profile.sms.remove'),
+        'cancel'         => $this->t('profile.sms.cancel'),
+        'none'           => $this->t('profile.sms.none'),
+        'verified_label' => $this->t('profile.sms.verified_label'),
+        'verified_hint'  => $this->t('profile.sms.verified_hint'),
+        'opted_out_hint' => $this->t('profile.sms.opted_out_hint'),
+        'pending_hint'   => $this->t('profile.sms.pending_hint'),
+        'not_configured' => $this->t('profile.sms.not_configured'),
+        'confirm_remove' => $this->t('profile.sms.confirm_remove'),
+        'bad_phone'      => $this->t('profile.sms.bad_phone'),
+        'consent_req'    => $this->t('profile.sms.consent_required'),
+        'code_sent'      => $this->t('profile.sms.code_sent'),
+        'verified'       => $this->t('profile.sms.verified'),
+        'removed'        => $this->t('profile.sms.removed'),
+        'net_error'      => $this->t('profile.net_error'),
+    ],
+];
+?>
+<div class="card mt-4" id="profile-sms" data-config="<?= $this->escape(json_encode($smsCfg, JSON_UNESCAPED_UNICODE)) ?>">
+    <div class="card-header fw-semibold"><i class="fa-solid fa-comment-sms me-2"></i><?= $this->t('profile.sms.title') ?></div>
+    <div class="card-body">
+        <p class="text-body-secondary small"><?= $this->t('profile.sms.intro') ?></p>
+
+        <form id="sms-form" onsubmit="return false;" novalidate>
+            <?= $this->smsForm->getElement('_csrf') ?>
+
+            <?php /* STATE: add a number (shown when none / changing). */ ?>
+            <div id="sms-state-add" class="d-none">
+                <div class="row g-2 align-items-end">
+                    <div class="col-sm-6">
+                        <label class="form-label" for="sms-phone"><?= $this->t('profile.sms.number') ?></label>
+                        <input type="tel" class="form-control" id="sms-phone" autocomplete="tel">
+                    </div>
+                    <div class="col-sm-6 text-sm-end">
+                        <button type="button" id="sms-send" class="btn btn-primary">
+                            <i class="fa-solid fa-paper-plane me-2"></i><?= $this->t('profile.sms.send_code') ?>
+                        </button>
+                        <button type="button" id="sms-add-cancel" class="btn btn-link btn-sm d-none"><?= $this->t('profile.sms.cancel') ?></button>
+                    </div>
+                </div>
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" value="1" id="sms-consent">
+                    <label class="form-check-label small" for="sms-consent"><?= $this->t('profile.sms.consent_label') ?></label>
+                </div>
+            </div>
+
+            <?php /* STATE: enter the code (shown after a code is sent). */ ?>
+            <div id="sms-state-verify" class="d-none">
+                <p class="small mb-2" id="sms-pending-hint"></p>
+                <div class="row g-2 align-items-end">
+                    <div class="col-sm-4">
+                        <label class="form-label" for="sms-code"><?= $this->t('profile.sms.code') ?></label>
+                        <input type="text" class="form-control" id="sms-code" inputmode="numeric" autocomplete="one-time-code"
+                               maxlength="6" placeholder="<?= $this->escape($this->t('profile.sms.code_ph')) ?>">
+                    </div>
+                    <div class="col-sm-8">
+                        <button type="button" id="sms-verify" class="btn btn-primary">
+                            <i class="fa-solid fa-check me-2"></i><?= $this->t('profile.sms.verify') ?>
+                        </button>
+                        <button type="button" id="sms-resend" class="btn btn-link btn-sm"><?= $this->t('profile.sms.resend') ?></button>
+                        <button type="button" id="sms-verify-cancel" class="btn btn-link btn-sm"><?= $this->t('profile.sms.cancel') ?></button>
+                    </div>
+                </div>
+            </div>
+
+            <?php /* STATE: verified (shown when a number is on file). */ ?>
+            <div id="sms-state-verified" class="d-none">
+                <div class="d-flex align-items-center justify-content-between border rounded px-3 py-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-circle-check text-success"></i>
+                        <span class="fw-semibold" id="sms-verified-number"></span>
+                        <span class="badge text-bg-success" id="sms-verified-badge"><?= $this->t('profile.sms.verified_label') ?></span>
+                    </div>
+                    <div class="text-nowrap">
+                        <button type="button" id="sms-change" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-pen me-1"></i><?= $this->t('profile.sms.change') ?></button>
+                        <button type="button" id="sms-remove" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash me-1"></i><?= $this->t('profile.sms.remove') ?></button>
+                    </div>
+                </div>
+                <p class="small text-body-secondary mt-2 mb-0" id="sms-verified-hint"></p>
+            </div>
+        </form>
+    </div>
+</div>
+<?php $this->pageScript($this->asset('js/profile.sms.js', 'profile')); ?>

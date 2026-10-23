@@ -34,6 +34,10 @@ final class AssetTest extends UnitTestCase
         @mkdir(self::$docroot . '/_theme', 0777, true);
         file_put_contents(self::$docroot . '/_theme/app.css', 'body{}');
         touch(self::$docroot . '/_theme/app.css', 1713900000);
+        // A published module asset (public/_modules/<slug>/…) for the module-form tests.
+        @mkdir(self::$docroot . '/_modules/sms/js', 0777, true);
+        file_put_contents(self::$docroot . '/_modules/sms/js/sms.settings.js', '/* */');
+        touch(self::$docroot . '/_modules/sms/js/sms.settings.js', 1713900000);
         if (!defined('PUBLIC_PATH')) {
             define('PUBLIC_PATH', self::$docroot);
         }
@@ -129,5 +133,49 @@ final class AssetTest extends UnitTestCase
     {
         $this->setConfig(['tiger' => ['assets' => ['cache_bust' => '1']]]);
         $this->assertSame('/_theme/app.css?v=1713900000', $this->helper()->asset('/_theme/app.css'));
+    }
+
+    // ----- module form: asset('js/x.js', 'slug') -> /_modules/slug/js/x.js -----------------------
+
+    #[Test]
+    public function the_module_form_resolves_to_the_published_module_assets_dir(): void
+    {
+        // The intuitive "name the module" call — the bug this guards: before, a bare relative path was
+        // passed straight through and the JS 404'd silently.
+        $this->assertSame(
+            '/_modules/sms/js/sms.settings.js?v=1713900000',
+            $this->helper()->asset('js/sms.settings.js', 'sms')
+        );
+    }
+
+    #[Test]
+    public function the_module_form_tolerates_a_leading_slash_on_the_path(): void
+    {
+        $this->assertSame(
+            '/_modules/sms/js/sms.settings.js?v=1713900000',
+            $this->helper()->asset('/js/sms.settings.js', 'sms')
+        );
+    }
+
+    #[Test]
+    public function the_module_slug_is_sanitized(): void
+    {
+        // Junk in the slug can't escape the _modules dir (path traversal / separators are stripped).
+        $this->assertSame(
+            '/_modules/sms/js/sms.settings.js?v=1713900000',
+            $this->helper()->asset('js/sms.settings.js', '../sms/')
+        );
+    }
+
+    #[Test]
+    public function a_missing_module_asset_passes_through_as_the_resolved_path(): void
+    {
+        $this->assertSame('/_modules/sms/js/nope.js', $this->helper()->asset('js/nope.js', 'sms'));
+    }
+
+    #[Test]
+    public function an_empty_module_arg_is_ignored(): void
+    {
+        $this->assertSame('/_theme/app.css?v=1713900000', $this->helper()->asset('/_theme/app.css', ''));
     }
 }

@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**245 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**246 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -318,6 +318,7 @@
 - **Tiger_Model_MessageRecipient** `@api` — who received a message, and what they did with it (0048).  ·  `library/Tiger/Model/MessageRecipient.php`
 - **Tiger_Model_Session** `@api` — Session — gateway for the DB session store (see migration 0010).  ·  `library/Tiger/Model/Session.php`
 - **Tiger_Model_SiteDomain** `@api` — SiteDomain — the host → org map that makes one install serve many sites (see migration 0052).  ·  `library/Tiger/Model/SiteDomain.php`
+- **Tiger_Model_SmsConsent** `@api` — SmsConsent — the TCPA / 10DLC consent + suppression record for a user's verified mobile number.  ·  `library/Tiger/Model/SmsConsent.php`
 - **Tiger_Model_Table** `@api` — Base table-gateway for Tiger models.  ·  `library/Tiger/Model/Table.php`
 - **Tiger_Uuid** `@api` — UUID generation for Tiger primary keys.  ·  `library/Tiger/Uuid.php`
 
@@ -372,7 +373,7 @@
 - **Media** (`media`, plugin)  ·  services: Media, Settings  ·  `modules/media`
 - **Messages** (`message`, app)  ·  services: Message  ·  `modules/message`
 - **Newsletter** (`newsletter`, app)  ·  services: Audience, Render, Subscribe  ·  `modules/newsletter`
-- **Profile** (`profile`, plugin)  ·  services: Address, Avatar, Base, Contact, Org, OrgAddress, OrgContact, OrgLogo, Security, User  ·  `modules/profile`
+- **Profile** (`profile`, plugin)  ·  services: Address, Avatar, Base, Contact, Org, OrgAddress, OrgContact, OrgLogo, Security, Sms, User  ·  `modules/profile`
 - **Register** (`register`, plugin)  ·  services: Registration, Status  ·  `modules/register`
 - **Schedule** (`schedule`, developer)  ·  services: Schedule  ·  `modules/schedule`
 - **Search** (`search`, plugin)  ·  services: Search  ·  `modules/search`

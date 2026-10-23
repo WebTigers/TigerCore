@@ -73,6 +73,8 @@ class Profile_IndexController extends Tiger_Controller_Account_Action
         $this->view->model = [
             'form'         => new Profile_Form_UserProfile(),
             'passwordForm' => new Profile_Form_Password(),
+            'smsForm'      => new Profile_Form_Sms(),
+            'smsConfigured'=> Tiger_Sms::isConfigured(),
             'contactForm'  => new Profile_Form_Contact(),
             'avatarUrl'    => $avatarUrl,
             'displayName'  => $displayName,

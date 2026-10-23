@@ -6,6 +6,36 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.40.0] — 2026-10-23
+
+### Added
+- **SMS opt-in + phone-as-login-identifier (profile Security → "Phone & SMS")** (TIGER-376). A
+  self-service, carrier-compliant (TCPA / 10DLC) double opt-in: a person adds a mobile number + ticks a
+  consent box → a 6-digit code is texted (via `Tiger_Sms`) → entering it marks the number **verified** and
+  writes an auditable consent record. A verified number becomes a **unique login identifier** (log in by
+  phone → OTP/magic link) and an alert target.
+  - **Engine** — migration `0055` (`sms_consent` — the TCPA/10DLC consent + suppression ledger: who/when/
+    IP/scopes/the exact language shown, one active row per user, revived on re-consent) + `Tiger_Model_SmsConsent`
+    (`record`, `isSuppressed`, STOP/START `optOutByPhone`/`optInByPhone`, `removeForUser`). Migration `0056`
+    adds a **global** active-only unique on a verified `sms` factor's number (an `IF(...)` generated column +
+    UNIQUE, the migration-0053 convention), so one verified number maps to exactly one account — the guarantee
+    `Tiger_Model_User::findByIdentifier()` (which already resolves a verified `sms` factor → its user) needs.
+  - **Passwordless login by phone** — `Tiger_Service_Authentication::requestLoginCodeSms()` /
+    `verifyLoginCodeSms()` (the long-spec'd SMS twin of the email code login), reusing the channel-agnostic
+    `_completeCodeLogin`; silent for an unknown or STOP-suppressed number (no enumeration).
+  - **UI + consent** — `Profile_Service_Sms` (self-scoped `/api`: `status`/`requestCode`/`verifyCode`/`remove`),
+    a "Phone & SMS" card on the profile Security tab (intl-tel-input, house primitives, external
+    `profile.sms.js`, full `en` i18n, deny-by-default ACL). STOP/HELP/START suppression wires through the
+    existing `Tiger_Sms::onInbound` seam (`Sms_Bootstrap`) into the consent ledger.
+
+### Fixed
+- **`$this->asset('js/x.js', '<module>')` now resolves module assets** (`Tiger_View_Helper_Asset`).
+  The helper ignored a second argument, so the intuitive "name the module" form passed a *relative*
+  path straight through — the file 404'd and the JS silently never loaded (a recurring footgun). The
+  second arg is now the module slug and resolves against `/_modules/<slug>/…`, fixing the `email` and
+  `sms` admin views (whose JS wasn't loading) with no change to them. The `/_modules/<slug>/…` form
+  still works. Guarded by new `AssetTest` cases.
+
 ## [1.39.0] — 2026-10-23
 
 ### Added
