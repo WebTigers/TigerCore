@@ -94,6 +94,22 @@ final class UuidTest extends UnitTestCase
     }
 
     #[Test]
+    public function timeof_returns_a_float_even_on_a_whole_second(): void
+    {
+        // The case above is probabilistic: it only catches this about one run in a thousand, which is
+        // the worst kind of coverage — it failed a CI leg once and passed on the retry. PHP's `/`
+        // yields an INT when it divides exactly, so a timestamp with no millisecond remainder used to
+        // come back as an int and break the declared `@return float`. Pinned deterministically here.
+        $ms   = 1792882000000;                                    // a whole second: 1792882000000 % 1000 === 0
+        $hex  = str_pad(dechex($ms), 12, '0', STR_PAD_LEFT);
+        $uuid = substr($hex, 0, 8) . '-' . substr($hex, 8, 4) . '-7000-8000-000000000000';
+
+        $ts = Tiger_Uuid::timeOf($uuid);
+        $this->assertIsFloat($ts, 'timeOf() must honour its @return float on an exact second');
+        $this->assertSame(1792882000.0, $ts);
+    }
+
+    #[Test]
     public function isvalid_rejects_junk(): void
     {
         $this->assertFalse(Tiger_Uuid::isValid(''));

@@ -138,7 +138,10 @@ class Tiger_Uuid
     public static function timeOf($uuid)
     {
         $hex = substr(str_replace('-', '', $uuid), 0, 12); // first 48 bits
-        return hexdec($hex) / 1000;
+        // Cast, don't rely on the division: PHP's `/` yields an INT when it divides exactly, so a
+        // timestamp landing on a whole second (ms remainder 0) returned an int and broke the
+        // declared `@return float` about one time in a thousand — a flake, not a maths error.
+        return (float) hexdec($hex) / 1000;
     }
 
     /**
