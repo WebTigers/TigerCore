@@ -163,7 +163,11 @@ final class SystemControllerDispatchTest extends ControllerTestCase
         $this->assertIsArray($this->controller()->view->updates, 'the checker result is passed to the view');
         // Seeded low "latest" → nothing pending → the pending list is empty (and no notes were fetched).
         $this->assertSame([], $this->controller()->view->pending);
-        $this->assertIsArray($this->controller()->view->history);
+        // History rows are no longer a view-var: the grid fetches them from /api
+        // (System_Service_Updates::datatable, TIGER-383). The controller's job here is to
+        // opt into the DataTables assets — without that flag the grid renders empty.
+        $this->assertTrue((bool) $this->controller()->view->useDataTables, 'the history grid needs the DataTables assets');
+        $this->assertNull($this->controller()->view->history ?? null, 'history is fetched, not server-rendered');
     }
 
     // ---- cache seeding helpers -------------------------------------------------------------------
