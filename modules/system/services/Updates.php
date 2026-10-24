@@ -123,7 +123,63 @@ class System_Service_Updates extends Tiger_Service_Service
     }
 
     /**
+     * DataTables rows for the Updates history grid (WEBSERVICES.md §5): the durable
+     * "what ran / what broke" log, searchable and paged, so the whole history is
+     * reachable rather than the newest handful.
+     *
+     * Rows are STRUCTURED data only — never HTML. The `log` array rides along so the
+     * client can draw the expandable detail row without a second round trip; it is
+     * already small (one short entry per update step).
+     *
+     * @param  array $params the DataTables request (draw/start/length/search/order)
+     * @return void
+     */
+    public function datatable(array $params): void
+    {
+        if (!$this->_isAllowed('datatable')) { $this->_error('core.api.error.not_allowed'); return; }
+
+        $dt = $this->_dtParams($params);
+
+        try {
+            // The query lives in the model; the service formats + ACL-gates.
+            $data = (new Tiger_Model_UpdateHistory())->datatable([
+                'search'   => $dt['search'],
+                'orderCol' => isset($dt['order'][0]) ? $dt['order'][0]['column'] : -1,
+                'orderDir' => isset($dt['order'][0]) ? $dt['order'][0]['dir'] : '',
+                'offset'   => $dt['start'],
+                'limit'    => $dt['length'],
+            ]);
+        } catch (Throwable $e) {
+            // The table is absent until the migration runs — an empty grid, never a broken screen.
+            $this->_dtResponse($dt['draw'], 0, 0, []);
+            return;
+        }
+
+        $rows = [];
+        foreach ($data['rows'] as $r) {
+            $rows[] = [
+                'update_id' => (string) $r['update_id'],
+                'item_type' => (string) $r['item_type'],
+                'item_name' => (string) ($r['item_name'] !== '' ? $r['item_name'] : $r['item_slug']),
+                // A failed install can have neither version; a bare "→" reads as a rendering bug.
+                'versions'  => ($r['from_version'] || $r['to_version'])
+                    ? trim((string) $r['from_version'] . ' → ' . (string) $r['to_version'])
+                    : '—',
+                'outcome'   => (string) $r['outcome'],
+                'created'   => (string) $r['created_at'],
+                'log'       => array_values((array) $r['log']),
+            ];
+        }
+
+        $this->_dtResponse($dt['draw'], (int) $data['total'], (int) $data['filtered'], $rows);
+    }
+
+    /**
      * The recent update-run history (durable "what ran / what broke").
+     *
+     * Kept alongside `datatable()`: this is the plain read an API/MCP caller wants
+     * ("what has run lately?") without DataTables semantics, and `history` is a
+     * READ_VERB so a read-only token can reach it. The admin grid uses `datatable()`.
      *
      * @param  array $params {limit?}
      * @return void
