@@ -6,6 +6,59 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.43.0] — 2026-10-24
+
+### Fixed
+- **A page asset registered from inside a partial was silently discarded** (found while doing TIGER-384).
+  `Zend_View_Helper_Partial` renders against a `clone` of the view, and ZF1 binds a helper to a view only
+  the first time *that* view instantiates it — so a `$this->pageScript()` whose first call happened inside
+  a partial wrote the layout slot on a throwaway clone, and the tag never reached the page. The JS simply
+  never loaded, behind a 200. **`profile.sms.js` had been registered that way since it shipped**, so the
+  Phone & SMS card on `/profile` had no behavior at all. The slot is now written on every distinct view in
+  play (the bound one and the MVC view the layout renders against), with per-request static dedupe so the
+  pair cannot double-emit — new `Tiger_View_Helper_PageAsset_Abstract` carries the shared mechanics. The
+  channel is still the `pageScripts` / `pageHead` view var, deliberately: every theme layout already
+  echoing those — including themes shipped outside this repo — keeps working with no change.
+- **`Tiger_Uuid::timeOf()` returned an int on a whole second.** PHP's `/` yields an int when it divides
+  exactly, so a v7 timestamp with no millisecond remainder broke the declared `@return float` about one
+  call in a thousand. It failed a CI leg once and passed on the retry, which is the worst kind of coverage;
+  pinned with a deterministic test alongside the probabilistic one.
+
+### Changed
+- **Every view's JavaScript and CSS now lives in a registered asset file** (TIGER-384). A `.phtml` owns
+  markup; behavior is a JS asset and styling is the skin's job. The `pageScript()`/`pageStyle()` seam for
+  that already existed and was unit-tested — and the tree still carried ~5,400 lines of inline JavaScript
+  across 47 views, because nothing failed when someone typed `<script>`. **52 views converted:** each
+  inline block became a real asset file, and each hand-written `<script src>` / `<link rel="stylesheet">`
+  became a registration. Server values that used to be interpolated into the blob now ride a `data-*`
+  attribute, and localized strings go through the `$this->i18n()` carrier (`Tiger.t`) — so a page ships
+  only the strings its own JS uses, as translated values under generic aliases, never the key taxonomy.
+  Nothing about any screen's behavior changes; the markup, the `/api` calls and the strings are the same.
+  **Thirteen bundled modules gain an `assets/` directory for the first time** (`access`, `agent`, `ally`,
+  `backup`, `blog`, `cms`, `code`, `identity`, `mcp`, `media`, `register`, `signup`, `translations`), so
+  they need their `public/_modules/<slug>` link published — `Tiger_Module_Installer::publishAllAssets()`
+  already runs from `tiger migrate`, `Tiger_Update_Core` and `tiger link:assets`, so a normal update
+  covers it.
+- **The house rule is enforced rather than documented.** `AGENTS.md` gained the "Views: a `.phtml` owns
+  MARKUP" section the `pageScript()`/`pageStyle()` docblocks had been pointing at — it had never actually
+  existed, which is a fair part of why the tree drifted. Three structural exemptions are named and are not
+  matters of taste: an email template (mail clients drop `<link>`), a view that *is* the document (a
+  full-screen surface whose controller disabled the layout, so there is no slot to register into), and a
+  JSON-LD `<script type="application/ld+json">` (data rather than behavior, and inline by spec).
+
+### Added
+- **A CI guard for the view rule** (`tests/Unit/View/ViewOwnsMarkupTest.php`). Fails on a
+  `<script>`/`<style>`/stylesheet-`<link>` in any view script, and mutation-tests its own matcher — a
+  validator that only ever passes proves nothing. Matching runs on PHP-stripped source, so a `<script>`
+  inside a preg pattern or a comment is not mistaken for markup.
+- **The CI `javascript` job now syntax-checks every shipped browser asset** (84 files), not just the
+  theme's. A parse error in a module asset kills a screen's JS silently behind a 200 — the same failure
+  mode as the three TigerImage studio bugs that shipped green.
+- `tests/ui/bin/paradigm-scan.php` reports a view's own `<script src>` and `<link rel="stylesheet">` as the
+  same violation (the view emitted a tag), stops matching `<script>` inside PHP code or comments, exempts a
+  view that is the whole document, and follows `pageScript()` when deciding whether a form has an AJAX
+  handler — so a conforming screen no longer reads as a native-submit form.
+
 ## [1.42.0] — 2026-10-24
 
 ### Fixed
