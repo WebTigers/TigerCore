@@ -148,21 +148,31 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
      * ONCE (only its hash is stored). Format `tgr_<prefix>_<secret>`: the 12-char prefix is a
      * non-secret lookup key; the whole string is sent as `Authorization: Bearer <token>`.
      *
-     * @param  string $userId the owning user
-     * @return array {token: string (show once), credential_id: string, prefix: string}
+     * Pass `$ttlSeconds` to give the token an EXPIRY (TIGER-378): `verifyTokenCredential()` refuses it
+     * past `expires_at`, and the `core.auth.purge_expired_tokens` job sweeps it. A long-lived MACHINE
+     * PAT (a node↔control-plane credential) should ALWAYS be minted with a TTL so a leak self-heals;
+     * a human's own PAT may stay non-expiring (`$ttlSeconds = null`, the default — unchanged behaviour).
+     *
+     * @param  string   $userId     the owning user
+     * @param  int|null $ttlSeconds seconds until the token expires, or null for no expiry
+     * @return array {token: string (show once), credential_id: string, prefix: string, expires_at: ?string}
      */
-    public function createToken($userId)
+    public function createToken($userId, $ttlSeconds = null)
     {
         $prefix = bin2hex(random_bytes(6));    // 12 hex
         $plain  = 'tgr_' . $prefix . '_' . bin2hex(random_bytes(24));   // + 48 hex secret
+        $expiresAt = ($ttlSeconds !== null && (int) $ttlSeconds > 0)
+            ? date('Y-m-d H:i:s', time() + (int) $ttlSeconds)
+            : null;
         $id = $this->insert([
             'user_id'     => $userId,
             'type'        => self::TYPE_PAT,
             'identifier'  => $prefix,
             'secret'      => hash('sha256', $plain),
             'verified_at' => $this->_now(),
+            'expires_at'  => $expiresAt,
         ]);
-        return ['token' => $plain, 'credential_id' => $id, 'prefix' => $prefix];
+        return ['token' => $plain, 'credential_id' => $id, 'prefix' => $prefix, 'expires_at' => $expiresAt];
     }
 
     /**
@@ -199,8 +209,11 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
         if (!preg_match('/^tgr_([a-f0-9]{12})_[a-f0-9]{48}$/', (string) $plain, $m)) {
             return null;
         }
+        // An EXPIRED token (expires_at in the past) is refused exactly like a revoked one — it simply
+        // isn't found (TIGER-378). NULL expires_at = never expires.
         $row = $this->fetchRow(
             $this->activeSelect()->where('type = ?', self::TYPE_PAT)->where('identifier = ?', $m[1])
+                ->where('(expires_at IS NULL OR expires_at > ?)', $this->_now())
         );
         if (!$row || !hash_equals((string) $row->secret, hash('sha256', (string) $plain))) {
             return null;
@@ -226,9 +239,45 @@ class Tiger_Model_UserCredential extends Tiger_Model_Table
         $out = [];
         foreach ($this->activeSelect()->where('user_id = ?', $userId)->where('type = ?', self::TYPE_PAT)->query()->fetchAll() as $r) {
             $out[] = ['credential_id' => $r['credential_id'], 'prefix' => $r['identifier'],
-                      'created_at' => $r['created_at'] ?? null, 'last_used_at' => $r['last_used_at'] ?? null];
+                      'created_at' => $r['created_at'] ?? null, 'last_used_at' => $r['last_used_at'] ?? null,
+                      'expires_at' => $r['expires_at'] ?? null];
         }
         return $out;
+    }
+
+    /**
+     * Sweep personal access tokens whose `expires_at` has passed: soft-delete them + mark
+     * `status = 'expired'` (TIGER-378). A no-op for non-expiring (NULL `expires_at`) tokens. Idempotent —
+     * an already-deleted row is excluded by `activeSelect()`. Run by `core.auth.purge_expired_tokens`;
+     * verification already refuses an expired token, so this is hygiene, not a security gate.
+     *
+     * @return int the number of tokens swept
+     */
+    public function purgeExpiredTokens()
+    {
+        return (int) $this->update(
+            ['deleted' => 1, 'status' => 'expired'],
+            $this->getAdapter()->quoteInto('type = ?', self::TYPE_PAT)
+                . ' AND `deleted` = 0'
+                . ' AND `expires_at` IS NOT NULL'
+                . $this->getAdapter()->quoteInto(' AND `expires_at` <= ?', $this->_now())
+        );
+    }
+
+    /**
+     * Rotate a machine PAT: mint a fresh token for the SAME owner (the service user behind a node↔CP
+     * credential), returning the new plaintext ONCE, and revoke the presented-by-credential_id old one
+     * only AFTER the caller has distributed the new one (overlap-safe — never revoke before the far side
+     * holds the replacement). TIGER-378: the control-plane rotation job calls this on a schedule so a
+     * long-lived machine token is refreshed well before its TTL, and a leaked old token stops working.
+     *
+     * @param  string   $userId         the service user that owns the machine token
+     * @param  int|null $ttlSeconds      TTL for the NEW token (null = no expiry; machine tokens pass one)
+     * @return array {token, credential_id, prefix, expires_at} — the new token (show once)
+     */
+    public function rotateToken($userId, $ttlSeconds = null)
+    {
+        return $this->createToken($userId, $ttlSeconds);
     }
 
     /**

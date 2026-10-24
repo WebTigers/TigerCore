@@ -209,6 +209,17 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
             'managed' => false,
         ]);
 
+        // Sweep expired personal access tokens (TIGER-378). Verification already refuses one past its
+        // expires_at; this reaps the rows so a "manage tokens" screen and the DB stay clean.
+        Tiger_Schedule::register([
+            'key'   => 'core.auth.purge_expired_tokens',
+            'label' => 'Purge expired access tokens',
+            'every' => Tiger_Schedule::DAILY,
+            'at'    => '03:10',
+            'run'   => static function () { (new Tiger_Model_UserCredential())->purgeExpiredTokens(); },
+            'managed' => false,
+        ]);
+
         Tiger_Schedule::discover();
         $this->getResource('frontController')
              ->registerPlugin(new Tiger_Controller_Plugin_ScheduleTick());

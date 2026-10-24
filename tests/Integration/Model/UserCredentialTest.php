@@ -112,6 +112,105 @@ final class UserCredentialTest extends IntegrationTestCase
     }
 
     /**
+     * A TTL makes a token self-expire (TIGER-378) — the Zeabur-#1 fix for long-lived machine PATs.
+     * A token minted with a TTL verifies while live and is refused the instant expires_at has passed,
+     * exactly like a revoked one; a default (no-TTL) token has NULL expires_at and never expires.
+     */
+    #[Test]
+    public function a_token_with_a_ttl_expires_and_stops_verifying(): void
+    {
+        $user   = $this->makeUser();
+        $minted = $this->cred->createToken($user, 3600);   // 1-hour TTL
+
+        $this->assertNotNull($minted['expires_at'], 'a TTL yields an expires_at');
+        $this->assertSame($user, $this->cred->verifyToken($minted['token']), 'a live, not-yet-expired token verifies');
+
+        // Force it past expiry (an hour ago) and it must stop verifying — refused like a revoked token.
+        $this->cred->update(
+            ['expires_at' => date('Y-m-d H:i:s', time() - 3600)],
+            $this->cred->getAdapter()->quoteInto('credential_id = ?', $minted['credential_id'])
+        );
+        $this->assertNull($this->cred->verifyToken($minted['token']), 'an expired token never verifies');
+        $this->assertNull($this->cred->verifyTokenCredential($minted['token']), 'verifyTokenCredential refuses it too');
+    }
+
+    #[Test]
+    public function a_default_token_has_no_expiry_and_keeps_working(): void
+    {
+        $user   = $this->makeUser();
+        $minted = $this->cred->createToken($user);       // no TTL
+        $this->assertNull($minted['expires_at'], 'no TTL => no expires_at');
+        $this->assertSame($user, $this->cred->verifyToken($minted['token']), 'a non-expiring token verifies');
+
+        // A zero/negative TTL is treated as "no expiry", not an instantly-dead token.
+        $zero = $this->cred->createToken($user, 0);
+        $this->assertNull($zero['expires_at'], 'a non-positive TTL means no expiry');
+        $this->assertSame($user, $this->cred->verifyToken($zero['token']));
+    }
+
+    /**
+     * The housekeeping sweep (core.auth.purge_expired_tokens) soft-deletes ONLY expired tokens, marks
+     * them status=expired, and leaves live + non-expiring ones untouched. Verification already refuses
+     * an expired token; this keeps the manage-tokens list and the table clean.
+     */
+    #[Test]
+    public function purge_expired_tokens_sweeps_only_the_expired_ones(): void
+    {
+        $user    = $this->makeUser();
+        $expired = $this->cred->createToken($user, 3600);
+        $live    = $this->cred->createToken($user, 3600);
+        $forever = $this->cred->createToken($user);                 // no expiry
+
+        // Backdate only the first one's expiry.
+        $this->cred->update(
+            ['expires_at' => date('Y-m-d H:i:s', time() - 60)],
+            $this->cred->getAdapter()->quoteInto('credential_id = ?', $expired['credential_id'])
+        );
+
+        $swept = $this->cred->purgeExpiredTokens();
+        $this->assertSame(1, $swept, 'exactly one token was expired and swept');
+
+        $this->assertNull($this->cred->verifyToken($expired['token']), 'the swept token is gone');
+        $this->assertSame($user, $this->cred->verifyToken($live['token']), 'a live token survives the sweep');
+        $this->assertSame($user, $this->cred->verifyToken($forever['token']), 'a non-expiring token survives the sweep');
+
+        $prefixes = array_column($this->cred->tokensFor($user), 'prefix');
+        $this->assertNotContains($expired['prefix'], $prefixes, 'tokensFor() no longer lists the swept token');
+        $this->assertContains($live['prefix'], $prefixes);
+        $this->assertContains($forever['prefix'], $prefixes);
+
+        $this->assertSame(0, $this->cred->purgeExpiredTokens(), 'the sweep is idempotent — nothing left to purge');
+    }
+
+    #[Test]
+    public function tokens_for_surfaces_the_expiry(): void
+    {
+        $user   = $this->makeUser();
+        $minted = $this->cred->createToken($user, 7200);
+        $rows   = $this->cred->tokensFor($user);
+        $this->assertCount(1, $rows);
+        $this->assertSame($minted['prefix'], $rows[0]['prefix']);
+        $this->assertSame($minted['expires_at'], $rows[0]['expires_at'], 'the list carries expires_at for the UI');
+    }
+
+    #[Test]
+    public function rotate_token_mints_a_fresh_working_token(): void
+    {
+        $user = $this->makeUser();
+        $old  = $this->cred->createToken($user, 3600);
+
+        $new = $this->cred->rotateToken($user, 3600);
+        $this->assertNotSame($old['token'], $new['token'], 'rotation yields a different token');
+        $this->assertSame($user, $this->cred->verifyToken($new['token']), 'the rotated token verifies');
+        $this->assertNotNull($new['expires_at'], 'the rotated machine token carries a fresh TTL');
+
+        // Overlap-safe: the old token keeps working until the caller revokes it (never a gap in auth).
+        $this->assertSame($user, $this->cred->verifyToken($old['token']), 'the old token still works during the overlap');
+        $this->cred->revokeToken($user, $old['credential_id']);
+        $this->assertNull($this->cred->verifyToken($old['token']), 'and stops once revoked');
+    }
+
+    /**
      * Verification reports WHICH credential was presented (TIGER-102).
      *
      * verifyToken() answers "whose token is this", which is all authentication needed — so the
