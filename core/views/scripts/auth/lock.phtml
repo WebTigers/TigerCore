@@ -48,7 +48,8 @@ $who      = $this->escape(($identity && $identity->username) ? $identity->userna
 </div>
 
 <!-- Code unlock (revealed on request) -->
-<div id="lock-code-mode" style="display:none;">
+<?php /* The address the code goes to — read by the JS for the "code sent to X" note (no inline script). */ ?>
+<div id="lock-code-mode" style="display:none;" data-email="<?= $email ?>">
     <form id="lock-send-form" novalidate>
         <p class="small text-body-secondary text-center mb-3"><?= $this->escape($this->t('core.auth.lock.email_send_to')) ?> <strong><?= $email ?></strong>.</p>
         <div class="d-grid mb-2">
@@ -84,67 +85,4 @@ $this->i18n([
     'networkError' => 'core.js.network_error',
 ]);
 ?>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    var fb      = document.getElementById('lock-feedback');
-    var pwMode  = document.getElementById('lock-pw-mode');
-    var codeMode= document.getElementById('lock-code-mode');
-    var sendForm= document.getElementById('lock-send-form');
-    var codeForm= document.getElementById('lock-code-form');
-
-    function fail(msg) { TigerDOM.notify(fb, msg, { type: 'error' }); }
-    function post(body) {
-        return fetch('/auth/lock', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: new URLSearchParams(body) })
-            .then(function (r) { return r.json().catch(function () { return {}; }); });
-    }
-    function unlocked(res) { window.location = (res && res.redirect) || '/admin'; }
-
-    // --- password unlock ---
-    document.getElementById('lock-pw-form').addEventListener('submit', function (e) {
-        e.preventDefault();
-        fb.innerHTML = '';
-        var btn = document.getElementById('lock-pw-submit');
-        TigerButton.run(btn, function () {
-            return post({ password: document.getElementById('lock-password').value });
-        }).then(function (res) {
-            if (res && res.result === 1) { unlocked(res); return; }
-            fail(Tiger.t('incorrectPassword')); document.getElementById('lock-password').value = '';
-        }).catch(function () { fail(Tiger.t('networkError')); });
-    });
-
-    // --- mode toggles ---
-    document.getElementById('lock-use-code').addEventListener('click', function (e) {
-        e.preventDefault(); fb.innerHTML = ''; pwMode.style.display = 'none'; codeMode.style.display = '';
-    });
-    document.getElementById('lock-use-pw').addEventListener('click', function (e) {
-        e.preventDefault(); fb.innerHTML = ''; codeMode.style.display = 'none'; sendForm.style.display = '';
-        codeForm.style.display = 'none'; pwMode.style.display = ''; document.getElementById('lock-password').focus();
-    });
-
-    // --- code unlock: send ---
-    sendForm.addEventListener('submit', function (e) {
-        e.preventDefault();
-        fb.innerHTML = '';
-        var btn = document.getElementById('lock-send-submit');
-        TigerButton.run(btn, function () {
-            return post({ send_code: 1 });
-        }).then(function () {
-            document.getElementById('lock-code-note').textContent = Tiger.t('codeSent', <?= json_encode((string)($email ?? '')) ?>);
-            sendForm.style.display = 'none'; codeForm.style.display = ''; document.getElementById('lock-code').focus();
-        }).catch(function () { fail(Tiger.t('networkError')); });
-    });
-
-    // --- code unlock: verify ---
-    codeForm.addEventListener('submit', function (e) {
-        e.preventDefault();
-        fb.innerHTML = '';
-        var btn = document.getElementById('lock-code-submit');
-        TigerButton.run(btn, function () {
-            return post({ code: document.getElementById('lock-code').value });
-        }).then(function (res) {
-            if (res && res.result === 1) { unlocked(res); return; }
-            fail(Tiger.t('codeInvalid')); document.getElementById('lock-code').value = '';
-        }).catch(function () { fail(Tiger.t('networkError')); });
-    });
-});
-</script>
+<?php $this->pageScript('/_tiger/js/tiger.auth-lock.js', ['defer' => true]); ?>

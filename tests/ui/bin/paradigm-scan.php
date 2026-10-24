@@ -23,7 +23,7 @@ const CHECKS = [
     'page_post'      => ['Form page-POSTs to a controller',        'blocker'],
     'native_submit'  => ['Form has no AJAX handler (native submit)','review'],
     'rendered_rows'  => ['Table rows server-rendered, not from /api','bug'],
-    'inline_script'  => ['Inline <script>/<style> tag in a view',   'batch'],
+    'inline_script'  => ['<script>/<style> tag in a view, not an asset','batch'],
 ];
 
 /** Views whose page-POST is a DOCUMENTED exception (AGENTS.md: SSO and the like). */
@@ -56,8 +56,10 @@ function hasAjaxHandler(string $src, string $file, string $root): bool
     if (preg_match('/fetch\s*\(|TigerButton\.run|XMLHttpRequest|\$\.(post|ajax)|data-tiger-validate|tigerDataTable/i', $src)) {
         return true;
     }
-    // The house rule pushes JS into assets — follow $this->asset('...js') references.
-    if (preg_match_all('/asset\(\s*[\'"]([^\'"]+\.js)[\'"]/i', $src, $m)) {
+    // The house rule pushes JS into assets, registered with pageScript() (or, for a vendored lib a
+    // view pulls in by theme path, asset()). Follow either and look in the real file — otherwise every
+    // conforming screen reads as a native-submit form, which is the opposite of the truth.
+    if (preg_match_all('/(?:pageScript|pageStyle|asset)\([^)]*?[\'"]([^\'"]*\.js)[\'"]/i', $src, $m)) {
         foreach ($m[1] as $a) {
             foreach (glob($root . '/**/' . basename($a)) ?: [] as $hit) {
                 if (preg_match('/fetch\s*\(|TigerButton\.run|XMLHttpRequest/i', (string) @file_get_contents($hit))) { return true; }
@@ -135,15 +137,43 @@ function scanFile(string $file, string $root): array
         }
     }
 
-    // ---- 4. inline <script>/<style> TAGS (house rule; style="" attrs are fine) ----------
-    $isEmail = (strpos($r, 'views/emails/') !== false);   // mail clients drop <link> — inline CSS is correct there
-    if (!$isEmail && preg_match_all('/<(script|style)\b(?![^>]*\bsrc\s*=)[^>]*>/i', $src, $sm, PREG_OFFSET_CAPTURE)) {
+    // ---- 4. <script>/<style>/stylesheet-<link> in a view (a style="" ATTRIBUTE is fine) ----
+    // A view owns MARKUP; behavior and styling are asset files it REGISTERS — $this->pageScript()
+    // / $this->pageStyle() — and the theme LAYOUT is the one place a tag is emitted. So an inline
+    // blob, a hand-written `<script src>` and a `<link rel="stylesheet">` are all the same
+    // violation: the view emitted a tag instead of registering an asset.
+    //
+    // Two exemptions, both structural rather than preference:
+    //   • an email template — mail clients drop <link>, so inline CSS is the correct answer there;
+    //   • a view that IS the document (a full-screen builder whose controller disabled the layout),
+    //     because there is no layout to echo the pageScripts/pageHead slot into. It is a layout
+    //     wearing a view's filename, and a layout may emit tags.
+    // Matching runs on PHP-STRIPPED source: `'#<script\b[^>]*>#'` inside a preg pattern, and the
+    // word <script> in a comment, are not markup — three of these were reported against
+    // cms/page/design.phtml, which emits exactly one.
+    $isEmail    = (strpos($r, 'views/emails/') !== false);
+    $isDocument = (bool) preg_match('/<!doctype\s+html|<html\b/i', $src);
+    $isLayout   = (strpos($r, '/layouts/') !== false);
+    if (!$isEmail && !$isDocument && !$isLayout
+        && preg_match_all('~<(script|style)\b[^>]*>|<link\b[^>]*\brel\s*=\s*["\']stylesheet["\'][^>]*>~i',
+                          stripPhp($src), $sm, PREG_OFFSET_CAPTURE)) {
         foreach ($sm[0] as [$tag, $off]) {
             $hits[] = ['check' => 'inline_script', 'file' => $r, 'line' => lineOf($src, $off),
                        'detail' => trim(preg_replace('/\s+/', ' ', $tag))];
         }
     }
     return $hits;
+}
+
+/**
+ * Blank out every PHP region, preserving length + newlines so offsets and line numbers still line up.
+ * Markup is what is left — which is what the tag rules are about.
+ */
+function stripPhp(string $src): string
+{
+    return (string) preg_replace_callback('/<\?(?:php|=)?.*?(?:\?>|$)/s', function ($m) {
+        return preg_replace('/[^\n]/', ' ', $m[0]);
+    }, $src);
 }
 
 // ---- main -------------------------------------------------------------------------------

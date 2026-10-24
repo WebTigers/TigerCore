@@ -145,4 +145,4 @@ $this->i18n([
     'logLink'           => 'system.updates.log_link',
 ]);
 ?>
-<script src="<?= $this->escape($this->asset('/_modules/system/js/system.updates.js')) ?>" defer></script>
+<?php $this->pageScript('/_modules/system/js/system.updates.js', ['defer' => true]); ?>

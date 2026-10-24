@@ -88,4 +88,4 @@ $this->i18n([
     </div>
 </div>
 
-<script src="<?= $this->escape($this->asset('/_modules/message/js/message.inbox.js')) ?>" defer></script>
+<?php $this->pageScript('/_modules/message/js/message.inbox.js', ['defer' => true]); ?>

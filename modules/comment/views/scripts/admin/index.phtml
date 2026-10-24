@@ -60,4 +60,4 @@ $t = fn($k) => $this->t($k);
     </div>
 </div>
 
-<script src="<?= $this->escape($this->asset('/_modules/comment/js/comment.admin.js')) ?>" defer></script>
+<?php $this->pageScript('/_modules/comment/js/comment.admin.js', ['defer' => true]); ?>

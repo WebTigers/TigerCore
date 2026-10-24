@@ -41,29 +41,4 @@ $gpc = !empty($c['gpc']) && !empty($c['honor_gpc']);
         </div>
     </div>
 </div>
-<script>
-(function () {
-    var bar = document.getElementById('tiger-consent');
-    if (!bar) { return; }
-    // Belt-and-suspenders: if the browser exposes GPC via JS but a proxy stripped the Sec-GPC header,
-    // still surface the opt-out acknowledgment.
-    if (navigator.globalPrivacyControl === true) {
-        var g = document.getElementById('tiger-consent-gpc');
-        if (g) { g.classList.remove('d-none'); }
-    }
-    function setCookie(v) {
-        document.cookie = 'tiger_consent=' + v + '; path=/; max-age=31536000; SameSite=Lax';
-    }
-    bar.addEventListener('click', function (e) {
-        var btn = e.target.closest('[data-consent]');
-        if (!btn) { return; }
-        if (btn.getAttribute('data-consent') === 'accept') {
-            setCookie('all');           // explicit opt-in — overrides any GPC signal for this visitor
-            location.reload();          // reload so consent-gated tags (e.g. GA) load this visit
-        } else {
-            setCookie('none');          // GDPR decline == CCPA opt-out of sale/sharing
-            bar.parentNode.removeChild(bar);
-        }
-    });
-})();
-</script>
+<?php $this->pageScript($this->themeAssets . '/js/tiger.consent-banner.js', ['defer' => true]); ?>

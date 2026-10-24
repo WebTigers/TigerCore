@@ -137,4 +137,4 @@
     </div>
 </div>
 
-<script src="<?= $this->escape($this->asset('/_modules/git/js/git.admin.js')) ?>" defer></script>
+<?php $this->pageScript('/_modules/git/js/git.admin.js', ['defer' => true]); ?>

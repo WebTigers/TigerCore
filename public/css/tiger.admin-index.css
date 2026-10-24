@@ -1,0 +1,22 @@
+/*! SPDX-License-Identifier: BSD-3-Clause · © 2026 WebTigers · Tiger™/WebTigers™ are trademarks */
+/**
+ * tiger.admin-index.css — the admin dashboard's Muuri grid geometry (core admin/index.phtml).
+ *
+ * Registered by the view with $this->pageStyle(); a view carries no <style> tag. This is layout
+ * geometry an absolutely-positioned masonry grid cannot express in Bootstrap utilities — colors
+ * and spacing still belong to the skin.
+ */
+.dash-grid { position: relative; margin: 0 -.5rem; opacity: 0; }
+.dash-grid.dash-ready { opacity: 1; transition: opacity .4s ease; }
+.dash-item { position: absolute; width: 100%; padding: .5rem; box-sizing: border-box; z-index: 1; }
+@media (min-width: 768px)  { .dash-item { width: 50%; }     .dash-item[data-w="3"], .dash-item[data-w="4"] { width: 100%; } }
+@media (min-width: 1200px) { .dash-item { width: 33.333%; } .dash-item[data-w="2"] { width: 66.666%; } .dash-item[data-w="3"], .dash-item[data-w="4"] { width: 100%; } }
+@media (min-width: 1600px) { .dash-item { width: 25%; }     .dash-item[data-w="2"] { width: 50%; } .dash-item[data-w="3"] { width: 75%; } .dash-item[data-w="4"] { width: 100%; } }
+.dash-item .card { margin: 0; }
+.dash-handle { cursor: move; user-select: none; }
+.dash-collapse { cursor: pointer; }
+.muuri-item-dragging { z-index: 3; }
+.muuri-item-dragging .dash-handle { cursor: grabbing; }
+.muuri-item-releasing { z-index: 2; }
+.muuri-item-hidden { z-index: 0; }
+@media (prefers-reduced-motion: reduce) { .dash-item { transition: none !important; } .dash-grid.dash-ready { transition: none; } }

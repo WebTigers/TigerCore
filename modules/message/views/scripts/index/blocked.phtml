@@ -22,4 +22,4 @@ $this->i18n([
 <div class="list-group" id="msg-blocked" aria-live="polite"></div>
 <p class="text-body-secondary text-center py-5 d-none" id="msg-blocked-empty"></p>
 
-<script src="<?= $this->escape($this->asset('/_modules/message/js/message.blocked.js')) ?>" defer></script>
+<?php $this->pageScript('/_modules/message/js/message.blocked.js', ['defer' => true]); ?>
