@@ -390,6 +390,49 @@ final class AuthenticationTest extends IntegrationTestCase
     }
 
     #[Test]
+    public function reset_token_is_live_answers_without_consuming_the_challenge(): void
+    {
+        [$uid] = $this->makeUserWithPassword('peek at this one');
+        $token = bin2hex(random_bytes(16));
+        $cid   = (new Tiger_Model_AuthChallenge())->issue($uid, 'password_reset', $token, 3600);
+
+        // The peek is what the GET render asks before it decides to show the form at all.
+        $this->assertTrue($this->auth->resetTokenIsLive($cid), 'a fresh token reads as live');
+        $this->assertTrue($this->auth->resetTokenIsLive($cid), 'asking twice does not change the answer');
+
+        // ...and it must not have cost the token anything: the redeem still works.
+        $out = $this->auth->resetPassword($cid, $token, 'after the peek 12', 'after the peek 12');
+        $this->assertTrue($out['ok'], 'peeking did not consume the challenge or burn an attempt');
+    }
+
+    #[Test]
+    public function reset_token_is_live_is_false_for_unknown_consumed_expired_and_wrong_type_tokens(): void
+    {
+        [$uid] = $this->makeUserWithPassword('dead link cases 1');
+        $model = new Tiger_Model_AuthChallenge();
+
+        $this->assertFalse($this->auth->resetTokenIsLive(''), 'an empty cid is not live');
+        $this->assertFalse($this->auth->resetTokenIsLive('not-a-real-token-000'), 'an unknown cid is not live');
+
+        // Consumed — the realistic case: the user clicks the same emailed link a second time.
+        $token = bin2hex(random_bytes(16));
+        $cid   = $model->issue($uid, 'password_reset', $token, 3600);
+        $this->auth->resetPassword($cid, $token, 'consume me please 1', 'consume me please 1');
+        $this->assertFalse($this->auth->resetTokenIsLive($cid), 'a redeemed token is not live');
+
+        // Expired.
+        $expiredToken = bin2hex(random_bytes(16));
+        $expiredCid   = $model->issue($uid, 'password_reset', $expiredToken, 1);
+        $model->update(['expires_at' => gmdate('Y-m-d H:i:s', time() - 60)],
+                       $model->getAdapter()->quoteInto('challenge_id = ?', $expiredCid));
+        $this->assertFalse($this->auth->resetTokenIsLive($expiredCid), 'an expired token is not live');
+
+        // A challenge of another TYPE must never open the reset screen.
+        $otherCid = $model->issue($uid, 'email_login', '135791', 3600);
+        $this->assertFalse($this->auth->resetTokenIsLive($otherCid), 'a non-reset challenge is not a reset token');
+    }
+
+    #[Test]
     public function a_reset_with_a_mismatched_confirmation_or_wrong_code_fails_without_burning_the_token(): void
     {
         [$uid] = $this->makeUserWithPassword('keep this one 11');

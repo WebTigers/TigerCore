@@ -194,7 +194,8 @@ class AuthController extends Tiger_Controller_Action
     }
 
     /**
-     * GET  /auth/reset/cid/…/code/…  -> set-a-new-password form (from the emailed link).
+     * GET  /auth/reset/cid/…/code/…  -> set-a-new-password form (from the emailed link),
+     *                                   or the dead-link card when the token no longer resolves.
      * POST /auth/reset               -> redeem the token + set the password (JSON).
      *
      * @return void
@@ -229,9 +230,19 @@ class AuthController extends Tiger_Controller_Action
             return;
         }
         $this->_helper->layout()->setLayout('auth');
-        $this->view->title = 'Set a new password — Tiger';
-        $this->view->cid   = (string) $request->getParam('cid', '');
-        $this->view->code  = (string) $request->getParam('code', '');
+        $this->view->cid  = (string) $request->getParam('cid', '');
+        $this->view->code = (string) $request->getParam('code', '');
+
+        // Check the token BEFORE rendering the form. A dead link used to render a perfectly
+        // ordinary set-a-new-password screen, so the user chose a password, typed it twice and
+        // only then learned the link had expired — and the people who hit that are the ones
+        // already locked out. Peek is read-only: it never consumes the challenge or costs an
+        // attempt, and resetPassword() still re-checks at submit (a token can expire in between).
+        $this->view->deadLink = !(new Tiger_Service_Authentication())
+            ->resetTokenIsLive($this->view->cid);
+        $this->view->title = $this->view->deadLink
+            ? 'Link expired — Tiger'
+            : 'Set a new password — Tiger';
     }
 
     /**

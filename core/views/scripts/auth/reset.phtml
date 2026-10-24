@@ -8,7 +8,23 @@
  */
 $cid  = $this->escape($this->cid ?? '');
 $code = $this->escape($this->code ?? '');
+
+// A token that no longer resolves gets the dead-link card instead of the form — telling the
+// user BEFORE they choose a password, not after they have typed it twice. The controller
+// decides; the view only renders the verdict.
+if (!empty($this->deadLink)):
 ?>
+<div class="tiger-auth-brand">
+    <span class="tiger-auth-mark"><i class="fa-solid fa-link-slash"></i></span>
+    <h1 class="h4 mb-1"><?= $this->escape($this->t('core.auth.reset.dead_title')) ?></h1>
+    <p class="text-body-secondary small mb-0"><?= $this->escape($this->t('core.auth.reset.dead_body')) ?></p>
+</div>
+
+<div class="d-grid gap-2 mt-4">
+    <a href="/auth/forgot" class="btn btn-primary btn-lg"><?= $this->escape($this->t('core.auth.reset.dead_action')) ?></a>
+    <a href="/auth/login" class="btn btn-outline-secondary btn-lg"><?= $this->escape($this->t('core.auth.back_to_login')) ?></a>
+</div>
+<?php return; endif; ?>
 <div class="tiger-auth-brand">
     <span class="tiger-auth-mark"><i class="fa-solid fa-lock"></i></span>
     <h1 class="h4 mb-1"><?= $this->escape($this->t('core.auth.reset.title')) ?></h1>

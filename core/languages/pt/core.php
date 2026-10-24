@@ -92,6 +92,9 @@ return [
     'core.auth.reset.new_password'   => 'Nova senha',
     'core.auth.reset.confirm_password' => 'Confirmar senha',
     'core.auth.reset.submit'         => 'Definir nova senha',
+    'core.auth.reset.dead_title'     => 'Este link expirou',
+    'core.auth.reset.dead_body'      => 'Os links de redefinição de senha são de uso único e têm prazo de validade. Solicite um novo e nós o enviaremos por e-mail.',
+    'core.auth.reset.dead_action'    => 'Solicitar um novo link',
 
     // --- Autenticação: senha esquecida ---
     'core.auth.forgot.title'         => 'Redefinir sua senha',

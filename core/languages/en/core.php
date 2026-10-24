@@ -96,6 +96,9 @@ return [
     'core.auth.reset.new_password'   => 'New password',
     'core.auth.reset.confirm_password' => 'Confirm password',
     'core.auth.reset.submit'         => 'Set new password',
+    'core.auth.reset.dead_title'     => 'This link has expired',
+    'core.auth.reset.dead_body'      => 'Password reset links are single-use and time-limited. Request a new one and we\'ll email it straight over.',
+    'core.auth.reset.dead_action'    => 'Request a new link',
 
     // --- Auth: forgot password ---
     'core.auth.forgot.title'         => 'Reset your password',
