@@ -1,0 +1,36 @@
+{
+    "base_url": "https://tiger-dev.webtigers.com",
+    "never_target": [
+        "https://webtigers.com",
+        "https://www.webtigers.com",
+        "https://tiger.webtigers.com",
+        "https://registry.webtigers.com",
+        "https://accounts.3ao.com",
+        "https://host3.3ao.com"
+    ],
+    "jira": {
+        "base": "https://webtigerscom.atlassian.net",
+        "project": "TIGER",
+        "labels": [
+            "ui-probe",
+            "functional-user-test"
+        ],
+        "issue_type_bug": "10008",
+        "issue_type_task": "10006"
+    },
+    "credentials_file": "tests/ui/credentials.local.json",
+    "artifacts": "tests/ui/artifacts",
+    "console_ignore": {
+        "_comment": "Known third-party console noise. 'No console errors' is the probe's cheapest detector for OUR defects (a dropped pageScripts slot, a bare asset(), a 404 on a module asset all surface there first), so a permanent foreign error has to be filtered rather than re-triaged every run \u2014 the real risk is habituation. Each entry MUST name why it is not ours. TIGER-388.",
+        "patterns": [
+            {
+                "match": "violates the following report-only Content Security Policy directive",
+                "why": "Google's own CSP, not ours \u2014 tiger-dev sends no Content-Security-Policy header at all (verified with curl). www.google.com serves content-security-policy-report-only and reports to csp.withgoogle.com. Fires on the reCAPTCHA frame, seen on /auth/reset."
+            },
+            {
+                "match": "Failed to load resource: the server responded with a status of 401",
+                "why": "Expected on a NEGATIVE-PATH scenario: the browser logs the XHR's 401 when a failed login is correctly refused. Only ignorable in scenarios that deliberately provoke a 4xx \u2014 never filter this on a happy path."
+            }
+        ]
+    }
+}

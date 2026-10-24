@@ -19,3 +19,7 @@
 # `assets.html` in the working dir to check what it references).
 /tests/fixtures/var/
 /assets.html
+
+# UI probe artifacts + local test credentials
+tests/ui/artifacts/
+tests/ui/credentials.local.json
