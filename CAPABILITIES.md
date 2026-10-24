@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**246 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**247 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -281,6 +281,7 @@
 - **Tiger_View_Helper_LocaleView** `@api` — render the LOCALE variant of a view when one ships, else the default.  ·  `library/Tiger/View/Helper/LocaleView.php`
 - **Tiger_View_Helper_MediaField** `@api` — a form field that picks media via TigerMediaPicker.  ·  `library/Tiger/View/Helper/MediaField.php`
 - **Tiger_View_Helper_Menu** `@api` — render a custom menu in a view: `<?= $this->menu('primary') ?>`.  ·  `library/Tiger/View/Helper/Menu.php`
+- **Tiger_View_Helper_PageAsset_Abstract** `@internal` — the shared slot mechanics behind `pageScript()`/`pageStyle()`.  ·  `library/Tiger/View/Helper/PageAsset/Abstract.php`
 - **Tiger_View_Helper_PageField** `@api` — read a custom field value (Tiger_Fields) from a page on the front end.  ·  `library/Tiger/View/Helper/PageField.php`
 - **Tiger_View_Helper_PageScript** `@api` — register a page-specific JS file from a view WITHOUT a `<script>` tag.  ·  `library/Tiger/View/Helper/PageScript.php`
 - **Tiger_View_Helper_PageStyle** `@api` — register a page-specific stylesheet from a view WITHOUT a `<style>` tag.  ·  `library/Tiger/View/Helper/PageStyle.php`
