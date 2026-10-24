@@ -92,6 +92,9 @@ return [
     'core.auth.reset.new_password'   => 'Nueva contraseña',
     'core.auth.reset.confirm_password' => 'Confirmar contraseña',
     'core.auth.reset.submit'         => 'Establecer nueva contraseña',
+    'core.auth.reset.dead_title'     => 'Este enlace ha caducado',
+    'core.auth.reset.dead_body'      => 'Los enlaces para restablecer la contraseña son de un solo uso y caducan. Solicita uno nuevo y te lo enviaremos por correo.',
+    'core.auth.reset.dead_action'    => 'Solicitar un enlace nuevo',
 
     // --- Autenticación: contraseña olvidada ---
     'core.auth.forgot.title'         => 'Restablecer tu contraseña',

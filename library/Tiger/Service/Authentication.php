@@ -269,6 +269,32 @@ class Tiger_Service_Authentication
      * @param  string $confirm     the confirmation of the new password
      * @return array{ok:bool,error:?string}   error = a ready-to-show message on failure
      */
+    /**
+     * Is this password-reset token still redeemable? A READ-ONLY peek — it never consumes
+     * the challenge and never costs an attempt, so it is safe to call when merely RENDERING
+     * the set-a-new-password screen.
+     *
+     * It deliberately checks the challenge only, not the code: the code cannot be verified
+     * without spending an attempt, and the challenge id is an opaque v4 UUID that the holder
+     * of the link already has — so answering this leaks nothing the link itself did not.
+     * `resetPassword()` still re-checks everything at submit, because a token can expire
+     * between the render and the submit.
+     *
+     * @param  string $challengeId the `cid` from the emailed link
+     * @return bool                true when the link can still be redeemed
+     */
+    public function resetTokenIsLive($challengeId)
+    {
+        $challengeId = (string) $challengeId;
+        if ($challengeId === '') { return false; }
+
+        $row = (new Tiger_Model_AuthChallenge())->find($challengeId)->current();
+        return (bool) ($row
+            && $row->type === 'password_reset'
+            && $row->consumed_at === null
+            && strtotime($row->expires_at) >= time());
+    }
+
     public function resetPassword($challengeId, $code, $newPassword, $confirm)
     {
         $newPassword = (string) $newPassword;

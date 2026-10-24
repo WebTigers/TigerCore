@@ -92,6 +92,9 @@ return [
     'core.auth.reset.new_password'   => 'Nouveau mot de passe',
     'core.auth.reset.confirm_password' => 'Confirmer le mot de passe',
     'core.auth.reset.submit'         => 'Définir le nouveau mot de passe',
+    'core.auth.reset.dead_title'     => 'Ce lien a expiré',
+    'core.auth.reset.dead_body'      => 'Les liens de réinitialisation sont à usage unique et à durée limitée. Demandez-en un nouveau et nous vous l\'enverrons par e-mail.',
+    'core.auth.reset.dead_action'    => 'Demander un nouveau lien',
 
     // --- Authentification : mot de passe oublié ---
     'core.auth.forgot.title'         => 'Réinitialiser votre mot de passe',

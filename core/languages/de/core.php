@@ -92,6 +92,9 @@ return [
     'core.auth.reset.new_password'   => 'Neues Passwort',
     'core.auth.reset.confirm_password' => 'Passwort bestätigen',
     'core.auth.reset.submit'         => 'Neues Passwort festlegen',
+    'core.auth.reset.dead_title'     => 'Dieser Link ist abgelaufen',
+    'core.auth.reset.dead_body'      => 'Links zum Zurücksetzen des Passworts sind einmalig nutzbar und zeitlich begrenzt. Fordern Sie einen neuen an – wir senden ihn Ihnen per E-Mail.',
+    'core.auth.reset.dead_action'    => 'Neuen Link anfordern',
 
     // --- Authentifizierung: Passwort vergessen ---
     'core.auth.forgot.title'         => 'Passwort zurücksetzen',

@@ -92,6 +92,9 @@ return [
     'core.auth.reset.new_password'   => 'नया पासवर्ड',
     'core.auth.reset.confirm_password' => 'पासवर्ड की पुष्टि करें',
     'core.auth.reset.submit'         => 'नया पासवर्ड सेट करें',
+    'core.auth.reset.dead_title'     => 'यह लिंक समाप्त हो चुका है',
+    'core.auth.reset.dead_body'      => 'पासवर्ड रीसेट लिंक एक बार उपयोग के लिए होते हैं और इनकी एक समय-सीमा होती है। नया लिंक मांगें और हम उसे ईमेल कर देंगे।',
+    'core.auth.reset.dead_action'    => 'नया लिंक मांगें',
 
     // --- प्रमाणीकरण: पासवर्ड भूल गए ---
     'core.auth.forgot.title'         => 'अपना पासवर्ड रीसेट करें',
