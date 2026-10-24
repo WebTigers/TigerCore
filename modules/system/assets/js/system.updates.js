@@ -178,4 +178,62 @@
                 .catch(function () { TigerDOM.notify(fb, t('networkErrorShort'), { type: 'error' }); });
         });
     }
+    // ----- history grid ------------------------------------------------------
+    // Rows come from /api (System_Service_Updates::datatable) per WEBSERVICES.md §5 —
+    // never server-rendered. The per-run step log hangs off a DataTables CHILD ROW,
+    // which is how DT expresses "extra detail under this row"; the log travels with
+    // the row payload, so expanding costs no round trip.
+    if (typeof tigerDataTable === 'function' && document.getElementById('updates-history-table')) {
+        var esc = tigerDataTable.esc;
+        var OUTCOME_BADGE = {
+            success: 'text-bg-success', failed: 'text-bg-danger',
+            rolled_back: 'text-bg-warning', advisory: 'text-bg-secondary'
+        };
+        var KIND_ICON  = { core: 'fa-cube', skill: 'fa-graduation-cap' };
+        var KIND_LABEL = { core: 'badgePlatform', skill: 'badgeSkill' };
+
+        function logHtml(log) {
+            var out = (log || []).map(function (s) {
+                return esc((s && s.ok ? '· ' : '✗ ') + '[' + (s && s.step) + '] ' + (s && s.detail));
+            }).join('\n');
+            return '<pre class="small mb-2 bg-body-tertiary rounded p-2 updates-prewrap">' + out + '</pre>';
+        }
+
+        var hTable = tigerDataTable('#updates-history-table', {
+            service: { module: 'system', service: 'updates', action: 'datatable' },
+            order: [[2, 'desc']],
+            columns: [
+                { data: 'item_name', className: 'ps-3', render: function (v, type, row) {
+                    if (type !== 'display') { return v; }
+                    var ic = KIND_ICON[row.item_type] || 'fa-puzzle-piece';
+                    return '<i class="fa-solid fa-fw me-1 text-body-secondary ' + ic + '"></i>' + esc(v);
+                } },
+                { data: 'item_type', render: function (v, type) {
+                    if (type !== 'display') { return v; }
+                    return '<span class="badge text-bg-light border">' + esc(t(KIND_LABEL[v] || 'badgeModule')) + '</span>';
+                } },
+                { data: 'created', className: 'small text-body-secondary text-nowrap' },
+                { data: 'versions', className: 'small font-monospace text-body-secondary' },
+                { data: 'outcome', render: function (v, type) {
+                    if (type !== 'display') { return v; }
+                    return '<span class="badge ' + (OUTCOME_BADGE[v] || 'text-bg-light') + '">' + esc(v) + '</span>';
+                } },
+                { data: null, orderable: false, searchable: false, className: 'pe-3 text-end', render: function (v, type, row) {
+                    if (type !== 'display' || !row.log || !row.log.length) { return ''; }
+                    var ll = esc(t('logLink'));
+                    return '<button class="btn btn-sm btn-link p-0 updates-log-toggle" type="button" '
+                         + 'aria-label="' + ll + '" title="' + ll + '"><i class="fa-solid fa-file-lines"></i></button>';
+                } }
+            ]
+        });
+
+        document.getElementById('updates-history-table').addEventListener('click', function (e) {
+            var btn = e.target.closest('.updates-log-toggle');
+            if (!btn || !hTable) { return; }
+            var tr  = btn.closest('tr');
+            var row = hTable.row(tr);
+            if (row.child.isShown()) { row.child.hide(); return; }
+            row.child(logHtml(row.data().log)).show();
+        });
+    }
 })();

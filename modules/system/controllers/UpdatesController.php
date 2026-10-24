@@ -39,11 +39,9 @@ class System_UpdatesController extends Tiger_Controller_Admin_Action
         $this->view->pending        = $pending;
         $this->view->currentVersion = Tiger_Version::VERSION;   // the installed TigerCore version, always shown
 
-        // Durable history (empty until the migration runs — never let it break the screen).
-        try {
-            $this->view->history = (new Tiger_Model_UpdateHistory())->recent(15);
-        } catch (Throwable $e) {
-            $this->view->history = [];
-        }
+        // The history grid fetches its own rows from /api (System_Service_Updates::datatable)
+        // per the client/server contract — the controller renders the shell only. WITHOUT this
+        // flag the DataTables assets never load and the grid renders empty.
+        $this->view->useDataTables = true;
     }
 }

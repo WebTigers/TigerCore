@@ -79,6 +79,62 @@ final class UpdatesServiceTest extends IntegrationTestCase
     }
 
     #[Test]
+    public function datatable_returns_the_dataTables_envelope_and_structured_rows_only(): void
+    {
+        $this->loginAs('superadmin');
+        (new \Tiger_Model_UpdateHistory())->record([
+            'item_type' => 'module', 'item_slug' => 'dt-probe', 'item_name' => 'DT Probe',
+            'from_version' => '1.0.0', 'to_version' => '1.1.0', 'outcome' => 'success',
+            'log' => [['step' => 'download', 'detail' => 'ok', 'ok' => true]],
+        ]);
+
+        $res = $this->dispatch(['action' => 'datatable', 'draw' => 3, 'start' => 0, 'length' => 10]);
+
+        $this->assertSame(1, (int) $res->result, 'the grid read succeeds');
+        $this->assertSame(3, (int) $res->data['draw'], 'draw is echoed back, as DataTables requires');
+        $this->assertArrayHasKey('recordsTotal', $res->data);
+        $this->assertArrayHasKey('recordsFiltered', $res->data);
+        $this->assertGreaterThan(0, (int) $res->data['recordsTotal'], 'the row we just recorded is counted');
+
+        $row = $res->data['data'][0];
+        // WEBSERVICES.md §5: rows are STRUCTURED data only — never HTML.
+        foreach (['item_name', 'item_type', 'versions', 'outcome', 'created', 'log'] as $k) {
+            $this->assertArrayHasKey($k, $row, "the row carries $k");
+        }
+        $this->assertIsArray($row['log'], 'the step log rides along for the child row');
+        $this->assertStringNotContainsString('<', json_encode($row), 'no markup is built on the server');
+    }
+
+    #[Test]
+    public function datatable_search_narrows_recordsFiltered_without_changing_the_total(): void
+    {
+        $this->loginAs('superadmin');
+        $model = new \Tiger_Model_UpdateHistory();
+        $tag   = 'zz-' . bin2hex(random_bytes(4));
+        $model->record(['item_type' => 'module', 'item_slug' => $tag, 'item_name' => $tag,
+                        'from_version' => '1.0.0', 'to_version' => '1.0.1', 'outcome' => 'success', 'log' => []]);
+        $model->record(['item_type' => 'module', 'item_slug' => 'other-one', 'item_name' => 'Other One',
+                        'from_version' => '1.0.0', 'to_version' => '1.0.1', 'outcome' => 'failed', 'log' => []]);
+
+        $all = $this->dispatch(['action' => 'datatable', 'draw' => 1, 'start' => 0, 'length' => 10]);
+        $hit = $this->dispatch(['action' => 'datatable', 'draw' => 2, 'start' => 0, 'length' => 10,
+                                'search' => ['value' => $tag]]);
+
+        $this->assertSame((int) $all->data['recordsTotal'], (int) $hit->data['recordsTotal'],
+            'the unfiltered total does not move when the search box is used');
+        $this->assertSame(1, (int) $hit->data['recordsFiltered'], 'the search narrows to the one match');
+        $this->assertSame($tag, $hit->data['data'][0]['item_name']);
+    }
+
+    #[Test]
+    public function datatable_is_denied_to_a_plain_admin(): void
+    {
+        $this->loginAs('admin');
+        $res = $this->dispatch(['action' => 'datatable', 'draw' => 1]);
+        $this->assertSame(0, (int) $res->result, 'the history grid is superadmin+, like the rest of the updater');
+    }
+
+    #[Test]
     public function history_returns_a_list_for_a_superadmin(): void
     {
         // history() is fail-soft: it returns [] even if the table isn't migrated — never an error.
