@@ -6,6 +6,23 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.41.0] — 2026-10-24
+
+### Added
+- **Personal access tokens can expire + rotate** (TIGER-378). `user_credential.expires_at` (migration
+  `0057`, additive/nullable — `NULL` = never expires, so every existing token is unchanged):
+  `Tiger_Model_UserCredential::createToken($userId, ?int $ttlSeconds)` mints with an optional TTL;
+  `verifyTokenCredential()` refuses an expired token exactly like a revoked one; `tokensFor()` surfaces the
+  expiry; `rotateToken()` mints a fresh token overlap-safe; `purgeExpiredTokens()` + the daily
+  `core.auth.purge_expired_tokens` job sweep expired rows. Closes the long-lived-machine-token gap so a
+  leaked access token self-heals instead of living until a human revokes it.
+
+### Security
+- **CI guard against plaintext through `Tiger_Secret::resolve()`** (TIGER-382). A token-based unit guard
+  forbids handing a bare plaintext literal to `Tiger_Secret::resolve()` (which would pass it through
+  unchanged) — a string literal must be a recognized provider reference (`ssm:`/`env:`/`file:`/`enc:`/…);
+  variables and concatenations (the runtime-config path) are unaffected. Mutation-tested.
+
 ## [1.40.0] — 2026-10-23
 
 ### Added
