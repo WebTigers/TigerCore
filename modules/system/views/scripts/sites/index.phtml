@@ -71,4 +71,4 @@ $t = fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
     </div>
 </div>
 
-<script src="<?= $this->escape($this->asset('/_modules/system/js/system.sites.js')) ?>" defer></script>
+<?php $this->pageScript('/_modules/system/js/system.sites.js', ['defer' => true]); ?>

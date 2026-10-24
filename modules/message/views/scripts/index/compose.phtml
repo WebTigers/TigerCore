@@ -46,4 +46,4 @@ $replyTo = (string) $this->replyTo;
     </div>
 </form>
 
-<script src="<?= $this->escape($this->asset('/_modules/message/js/message.compose.js')) ?>" defer></script>
+<?php $this->pageScript('/_modules/message/js/message.compose.js', ['defer' => true]); ?>

@@ -74,5 +74,5 @@
     </div>
 </div>
 
-<script src="<?= $this->escape($this->asset('/_modules/analytics/js/analytics.dashboard.js')) ?>" defer></script>
+<?php $this->pageScript('/_modules/analytics/js/analytics.dashboard.js', ['defer' => true]); ?>
 <?php endif; ?>

@@ -16,10 +16,15 @@
  * through) and registrations are deduped by URL. For a one-off color use a Bootstrap utility class,
  * not this.
  *
+ * One ordering caveat: the layout echoes `pageHead` inside `<head>`, which it renders BEFORE the body
+ * content — so a stylesheet registered from a layout PARTIAL that the layout renders after `<head>`
+ * (the public header, the consent banner) arrives too late. Register those from the view, or from the
+ * layout above its `pageHead` echo.
+ *
  * @api
  * @see Tiger_View_Helper_PageScript  the JS counterpart (the `pageScripts` slot)
  */
-class Tiger_View_Helper_PageStyle extends Zend_View_Helper_Abstract
+class Tiger_View_Helper_PageStyle extends Tiger_View_Helper_PageAsset_Abstract
 {
     /**
      * Register a page-specific stylesheet into the layout's `pageHead` slot.
@@ -29,14 +34,8 @@ class Tiger_View_Helper_PageStyle extends Zend_View_Helper_Abstract
      */
     public function pageStyle($href = null)
     {
-        $href = (string) $href;
-        if ($href === '') { return ''; }
-
-        $url      = htmlspecialchars($this->view->asset($href), ENT_QUOTES);
-        $existing = (string) ($this->view->pageHead ?? '');
-        if (strpos($existing, 'href="' . $url . '"') !== false) { return ''; }   // dedup by URL
-
-        $this->view->pageHead = $existing . '<link rel="stylesheet" href="' . $url . "\">\n";
-        return '';
+        return $this->_append('pageHead', $href, static function ($url) {
+            return '<link rel="stylesheet" href="' . $url . "\">\n";
+        });
     }
 }

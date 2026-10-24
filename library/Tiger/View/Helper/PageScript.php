@@ -20,11 +20,14 @@
  * view + its partial) requesting the same file emit one tag. Pass server data to the script via
  * `data-*` attributes on a container element — never an inline `<script>` blob.
  *
+ * Registration works from a PARTIAL as well as a view; see the base class for why that needs care.
+ *
  * @api
  * @see Tiger_View_Helper_PageStyle  the CSS counterpart (the `pageHead` slot)
  * @see Tiger_View_Helper_Asset      the cache-bust token
+ * @see Tiger_View_Helper_I18n       the same view-registers / layout-emits seam for localized strings
  */
-class Tiger_View_Helper_PageScript extends Zend_View_Helper_Abstract
+class Tiger_View_Helper_PageScript extends Tiger_View_Helper_PageAsset_Abstract
 {
     /**
      * Register a page-specific script into the layout's `pageScripts` slot.
@@ -35,19 +38,12 @@ class Tiger_View_Helper_PageScript extends Zend_View_Helper_Abstract
      */
     public function pageScript($src = null, array $attrs = [])
     {
-        $src = (string) $src;
-        if ($src === '') { return ''; }
-
-        $url      = htmlspecialchars($this->view->asset($src), ENT_QUOTES);
-        $existing = (string) ($this->view->pageScripts ?? '');
-        if (strpos($existing, 'src="' . $url . '"') !== false) { return ''; }   // dedup by URL
-
-        $extra = '';
-        if (!empty($attrs['type']))  { $extra .= ' type="' . htmlspecialchars((string) $attrs['type'], ENT_QUOTES) . '"'; }
-        if (!empty($attrs['defer'])) { $extra .= ' defer'; }
-        if (!empty($attrs['async'])) { $extra .= ' async'; }
-
-        $this->view->pageScripts = $existing . '<script src="' . $url . '"' . $extra . "></script>\n";
-        return '';
+        return $this->_append('pageScripts', $src, static function ($url) use ($attrs) {
+            $extra = '';
+            if (!empty($attrs['type']))  { $extra .= ' type="' . htmlspecialchars((string) $attrs['type'], ENT_QUOTES) . '"'; }
+            if (!empty($attrs['defer'])) { $extra .= ' defer'; }
+            if (!empty($attrs['async'])) { $extra .= ' async'; }
+            return '<script src="' . $url . '"' . $extra . "></script>\n";
+        });
     }
 }

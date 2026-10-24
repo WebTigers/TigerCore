@@ -3,6 +3,10 @@
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /** Settings → Registration — a full-page view of the optional registration. Plain strings (no _t helper). */
 $s = $this->state;
+// Localized strings this page's JS references — delivered via the carrier, not an inline script.
+$this->i18n([
+    'networkError' => 'register.net_error',
+]);
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
@@ -51,30 +55,4 @@ $s = $this->state;
     </div>
 </div></div></div>
 
-<script>
-(function () {
-    var fb = document.getElementById('reg-feedback');
-    function call(method, btn, extra) {
-        var fd = new URLSearchParams(extra || {});
-        fd.set('module', 'register'); fd.set('service', 'registration'); fd.set('method', method);
-        var csrf = document.querySelector('#reg-form [name="_csrf"]');
-        if (csrf) { fd.set('_csrf', csrf.value); }
-        return TigerButton.run(btn, function () {
-            return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
-                .then(function (r) { return r.json().catch(function () { return {}; }); });
-        }).then(function (res) {
-            if (res && res.result === 1) { location.reload(); return; }
-            if (res && res.form) { Object.keys(res.form).forEach(function (f) {
-                var el = document.querySelector('[name="' + f + '"]'); if (el) { el.classList.add('is-invalid'); }
-            }); }
-            (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
-        }).catch(function () { TigerDOM.notify(fb, <?= json_encode($this->t('register.net_error')) ?>, { type: 'error' }); });
-    }
-    function on(id, fn) { var el = document.getElementById(id); if (el) { fn(el); } }
-    on('reg-register', function (b) { b.addEventListener('click', function () {
-        var e = document.getElementById('reg-email'); call('register', b, { email: e ? e.value : '' });
-    }); });
-    on('reg-verify-domain', function (b) { b.addEventListener('click', function () { call('verifyDomain', b); }); });
-    on('reg-resend', function (b) { b.addEventListener('click', function () { call('resendEmail', b); }); });
-})();
-</script>
+<?php $this->pageScript('/_modules/register/js/register.admin-registration.js', ['defer' => true]); ?>

@@ -186,6 +186,45 @@ The rule of thumb: **a control should always say what it's doing.** A save butto
 there, or a message that blinks into existence and never leaves, is the tell of a cheap UI. These
 helpers are the house style — every admin + auth screen already uses them; match that.
 
+## Views: a `.phtml` owns MARKUP, never behavior or styling
+
+**No `<script>` and no `<style>` tag in a view — not an inline blob, and not a `<script src>`
+either.** Behavior is a JS asset file, styling is the skin's job, and the theme **layout** is the
+one place a tag is emitted. A view *registers* what it needs and the layout emits it:
+
+```php
+$this->pageScript('/_modules/shop/js/shop.cart.js', ['defer' => true]);  // → the pageScripts slot
+$this->pageScript($this->themeAssets . '/vendor/sortable/Sortable.js');  // a vendored lib, same way
+$this->pageStyle('/_modules/shop/css/shop.css');                         // → the pageHead slot
+```
+
+Both cache-bust through `asset()`, pass a remote URL through untouched, dedupe by URL, and keep
+registration order — so a library still loads ahead of the script that uses it. `style="…"` on an
+element is fine; a `<style>` block is not.
+
+Three things a script used to reach for a PHP tag to get, and where they come from instead:
+
+| Needs | Use |
+|---|---|
+| a localized string | `$this->i18n(['saved' => 'shop.cart.saved'])` in the view → `Tiger.t('saved')` in the JS |
+| a server value (an id, a URL, a config flag, a JSON payload) | a `data-*` attribute on a container the JS reads |
+| a list of rows | `/api` — never a payload baked into the page (WEBSERVICES.md §5) |
+
+Why it is a hard rule and not a preference: a view full of behavior cannot be reskinned, cannot be
+cached, cannot be CSP'd, and cannot be read — and an inline blob is invisible to every JS tool in
+the repo. Keeping the i18n in the carrier has a second payoff: the page ships only the strings its
+own JS uses, as translated *values* under generic aliases, so viewing source never exposes the key
+taxonomy.
+
+Three structural exemptions, none a matter of taste: an **email template** (mail clients drop
+`<link>`, so inline CSS is the correct answer); a view that **is the document** — a full-screen
+surface whose controller disabled the layout, like the CMS builder, which is a layout wearing a
+view's filename and has no layout to register into; and a **JSON-LD** `<script
+type="application/ld+json">`, which carries data rather than behavior and must be inline by spec.
+
+`php tests/ui/bin/paradigm-scan.php` reports every violation across the tree, with those two
+exemptions built in.
+
 ## Services (`/api`) — the canonical flow
 
 Services extend `Tiger_Service_Service`; the message's `method` names the action, which

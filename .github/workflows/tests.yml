@@ -53,9 +53,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Syntax-check the theme's browser assets
+      # Every shipped browser asset, not just the theme's: a view registers its behavior from
+      # modules/<slug>/assets/js and public/js too (TIGER-384), and a syntax error in one of those
+      # kills the screen's JS silently behind a 200. Vendored third-party bundles are excluded —
+      # they are not ours to fix, and several are minified ES the checker trips over.
+      - name: Syntax-check the shipped browser assets
         run: |
-          for f in themes/puma/assets/js/*.js; do node --check "$f"; done
+          find themes modules public core library -name '*.js' \
+               -not -path '*/vendor/*' -not -path '*/node_modules/*' -print0 \
+            | xargs -0 -n1 node --check
       - name: Tiger.t() contract
         run: node tests/js/tiger.i18n.test.js
       - name: TigerButton busy state
