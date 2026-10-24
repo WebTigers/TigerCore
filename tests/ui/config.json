@@ -1,0 +1,16 @@
+{
+    "base_url": "https://tiger-dev.webtigers.com",
+    "never_target": [
+        "https://webtigers.com", "https://www.webtigers.com", "https://tiger.webtigers.com",
+        "https://registry.webtigers.com", "https://accounts.3ao.com", "https://host3.3ao.com"
+    ],
+    "jira": {
+        "base": "https://webtigerscom.atlassian.net",
+        "project": "TIGER",
+        "labels": ["ui-probe", "functional-user-test"],
+        "issue_type_bug": "10008",
+        "issue_type_task": "10006"
+    },
+    "credentials_file": "tests/ui/credentials.local.json",
+    "artifacts": "tests/ui/artifacts"
+}
