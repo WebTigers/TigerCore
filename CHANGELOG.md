@@ -6,6 +6,43 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.42.0] — 2026-10-24
+
+### Fixed
+- **A dead password-reset link now says so BEFORE you choose a password** (TIGER-387). An expired,
+  already-used or malformed reset link used to render an ordinary "Set a new password" screen: the user
+  picked a password, typed it twice, submitted — and only then learned the link was dead. The refusal was
+  always correct and safe; it arrived after the work instead of before it, and the people who hit it are
+  the ones already locked out. `AuthController::resetAction` now checks the token on GET and renders a
+  dead-link card with a one-click **Request a new link**. New
+  `Tiger_Service_Authentication::resetTokenIsLive()` is a READ-ONLY peek — it never consumes the challenge
+  and never costs an attempt, so it is safe at render time; it checks the challenge, not the code (a code
+  cannot be verified without spending an attempt, and the challenge id is an opaque v4 UUID the link holder
+  already has). `resetPassword()` still re-checks at submit, because a token can expire in between. Three
+  new i18n keys in all six shipped locales.
+
+### Changed
+- **The Updates history is a real grid, fetched from `/api`** (TIGER-383). It was the one admin screen
+  still server-rendering list data, against the client/server contract (WEBSERVICES.md §5) — and behind the
+  consistency point was a real gap: the screen could only ever show the newest 15 runs, so older history
+  was unreachable, unsearchable and unpageable. Converted to the house DataTables pattern:
+  `Tiger_Model_UpdateHistory::datatable()` owns the query (search / sort / paging / counts, so no predicate
+  is built in a service), `System_Service_Updates::datatable()` returns the standard envelope with
+  STRUCTURED rows only, and the controller renders the shell with `useDataTables`. The per-run step log
+  became a DataTables child row and rides with the row payload, so expanding it costs no round trip.
+  `System_Service_Updates::history()` is kept — it is the plain read an API/MCP caller wants without
+  DataTables semantics, and `history` is a READ_VERB, so a read-only token can reach it.
+
+### Added
+- **Functional UI test harness** (`tests/ui/`, TIGER-386). Three layers, each answering a different
+  question: `bin/paradigm-scan.php` checks the client/server contract statically across every view script
+  in milliseconds; `bin/auth-probe.php` exercises the auth surface's AJAX/JSON contract with no browser
+  (CI-able); `scenarios/auth.json` drives a real browser through sign-in, failed sign-in, reset and
+  sign-out. The scan's first run over 108 views found **zero page-POST violations** — the paradigm holds —
+  and the two defects above. Dev-only by construction: both probes refuse a production base URL and
+  negative-path scenarios use `@example.invalid` identifiers so a run can never trip a real account's
+  lockout. A check that could not actually run reports GATED, never PASS.
+
 ## [1.41.0] — 2026-10-24
 
 ### Added
