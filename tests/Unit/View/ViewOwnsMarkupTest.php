@@ -35,8 +35,11 @@ use Tiger\Tests\Support\UnitTestCase;
 #[CoversNothing]
 final class ViewOwnsMarkupTest extends UnitTestCase
 {
-    /** A tag a view must not emit: a script, a style block, or a stylesheet link. */
-    private const TAG = '~<(script|style)\b[^>]*>|<link\b[^>]*\brel\s*=\s*["\']stylesheet["\'][^>]*>~i';
+    /**
+     * A tag a view must not emit: a script, a style block, or a stylesheet link. A JSON-LD (or JSON)
+     * `<script>` is exempt — it carries DATA, not behavior, and the spec requires it inline.
+     */
+    private const TAG = '~<script\b(?![^>]*\btype\s*=\s*["\']application/(?:ld\+json|json)["\'])[^>]*>|<style\b[^>]*>|<link\b[^>]*\brel\s*=\s*["\']stylesheet["\'][^>]*>~i';
 
     #[Test]
     public function no_view_script_emits_its_own_script_or_style_tag(): void
@@ -74,6 +77,8 @@ final class ViewOwnsMarkupTest extends UnitTestCase
         $this->assertSame(1, preg_match_all(self::TAG, $this->stripPhp('<link rel="stylesheet" href="/a.css">')));
         $this->assertSame(0, preg_match_all(self::TAG, $this->stripPhp('<link>https://example.com/feed</link>')),
             'an RSS <link> is not a stylesheet');
+        $this->assertSame(0, preg_match_all(self::TAG, $this->stripPhp('<script type="application/ld+json">{}</script>')),
+            'JSON-LD carries data, not behavior, and the spec requires it inline');
 
         // …and that a <script> living inside PHP code or a comment is NOT markup.
         $this->assertSame(0, preg_match_all(self::TAG,

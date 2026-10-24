@@ -216,10 +216,11 @@ the repo. Keeping the i18n in the carrier has a second payoff: the page ships on
 own JS uses, as translated *values* under generic aliases, so viewing source never exposes the key
 taxonomy.
 
-Two structural exemptions, neither a matter of taste: an **email template** (mail clients drop
-`<link>`, so inline CSS is the correct answer) and a view that **is the document** — a full-screen
-surface whose controller disabled the layout, like the CMS builder. The second is a layout wearing
-a view's filename; there is no layout to register into, so it emits its own tags.
+Three structural exemptions, none a matter of taste: an **email template** (mail clients drop
+`<link>`, so inline CSS is the correct answer); a view that **is the document** — a full-screen
+surface whose controller disabled the layout, like the CMS builder, which is a layout wearing a
+view's filename and has no layout to register into; and a **JSON-LD** `<script
+type="application/ld+json">`, which carries data rather than behavior and must be inline by spec.
 
 `php tests/ui/bin/paradigm-scan.php` reports every violation across the tree, with those two
 exemptions built in.

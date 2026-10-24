@@ -178,8 +178,10 @@ if (isset($opts['json'])) {
     printf("\n%d checks, %d failed, %d GATED (reCAPTCHA refused a tokenless client — those assertions never ran)\n",
         count($results), count($fail), $gatedN);
     if ($gatedN) {
-        echo "\nTo un-gate: point the dev install at Google's always-pass reCAPTCHA test keys, or set\n"
-           . "tiger.recaptcha.enabled = 0 on DEV only. Until then these checks are inconclusive, not green.\n";
+        echo "\nThese are inconclusive, not green — and no configuration un-gates them (TIGER-385: dev runs\n"
+           . "reCAPTCHA v3 to match prod, v3 needs a BROWSER-executed token, and Google's always-pass test\n"
+           . "keys are v2-only). curl has no token, not a low score. They belong to the headless browser\n"
+           . "probe instead, which mints a real token; GATED is this tool's honest answer.\n";
     }
 }
 exit(count($fail) ? 1 : 0);

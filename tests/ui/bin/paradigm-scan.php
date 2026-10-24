@@ -143,11 +143,12 @@ function scanFile(string $file, string $root): array
     // blob, a hand-written `<script src>` and a `<link rel="stylesheet">` are all the same
     // violation: the view emitted a tag instead of registering an asset.
     //
-    // Two exemptions, both structural rather than preference:
+    // Three exemptions, none a matter of preference:
     //   • an email template — mail clients drop <link>, so inline CSS is the correct answer there;
     //   • a view that IS the document (a full-screen builder whose controller disabled the layout),
     //     because there is no layout to echo the pageScripts/pageHead slot into. It is a layout
-    //     wearing a view's filename, and a layout may emit tags.
+    //     wearing a view's filename, and a layout may emit tags;
+    //   • a JSON-LD <script type="application/ld+json">, which carries DATA, not behavior.
     // Matching runs on PHP-STRIPPED source: `'#<script\b[^>]*>#'` inside a preg pattern, and the
     // word <script> in a comment, are not markup — three of these were reported against
     // cms/page/design.phtml, which emits exactly one.
@@ -155,7 +156,7 @@ function scanFile(string $file, string $root): array
     $isDocument = (bool) preg_match('/<!doctype\s+html|<html\b/i', $src);
     $isLayout   = (strpos($r, '/layouts/') !== false);
     if (!$isEmail && !$isDocument && !$isLayout
-        && preg_match_all('~<(script|style)\b[^>]*>|<link\b[^>]*\brel\s*=\s*["\']stylesheet["\'][^>]*>~i',
+        && preg_match_all('~<script\b(?![^>]*\btype\s*=\s*["\']application/(?:ld\+json|json)["\'])[^>]*>|<style\b[^>]*>|<link\b[^>]*\brel\s*=\s*["\']stylesheet["\'][^>]*>~i',
                           stripPhp($src), $sm, PREG_OFFSET_CAPTURE)) {
         foreach ($sm[0] as [$tag, $off]) {
             $hits[] = ['check' => 'inline_script', 'file' => $r, 'line' => lineOf($src, $off),

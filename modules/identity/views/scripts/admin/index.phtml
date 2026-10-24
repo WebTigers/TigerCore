@@ -10,7 +10,6 @@
  */
 $form = $this->form;
 $el   = function ($name) use ($form) { return $form->getElement($name); };
-$va   = $this->themeAssets;
 // Localized strings this page's JS references — delivered via the carrier + tiger.i18n.js, not inline.
 $this->i18n([
     'saved'        => 'identity.js.saved',
@@ -122,5 +121,4 @@ $this->i18n([
     </div>
 </form>
 
-<?php $this->pageScript($va . '/js/tiger.media-picker.js'); ?>
 <?php $this->pageScript('/_modules/identity/js/identity.admin-index.js', ['defer' => true]); ?>
