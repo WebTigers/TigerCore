@@ -32,6 +32,62 @@ It is one ACL. Every request is judged against the same rule-set. That's the thi
 
 ---
 
+## 1a. Role SCOPE — the baseline
+
+The role graph says what a role may **do**. It does not say how much of the install a role may do it
+**to**. That second question is this section, and it is the standard: code that disagrees with the
+table below is wrong and should be changed.
+
+### The unit of scope is the ORG
+
+Tenancy is the `org`. A person reaches an org by holding a membership in it (`org_user`), and the
+**role lives on that membership**, resolved live each request.
+
+**How many people live in an org is the app developer's decision, not the platform's.** One user
+per org, a team sharing one org, a hierarchy of orgs with `parent_org_id` — all are valid
+configurations of the same model, and the ACL behaves identically under each. The platform's job is
+to scope by org correctly; populating those orgs is an application concern and belongs in the app's
+own design, not here.
+
+### The tiers
+
+| Role | Scope | Reaches |
+|---|---|---|
+| `guest` | — | public resources only |
+| `user` | **SELF** | their own rows, within the org(s) they belong to |
+| `manager` | **ORG** | their own org |
+| `supermanager` | **ORG TREE** | their org and its child orgs (`parent_org_id`) |
+| `admin` | **APP-WIDE** | every org — administering orgs is the job |
+| `superadmin` | **APP-WIDE** | every org, plus platform-level surfaces |
+| `developer` | **APP-WIDE** | everything (the god role) |
+
+**The cut line is between `supermanager` and `admin`.** Below it a role is bound to a tenant; at and
+above it a role administers the platform, orgs included. **"Tenant admin" is not a role in this
+model** — if you mean someone bounded to one org, you mean `manager` or `supermanager`.
+
+This does not contradict §1's *"the same person can be `admin` in one org and `viewer` in another"*.
+That sentence is about where a role is **stored** — on the membership, so it can differ per org.
+It is not a claim about reach: membership is how a person *acquires* `admin`, and the role is not
+fenced by the org that granted it.
+
+### What conforming code looks like
+
+1. **Scope is decided in the SERVICE, from the caller's role, and passed into the model finder.**
+   A finder that hard-codes `org_id = <caller's org>` has silently decided that no app-wide role
+   exists. Give the finder an org-scope parameter and let the service choose it.
+2. **A tenant-scoped role is scoped automatically; an app-wide role is not scoped at all** — not
+   "scoped with an opt-in". An admin screen listing every org's rows is the design working.
+3. **A missing org filter is not a defect by itself.** It is a defect only if a tenant-scoped role
+   can actually reach that surface. Read the `acl.ini` grant before reaching for a predicate.
+4. **`Tiger_Model_Media::search()` is the reference gate** — it takes the role and the org and
+   decides from both, rather than assuming one answer for every caller.
+
+Both failure directions are real: a finder with no scope where a tenant role can reach it leaks
+across tenants, and a finder hard-scoped to the caller's org on an admin surface walls an app-wide
+role out of the orgs it administers. Check the grant, then pick.
+
+---
+
 ## 2. The goal
 
 An app developer needs to author their **own** authorization — general app rules *and* per-tenant

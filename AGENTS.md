@@ -334,8 +334,16 @@ geocode / reverse / IP behind adapters, normalized `Place` payload) and **`Tiger
 
 Deny-by-default. Access is data in `acl.ini` / `acl_*` tables, never a hardcoded role compare.
 A resource with no allow rule is denied. Role comes from `org_user` (role-on-membership) and
-is resolved live each request. Module `configs/acl.ini` grants access to that module's
-controllers/services. Two resource shapes: a **controller** dispatch gates on
+is resolved live each request.
+
+**Know a role's SCOPE before you write a finder — [ACL.md §1a](ACL.md) is the standard.**
+`user` is SELF-scoped, `manager` is ORG, `supermanager` is ORG TREE, and **`admin`/`superadmin`/
+`developer` are APP-WIDE** — they administer every org. So the org scope is the SERVICE's decision
+from the caller's role, passed into the model finder; a finder that hard-codes
+`org_id = <caller's org>` has decided no app-wide role exists. And a missing org filter is only a
+defect if a tenant-scoped role can actually reach that surface — read the `acl.ini` grant first.
+
+Module `configs/acl.ini` grants access to that module's controllers/services. Two resource shapes: a **controller** dispatch gates on
 `isAllowed($role, <Controller>, <action>)` (privilege = action); an **`/api` service** gates on
 `isAllowed($role, <ServiceClass>, <method>)` (privilege = method). Declaring the rule is part of
 writing the call — see "Services (`/api`)".
