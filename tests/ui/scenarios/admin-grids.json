@@ -1,0 +1,91 @@
+{
+    "suite": "admin-grids",
+    "title": "Functional user tests — every admin data grid actually draws",
+    "notes": "Intent-level steps, no selectors: selectors churn, intent does not. The probe resolves controls from the accessibility tree. 'verified' records the last real browser run.\n\nWhy this suite exists: on 2026-10-25 three core grids were serving HTTP 200 with an empty table and zero console errors, because their controller never set useDataTables and each grid script opens with a bail-out guard (TIGER-390). Nothing in PHPUnit renders a page, and the browser probe's cheapest detector is 'no console errors' — which a working guard defeats. So a grid has to be LOOKED AT.\n\nThe hard-won rule here is UI-GRID-EMPTY-TRUTH: an empty grid and a broken grid are the same picture. Never record a PASS on an empty grid without establishing WHY it is empty. Run `tests/ui/bin/seed-dev.php` first so the org-scoped grids are supposed to have rows.",
+    "scenarios": [
+        {
+            "id": "UI-GRID-LIB",
+            "role": "superadmin",
+            "url": "(every grid screen)",
+            "severity_hint": "blocker",
+            "steps": [
+                "open each admin screen that renders a data grid",
+                "check the page actually loaded jQuery, DataTables and tiger.datatable.js"
+            ],
+            "expect": [
+                "the screen's controller set useDataTables, so the admin layout emitted the grid libs",
+                "the `tigerDataTable` global is defined before the screen's own JS runs",
+                "no screen relies on another page having loaded the lib"
+            ],
+            "verified": "2026-10-25 PASS — all 14 reachable grid screens serve dataTables.min.js; /comment/admin 404s only because comments are disabled, which is correct. `paradigm-scan.php` now covers this statically (check 5, datatable_gate), so it should never need finding by hand again."
+        },
+        {
+            "id": "UI-GRID-DRAW",
+            "role": "superadmin",
+            "url": "(every grid screen)",
+            "severity_hint": "blocker",
+            "steps": [
+                "open each grid screen",
+                "wait for the grid to settle past its Loading… state",
+                "read the row count and the 'Showing x to y of z' summary"
+            ],
+            "expect": [
+                "sortable column headers, a search box and pagination are present (the lib initialised)",
+                "rows arrive from /api — never server-rendered <tr>",
+                "the console is clean"
+            ],
+            "verified": "2026-10-25 PASS — /access/user 25 of 29 · /access/org 25 of 27 · /cms/page 25 of 25 · /system/updates 24 · /email/admin 5 of 5 · /agent/skills 25 of 133 · /translations 25 of 2,597 · /system/modules 25 · /blog/post 1 of 1 · /cms/menu 1 of 1 · /code 1 of 1 · /newsletter/admin 1 of 1. Zero console errors across the pass."
+        },
+        {
+            "id": "UI-GRID-EMPTY-TRUTH",
+            "role": "superadmin",
+            "url": "(any grid reporting zero rows)",
+            "severity_hint": "blocker",
+            "steps": [
+                "note every grid that reports zero rows",
+                "for each, establish from the data WHY it is empty — no rows anywhere, or none in this caller's scope",
+                "only then record a result"
+            ],
+            "expect": [
+                "an empty grid is never recorded as PASS on the strength of the empty state alone",
+                "a grid whose table is genuinely empty shows the grid's own empty message, not a dead table",
+                "if rows exist and are not drawn, that is a defect"
+            ],
+            "verified": "2026-10-25 PASS — /media is correctly empty (10 media rows exist, all owned by other orgs; Tiger_Model_Media::datatable scopes to the caller's org OR the shared '' library). /system/sites is correctly empty (no host->org mappings on dev). This check is the one that caught TIGER-391: /cms/page's 25 rows looked like a healthy grid next to media's honest 0, which is what exposed the missing org filter."
+        },
+        {
+            "id": "UI-GRID-NO-DIALOG",
+            "role": "superadmin",
+            "url": "(any grid screen)",
+            "severity_hint": "blocker",
+            "steps": [
+                "open a grid screen whose /api call fails, or misconfigure one on purpose",
+                "watch for a native browser dialog"
+            ],
+            "expect": [
+                "no alert/confirm/prompt ever — the house rule holds for third-party libs too",
+                "a grid error reaches the CONSOLE, where the probe can see it",
+                "a grid missing {module, service, action} is refused at the call site with the cause named"
+            ],
+            "verified": "2026-10-25 PASS — DataTables' default errMode is alert(), which both broke the rule and HID a server-side TypeError behind a modal. tiger.datatable.js now sets errMode='throw' and guards the service descriptor; mutation-checked in-page by re-passing the old `method:` shape — returns null and logs \"use `action`, not `method`\" with no dialog."
+        },
+        {
+            "id": "UI-GRID-TENANCY",
+            "role": "superadmin of an org that owns no content",
+            "url": "/cms/page, /media",
+            "severity_hint": "blocker",
+            "steps": [
+                "sign in as an admin whose org owns no pages and no media",
+                "open the Content grid and the Media grid",
+                "compare what each one lists against what the signed-in org actually owns",
+                "take a page_id belonging to ANOTHER org and open it directly in the editor"
+            ],
+            "expect": [
+                "a grid lists only the caller's own org plus genuinely shared ('' org) rows",
+                "a cross-org id is refused, not loaded into the editor",
+                "an admin widens scope by OPTING IN, never by default"
+            ],
+            "verified": "2026-10-25 FAIL — TIGER-391. /cms/page listed all 25 pages across three orgs to a superadmin whose org owns none, and /cms/page/edit/id/<another org's page> loaded title, slug and a 703-char body. /media behaved correctly on the same account (0 rows), which is what made the contrast visible. The save/delete path reads as unscoped too, but was NOT exercised — proving it means mutating another org's content."
+        }
+    ]
+}

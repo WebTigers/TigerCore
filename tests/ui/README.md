@@ -8,6 +8,10 @@ AI-driven functional testing for the Tiger UI. Three layers, each answering a di
 | `php tests/ui/bin/auth-probe.php` | does the AJAX/JSON contract behave? | seconds, no browser |
 | the `tiger-ui-probe` skill + Playwright MCP | does it WORK for a user? | a real browser |
 
+Browser work is recorded as **scenarios** under `scenarios/` — `auth.json` (sign in, failed sign
+in, reset, sign out) and `admin-grids.json` (every admin data grid actually draws). Each scenario is
+intent-level with no selectors, and carries a `verified` line naming what the last real run saw.
+
 The static scan is exhaustive but can only see code; the browser proves live behaviour but only
 on pages someone wrote a scenario for. Run both — that gap is where the TigerImage studio bugs
 lived (three defects that all passed a green PHPUnit suite because nothing ever rendered).
@@ -22,6 +26,25 @@ scenarios use `@example.invalid` identifiers so a run can never trip a real acco
 
 Copy `credentials.local.json.dist` to `credentials.local.json` (gitignored) and fill in a **dev**
 test account. Without it the authenticated scenarios are skipped; everything anonymous still runs.
+
+## Seed first, or a grid assertion means nothing
+
+```
+sudo -u apache php tests/ui/bin/seed-dev.php \
+    --base=https://tiger-dev.webtigers.com --email=uiprobe-super@tiger.test --apply
+```
+
+An **empty grid and a broken grid are the same picture** — that is how three grids shipped serving
+HTTP 200 with no rows and no console error (TIGER-390). If the probe account's org owns no content,
+every grid looks like those three and the only way to tell them apart is a SQL query, which a
+scenario cannot run. The seeder gives that org one page, one article, one menu, one (inactive)
+snippet and one subscriber, all labelled `UI Probe` and on the reserved `.invalid` domain.
+
+It is a **dry run** unless you pass `--apply`, it is idempotent, and it refuses to run without
+`--base`; a `--base` named in `never_target` is refused, and so is a missing `never_target` list.
+That guard is explicit on purpose: an install cannot tell you which site it is — on tiger-dev,
+`APPLICATION_ENV` is literally `production`, `tiger.site.url` is unset and `gethostname()` returns
+an EC2 internal name — so the operator names the target and the list refuses the forbidden ones.
 
 ## Exit codes
 
