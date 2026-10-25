@@ -24,6 +24,7 @@ const CHECKS = [
     'native_submit'  => ['Form has no AJAX handler (native submit)','review'],
     'rendered_rows'  => ['Table rows server-rendered, not from /api','bug'],
     'inline_script'  => ['<script>/<style> tag in a view, not an asset','batch'],
+    'datatable_gate' => ['Grid screen never sets useDataTables (lib never loads)','blocker'],
 ];
 
 /** Views whose page-POST is a DOCUMENTED exception (AGENTS.md: SSO and the like). */
@@ -60,18 +61,74 @@ function hasAjaxHandler(string $src, string $file, string $root): bool
     // view pulls in by theme path, asset()). Follow either and look in the real file — otherwise every
     // conforming screen reads as a native-submit form, which is the opposite of the truth.
     if (preg_match_all('/(?:pageScript|pageStyle|asset)\([^)]*?[\'"]([^\'"]*\.js)[\'"]/i', $src, $m)) {
+        $idx = jsIndex($root);
         foreach ($m[1] as $a) {
-            foreach (glob($root . '/**/' . basename($a)) ?: [] as $hit) {
-                if (preg_match('/fetch\s*\(|TigerButton\.run|XMLHttpRequest/i', (string) @file_get_contents($hit))) { return true; }
-            }
-            $found = shell_exec('find ' . escapeshellarg($root) . ' -name ' . escapeshellarg(basename($a))
-                . ' -not -path "*/vendor/*" -print -quit 2>/dev/null');
-            if ($found && preg_match('/fetch\s*\(|TigerButton\.run|XMLHttpRequest/i', (string) @file_get_contents(trim($found)))) {
+            $hit = $idx[basename($a)] ?? '';
+            if ($hit !== '' && preg_match('/fetch\s*\(|TigerButton\.run|XMLHttpRequest/i', (string) @file_get_contents($hit))) {
                 return true;
             }
         }
     }
     return false;
+}
+
+/**
+ * The JS a view REGISTERS, as source text. The house rule puts behavior in asset files
+ * ($this->pageScript()), so a question about a screen's JavaScript has to be asked of those files,
+ * not of the .phtml. Returns the concatenated contents of every .js the view names.
+ */
+/**
+ * basename -> path for every shipped .js under the root, built ONCE. The scan asks "what is in the
+ * file this view registered?" for nearly every view, and a `find` per asset per view turned a
+ * milliseconds-long scan into a 30-second one. One pass, then pure array lookups.
+ */
+function jsIndex(string $root): array
+{
+    static $idx = null;
+    if ($idx !== null) { return $idx; }
+    $idx = [];
+    $it  = new RecursiveIteratorIterator(
+        new RecursiveCallbackFilterIterator(
+            new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS),
+            static function ($f) {
+                $n = $f->getFilename();
+                if ($f->isDir()) { return $n !== 'vendor' && $n !== 'node_modules' && $n !== '.git'; }
+                return substr($n, -3) === '.js';
+            }
+        )
+    );
+    foreach ($it as $f) {
+        $b = $f->getFilename();
+        if (!isset($idx[$b])) { $idx[$b] = $f->getPathname(); }
+    }
+    return $idx;
+}
+
+function registeredJs(string $src, string $root): string
+{
+    $out = '';
+    if (!preg_match_all('/(?:pageScript|asset)\([^)]*?[\'"]([^\'"]*\.js)[\'"]/i', $src, $m)) {
+        return $out;
+    }
+    $idx = jsIndex($root);
+    foreach (array_unique($m[1]) as $a) {
+        $hit = $idx[basename($a)] ?? '';
+        if ($hit !== '') { $out .= (string) @file_get_contents($hit); }
+    }
+    return $out;
+}
+
+/**
+ * The controller file that owns a view, or '' when there isn't one (a theme view, a layout).
+ * `modules/system/views/scripts/sites/index.phtml` -> `modules/system/controllers/SitesController.php`;
+ * `core/views/scripts/auth/login.phtml`            -> `core/controllers/AuthController.php`.
+ */
+function controllerFor(string $rel, string $root): string
+{
+    if (!preg_match('~^(core|modules/[^/]+)/views/scripts/([^/]+)/~', $rel, $m)) { return ''; }
+    $class = str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', $m[2])));
+    $path  = $root . '/' . $m[1] . '/controllers/' . $class . 'Controller.php';
+    return is_file($path) ? $path : '';
 }
 
 function lineOf(string $src, int $offset): int { return substr_count(substr($src, 0, $offset), "\n") + 1; }
@@ -163,6 +220,30 @@ function scanFile(string $file, string $root): array
                        'detail' => trim(preg_replace('/\s+/', ' ', $tag))];
         }
     }
+
+    // ---- 5. a grid screen that never opts into DataTables ----
+    // The admin layout loads jQuery + DataTables + tiger.datatable.js ONLY behind
+    // `if (!empty($this->useDataTables))`. Without the flag the `tigerDataTable` global is never
+    // defined, and every grid script opens with a bail-out guard — so the screen serves HTTP 200
+    // with an empty table and NOT ONE console error. That shape is invisible to the browser probe's
+    // "no console errors" detector (the guard is doing its job) and to PHPUnit (nothing renders),
+    // which is why it needs a STATIC check. Three core screens shipped this way (TIGER-390).
+    //
+    // Scope, stated honestly: the flag is looked for anywhere in the owning controller, not inside
+    // the specific action. So a controller that sets it in SOME action passes — a finding here means
+    // the controller never sets it at all, which is the case that actually shipped and keeps the
+    // false-positive rate at zero.
+    $ctrl = controllerFor($r, $root);
+    if ($ctrl !== '' && strpos($r, '/layouts/') === false) {
+        $js = $src . registeredJs($src, $root);
+        if (preg_match('/tigerDataTable\s*\(/', $js)
+            && strpos((string) @file_get_contents($ctrl), 'useDataTables') === false) {
+            $hits[] = ['check' => 'datatable_gate', 'file' => $r, 'line' => 1,
+                       'detail' => 'grid JS calls tigerDataTable() but ' . rel($ctrl, $root)
+                                   . ' never sets $this->view->useDataTables'];
+        }
+    }
+
     return $hits;
 }
 
