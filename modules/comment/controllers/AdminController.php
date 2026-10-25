@@ -22,8 +22,9 @@ class Comment_AdminController extends Tiger_Controller_Admin_Action
             throw new Zend_Controller_Action_Exception('Comments are disabled', 404);
         }
 
-        $this->view->title    = 'Comments — Tiger Admin';
-        $this->view->statuses = Tiger_Model_Comment::STATUSES;
+        $this->view->title         = 'Comments — Tiger Admin';
+        $this->view->statuses      = Tiger_Model_Comment::STATUSES;
+        $this->view->useDataTables = true;   // the layout loads jQuery + DataTables when set
 
         // The AI spam control only APPEARS when there is a live agent to run it — an always-visible
         // toggle that silently does nothing is worse than no toggle.

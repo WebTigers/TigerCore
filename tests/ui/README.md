@@ -25,10 +25,18 @@ test account. Without it the authenticated scenarios are skipped; everything ano
 
 ## Exit codes
 
-Both probes exit non-zero on a real failure, so they drop straight into CI or a cron.
-A check that could not run (e.g. reCAPTCHA refused a tokenless client) reports **GATED**, not
-PASS — a vacuous green is worse than no check.
+Both probes exit non-zero on a real failure, so either drops into a script when you want that.
+A check that could not run reports **GATED**, not PASS — a vacuous green is worse than no check.
+With reCAPTCHA switched off on the test install (`tiger.recaptcha.enabled = 0`) nothing is gated;
+see the probe's own footer.
 
-## Promotion
+## Scope — scenarios, by decision
 
-A confirmed finding becomes a spec in `regression/` so it cannot come back silently.
+These are **scenarios, run on demand.** There is deliberately no CI job, no promoted-spec
+directory and no Playwright suite to maintain: the cost of a regression harness is ongoing and
+the value here is finding real defects on real screens, which is what an on-demand pass does.
+
+So a confirmed finding becomes a **Jira ticket** (labelled `functional-user-test` + `ui-probe`),
+not a test file. Where a whole CLASS of defect turns out to be statically detectable, the cheap
+exhaustive home for it is a check in `paradigm-scan.php` — one scan, every view, milliseconds —
+rather than a scenario per screen.

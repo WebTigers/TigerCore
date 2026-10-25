@@ -19,9 +19,10 @@ class System_SitesController extends Tiger_Controller_Admin_Action
     /** `/system/sites` — the host → org mappings grid + an add-domain form. */
     public function indexAction()
     {
-        $this->view->title   = 'Sites — Tiger Admin';
-        $this->view->form    = new System_Form_Site();
-        $this->view->orgCount = (int) (new Tiger_Model_Org())->fetchAll(
+        $this->view->title         = 'Sites — Tiger Admin';
+        $this->view->useDataTables = true;   // the layout loads jQuery + DataTables when set
+        $this->view->form          = new System_Form_Site();
+        $this->view->orgCount      = (int) (new Tiger_Model_Org())->fetchAll(
             (new Tiger_Model_Org())->activeSelect()
         )->count();
     }
