@@ -178,10 +178,14 @@ if (isset($opts['json'])) {
     printf("\n%d checks, %d failed, %d GATED (reCAPTCHA refused a tokenless client — those assertions never ran)\n",
         count($results), count($fail), $gatedN);
     if ($gatedN) {
-        echo "\nThese are inconclusive, not green — and no configuration un-gates them (TIGER-385: dev runs\n"
-           . "reCAPTCHA v3 to match prod, v3 needs a BROWSER-executed token, and Google's always-pass test\n"
-           . "keys are v2-only). curl has no token, not a low score. They belong to the headless browser\n"
-           . "probe instead, which mints a real token; GATED is this tool's honest answer.\n";
+        echo "\nThese are inconclusive, not green. reCAPTCHA v3 mints its token in a BROWSER, so curl can\n"
+           . "never carry one — and Google's always-pass test keys are v2-only, so there is no token to\n"
+           . "fake. The fix is not a browser: switch reCAPTCHA OFF on the test install (TIGER-385). It is\n"
+           . "one config value, and the keys are left in place so re-enabling is the same one value:\n\n"
+           . "    tiger.recaptcha.enabled = 0     ; Settings -> System -> reCAPTCHA, or the config tier\n\n"
+           . "Off is a first-class state in Tiger_Recaptcha — the control renders nothing and the validator\n"
+           . "passes — so every check above then runs for real against the same code prod runs. Leave it ON\n"
+           . "and these stay GATED, which is this tool's honest answer rather than a vacuous pass.\n";
     }
 }
 exit(count($fail) ? 1 : 0);
