@@ -18,7 +18,8 @@ class Newsletter_AdminController extends Tiger_Controller_Admin_Action
     /** The subscriber list. */
     public function indexAction()
     {
-        $this->view->title    = 'Newsletter — Tiger Admin';
-        $this->view->statuses = Newsletter_Model_Subscriber::STATUSES;
+        $this->view->title         = 'Newsletter — Tiger Admin';
+        $this->view->statuses      = Newsletter_Model_Subscriber::STATUSES;
+        $this->view->useDataTables = true;   // the layout loads jQuery + DataTables when set
     }
 }

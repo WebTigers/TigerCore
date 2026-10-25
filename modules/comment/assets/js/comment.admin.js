@@ -35,7 +35,7 @@
         var status = document.getElementById('comment-status');
 
         grid = tigerDataTable('#comment-grid', {
-            service: { module: 'comment', service: 'comment', method: 'datatable' },
+            service: { module: 'comment', service: 'comment', action: 'datatable' },
             extraData: function () { return { status: status ? status.value : 'pending' }; },
             order: [[3, 'desc']],
             columns: [

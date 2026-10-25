@@ -282,7 +282,7 @@ class Comment_Service_Comment extends Tiger_Service_Service
         if (!$this->_isAllowed('moderate')) { $this->_error('core.api.error.not_allowed'); return; }
         if (!$this->_enabled()) { return; }
 
-        $dt     = $this->_dtParams();
+        $dt     = $this->_dtParams($params);
         $status = (string) ($params['status'] ?? Tiger_Model_Comment::STATUS_PENDING);
         $rows   = (new Tiger_Model_Comment())->byStatus($status, 500);
 

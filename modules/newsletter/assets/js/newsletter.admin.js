@@ -31,7 +31,7 @@
         var status = document.getElementById('newsletter-status');
 
         grid = tigerDataTable('#newsletter-grid', {
-            service: { module: 'newsletter', service: 'subscribe', method: 'datatable' },
+            service: { module: 'newsletter', service: 'subscribe', action: 'datatable' },
             extraData: function () { return { status: status ? status.value : '' }; },
             order: [[4, 'desc']],
             columns: [

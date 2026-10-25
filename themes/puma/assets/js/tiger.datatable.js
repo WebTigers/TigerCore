@@ -29,9 +29,27 @@
         var $ = window.jQuery;
         if (!$ || !$.fn || !$.fn.DataTable) { return null; }
 
+        // DataTables reports its own errors with a browser alert() by default, which breaks the house
+        // rule (no alert/confirm/prompt — AGENTS.md) and, worse, hides the failure from the console,
+        // where our cheapest detector looks. 'throw' routes it to the console instead: visible to a
+        // developer, visible to the browser probe, and it can never block the page behind a modal.
+        if ($.fn.dataTable && $.fn.dataTable.ext) { $.fn.dataTable.ext.errMode = 'throw'; }
+
         opts = opts || {};
         var svc   = opts.service || {};
         var extra = (typeof opts.extraData === 'function') ? opts.extraData : function () { return {}; };
+
+        // The /api message names module + service + ACTION. `action` is the key this helper reads; a
+        // grid that says `method` instead sends no action at all, and the gateway can only refuse it.
+        // Refusing here names the real cause at the call site rather than letting DataTables report a
+        // generic warning about a request that was never going to work.
+        if (!svc.module || !svc.service || !svc.action) {
+            window.console && console.error(
+                'tigerDataTable(' + selector + '): service needs { module, service, action } — got ' +
+                JSON.stringify(svc) + (svc.method ? ' (use `action`, not `method`)' : '')
+            );
+            return null;
+        }
 
         // Sensible defaults; caller's opts win. `service`/`extraData` are ours, not DT's.
         // stateSave persists page / length / search / order per grid (localStorage, keyed by table id +
