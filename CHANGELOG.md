@@ -6,6 +6,19 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.43.1] — 2026-10-28
+
+### Fixed
+- **A session cookie whose id failed the current charset 500'd every cookied request site-wide**
+  (TIGER-404). ZF1 `Zend_Session::start()` validates the presented id with `_checkId()` (a pattern
+  built from `session.sid_bits_per_character`) *before* its already-started early-return, and on a
+  mismatch calls `setId()`, which throws "session already started" once `SID` is defined — so the
+  first namespace construction after boot (the Authorization plugin reading the identity) faulted,
+  uncaught, into a 500. Returning visitors carrying a cookie minted under a different `sid_bits`
+  charset (e.g. after an instance/AMI refresh) were affected; new and cookieless visitors were not.
+  Fixed with `Tiger_Application_Bootstrap::dropInvalidSessionId()`, which drops a charset-mismatched
+  session cookie before `start()` so the visitor gets a clean guest session instead of a fatal.
+
 ## [1.43.0] — 2026-10-24
 
 ### Fixed

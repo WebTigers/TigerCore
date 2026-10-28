@@ -692,6 +692,7 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
             // to trip a later regenerate. cPanel leaves it off; turn it on. (Belt: drop a provably
             // unreadable files id too, for a SAPI where strict mode is disabled outright.)
             @ini_set('session.use_strict_mode', '1');
+            self::dropInvalidSessionId();
             self::dropUnreadableSessionId();
             try {
                 Zend_Session::start();
@@ -718,6 +719,27 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
      * @param  string|null $path session.save_path (default: the ini value)
      * @return bool true when the presented id was dropped
      */
+    /**
+     * Drop a session cookie whose id can't be OUR id because it fails the current id charset (e.g. minted
+     * under a different session.sid_bits_per_character before an AMI/config change). ZF1 Zend_Session::
+     * start() replaces such an id via setId(), which FATALS once SID is defined — so every returning
+     * (cookied) visitor 500s site-wide. Forget it before start() so PHP mints a fresh valid id. (TIGER-404)
+     *
+     * @return bool true when a malformed id was dropped
+     */
+    public static function dropInvalidSessionId()
+    {
+        $sid = (string) ($_COOKIE[session_name()] ?? '');
+        if ($sid === '') { return false; }
+        $bits  = (int) (ini_get('session.sid_bits_per_character') ?: ini_get('session.hash_bits_per_character') ?: 5);
+        $class = $bits <= 4 ? '0-9a-f' : ($bits === 5 ? '0-9a-v' : '0-9a-zA-Z,-');
+        if (strlen($sid) <= 128 && preg_match('/^[' . $class . ']+$/', $sid)) { return false; }
+        error_log('Tiger session: dropping malformed session id (charset mismatch) — starting fresh');
+        unset($_COOKIE[session_name()]);
+        if (session_status() !== PHP_SESSION_ACTIVE) { session_id(bin2hex(random_bytes(16))); }
+        return true;
+    }
+
     public static function dropUnreadableSessionId($sid = null, $path = null)
     {
         $sid = (string) ($sid ?? ($_COOKIE[session_name()] ?? ''));
