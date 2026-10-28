@@ -108,7 +108,8 @@ $smsCfg = [
                 </div>
                 <div class="form-check mt-3">
                     <input class="form-check-input" type="checkbox" value="1" id="sms-consent">
-                    <label class="form-check-label small" for="sms-consent"><?= $this->t('profile.sms.consent_label') ?></label>
+                    <?php /* Built by the service so the audit snapshot can't drift from this label. */ ?>
+                    <label class="form-check-label" for="sms-consent"><?= Profile_Service_Sms::consentLabel(true) ?></label>
                 </div>
             </div>
 

@@ -24,8 +24,116 @@
  */
 class Profile_Service_Sms extends Profile_Service_Base
 {
-    /** The exact consent language the user agrees to — snapshotted into the audit record. */
-    const CONSENT_TEXT = 'I agree to receive account security codes (2FA) and account & security alerts by text message. Message & data rates may apply. Reply STOP to cancel, HELP for help.';
+    /**
+     * The exact consent language the user agrees to — ONE authority, rendered two ways.
+     *
+     * Carriers (and the US toll-free / 10DLC registration forms) check the opt-in location for a
+     * fixed list: the program/brand name, message frequency, "message and data rates may apply",
+     * STOP to opt out, HELP for help, and links to the terms and privacy policy. A checkbox missing
+     * any of them is the single most common registration rejection, so the sentence is assembled
+     * here rather than hardcoded — the brand is THIS install's site name (never "WebTigers"; core
+     * ships to every customer) and the legal links resolve through Tiger_View_Helper_LegalLinks,
+     * which honours tiger.footer.*_url and otherwise finds a published page at the slug.
+     *
+     * Rendered twice from the same source so the audit record can never drift from what the user
+     * actually saw: $html = true for the checkbox label (anchors, escaped), false for the plain
+     * text snapshotted into `sms_consent.consent_text` (URLs spelled out, since a stored record
+     * nobody can click needs the address in words).
+     *
+     * Translations stay PLAIN TEXT — no markup in a language file; the anchors are built here.
+     *
+     * @param  bool $html true for the HTML label, false for the audit snapshot
+     * @return string the full consent sentence
+     */
+    public static function consentLabel($html = false)
+    {
+        // ONE view for both jobs: t() owns the locale-fallback chain (active -> source -> key) and
+        // legalLinks() owns "what counts as a live legal page". Neither is reimplemented here.
+        //
+        // It must be a view that can actually RESOLVE those helpers. A bare `new Zend_View()` carries
+        // only the Zend_View_Helper_ path, so t()/legalLinks() throw PluginLoader_Exception — and this
+        // runs from verify() to snapshot the audit record, where a throw would break enrollment. So:
+        // prefer the MVC's own view (a request), else build one and register the Tiger helper path the
+        // bootstrap uses. Any failure degrades to '' rather than taking the caller down with it.
+        $view = self::_helperView();
+        if (!$view) { return ''; }
+
+        $esc = function ($v) use ($html) {
+            return $html ? htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8') : (string) $v;
+        };
+
+        try {
+            $label = sprintf($esc($view->t('profile.sms.consent_label')), $esc(self::_siteName()));
+
+            $links = self::_legalUrls($view);
+            $parts = [];
+            foreach (['terms' => 'profile.sms.consent_terms', 'privacy' => 'profile.sms.consent_privacy'] as $k => $key) {
+                if (empty($links[$k])) { continue; }
+                $text = $esc($view->t($key));
+                $parts[$k] = $html
+                    ? '<a href="' . htmlspecialchars($links[$k], ENT_QUOTES, 'UTF-8') . '">' . $text . '</a>'
+                    : $text . ' (' . $links[$k] . ')';
+            }
+
+            // Both, one, or neither — an install with no legal pages still yields a valid sentence.
+            if (count($parts) === 2) {
+                $label .= ' ' . vsprintf($esc($view->t('profile.sms.consent_legal')), array_values($parts));
+            } elseif (count($parts) === 1) {
+                $label .= ' ' . sprintf($esc($view->t('profile.sms.consent_legal_one')), reset($parts));
+            }
+            return $label;
+        } catch (Throwable $e) {
+            return '';
+        }
+    }
+
+    /**
+     * A view that can resolve Tiger_View_Helper_* — the MVC's own when there is one, else a fresh
+     * view with the bootstrap's helper path added. Null when neither can be had.
+     */
+    protected static function _helperView()
+    {
+        try {
+            $vr = Zend_Controller_Action_HelperBroker::getStaticHelper('ViewRenderer');
+            if ($vr && $vr->view instanceof Zend_View_Interface) { return $vr->view; }
+        } catch (Throwable $e) {
+            // no MVC in play (CLI, a job) — fall through and build one
+        }
+        try {
+            $view = new Zend_View();
+            if (defined('TIGER_CORE_PATH')) {
+                $view->addHelperPath(TIGER_CORE_PATH . '/library/Tiger/View/Helper', 'Tiger_View_Helper');
+            }
+            return $view;
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Absolute terms/privacy URLs for the consent sentence, or [] when this install has neither.
+     *
+     * Absolute because the audit snapshot is read long after the fact and outside any request, where
+     * a bare "/terms" names nothing. Falls back to the relative path when tiger.site.url is unset.
+     */
+    protected static function _legalUrls($view)
+    {
+        $out = [];
+        try {
+            $links = $view->legalLinks();
+        } catch (Throwable $e) {
+            return $out;
+        }
+        $cfg  = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
+        $base = ($cfg && $cfg->get('tiger') && $cfg->tiger->get('site'))
+            ? rtrim((string) $cfg->tiger->site->get('url'), '/') : '';
+        foreach (['terms', 'privacy'] as $k) {
+            $u = isset($links[$k]) ? (string) $links[$k] : '';
+            if ($u === '') { continue; }
+            $out[$k] = ($base !== '' && strpos($u, '/') === 0) ? $base . $u : $u;
+        }
+        return $out;
+    }
 
     /**
      * Current SMS state for the signed-in user (drives the card render + every refresh).
@@ -84,7 +192,7 @@ class Profile_Service_Sms extends Profile_Service_Base
             $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             $ch->issue($userId, 'sms_otp', $code, 600);
 
-            $res = Tiger_Sms::send($e164, $this->_siteName() . ' verification code: ' . $code . '. It expires in 10 minutes. Reply HELP for help, STOP to opt out.');
+            $res = Tiger_Sms::send($e164, self::_siteName() . ' verification code: ' . $code . '. It expires in 10 minutes. Reply HELP for help, STOP to opt out.');
             if (empty($res['ok'])) { $this->_error('profile.sms.send_failed'); return; }
 
             $data = $this->_state($userId);
@@ -142,7 +250,7 @@ class Profile_Service_Sms extends Profile_Service_Base
                     $userId,
                     $e164,
                     [Tiger_Model_SmsConsent::SCOPE_TWOFA, Tiger_Model_SmsConsent::SCOPE_ALERTS],
-                    self::CONSENT_TEXT,
+                    self::consentLabel(),
                     $_SERVER['REMOTE_ADDR'] ?? null
                 );
             });
@@ -230,11 +338,12 @@ class Profile_Service_Sms extends Profile_Service_Base
     }
 
     /**
-     * The configured site/brand name (prefixes the SMS code), or 'Tiger'.
+     * The configured site/brand name — prefixes the SMS code AND names the brand in the consent
+     * sentence (consentLabel()). Static because the consent builder is, and it reads only config.
      *
      * @return string
      */
-    protected function _siteName()
+    protected static function _siteName()
     {
         $cfg  = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
         $site = ($cfg && $cfg->get('tiger')) ? $cfg->tiger->get('site') : null;

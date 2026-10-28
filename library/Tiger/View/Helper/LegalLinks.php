@@ -86,9 +86,35 @@ class Tiger_View_Helper_LegalLinks extends Zend_View_Helper_Abstract
                 $this->_orgId(),
                 Tiger_Model_Page::TYPE_PAGE
             );
-            return $row ? '/' . $slug : null;
+            if ($row) { return '/' . $slug; }
         } catch (Throwable $e) {
-            return null;
+            // fall through to the theme tier
+        }
+        return $this->_themeContent($slug) ? '/' . $slug : null;
+    }
+
+    /**
+     * `/<slug>` is also live when the ACTIVE THEME ships a content page there.
+     *
+     * A CMS row is not the only thing that answers a slug any more: the slug chain is
+     * controller -> CMS page -> theme `content/<slug>.phtml` -> 404
+     * (Tiger_Controller_Plugin_ThemeContent). A theme that ships its own `privacy`/`terms` — which
+     * is the right home for them when they're part of a site's collateral rather than
+     * admin-authored content — would otherwise serve a perfectly good page that this helper
+     * reported as absent, so the footer would silently show no legal links. That is the exact
+     * failure this helper was written to end, one tier down.
+     *
+     * FAIL-SOFT like the rest of the helper: no theme registered, or no readable file, means
+     * "no link", never an exception.
+     */
+    protected function _themeContent($slug)
+    {
+        try {
+            if (!class_exists('Tiger_Theme')) { return false; }
+            $dir = Tiger_Theme::dir();
+            return $dir !== '' && Tiger_Theme::contentFile($slug, $dir) !== '';
+        } catch (Throwable $e) {
+            return false;
         }
     }
 
