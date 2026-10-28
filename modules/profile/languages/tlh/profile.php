@@ -26,6 +26,45 @@ return [
     'profile.security.password_change_failed' => 'Couldn’t change your password. Please try again.',
     'profile.security.twofa'            => 'Manage two-factor authentication',
 
+    'profile.sms.title'          => 'Phone & SMS',
+    'profile.sms.intro'          => 'Add a mobile number to sign in by phone and receive security codes and account alerts by text.',
+    'profile.sms.number'         => 'Mobile number',
+    // The carrier-checked opt-in disclosure. %1$s is this install's site name (Profile_Service_Sms
+    // ::consentLabel fills it) — never hardcode a brand here, core ships to every install. Keep
+    // frequency, rates, STOP and HELP in every translation; a missing one fails SMS registration.
+    'profile.sms.consent_label'  => 'I agree to receive account security codes (2FA) and account & security alerts from %1$s by text message. Message frequency varies. Message & data rates may apply. Reply STOP to cancel, HELP for help.',
+    'profile.sms.consent_legal'     => 'See our %1$s and %2$s.',
+    'profile.sms.consent_legal_one' => 'See our %1$s.',
+    'profile.sms.consent_terms'     => 'Terms of Service',
+    'profile.sms.consent_privacy'   => 'Privacy Policy',
+    'profile.sms.send_code'      => 'Send code',
+    'profile.sms.code'           => 'Verification code',
+    'profile.sms.code_ph'        => '6-digit code',
+    'profile.sms.verify'         => 'Verify',
+    'profile.sms.resend'         => 'Resend code',
+    'profile.sms.change'         => 'Change number',
+    'profile.sms.remove'         => 'Remove number',
+    'profile.sms.cancel'         => 'Cancel',
+    'profile.sms.verified_label' => 'Verified',
+    'profile.sms.pending_hint'   => 'We texted a code to %s. Enter it below to verify.',
+    'profile.sms.verified_hint'  => 'This number is verified. You can sign in by phone and receive security codes and alerts.',
+    'profile.sms.opted_out_hint' => 'This number replied STOP, so alerts are paused. Reply START from your phone to resume.',
+    'profile.sms.none'           => 'No mobile number on file yet.',
+    'profile.sms.not_configured' => 'SMS isn’t configured on this site yet. Please try again later.',
+    'profile.sms.confirm_remove' => 'Remove this number? You’ll no longer get security codes or alerts by text, and can’t sign in by phone.',
+
+    'profile.sms.code_sent'        => 'Code sent. Check your phone.',
+    'profile.sms.verified'         => 'Number verified.',
+    'profile.sms.removed'          => 'Number removed.',
+    'profile.sms.consent_required' => 'Please agree to receive text messages before we can send a code.',
+    'profile.sms.bad_phone'        => 'Please enter a valid mobile number.',
+    'profile.sms.bad_code'         => 'That code is incorrect or has expired. Please try again.',
+    'profile.sms.in_use'           => 'That number is already in use on another account.',
+    'profile.sms.already_yours'    => 'That number is already verified on your account.',
+    'profile.sms.no_pending'       => 'Start by sending a code to your number.',
+    'profile.sms.too_many'         => 'Too many codes requested. Please wait a while and try again.',
+    'profile.sms.send_failed'      => 'We couldn’t send the code. Please check the number and try again.',
+
     'profile.user.display_name'    => 'Display Name',
     'profile.user.display_name_ph' => 'How your name appears',
     'profile.user.username'       => 'Username',
@@ -117,4 +156,6 @@ return [
 
     'profile.soon'                  => 'Coming in the next update.',
     'profile.js.cropper_failed' => 'Could not start the cropper: %s',
+    'profile.nav.label' => 'Profile',
+    'profile.nav.org' => 'My Organization',
 ];
