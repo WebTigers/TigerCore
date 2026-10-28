@@ -6,6 +6,34 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.45.0] — 2026-10-28
+
+### Added
+- **SMS has its own brand setting** (TIGER-376) — `tiger.sms.brand`, on Admin → Settings → SMS, read
+  through the new `Tiger_Sms::brand()`. This is the name text messages are sent under, and it is
+  carrier-facing rather than decorative: it signs every message body (*"Acme verification code:
+  123456"*), it names the brand in the opt-in disclosure a subscriber consents to, and a US A2P
+  registration — 10DLC or toll-free — is reviewed against it. A consent screen or a message body that
+  names a different company than the registered brand is one of the most common reasons a registration
+  is refused.
+
+### Changed
+- **The SMS sender identity no longer rides on the marketing site's name.** Three message bodies were
+  branded from `tiger.site.name`: the 2FA verification code, the passwordless SMS sign-in code, and the
+  consent disclosure. Those are different things — the site name is the public-facing *product*, the SMS
+  brand is the *company* a subscriber agreed to hear from and a carrier approved — and conflating them
+  means an install whose site is named for its product texts the wrong name and submits a registration
+  that does not match what it actually sends. All three now read `Tiger_Sms::brand()`.
+
+  `tiger.site.name` remains the **last-resort fallback**, because for most installs the two are the same
+  company and a message signed with the wrong name still beats one signed with nothing — but it is a
+  bridge, not the design, so nothing breaks on upgrade and no enrolled user loses 2FA. The settings
+  screen says so out loud: while no brand is set it warns which name is going out and that it was
+  borrowed, which is the one failure mode an operator cannot see from the outside.
+  `Tiger_Sms::brandIsSet()` is what makes that honest rather than silent.
+- `Profile_Service_Sms::_siteName()` and `Tiger_Service_Authentication::_siteName()` are gone; both were
+  only ever branding an SMS. `Tiger_Mail` keeps its own — email branding legitimately follows the site.
+
 ## [1.44.0] — 2026-10-28
 
 ### Fixed

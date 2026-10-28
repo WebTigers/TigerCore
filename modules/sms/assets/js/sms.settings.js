@@ -18,10 +18,14 @@
     sel.addEventListener('change', toggle);
     toggle();
 
-    /** Collect the save payload: provider + only the selected provider's fields. */
+    /** Collect the save payload: the brand, the provider, and only that provider's fields. */
     function savePayload() {
         var fd = new URLSearchParams();
         fd.set('module', 'sms'); fd.set('service', 'settings'); fd.set('method', 'save');
+        var brand = document.getElementById('sms-brand');
+        // Sent even when blank, so clearing the brand actually clears it (back to the site-name fallback)
+        // rather than silently keeping the old value.
+        fd.set('brand', brand ? brand.value : '');
         fd.set('provider', sel.value);
         document.querySelectorAll('[data-sms-field="' + sel.value + '"]').forEach(function (inp) {
             fd.set(inp.getAttribute('name'), inp.value);

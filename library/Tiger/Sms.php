@@ -9,6 +9,7 @@
  *
  *   tiger.sms.provider               = "twilio"|"sns"|"vonage"|"plivo"|"telnyx"  ; which adapter sends
  *   tiger.sms.from                   = "+15551234567"           ; default sender (an origination number)
+ *   tiger.sms.brand                  = "WebTigers"              ; WHO the messages are from (see brand())
  *   tiger.sms.adapters.twilio.*      = account_sid / auth_token_enc / from
  *   tiger.sms.adapters.sns.*         = key / secret_key_enc / region / from   (or the instance role on AWS)
  *   tiger.sms.adapters.vonage.*      = api_key / api_secret_enc / from
@@ -101,6 +102,47 @@ class Tiger_Sms
             }
         }
         return $n;
+    }
+
+    /**
+     * The sender identity — the name the messages say they are FROM.
+     *
+     * This is carrier-facing, not decorative. It signs every message body ("<brand> verification code:
+     * 123456"), it names the brand in the opt-in disclosure a subscriber consents to, and a US A2P
+     * registration (10DLC / toll-free) is reviewed against it: a consent screen or a message that names
+     * a different company than the registered brand is a rejection. So it is its OWN setting, owned by
+     * the SMS module, set deliberately by the operator on Admin -> Settings -> SMS.
+     *
+     * It is deliberately NOT the marketing site's name. Those are different things and conflating them
+     * is how an install ends up texting a product name where a carrier expects a legal brand — the site
+     * name is the public-facing product ("Tiger"), the SMS brand is who the subscriber agreed to hear
+     * from ("WebTigers").
+     *
+     * `tiger.site.name` remains the LAST-RESORT fallback, because for most installs the site name IS
+     * the company and an SMS that says nothing at all is worse than one that says the wrong thing — but
+     * it is a bridge, not the design. {@see brandIsSet} is what lets the settings screen say so.
+     *
+     * @return string the SMS brand; never '' (falls back to the site name, then 'Tiger')
+     */
+    public static function brand(): string
+    {
+        $brand = trim((string) self::_config('sms.brand', ''));
+        if ($brand !== '') { return $brand; }
+        $site = trim((string) self::_config('site.name', ''));
+        return $site !== '' ? $site : 'Tiger';
+    }
+
+    /**
+     * Whether an SMS brand is EXPLICITLY configured (vs. falling back to the site name).
+     *
+     * The settings screen warns on false: a silent fallback is exactly how a message goes out under the
+     * wrong name, and the operator has no way to notice from the outside.
+     *
+     * @return bool
+     */
+    public static function brandIsSet(): bool
+    {
+        return trim((string) self::_config('sms.brand', '')) !== '';
     }
 
     /** The configured provider name (`tiger.sms.provider`), lowercased; '' when unset. */
