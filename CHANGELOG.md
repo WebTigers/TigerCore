@@ -6,6 +6,46 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.44.0] — 2026-10-28
+
+### Fixed
+- **`Tiger_View_Helper_LegalLinks` could only see legal pages in the CMS, so theme-shipped ones read
+  as absent.** The slug chain is `real controller → published CMS page row → theme
+  content/<slug>.phtml → 404`, but the helper resolved `tiger.footer.*_url` and then looked only for
+  a **published `page` row**. A site that ships `/privacy` and `/terms` as theme content — which is
+  where they belong, since a theme update should carry them — got no footer legal links at all: the
+  exact failure the helper was added to prevent (1.6.1 / TIGER-119, after prod ran seven weeks with
+  a published privacy policy nothing linked to), one tier further down. It now falls through to
+  `Tiger_Theme::contentFile()`, fail-soft and memoized as before, so a theme-shipped legal page
+  counts as live with no config set.
+
+### Added
+- **The SMS opt-in disclosure is now carrier-complete** (TIGER-376). US carriers check seven elements
+  in a consent control; `/profile` → Security carried three. The checkbox gains the program/brand
+  name, a link to the Terms, a link to the Privacy Policy, and a message-frequency disclosure,
+  alongside the "message and data rates may apply", STOP and HELP it already had. A registration
+  submitted without all seven is the most common rejection, so this is the gate on leaving the AWS
+  SMS sandbox — not cosmetics.
+- **The brand in that sentence is configuration, not copy.** `profile.sms.consent_label` takes the
+  site name as `%1$s` and `Profile_Service_Sms::consentLabel()` fills it from `tiger.site.name`. Core
+  ships to every install, so a hardcoded brand in a language file would be wrong on every install but
+  the one it was written for — and an opt-in naming the wrong company is precisely what a carrier
+  refuses. An install that has not set the config falls back to the neutral default.
+- **`profile.sms.*` is translated** — es, pt, fr, de, hi and the tlh stub. The block had been 34 keys
+  behind `en`, so the Phone & SMS panel shipped English-only to every locale, consent sentence
+  included. **STOP, HELP and START stay in English in every locale**, because the carrier network
+  matches those keywords and not their translations; each language file carries a comment saying so,
+  since translating them is the plausible-looking edit that would silently break opt-out.
+
+### Changed
+- **The SMS consent audit record is now built from the same source as the label it records.**
+  `sms_consent.consent_text` is the legal record of what a user agreed to, and it was a fixed
+  `const CONSENT_TEXT` while the control rendered a separate translated string — two sources for one
+  sentence, free to diverge at the next copy edit, and the divergence invisible until someone
+  disputed a consent. `Profile_Service_Sms::consentLabel($html)` is now the single builder: `true`
+  returns the markup for the checkbox, `false` the plain text with the two URLs spelled out, which is
+  what gets stored. `CONSENT_TEXT` is gone; callers use `consentLabel()`.
+
 ## [1.43.1] — 2026-10-28
 
 ### Fixed

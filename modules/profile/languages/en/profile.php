@@ -28,7 +28,14 @@ return [
     'profile.sms.title'          => 'Phone & SMS',
     'profile.sms.intro'          => 'Add a mobile number to sign in by phone and receive security codes and account alerts by text.',
     'profile.sms.number'         => 'Mobile number',
-    'profile.sms.consent_label'  => 'I agree to receive account security codes (2FA) and account & security alerts by text message. Message & data rates may apply. Reply STOP to cancel, HELP for help.',
+    // The carrier-checked opt-in disclosure. %1$s is this install's site name (Profile_Service_Sms
+    // ::consentLabel fills it) — never hardcode a brand here, core ships to every install. Keep
+    // frequency, rates, STOP and HELP in every translation; a missing one fails SMS registration.
+    'profile.sms.consent_label'  => 'I agree to receive account security codes (2FA) and account & security alerts from %1$s by text message. Message frequency varies. Message & data rates may apply. Reply STOP to cancel, HELP for help.',
+    'profile.sms.consent_legal'     => 'See our %1$s and %2$s.',
+    'profile.sms.consent_legal_one' => 'See our %1$s.',
+    'profile.sms.consent_terms'     => 'Terms of Service',
+    'profile.sms.consent_privacy'   => 'Privacy Policy',
     'profile.sms.send_code'      => 'Send code',
     'profile.sms.code'           => 'Verification code',
     'profile.sms.code_ph'        => '6-digit code',
