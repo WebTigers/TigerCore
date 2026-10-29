@@ -124,6 +124,29 @@ final class ModulesServiceTest extends IntegrationTestCase
     }
 
     #[Test]
+    public function inspect_authenticates_before_it_reaches_github(): void
+    {
+        $this->loginAs('superadmin');
+
+        // Clear the one-shot guard and the resolver so this test observes THIS call, not a
+        // previous one in the same process.
+        $guard = new \ReflectionProperty(\Tiger_Module_Registry::class, 'authInstalled');
+        $guard->setValue(null, false);
+        $resolver = new \ReflectionProperty(\Tiger_Module_Github::class, 'authResolver');
+        $resolver->setValue(null, null);
+
+        // A non-GitHub URL returns before any network, so what this asserts is ORDER: the preview
+        // authenticates up front rather than somewhere down the fetch path. Without it a PRIVATE
+        // repo under a covered org 404s on releases/latest AND on the /repos/{org}/{repo} fallback
+        // latestRef() uses, so the preview reports "no release" for a repo it simply cannot see —
+        // while the install that follows would have succeeded with the same token.
+        $this->dispatch(['action' => 'inspect', 'url' => 'ftp://example.com/whatever']);
+
+        $this->assertTrue($guard->getValue(), 'inspect() installs the auth resolver');
+        $this->assertIsCallable($resolver->getValue(), 'the org->token resolver reached Tiger_Module_Github');
+    }
+
+    #[Test]
     public function upload_with_no_file_is_a_clean_error(): void
     {
         $this->loginAs('superadmin');

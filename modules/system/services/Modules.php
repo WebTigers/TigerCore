@@ -816,9 +816,16 @@ class System_Service_Modules extends Tiger_Service_Service
     }
 
     /**
-     * Preview a module before install: pull module.json + TIGER.md from the public repo and
-     * return the manifest + rendered description. No side effects — the "review before you
-     * install" step.
+     * Preview a module before install: pull module.json + TIGER.md from the repo and return the
+     * manifest + rendered description. No side effects — the "review before you install" step.
+     *
+     * Authenticates first, exactly as {@see Tiger_Module_Installer::installFromUrl()} does. Without
+     * it the preview reached GitHub anonymously, so a PRIVATE repo under a covered org 404'd twice
+     * over — `releases/latest` and then the `/repos/{org}/{repo}` fallback latestRef() uses for the
+     * default branch — leaving latestRef() null and this method reporting `repo_no_release`. The
+     * message said the repo had no release; the truth was that we could not see the repo. The
+     * install that follows was always going to succeed with the same token, which is why installing
+     * such a module worked from the CLI (straight to installFromUrl) and failed in the UI.
      *
      * @param  array $params the /api payload (expects `url`, optional `ref`)
      * @return void
@@ -826,6 +833,8 @@ class System_Service_Modules extends Tiger_Service_Service
     public function inspect(array $params): void
     {
         if (!$this->_isAllowed('inspect')) { $this->_error('core.api.error.not_allowed'); return; }
+
+        Tiger_Module_Registry::ensureAuth();   // private company repos resolve + preview (idempotent)
 
         // A marketplace (live-api) listing serves its OWN review copy: a paid/PASS module's code repo is
         // private, so its "View more" detail comes from the index (the marketplace vouches for + serves
