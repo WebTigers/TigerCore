@@ -483,8 +483,9 @@ class Tiger_Service_Authentication
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);   // leading zeros kept
         $model->issue($user->user_id, 'sms_otp', $code, self::OTP_TTL);
 
-        $brand = $this->_siteName();
-        Tiger_Sms::send($e164, $brand . ' sign-in code: ' . $code . '. It expires in 10 minutes. Reply HELP for help, STOP to opt out.');
+        // The SMS brand, NOT the site name: this body is one of the message samples a carrier reviews
+        // against the A2P registration, so it has to name the registered brand (Tiger_Sms::brand()).
+        Tiger_Sms::send($e164, Tiger_Sms::brand() . ' sign-in code: ' . $code . '. It expires in 10 minutes. Reply HELP for help, STOP to opt out.');
     }
 
     /**
@@ -501,19 +502,6 @@ class Tiger_Service_Authentication
         $cred = $e164 !== '' ? (new Tiger_Model_UserCredential())->findVerifiedByIdentifier('sms', $e164) : null;
         $user = $cred ? (new Tiger_Model_User())->findById((string) $cred->user_id) : null;
         return $this->_completeCodeLogin($user, 'sms_otp', $e164, $code);
-    }
-
-    /**
-     * The configured site/brand name (for an SMS/email code), or 'Tiger' when unset.
-     *
-     * @return string
-     */
-    protected function _siteName()
-    {
-        $cfg  = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
-        $site = ($cfg && $cfg->get('tiger')) ? $cfg->tiger->get('site') : null;
-        $name = ($site && (string) $site->get('name') !== '') ? (string) $site->get('name') : 'Tiger';
-        return $name;
     }
 
     /**

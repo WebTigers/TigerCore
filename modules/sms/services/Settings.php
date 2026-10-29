@@ -11,9 +11,9 @@
 class Sms_Service_Settings extends Tiger_Service_Service
 {
     /**
-     * Save the SMS settings: provider, default sender, and the selected provider's own fields.
+     * Save the SMS settings: the sender identity, the provider, and the provider's own fields.
      *
-     * @param  array $params {provider, from, <adapter field keys…>}
+     * @param  array $params {brand, provider, <adapter field keys…>}
      * @return void
      */
     public function save(array $params): void
@@ -29,6 +29,10 @@ class Sms_Service_Settings extends Tiger_Service_Service
             $this->_transaction(function () use ($params, $provider) {
                 $cfg   = new Tiger_Model_Config();
                 $scope = Tiger_Model_Config::SCOPE_GLOBAL;
+                // The brand is written FIRST and independently of the provider: it is carrier-facing
+                // identity, not provider plumbing, and an operator must be able to set it (or correct
+                // it) while SMS is still switched off.
+                $cfg->set($scope, '', 'tiger.sms.brand', trim((string) ($params['brand'] ?? '')));
                 $cfg->set($scope, '', 'tiger.sms.provider', $provider);
                 if ($provider === '') { return; }
                 $adapterClass = 'Tiger_Sms_Adapter_' . ucfirst($provider);
@@ -46,7 +50,10 @@ class Sms_Service_Settings extends Tiger_Service_Service
                     }
                 }
             });
-            $this->_success(['configured' => Tiger_Sms::isConfigured()], 'sms.settings.saved');
+            $this->_success(
+                ['configured' => Tiger_Sms::isConfigured(), 'brand' => Tiger_Sms::brand(), 'brand_set' => Tiger_Sms::brandIsSet()],
+                'sms.settings.saved'
+            );
         } catch (Throwable $e) {
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
         }
@@ -62,7 +69,7 @@ class Sms_Service_Settings extends Tiger_Service_Service
     {
         if (!$this->_isAllowed('test')) { $this->_error('core.api.error.not_allowed'); return; }
         $to  = (string) ($params['to'] ?? '');
-        $msg = trim((string) ($params['message'] ?? '')) ?: 'Tiger SMS test message.';
+        $msg = trim((string) ($params['message'] ?? '')) ?: (Tiger_Sms::brand() . ': test message.');
         if ($to === '') { $this->_error('sms.settings.error.to'); return; }
 
         $res = Tiger_Sms::send($to, $msg);

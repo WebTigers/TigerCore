@@ -31,9 +31,13 @@ class Profile_Service_Sms extends Profile_Service_Base
      * fixed list: the program/brand name, message frequency, "message and data rates may apply",
      * STOP to opt out, HELP for help, and links to the terms and privacy policy. A checkbox missing
      * any of them is the single most common registration rejection, so the sentence is assembled
-     * here rather than hardcoded — the brand is THIS install's site name (never "WebTigers"; core
-     * ships to every customer) and the legal links resolve through Tiger_View_Helper_LegalLinks,
-     * which honours tiger.footer.*_url and otherwise finds a published page at the slug.
+     * here rather than hardcoded — the brand is the install's own SMS brand (Tiger_Sms::brand(), a
+     * deliberate SMS setting and never a hardcoded "WebTigers"; core ships to every customer) and the
+     * legal links resolve through Tiger_View_Helper_LegalLinks, which honours tiger.footer.*_url and
+     * otherwise finds a published page at the slug.
+     *
+     * The brand belongs to the SMS module, not to the marketing site: it is what a carrier reviews the
+     * registration against, so it must be settable without renaming the site.
      *
      * Rendered twice from the same source so the audit record can never drift from what the user
      * actually saw: $html = true for the checkbox label (anchors, escaped), false for the plain
@@ -63,7 +67,7 @@ class Profile_Service_Sms extends Profile_Service_Base
         };
 
         try {
-            $label = sprintf($esc($view->t('profile.sms.consent_label')), $esc(self::_siteName()));
+            $label = sprintf($esc($view->t('profile.sms.consent_label')), $esc(Tiger_Sms::brand()));
 
             $links = self::_legalUrls($view);
             $parts = [];
@@ -192,7 +196,7 @@ class Profile_Service_Sms extends Profile_Service_Base
             $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             $ch->issue($userId, 'sms_otp', $code, 600);
 
-            $res = Tiger_Sms::send($e164, self::_siteName() . ' verification code: ' . $code . '. It expires in 10 minutes. Reply HELP for help, STOP to opt out.');
+            $res = Tiger_Sms::send($e164, Tiger_Sms::brand() . ' verification code: ' . $code . '. It expires in 10 minutes. Reply HELP for help, STOP to opt out.');
             if (empty($res['ok'])) { $this->_error('profile.sms.send_failed'); return; }
 
             $data = $this->_state($userId);
@@ -337,16 +341,4 @@ class Profile_Service_Sms extends Profile_Service_Base
         return '••••••' . substr($e164, -4);
     }
 
-    /**
-     * The configured site/brand name — prefixes the SMS code AND names the brand in the consent
-     * sentence (consentLabel()). Static because the consent builder is, and it reads only config.
-     *
-     * @return string
-     */
-    protected static function _siteName()
-    {
-        $cfg  = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
-        $site = ($cfg && $cfg->get('tiger')) ? $cfg->tiger->get('site') : null;
-        return ($site && (string) $site->get('name') !== '') ? (string) $site->get('name') : 'Tiger';
-    }
 }

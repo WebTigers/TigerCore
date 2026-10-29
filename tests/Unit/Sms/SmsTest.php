@@ -102,6 +102,76 @@ final class SmsTest extends UnitTestCase
         }
     }
 
+    /** A config shape helper: run $fn with `tiger` set to $tiger, then restore the registry. */
+    private function withConfig(array $tiger, callable $fn): void
+    {
+        $prev = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
+        Zend_Registry::set('Zend_Config', new Zend_Config(['tiger' => $tiger]));
+        try { $fn(); } finally {
+            if ($prev !== null) { Zend_Registry::set('Zend_Config', $prev); }
+            else { Zend_Registry::getInstance()->offsetUnset('Zend_Config'); }
+        }
+    }
+
+    #[Test]
+    public function brand_prefers_the_sms_brand_over_the_site_name(): void
+    {
+        // The whole point: an install whose SITE is named for the product can still send SMS under the
+        // company it registered with the carrier.
+        $this->withConfig(
+            ['sms' => ['brand' => 'WebTigers'], 'site' => ['name' => 'Tiger']],
+            function () {
+                $this->assertSame('WebTigers', Tiger_Sms::brand());
+                $this->assertTrue(Tiger_Sms::brandIsSet());
+            }
+        );
+    }
+
+    #[Test]
+    public function brand_falls_back_to_the_site_name_and_says_so(): void
+    {
+        // Falling back is deliberate (an unsigned message is worse), but it must be REPORTABLE so the
+        // settings screen can warn — that is the difference between a fallback and a silent default.
+        $this->withConfig(['site' => ['name' => 'Acme Books']], function () {
+            $this->assertSame('Acme Books', Tiger_Sms::brand());
+            $this->assertFalse(Tiger_Sms::brandIsSet());
+        });
+
+        // A blank brand is not a brand.
+        $this->withConfig(['sms' => ['brand' => '  '], 'site' => ['name' => 'Acme Books']], function () {
+            $this->assertSame('Acme Books', Tiger_Sms::brand());
+            $this->assertFalse(Tiger_Sms::brandIsSet());
+        });
+    }
+
+    #[Test]
+    public function brand_never_returns_empty(): void
+    {
+        // Callers interpolate this straight into a message body and into the consent sentence, so ''
+        // would ship "  verification code: 123456" and a legal disclosure with a hole in it.
+        $this->withConfig([], function () {
+            $this->assertSame('Tiger', Tiger_Sms::brand());
+            $this->assertFalse(Tiger_Sms::brandIsSet());
+        });
+
+        $prev = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
+        Zend_Registry::getInstance()->offsetUnset('Zend_Config');
+        try {
+            $this->assertSame('Tiger', Tiger_Sms::brand());   // no config registered at all
+            $this->assertFalse(Tiger_Sms::brandIsSet());
+        } finally {
+            if ($prev !== null) { Zend_Registry::set('Zend_Config', $prev); }
+        }
+    }
+
+    #[Test]
+    public function brand_is_trimmed(): void
+    {
+        $this->withConfig(['sms' => ['brand' => "  WebTigers\t"]], function () {
+            $this->assertSame('WebTigers', Tiger_Sms::brand());
+        });
+    }
+
     #[Test]
     public function facade_routes_normalizes_and_guards_with_a_configured_provider(): void
     {

@@ -24,6 +24,35 @@ $t = function ($k) { return Zend_Registry::get('Zend_Translate')->translate($k);
 <form id="sms-settings-form" onsubmit="return false;" novalidate>
     <div class="row g-4">
         <div class="col-lg-7">
+            <div class="card mb-4">
+                <div class="card-header fw-semibold"><i class="fa-solid fa-id-badge me-2"></i>Sender identity</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="sms-brand">Brand</label>
+                        <input type="text" class="form-control" id="sms-brand" name="brand"
+                               value="<?= $this->escape($this->brand) ?>" placeholder="Your company or product name">
+                        <p class="form-text mb-0">
+                            The name your text messages are sent under. It signs every message body
+                            (&ldquo;<?= $this->escape($this->brandInUse) ?> verification code: 123456&rdquo;) and names the
+                            brand in the opt-in disclosure people agree to.
+                        </p>
+                        <p class="form-text mb-0">
+                            In the US this is checked: a 10DLC or toll-free registration is reviewed against it, so it
+                            must match the brand you registered &mdash; not necessarily your site&rsquo;s name.
+                        </p>
+                    </div>
+                    <?php if (!$this->brandIsSet): ?>
+                        <div class="alert alert-warning mb-0">
+                            <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                            No SMS brand is set, so messages are going out as
+                            <strong><?= $this->escape($this->brandInUse) ?></strong> &mdash; borrowed from the site name.
+                            That is a fallback, not a setting: if it isn&rsquo;t the brand you registered with the
+                            carrier, set it here.
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header fw-semibold"><i class="fa-solid fa-tower-broadcast me-2"></i>Provider</div>
                 <div class="card-body">

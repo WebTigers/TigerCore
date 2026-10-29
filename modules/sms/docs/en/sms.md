@@ -7,8 +7,25 @@ Pick a provider, add its credentials, and any part of the platform can send an S
 
 ## Set it up
 
-**Admin → Settings → SMS.** Choose a provider, enter its credentials, **Save**, then use **Send a
-test** to confirm it end to end.
+**Admin → Settings → SMS.** Set your **brand**, choose a provider, enter its credentials, **Save**,
+then use **Send a test** to confirm it end to end.
+
+## Your brand — set this deliberately
+
+The **Brand** is the name your text messages are sent under. It signs every message body
+(*"Acme verification code: 123456"*) and it names the brand in the opt-in disclosure people tick to
+consent, so it is the single most visible setting on this screen.
+
+**In the US it is checked.** An A2P registration — 10DLC or toll-free — is reviewed against the brand
+your messages and your consent screen actually name. If they say something other than the company you
+registered, that is one of the most common reasons a registration is rejected, and it is the kind of
+mismatch nobody notices until a carrier does.
+
+**It is not your site's name.** Tiger will fall back to the site name when no brand is set, because for
+most installs the two are the same company and a message signed with the wrong name still beats one
+signed with nothing. But that is a fallback, not a decision: if your site is named for your *product*
+and you registered under your *company*, those differ, and the screen warns you while the brand is
+unset. Set it and the warning goes away.
 
 ### Twilio
 The industry-standard SMS API. You need:
