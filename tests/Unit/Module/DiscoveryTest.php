@@ -184,6 +184,47 @@ final class DiscoveryTest extends UnitTestCase
     }
 
     #[Test]
+    public function providesPassesThroughFromTheManifest(): void
+    {
+        // `provides` is what a module CONTRIBUTES to another module's surface — the counterpart to
+        // `requires`. The consumer resolves the path, so the scan must carry the block verbatim.
+        // Dropping it is silent: a consumer's isset($row['provides'][…]) check simply never matches,
+        // so every contributing module is skipped and the feature looks like a content problem
+        // rather than a missing field. TigerDocs' `provides.content` manual hit exactly that.
+        $this->plantAppModule('fixprovides', [
+            'module.json' => json_encode([
+                'slug' => 'fixprovides', 'name' => 'Fix Provides',
+                'provides' => ['content' => 'content'],
+            ]),
+            'Bootstrap.php' => "<?php\n",
+        ]);
+
+        $row = Tiger_Module_Discovery::all()['fixprovides'];
+        $this->assertSame(['content' => 'content'], $row['provides']);
+    }
+
+    #[Test]
+    public function providesDefaultsToAnEmptyArrayWhenAbsentOrMalformed(): void
+    {
+        // A consumer indexes into this without checking the type, so a scalar `provides` must not
+        // leak through as a string — and an absent one must be an array, not null.
+        $this->plantAppModule('fixnoprovides', [
+            'module.json'   => json_encode(['slug' => 'fixnoprovides', 'name' => 'No Provides']),
+            'Bootstrap.php' => "<?php\n",
+        ]);
+        $this->plantAppModule('fixbadprovides', [
+            'module.json'   => json_encode([
+                'slug' => 'fixbadprovides', 'name' => 'Bad Provides', 'provides' => 'content',
+            ]),
+            'Bootstrap.php' => "<?php\n",
+        ]);
+
+        $all = Tiger_Module_Discovery::all();
+        $this->assertSame([], $all['fixnoprovides']['provides']);
+        $this->assertSame([], $all['fixbadprovides']['provides']);
+    }
+
+    #[Test]
     public function protectedFlagPassesThroughFromTheManifest(): void
     {
         // `"protected": true` marks an always-on module the Module manager must refuse to deactivate.

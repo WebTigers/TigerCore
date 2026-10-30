@@ -14,7 +14,7 @@
 class Tiger_Module_Discovery
 {
     /**
-     * All modules on disk, keyed by slug: {slug, area, name, version, description, author, license, homepage, pricing, protected, has_manifest}.
+     * All modules on disk, keyed by slug: {slug, area, name, version, description, author, license, homepage, pricing, protected, provides, has_manifest}.
      *
      * @return array<string,array> module metadata rows keyed by slug (sorted)
      */
@@ -77,6 +77,12 @@ class Tiger_Module_Discovery
                     // Mutually-exclusive modules (slugs): activating this one deactivates any active
                     // module named here (e.g. cloud-SDK providers that each bundle their own Guzzle).
                     'conflict'     => isset($m['conflict']) && is_array($m['conflict']) ? array_values(array_map('strval', $m['conflict'])) : [],
+                    // What the module CONTRIBUTES to another module's surface, as
+                    // `{<what>: <path relative to the module dir>}`. The counterpart to `requires`:
+                    // requires declares a dependency, provides declares an offering. The consumer
+                    // decides what a key means and resolves the path — TigerDocs reads
+                    // `provides.content` to serve a manual supplied by a content-only module.
+                    'provides'     => isset($m['provides']) && is_array($m['provides']) ? $m['provides'] : [],
                     'has_manifest' => (bool) $m,
                 ];
             }
