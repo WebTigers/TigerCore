@@ -557,21 +557,60 @@ class Tiger_Theme
      */
     public static function contentFile($slug, $dir = null, $lang = null)
     {
-        $root = ($dir !== null && $dir !== '') ? (string) $dir : self::dir();
+        $activeDir = self::dir();
+        $root = ($dir !== null && $dir !== '') ? (string) $dir : $activeDir;
         $slug = trim((string) $slug, '/');
         if ($slug === '' || $root === '' || !preg_match('#^[A-Za-z0-9][A-Za-z0-9/_-]*$#', $slug)) {
             return '';
         }
+        $lang = $lang !== null ? (string) $lang : (defined('LANG') ? (string) LANG : '');
+
+        // Remote content tier (Tiger_Theme_Remote): a mirrored S3 content root wins over the baked
+        // content/ dir, so a content edit lands via a fetch (TIGER-409), not a theme release or an
+        // AMI re-bake. Applied ONLY for the ACTIVE theme — a named-theme lookup (the home-page
+        // selector pointing "/" at another installed theme's page) resolves from THAT theme's baked
+        // files, never the active theme's mirror. The slug regex above already bars traversal.
+        if ($root === $activeDir) {
+            $remote = self::_remoteContentFile($slug, $lang);
+            if ($remote !== '') { return $remote; }
+        }
+
         $base = $root . '/content/' . $slug . '.phtml';
         if (!is_file($base)) {
             return '';   // the base English page is the canonical one; a lone locale file is an orphan
         }
-        $lang = $lang !== null ? (string) $lang : (defined('LANG') ? (string) LANG : '');
         if ($lang !== '' && preg_match('/^[a-z]{2,3}$/', $lang)) {
             $variant = $root . '/content/' . $slug . '.' . $lang . '.phtml';
             if (is_file($variant)) {
                 return $variant;   // a translated sibling ships for this locale → use it
             }
+        }
+        return $base;
+    }
+
+    /**
+     * The active theme's content page for a slug served from the REMOTE MIRROR (Tiger_Theme_Remote),
+     * or '' when no remote tier is configured, it holds no content, or it lacks this page's base
+     * file — in which case {@see contentFile()} falls through to the baked `content/` (the floor).
+     *
+     * The mirror holds the published `content/` tree flat at its root (`<mirror>/<slug>.phtml`,
+     * `<mirror>/<slug>.<LANG>.phtml`), so resolution mirrors the baked tier: the base page must
+     * exist (a lone locale file is an orphan), and a locale variant wins when one was shipped.
+     *
+     * @param  string $slug the content slug (already guarded by contentFile())
+     * @param  string $lang the resolved request locale, or ''
+     * @return string absolute path to the chosen mirror file, or '' to use the baked tier
+     */
+    protected static function _remoteContentFile($slug, $lang)
+    {
+        $mirror = (new Tiger_Theme_Remote())->contentRoot();   // '' unless enabled AND it holds content
+        if ($mirror === '') { return ''; }
+
+        $base = $mirror . '/' . $slug . '.phtml';
+        if (!is_file($base)) { return ''; }                    // not in the mirror → baked tier serves it
+        if ($lang !== '' && preg_match('/^[a-z]{2,3}$/', $lang)) {
+            $variant = $mirror . '/' . $slug . '.' . $lang . '.phtml';
+            if (is_file($variant)) { return $variant; }
         }
         return $base;
     }
