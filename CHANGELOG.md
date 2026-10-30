@@ -6,6 +6,22 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.46.0] — 2026-10-30
+
+### Added
+- **`provides` is carried through module discovery** — `Tiger_Module_Discovery::all()` now returns the
+  manifest's `provides` block on each row, alongside the `requires` / `compat` / `conflict` passthroughs
+  it already carried. `provides` is the counterpart to `requires`: where `requires` declares a
+  dependency, `provides` declares what a module **contributes** to another module's surface, as
+  `{<what>: <path relative to the module dir>}`. Core assigns no meaning to the keys — the consuming
+  module decides what it accepts and resolves the path.
+
+  This closes a gap that failed **silently**. The field was already valid in the manifest schema and
+  modules were already declaring it, but the scan dropped it, so a consumer's
+  `isset($row['provides']['…'])` simply never matched and every contributing module was skipped with no
+  error anywhere. It presented as a content problem rather than a missing field. TigerDocs'
+  `provides.content` manual — a content-only module supplying the platform manual — hit exactly this.
+
 ## [1.45.0] — 2026-10-28
 
 ### Added
