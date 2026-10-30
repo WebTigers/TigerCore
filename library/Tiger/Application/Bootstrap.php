@@ -221,7 +221,7 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
         ]);
 
         // Fetch the active theme's content pages from the remote source (TIGER-409), when one is
-        // configured (tiger.theme.content_url). A no-op when unset — safe to register always. This
+        // configured (tiger.theme_remote.content_url). A no-op when unset — safe to register always. This
         // is what lets a theme content edit land via S3 + CloudFront instead of a theme release or a
         // control-plane AMI re-bake. Transient CDN failures don't email (the baked content/ is the
         // floor); syncJob() throws so the scheduler still records a failed run.
