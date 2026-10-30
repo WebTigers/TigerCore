@@ -563,7 +563,15 @@ class Tiger_Theme_Remote
     //  Config + logging (tolerant of an early/partial boot)
     // =============================================================================================
 
-    /** Read `tiger.theme.<path>` then `theme.<path>` from the config cascade. */
+    /**
+     * Read `tiger.theme_remote.<path>` then `theme_remote.<path>` from the config cascade.
+     *
+     * NOT under `tiger.theme.*`: `tiger.theme` is the ACTIVE-THEME key and it is a **scalar** (the
+     * theme's name). Nesting a child under it (e.g. `tiger.theme.content_url`) turns `tiger.theme`
+     * into a config section, which fatals `Tiger_Application_Bootstrap::_initTheme()` where it does
+     * `(string) $config->theme` — taking the whole site down on every boot. The remote-content
+     * settings therefore live in a SIBLING section, `tiger.theme_remote.*`, which cannot collide.
+     */
     protected function _cfg($path, $default)
     {
         try {
@@ -571,7 +579,7 @@ class Tiger_Theme_Remote
         } catch (Throwable $e) {
             return $default;
         }
-        foreach (['tiger.theme.' . $path, 'theme.' . $path] as $full) {
+        foreach (['tiger.theme_remote.' . $path, 'theme_remote.' . $path] as $full) {
             $node = $cfg;
             foreach (explode('.', $full) as $k) {
                 $node = is_object($node) ? ($node->{$k} ?? null) : null;

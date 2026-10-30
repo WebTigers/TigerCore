@@ -27,10 +27,13 @@ final class ThemeRemoteSyncTest extends UnitTestCase
         parent::setUp();
         $this->mirror = sys_get_temp_dir() . '/tigsync-' . uniqid('', true);
         Zend_Registry::set('Zend_Config', new Zend_Config([
-            'tiger' => ['theme' => [
-                'content_url'    => $this->base,
-                'content_mirror' => $this->mirror,
-            ]],
+            'tiger' => [
+                'theme'        => 'tigermarketing',          // the active-theme scalar, alongside…
+                'theme_remote' => [                          // …the sibling remote-content section
+                    'content_url'    => $this->base,
+                    'content_mirror' => $this->mirror,
+                ],
+            ],
         ]));
     }
 

@@ -13,7 +13,7 @@ use Zend_Config;
 use Zend_Registry;
 
 /**
- * The remote content tier (TIGER-409): when tiger.theme.content_url is configured and a local
+ * The remote content tier (TIGER-409): when tiger.theme_remote.content_url is configured and a local
  * mirror holds content, Tiger_Theme::contentFile() serves the ACTIVE theme's pages from the mirror
  * (Tiger_Theme_Remote) instead of the baked content/ dir — so a theme content edit lands via an S3
  * fetch, not a theme release or an AMI re-bake. Falls through to the baked floor when the mirror is
@@ -52,10 +52,15 @@ final class ThemeRemoteContentTest extends UnitTestCase
     private function configureRemote(): void
     {
         Zend_Registry::set('Zend_Config', new Zend_Config([
-            'tiger' => ['theme' => [
-                'content_url'    => 'https://cdn.webtigers.com/marketing',
-                'content_mirror' => $this->mirror,
-            ]],
+            // The active-theme scalar coexists with the sibling remote section — the exact shape
+            // that broke prod when the two were merged under one key (see the collision guard test).
+            'tiger' => [
+                'theme'        => 'tigermarketing',
+                'theme_remote' => [
+                    'content_url'    => 'https://cdn.webtigers.com/marketing',
+                    'content_mirror' => $this->mirror,
+                ],
+            ],
         ]));
     }
 
@@ -148,7 +153,7 @@ final class ThemeRemoteContentTest extends UnitTestCase
         $this->baked('get-tiger.phtml');
         $this->mirrored('get-tiger.phtml');
         $this->manifest(['get-tiger.phtml']);
-        // NOTE: configureRemote() NOT called — tiger.theme.content_url is unset.
+        // NOTE: configureRemote() NOT called — tiger.theme_remote.content_url is unset.
         $this->assertSame($this->dir . '/content/get-tiger.phtml', Tiger_Theme::contentFile('get-tiger', null, ''));
     }
 
@@ -158,7 +163,7 @@ final class ThemeRemoteContentTest extends UnitTestCase
     public function base_url_requires_https(): void
     {
         Zend_Registry::set('Zend_Config', new Zend_Config([
-            'tiger' => ['theme' => ['content_url' => 'http://cdn.webtigers.com/marketing']],
+            'tiger' => ['theme_remote' => ['content_url' => 'http://cdn.webtigers.com/marketing']],
         ]));
         $r = new Tiger_Theme_Remote();
         $this->assertSame('', $r->baseUrl());        // plain http is refused
@@ -169,7 +174,7 @@ final class ThemeRemoteContentTest extends UnitTestCase
     public function https_base_url_is_trimmed_and_enabled(): void
     {
         Zend_Registry::set('Zend_Config', new Zend_Config([
-            'tiger' => ['theme' => ['content_url' => 'https://cdn.webtigers.com/marketing/']],
+            'tiger' => ['theme_remote' => ['content_url' => 'https://cdn.webtigers.com/marketing/']],
         ]));
         $r = new Tiger_Theme_Remote();
         $this->assertSame('https://cdn.webtigers.com/marketing', $r->baseUrl());
@@ -190,5 +195,27 @@ final class ThemeRemoteContentTest extends UnitTestCase
         $this->assertContains('phtml', Tiger_Theme_Remote::ALLOWED_EXT);
         $this->assertContains('html', Tiger_Theme_Remote::ALLOWED_EXT);
         $this->assertNotContains('php', Tiger_Theme_Remote::ALLOWED_EXT);
+    }
+
+    #[Test]
+    public function the_remote_setting_never_turns_the_active_theme_into_a_section(): void
+    {
+        // REGRESSION — the 2026-10-30 prod outage. `tiger.theme` is the active-theme key and MUST
+        // stay a scalar: _initTheme() does `(string) $config->tiger->theme`, which fatals on every
+        // boot (taking the whole site down) if a child was nested under it. So the remote-content
+        // settings live in the SIBLING section `tiger.theme_remote.*`. With BOTH present:
+        Zend_Registry::set('Zend_Config', new Zend_Config([
+            'tiger' => [
+                'theme'        => 'tigermarketing',
+                'theme_remote' => ['content_url' => 'https://cdn.webtigers.com/marketing'],
+            ],
+        ]));
+        $cfg = Zend_Registry::get('Zend_Config');
+
+        // 1) The exact read _initTheme performs must not fatal and must be the scalar name.
+        $this->assertSame('tigermarketing', (string) $cfg->tiger->theme);
+        // 2) The remote tier still resolves its URL from the sibling section — so if the code ever
+        //    regressed to reading tiger.theme.*, baseUrl() would come back empty and fail here.
+        $this->assertSame('https://cdn.webtigers.com/marketing', (new Tiger_Theme_Remote())->baseUrl());
     }
 }
