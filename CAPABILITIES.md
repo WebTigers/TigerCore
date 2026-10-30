@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**247 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**248 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -98,6 +98,7 @@
 
 - **Tiger_Theme** `@api` — read helpers for the ACTIVE theme's on-disk resources.  ·  `library/Tiger/Theme.php`
 - **Tiger_Theme_Menus** `@api` — a theme's declared public menus, read from `configs/menus.ini`.  ·  `library/Tiger/Theme/Menus.php`
+- **Tiger_Theme_Remote** `@api` — fetch a theme's content pages from a single remote source of truth.  ·  `library/Tiger/Theme/Remote.php`
 
 ### Menus
 
