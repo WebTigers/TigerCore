@@ -13,16 +13,26 @@ use Tiger_Model_Media;
 use Tiger_Model_Menu;
 
 /**
- * Cross-tenant isolation for the two services that enforced the admin ROLE but never the OWNERSHIP of
- * the row being touched (TIGER-64, TIGER-65).
+ * Cross-tenant behaviour of the services that enforced a ROLE but not the row's OWNERSHIP
+ * (TIGER-64 media, TIGER-65 cms menu), as it stands after the ACL.md §1a conformance pass (TIGER-410).
  *
- * The shipped ACL grants `admin` on these services, and an admin's role is derived from their OWN
- * membership — it says nothing about whose data the request names. So an admin in org A could pass
- * org B's `media_id` (or `org_id`) and read, modify or destroy it, holding no membership in B at all.
+ * §1a makes "reach every org" a CAPABILITY (`Tiger_Service_Service::RESOURCE_ALL_ORGS`), not a role
+ * compare. Core's acl.ini grants it at `admin`, so the cut line sits between `supermanager` (tenant /
+ * org-tree scoped) and `admin` (app-wide). A service asks `_inOrgScope($row->org_id)` — the caller's
+ * READ scope — instead of "is this my org".
  *
- * Each test drives the REAL service with a signed-in org-A identity against seeded org-B rows, and
- * asserts both halves: A is refused, and B's row is untouched. The same-tenant positive controls
- * matter just as much — a scoping fix that denied everything would also "pass" the denial cases.
+ * What that means per service:
+ *   - **Media** has been converted to the primitive. Its ACL grants the service at `admin`, and `admin`
+ *     is exactly the tier that holds the all-orgs capability, so in core an admin legitimately manages
+ *     EVERY org's media — administering orgs is the job. There is deliberately no admin-but-walled role
+ *     for media in core; the tenant wall itself (a role WITHOUT the capability is scoped to its own org)
+ *     is pinned at the primitive in Unit/Service/OrgScopeTest, which is where that decision lives.
+ *   - **Cms menu** has NOT yet been converted (out of scope for TIGER-410), so it still hard-scopes and
+ *     a foreign `org_id` is refused. Those cases pin its CURRENT behaviour until it adopts the primitive.
+ *
+ * Each test drives the REAL service with a signed-in org-A identity against seeded org-B rows. The
+ * same-tenant positive controls matter just as much — an assertion that only checked the cross-org case
+ * would also "pass" if the service were broken outright.
  */
 #[CoversClass(Cms_Service_Menu::class)]
 #[CoversClass(Media_Service_Media::class)]
@@ -67,31 +77,34 @@ final class TenantScopingTest extends IntegrationTestCase
     // ---- media (TIGER-64) ------------------------------------------------------
 
     #[Test]
-    public function an_admin_cannot_update_another_tenants_media(): void
+    public function an_app_wide_admin_can_update_another_orgs_media(): void
     {
+        // §1a: `admin` holds the all-orgs capability in core, and media is an admin-gated feature, so an
+        // admin administers every org's media. (A role WITHOUT the capability is walled — see OrgScopeTest.)
         $idB = $this->seedMedia(self::ORG_B, 'secret-b.pdf');
         $this->asAdminOfA();
 
         $svc = new Media_Service_Media();
-        $svc->update(['media_id' => $idB, 'title' => 'Changed by tenant A']);
+        $svc->update(['media_id' => $idB, 'title' => 'Changed by the app admin']);
 
-        $this->assertSame(0, (int) $svc->getResponse()->result, 'the request is refused');
-        $this->assertSame('Owned by ' . self::ORG_B,
-            (string) (new Tiger_Model_Media())->findById($idB)->title, "B's row is untouched");
+        $this->assertSame(1, (int) $svc->getResponse()->result, 'an app-wide admin reaches every org');
+        $this->assertSame('Changed by the app admin',
+            (string) (new Tiger_Model_Media())->findById($idB)->title, "B's row is updated");
     }
 
     #[Test]
-    public function an_admin_cannot_delete_another_tenants_media(): void
+    public function an_app_wide_admin_can_delete_another_orgs_media(): void
     {
-        // delete() destroys the stored bytes BEFORE soft-deleting, so this one is not undoable.
+        // delete() destroys the stored bytes BEFORE soft-deleting; an app-wide admin is entitled to.
         $idB = $this->seedMedia(self::ORG_B, 'delete-me-b.pdf');
         $this->asAdminOfA();
 
         $svc = new Media_Service_Media();
         $svc->delete(['media_id' => $idB]);
 
-        $this->assertSame(0, (int) $svc->getResponse()->result);
-        $this->assertSame(0, (int) (new Tiger_Model_Media())->findById($idB)->deleted, "B's row survives");
+        $this->assertSame(1, (int) $svc->getResponse()->result);
+        // findById hides soft-deleted by default, so include them to read the deleted flag.
+        $this->assertSame(1, (int) (new Tiger_Model_Media())->findById($idB, true)->deleted, "B's row is removed");
     }
 
     #[Test]

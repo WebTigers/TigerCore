@@ -26,18 +26,12 @@ class Blog_Service_Taxonomy extends Tiger_Service_Service
         $vocab = ($params['vocabulary'] ?? '') === Blog_Model_Taxonomy::VOCAB_CATEGORY
             ? Blog_Model_Taxonomy::VOCAB_CATEGORY : Blog_Model_Taxonomy::VOCAB_TAG;
         $locale = (string) ($params['locale'] ?? 'en');
-        $orgId  = $this->_orgId();
+        $scope  = $this->_orgScope();   // null = app-wide (ACL.md §1a)
 
         $terms = [];
-        foreach ((new Blog_Model_Taxonomy())->listVocabulary($vocab, $locale, $orgId) as $t) {
+        foreach ((new Blog_Model_Taxonomy())->listVocabulary($vocab, $locale, $scope) as $t) {
             $terms[] = ['id' => $t->taxonomy_id, 'name' => $t->name, 'slug' => $t->slug];
         }
         $this->_success(['terms' => $terms]);
-    }
-
-    protected function _orgId(): string
-    {
-        $idn = Zend_Auth::getInstance()->getIdentity();
-        return ($idn && !empty($idn->org_id)) ? (string) $idn->org_id : '';
     }
 }

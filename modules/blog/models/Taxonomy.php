@@ -30,13 +30,17 @@ class Blog_Model_Taxonomy extends Tiger_Model_Table
      */
     public function listVocabulary($vocabulary, $locale = 'en', $orgId = '')
     {
-        return $this->fetchAll(
-            $this->activeSelect()
-                ->where('vocabulary = ?', (string) $vocabulary)
-                ->where('locale = ?', (string) $locale)
-                ->where('org_id IN (?)', $this->_orgScope($orgId))
-                ->order(['sort_order ASC', 'name ASC'])
-        );
+        $sel = $this->activeSelect()
+            ->where('vocabulary = ?', (string) $vocabulary)
+            ->where('locale = ?', (string) $locale)
+            ->order(['sort_order ASC', 'name ASC']);
+
+        // NULL = an app-wide caller: no org predicate at all (ACL.md §1a). An array is an explicit
+        // scope; anything else is a single org, resolved to that org plus the shared '' tier.
+        if ($orgId !== null) {
+            $sel->where('org_id IN (?)', is_array($orgId) ? $orgId : $this->_orgScope($orgId));
+        }
+        return $this->fetchAll($sel);
     }
 
     /**
