@@ -1,0 +1,91 @@
+{
+    "suite": "tigerden-billing",
+    "title": "Functional user tests — TigerDen billing plan-change (admin) + the customer buy→provision funnel",
+    "notes": "Intent-level steps, no selectors: the probe resolves controls from the accessibility tree; 'verified' records the last real browser run. Covers the TigerDen billing work (TIGER-333 Inc 2): the admin /hosting/admin/accounts per-row controls — a size dropdown + Resize box (no-billing EC2 resize) and a plan dropdown + Change plan (billing: Stripe proration + resize) — and the public customer checkout that is supposed to buy a TigerDen plan and provision the box.\n\nThe client/server contract under test (AGENTS.md / WEBSERVICES.md §5): a control POSTs to /api as an XHR (no page unload), the JSON envelope drives a TigerDOM.notify success, and list data re-loads from /api — never a page-POST, never server-rendered rows. Dev runs reCAPTCHA OFF (tiger.recaptcha.enabled=0), so the funnel's email-code + payment steps are reachable without a browser captcha token.\n\nSetup for the admin scenarios: at least one account on a tigerden plan with a launched box must exist (the Resize control only renders for a tigerden account that has_box). The customer-checkout scenario provisions a fresh account and (when it works) launches a real t3 box + EIP — tear those down after.",
+    "scenarios": [
+        {
+            "id": "UI-DEN-CHANGEPLAN",
+            "role": "superadmin",
+            "url": "/hosting/admin/accounts",
+            "severity_hint": "blocker",
+            "steps": [
+                "open the hosting accounts grid and find the TigerDen row (plan 'TigerDen …', a t3.<size> badge)",
+                "pick a different plan in that row's plan dropdown and click Change plan",
+                "watch the network, the console, and the row"
+            ],
+            "expect": [
+                "the POST goes to /api as an XHR (service=provision, method=changePlan) — the page does NOT navigate",
+                "the JSON envelope is result=1 with data {provisioner:'tigerden', size, resizing:true} and a TRANSLATED success message (not a raw i18n key)",
+                "TigerDOM.notify shows the success; the grid reloads and the row reflects the new plan; the box resize is kicked off (EIP/DNS/cert preserved)",
+                "no console errors"
+            ],
+            "verified": "2026-10-25 PASS — den-e2e-3eb4c7.test, plan TigerDen Small→Medium. POST /api body module=hosting&service=provision&method=changePlan&account_id=390822a7…&plan_id=d958931a… → 200, no navigation. Response: {result:1,data:{provisioner:'tigerden',size:'medium',resizing:true},messages:[{class:'success','Plan changed — the subscription was re-priced (prorated) and the box is being resized to match (its IP, DNS and certificate are preserved).'}]}. Grid reloaded to 'TigerDen Medium'; badge stayed t3.small while the EIP-pinned resize ran (box_instance_type updates on completion). 0 console errors."
+        },
+        {
+            "id": "UI-DEN-RESIZE",
+            "role": "superadmin",
+            "url": "/hosting/admin/accounts",
+            "severity_hint": "bug",
+            "steps": [
+                "on the TigerDen row, pick a different size in the size dropdown and click Resize",
+                "watch the network, the console, and the notification"
+            ],
+            "expect": [
+                "the POST goes to /api as an XHR (service=provision, method=resize) — no page navigation",
+                "result=1 with data {provisioning:true} and a translated 'Resizing the TigerDen VPS …' message (not a raw key)",
+                "TigerDOM.notify shows the success; the EIP/DNS/cert are preserved across the resize",
+                "no console errors"
+            ],
+            "verified": "2026-10-25 PASS — den-e2e-3eb4c7.test resized small→large. POST /api (method=resize) → 200. Response: {result:1,data:{account_id:'390822a7…',provisioning:true},messages:[{class:'success','Resizing the TigerDen VPS — this takes a few minutes (the IP, DNS and certificate are preserved).'}]}. The prior changePlan resize had already completed, so this one passed the in-progress guard and spawned a fresh resize. 0 console errors."
+        },
+        {
+            "id": "UI-DEN-CONTROLS-SCOPE",
+            "role": "superadmin",
+            "url": "/hosting/admin/accounts",
+            "severity_hint": "bug",
+            "steps": [
+                "read every row's Actions cell",
+                "note which rows show a Resize-box control and which show only Change-plan"
+            ],
+            "expect": [
+                "the Resize-box control (size dropdown + Resize) appears ONLY on tigerden rows that have a launched box",
+                "the Change-plan control (plan dropdown + Change plan) appears on any account carrying a plan_id, tigerden or shared-host",
+                "no raw i18n keys in any label"
+            ],
+            "verified": "2026-10-25 PASS — the one TigerDen row showed BOTH controls (size micro/small/medium/large/xlarge + Resize, and the full plan dropdown + Change plan). Every shared-host row (webtiggers.com=Studio, wucky.co/summertime.io=Builder, …) showed Change-plan ONLY, no Resize box. Pending/no-box accounts showed Change-plan only. Labels all resolved (no raw keys)."
+        },
+        {
+            "id": "UI-DEN-CHECKOUT",
+            "role": "guest (public funnel)",
+            "url": "/hosting → /hosting/order/plan/tigerden-small",
+            "severity_hint": "blocker",
+            "steps": [
+                "from /hosting pick a TigerDen plan → the order wizard (Plan → Domain → Account → Payment)",
+                "choose a domain (register / bring your own / none), set a username + email, pass the 6-digit email-code verify",
+                "pay with the Stripe TEST card 4242 4242 4242 4242 (any future expiry/CVC/ZIP)",
+                "watch the live provisioning checklist"
+            ],
+            "expect": [
+                "payment succeeds, the account is saved, AND the TigerDen box is provisioned (a real t3 box + EIP, DNS, cert, login-ready panel)",
+                "the checklist completes through to 'Your new site is ready'",
+                "no charge-without-provision outcome"
+            ],
+            "verified": "2026-10-25 FAIL — TIGER-393 (Blocker). Card charged ($49 test) + hosting_account saved (ref 01a17464-d40d-71a7-b71d-676550c731af), but provisioning aborted at the first provisioner step: checklist showed Payment authorized ✓ → Linking your domain ✓ → 'Hunting for the latest Tiger' → 'step not supported by this provisioner' → 'Setup hit a snag'. No box launched. Root cause (verified in code): hosting.order.js:539 drives the shared-host granular step sequence (place/account/install/directurl/verify) via provisionStep → Hosting_Lib_Provisioner::step(); the tigerden driver (lib/Provisioner/Tigerden.php) implements only deploy() (the God-provision worker) + resize/lifecycle, not the granular step methods, so step('place') returns 'step not supported'. The working deploy() worker is never invoked by the wizard. Shared-host (server) checkout uses the same wizard and is unaffected (Server driver implements all granular steps)."
+        },
+        {
+            "id": "UI-DEN-CHECKOUT-DOMAIN-NONE",
+            "role": "guest (public funnel)",
+            "url": "/hosting/order/plan/tigerden-small (Domain step)",
+            "severity_hint": "task",
+            "steps": [
+                "in the order wizard Domain step, pick 'No domain yet'",
+                "try to continue"
+            ],
+            "expect": [
+                "either 'No domain yet' lets a TigerDen launch with its auto den-<hex>.webtigers.net name, or it is not offered",
+                "an offered option should not be a dead end"
+            ],
+            "verified": "2026-10-25 NOTE (minor) — selecting 'No domain yet' leaves Continue DISABLED with a 'Coming right up — for now, choose or bring a domain' message, so a TigerDen buyer cannot launch with only the auto den-*.webtigers.net name yet; they must register or bring a domain. Self-labelled coming-soon, not a hard defect — not filed (covered by the TIGER-393 funnel work; batch here if it recurs)."
+        }
+    ]
+}
