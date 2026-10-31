@@ -311,6 +311,65 @@ abstract class Tiger_Service_Service
      *
      * @return array{draw:int,start:int,length:int,search:string,order:array}
      */
+    /**
+     * The ACL resource naming the "reach every org" capability.
+     *
+     * A CAPABILITY, never a role tier — per the TIGER-335 primitive, a service must not compare role
+     * strings, and a resource named after a tier (`..._Admin`) is a role compare with one level of
+     * indirection. Granted to `admin` in core's acl.ini, so `superadmin`/`developer` inherit it and
+     * `manager`/`supermanager` do not (ACL.md §1a). An app may re-grant it like any other rule.
+     */
+    const RESOURCE_ALL_ORGS = 'Tiger_Tenancy_AllOrgs';
+
+    /**
+     * The caller's own org, or '' when they have no membership.
+     *
+     * @return string
+     */
+    protected function _orgId()
+    {
+        $identity = Zend_Auth::getInstance()->getIdentity();
+        return ($identity && !empty($identity->org_id)) ? (string) $identity->org_id : '';
+    }
+
+    /**
+     * The org scope this caller READS under — the one place that decision is made.
+     *
+     * Returns **null for an app-wide caller**, meaning *apply no org predicate at all*: an app-wide
+     * role is not scoped, not "scoped with an opt-in" (ACL.md §1a). Otherwise it returns the tenant
+     * scope — the caller's own org plus `''`, the shared tier that module-shipped and platform-owned
+     * rows live in, matching what the public browse gates already honour.
+     *
+     * Scope belongs HERE, in the service, and travels into the model finder as a parameter. A finder
+     * that hard-codes `org_id = <caller's org>` has silently decided that no app-wide role exists —
+     * which is exactly how the Media Library came to wall an admin out of the orgs it administers.
+     *
+     * @return array<int,string>|null the org ids to read under, or null for every org
+     */
+    protected function _orgScope()
+    {
+        if ($this->_isAllowed('read', self::RESOURCE_ALL_ORGS)) {
+            return null;
+        }
+        return array_values(array_unique([$this->_orgId(), '']));
+    }
+
+    /**
+     * Is a row owned by `$orgId` within the caller's read scope?
+     *
+     * The row-level twin of `_orgScope()`, for guarding an action on a caller-supplied id: the ACL
+     * grants the privilege, it says nothing about the target row. An app-wide caller passes for any
+     * org; a tenant caller passes for their own org and the shared `''` tier.
+     *
+     * @param  string $orgId the target row's org_id
+     * @return bool
+     */
+    protected function _inOrgScope($orgId)
+    {
+        $scope = $this->_orgScope();
+        return ($scope === null) || in_array((string) $orgId, $scope, true);
+    }
+
     protected function _dtParams(array $params, int $maxLength = 100): array
     {
         $length = (int) ($params['length'] ?? 25);

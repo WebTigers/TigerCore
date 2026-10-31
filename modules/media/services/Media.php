@@ -163,7 +163,7 @@ class Media_Service_Media extends Tiger_Service_Service
         // entirely when Uploads is filtered out.
         $data = $includeUploads
             ? (new Tiger_Model_Media())->datatable([
-                'org_id'   => $this->_orgId(),   // the caller's tenant — never a caller-supplied value
+                'org_scope' => $this->_orgScope(),   // the caller's READ scope — never a caller-supplied value
                 'search'   => $dt['search'],
                 'kind'     => $kindFilter,
                 'orderCol' => isset($dt['order'][0]) ? $dt['order'][0]['column'] : -1,
@@ -476,8 +476,10 @@ class Media_Service_Media extends Tiger_Service_Service
      * delete destroys the stored bytes before soft-deleting the row (TIGER-64). The ACL granted the
      * admin ROLE; it said nothing about the target row.
      *
-     * Global rows (`org_id = ''`, e.g. module-shipped media) stay reachable, matching how the library
-     * already treats them elsewhere.
+     * The test is the caller's READ SCOPE (`_inOrgScope`), not "is this my org" — an app-wide role
+     * administers every org (ACL.md §1a), so comparing against the caller's own org would let that
+     * role LIST a row it is then refused permission to edit. Global rows (`org_id = ''`, e.g.
+     * module-shipped media) stay reachable for everyone, as elsewhere in the library.
      *
      * @param  string $id media_id
      * @return Zend_Db_Table_Row_Abstract|null
@@ -488,15 +490,7 @@ class Media_Service_Media extends Tiger_Service_Service
         $row = (new Tiger_Model_Media())->findById((string) $id);
         if (!$row) { return null; }
 
-        $owner = (string) $row->org_id;
-        return ($owner === '' || $owner === $this->_orgId()) ? $row : null;
-    }
-
-    /** The uploading admin's org scope ('' when org-less / global). */
-    protected function _orgId()
-    {
-        $idn = Zend_Auth::getInstance()->getIdentity();
-        return ($idn && !empty($idn->org_id)) ? (string) $idn->org_id : '';
+        return $this->_inOrgScope((string) $row->org_id) ? $row : null;
     }
 
     /** Best-effort MIME from the file (finfo), falling back to the extension map. */

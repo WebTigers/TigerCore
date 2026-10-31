@@ -378,6 +378,28 @@ class Tiger_Model_Media extends Tiger_Model_Table
      * @param  array $opts query options (search, kind, limit, offset, orderCol, orderDir)
      * @return array{total:int,filtered:int,rows:array}
      */
+    /**
+     * The org ids a listing reads under, from the caller's options — or null for every org.
+     *
+     * Accepts `org_scope` (an array of org ids, or null for app-wide) as the modern shape, and falls
+     * back to a single `org_id` (resolved to that org plus the shared `''` tier) for callers that
+     * still pass one. With neither, it scopes to the current request's org — the safe default, since
+     * a caller that said nothing about scope has not earned app-wide reach.
+     *
+     * @param  array $opts the finder options
+     * @return array<int,string>|null
+     */
+    protected static function _resolveOrgScope(array $opts)
+    {
+        if (array_key_exists('org_scope', $opts)) {
+            $scope = $opts['org_scope'];
+            if ($scope === null) { return null; }                       // app-wide: no predicate
+            return array_values(array_unique(array_map('strval', (array) $scope)));
+        }
+        $orgId = array_key_exists('org_id', $opts) ? (string) $opts['org_id'] : (string) Tiger_Model_Table::org();
+        return array_values(array_unique([$orgId, '']));
+    }
+
     public function datatable(array $opts)
     {
         $db     = $this->getAdapter();
@@ -391,16 +413,22 @@ class Tiger_Model_Media extends Tiger_Model_Table
         $dir = (strtoupper((string) ($opts['orderDir'] ?? '')) === 'ASC') ? 'ASC' : 'DESC';
         $orderSql = isset($orderCols[$col]) ? ($orderCols[$col] . ' ' . $dir) : 'created_at DESC';
 
-        // TENANT SCOPE. This listing had no org filter at all, so the admin Media Library enumerated
-        // EVERY tenant's rows — filename, title, id and the private serving URL — which is also how a
-        // caller obtained the media_id it then passed to update/delete (TIGER-64). Global rows
-        // (org_id = '') are shared library content and stay visible, matching the public browse gate.
-        $orgId = array_key_exists('org_id', $opts) ? (string) $opts['org_id'] : (string) Tiger_Model_Table::org();
-        $scope = function ($sel) use ($db, $kind, $orgId) {
+        // TENANT SCOPE — decided by the CALLER's service, passed in here (ACL.md §1a).
+        //
+        // `org_scope` is the org ids to read under, or NULL for an app-wide caller, which applies no
+        // org predicate at all. Both directions of getting this wrong have shipped: with no filter
+        // the listing enumerated every tenant's rows — filename, title, id and the private serving
+        // URL, which is also how a caller obtained a media_id to pass to update/delete (TIGER-64);
+        // hard-scoped to the caller's own org, it walled an app-wide admin out of the orgs it
+        // administers. Neither is this model's call to make, so it takes the scope as a parameter.
+        //
+        // `org_id` (a single org) is still honoured for callers that pass one; it resolves to that
+        // org plus `''`, the shared tier module-shipped rows live in.
+        $orgScope = self::_resolveOrgScope($opts);
+        $scope = function ($sel) use ($db, $kind, $orgScope) {
             $sel->where('deleted = 0');
             if ($kind !== '') { $sel->where('kind = ?', $kind); }
-            $sel->where('(' . $db->quoteInto('org_id = ?', $orgId)
-                        . ' OR ' . $db->quoteInto('org_id = ?', '') . ')');
+            if ($orgScope !== null) { $sel->where('org_id IN (?)', $orgScope); }
         };
         $searchFn = function ($sel) use ($db, $search) {
             if ($search === '') { return; }
