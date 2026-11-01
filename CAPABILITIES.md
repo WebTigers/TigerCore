@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**248 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**249 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -339,6 +339,7 @@
 - **Tiger_Git_Transport_Shell** `@api` — git operations driven by the `git` binary (TIGER-364).  ·  `library/Tiger/Git/Transport/Shell.php`
 - **Tiger_Git_WorkingTree** `@api` — one module's git working tree (TIGER-334).  ·  `library/Tiger/Git/WorkingTree.php`
 - **Tiger_Message** `@api` — the platform's way of telling people things (TIGER-114).  ·  `library/Tiger/Message.php`
+- **Tiger_MicroId** `@api` — a compact, human-friendly receipt / order / ticket number from a micro timestamp.  ·  `library/Tiger/MicroId.php`
 - **Tiger_Secret** `@api` — provider-neutral resolution of secrets and sensitive config values.  ·  `library/Tiger/Secret.php`
 - **Tiger_Secret_Adapter_Chain** `@api` — try several backends in order; the first hit wins.  ·  `library/Tiger/Secret/Adapter/Chain.php`
 - **Tiger_Secret_Adapter_Env** `@api` — resolve a secret from an environment variable (the 12-factor backend).  ·  `library/Tiger/Secret/Adapter/Env.php`
