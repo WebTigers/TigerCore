@@ -6,6 +6,23 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.48.0] — 2026-11-01
+
+### Added
+- **`Tiger_MicroId`** (TIGER-430) — a reusable receipt/order/ticket number codec: a base-36 alphaID over a
+  dot-stripped microsecond timestamp, with configurable dash grouping for readability and a lossless
+  round-trip. Minted at checkout as a human-friendly order number (UNIQUE + retry; the UUID stays the PK).
+  Consumed by TigerShop order numbers and the future ticketing system — one core util, reused.
+- **ACL §1a role-scope enforcement in code** (TIGER-410) — "reach every org" is now a capability
+  (`Tiger_Service_Service::RESOURCE_ALL_ORGS` / `Tiger_Tenancy_AllOrgs`, granted at `admin`), decided in one
+  place (`_orgScope()`); Media + blog taxonomy converted to it. A role WITHOUT the capability stays scoped to
+  its own org (the tenant wall), pinned by `OrgScopeTest`.
+
+### Changed
+- **The module preview is authenticated, not just the install** (#377) — the Module Manager's preview path
+  now carries the same authenticated-source credentials as install, so previewing a private/company module
+  works the same way installing it does.
+
 ## [1.46.0] — 2026-10-30
 
 ### Added
