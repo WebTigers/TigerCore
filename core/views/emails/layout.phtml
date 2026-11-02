@@ -16,13 +16,19 @@
  *   - No external images. A remote logo is blocked by default in most clients and would render as a
  *     broken box on first open, so the wordmark is live text.
  *
- * Variables: $content (rendered body HTML), $siteName, $siteUrl, optional $preheader.
+ * Variables: $content (rendered body HTML), $siteName, $siteUrl, optional $preheader, optional $logo
+ * (a hosted image URL — opt-in branding; falls back to the wordmark), optional $footerNote (replaces the
+ * default automated-message line, e.g. for a reply-by-email message that invites a reply).
  */
-$siteName  = (string) ($this->siteName ?: 'Tiger');
-$siteUrl   = (string) ($this->siteUrl ?: '');
-$preheader = (string) ($this->preheader ?: '');
-$e         = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); };
-$year      = date('Y');
+$siteName   = (string) ($this->siteName ?: 'Tiger');
+$siteUrl    = (string) ($this->siteUrl ?: '');
+$preheader  = (string) ($this->preheader ?: '');
+$logo       = (string) ($this->logo ?: '');
+$footerNote = ($this->footerNote !== null && (string) $this->footerNote !== '')
+            ? (string) $this->footerNote
+            : 'This is an automated message — please don\'t reply to it.';
+$e          = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); };
+$year       = date('Y');
 ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
@@ -83,10 +89,18 @@ $year      = date('Y');
         <!-- Wordmark -->
         <tr>
             <td align="left" style="padding:0 0 16px 4px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:17px; font-weight:700; letter-spacing:-0.2px; color:#111827;">
+                <?php
+                // Opt-in logo (an admin-set hosted image) wins over the wordmark; both link to the site when set.
+                if ($logo !== ''):
+                    $mark = '<img src="' . $e($logo) . '" alt="' . $e($siteName) . '" height="40" style="display:block; height:40px; max-height:40px; width:auto; border:0;" />';
+                else:
+                    $mark = '<span class="tg-h1">' . $e($siteName) . '</span>';
+                endif;
+                ?>
                 <?php if ($siteUrl !== ''): ?>
-                    <a href="<?= $e($siteUrl) ?>" style="color:#111827; text-decoration:none;" class="tg-h1"><?= $e($siteName) ?></a>
+                    <a href="<?= $e($siteUrl) ?>" style="color:#111827; text-decoration:none;" class="tg-h1"><?= $mark ?></a>
                 <?php else: ?>
-                    <span class="tg-h1"><?= $e($siteName) ?></span>
+                    <?= $mark ?>
                 <?php endif; ?>
             </td>
         </tr>
@@ -116,7 +130,7 @@ $year      = date('Y');
                             <?php if ($siteUrl !== ''): ?>
                                 <a href="<?= $e($siteUrl) ?>" style="color:#6b7280; text-decoration:underline;"><?= $e(preg_replace('~^https?://~', '', $siteUrl)) ?></a><br />
                             <?php endif; ?>
-                            &copy; <?= $e($year) ?> <?= $e($siteName) ?>. This is an automated message — please don&rsquo;t reply to it.
+                            &copy; <?= $e($year) ?> <?= $e($siteName) ?>. <?= $e($footerNote) ?>
                         </td>
                     </tr>
                 </table>

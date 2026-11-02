@@ -447,7 +447,7 @@ class Tiger_Mail
      */
     public function template($name, array $vars = [])
     {
-        $vars += ['siteName' => $this->_siteName(), 'siteUrl' => $this->_siteUrl()];
+        $vars += ['siteName' => $this->_siteName(), 'siteUrl' => $this->_siteUrl(), 'logo' => $this->_logo()];
 
         // DB override tier (TIGER-267): an authored row for this key wins over the file default, exactly
         // as a `config`/`translation` row overrides its ini/file base. Its subject + body carry `{{var}}`
@@ -572,6 +572,19 @@ class Tiger_Mail
     {
         $cfg = $this->_config ?: (Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null);
         return ($cfg && $cfg->get('tiger') && $cfg->tiger->get('site')) ? rtrim((string) $cfg->tiger->site->get('url'), '/') : '';
+    }
+
+    /**
+     * The install's branded email logo URL, or '' when unset. OPT-IN (`tiger.mail.logo`): off by default so
+     * the deliverability-safe wordmark stays the default; when an admin sets a hosted image URL, the branded
+     * layout renders it in the header in place of the site-name wordmark.
+     *
+     * @return string the logo URL, or ''
+     */
+    protected function _logo()
+    {
+        $cfg = $this->_config ?: (Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null);
+        return ($cfg && $cfg->get('mail')) ? trim((string) $cfg->mail->get('logo')) : '';
     }
 
     /**
