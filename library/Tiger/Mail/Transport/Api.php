@@ -60,7 +60,12 @@ abstract class Tiger_Mail_Transport_Api extends Zend_Mail_Transport_Abstract
     /**
      * Normalize the Zend_Mail into the flat shape every driver builds its payload from.
      *
-     * @return array{from:array,to:array,reply_to:array|null,subject:string,html:string,text:string}
+     * `message_id` / `in_reply_to` / `references` carry RFC 5322 threading (TIGER-445) — angle brackets
+     * stripped, `references` a space-joined string or '' — so a driver CAN map them onto the provider's
+     * custom-header mechanism. They're surfaced here for opt-in; a driver that ignores them is unaffected
+     * (the SMTP/sendmail transports carry threading natively regardless).
+     *
+     * @return array{from:array,to:array,reply_to:array|null,subject:string,html:string,text:string,message_id:string,in_reply_to:string,references:string}
      */
     protected function _message()
     {
@@ -76,13 +81,29 @@ abstract class Tiger_Mail_Transport_Api extends Zend_Mail_Transport_Abstract
         if ($rt) { $replyTo = ['email' => (string) $rt, 'name' => '']; }
 
         return [
-            'from'     => ['email' => (string) $mail->getFrom(), 'name' => $this->_fromName()],
-            'to'       => $to,
-            'reply_to' => $replyTo,
-            'subject'  => (string) $mail->getSubject(),
-            'html'     => $this->_part($mail->getBodyHtml()),
-            'text'     => $this->_part($mail->getBodyText()),
+            'from'        => ['email' => (string) $mail->getFrom(), 'name' => $this->_fromName()],
+            'to'          => $to,
+            'reply_to'    => $replyTo,
+            'subject'     => (string) $mail->getSubject(),
+            'html'        => $this->_part($mail->getBodyHtml()),
+            'text'        => $this->_part($mail->getBodyText()),
+            'message_id'  => trim((string) $mail->getMessageId(), '<>'),
+            'in_reply_to' => $this->_header('In-Reply-To'),
+            'references'  => $this->_header('References'),
         ];
+    }
+
+    /**
+     * Read a header's value off the Zend_Mail, angle brackets stripped, or '' when absent.
+     *
+     * @param  string $name the header name (e.g. 'In-Reply-To')
+     * @return string       the header value without angle brackets, or ''
+     */
+    protected function _header($name)
+    {
+        $headers = (array) $this->_mail->getHeaders();
+        if (!isset($headers[$name][0])) { return ''; }
+        return trim((string) $headers[$name][0], '<> ');
     }
 
     /**
