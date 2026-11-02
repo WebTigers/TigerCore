@@ -34,6 +34,12 @@ class Tiger_Mail
     protected $_subject = '';
     protected $_html;
     protected $_text;
+    /** The RFC 5322 Message-ID to stamp on this message (without angle brackets), or null to auto-generate. */
+    protected $_messageId;
+    /** The Message-ID this message is a reply to (In-Reply-To), or null. */
+    protected $_inReplyTo;
+    /** @var array<int,string> The References chain (ancestor Message-IDs), oldest first. */
+    protected $_references = [];
     /** @var Zend_Config|null */
     protected $_config;
     /** The org whose authored template override template() prefers; '' = the global/platform default. */
@@ -181,6 +187,50 @@ class Tiger_Mail
     public function text($text)                 { $this->_text    = (string) $text; return $this; }
 
     /**
+     * Set this message's RFC 5322 Message-ID (chainable). Pass the id WITHOUT angle brackets; send()
+     * wraps it. Null (the default) lets the transport auto-generate one. Use when the caller needs a
+     * stable id to thread a later reply against (read it back with getMessageId()).
+     *
+     * @param  string|null $id the Message-ID value (no angle brackets), or null to auto-generate
+     * @return self            this instance, for chaining
+     */
+    public function messageId($id)              { $this->_messageId = ($id === null || $id === '') ? null : trim((string) $id, " <>"); return $this; }
+
+    /**
+     * Set the In-Reply-To header (chainable) — the Message-ID this message answers. Pass it without
+     * angle brackets; send() wraps it. The id is also folded into the References chain if absent there.
+     *
+     * @param  string|null $id the parent Message-ID (no angle brackets), or null to clear
+     * @return self            this instance, for chaining
+     */
+    public function inReplyTo($id)              { $this->_inReplyTo = ($id === null || $id === '') ? null : trim((string) $id, " <>"); return $this; }
+
+    /**
+     * Set the References chain (chainable) — the ancestor Message-IDs, oldest first. Accepts an array or a
+     * space-separated string; each id is normalized (angle brackets stripped). Builds a correct reply thread.
+     *
+     * @param  array<int,string>|string|null $ids the ancestor Message-IDs, or null/[] to clear
+     * @return self                                this instance, for chaining
+     */
+    public function references($ids)
+    {
+        if ($ids === null || $ids === '') { $this->_references = []; return $this; }
+        if (is_string($ids)) { $ids = preg_split('/\s+/', trim($ids)) ?: []; }
+        $this->_references = array_values(array_filter(array_map(static function ($id) {
+            return trim((string) $id, " <>");
+        }, (array) $ids), 'strlen'));
+        return $this;
+    }
+
+    /**
+     * The Message-ID that was stamped on the last send() (without angle brackets), or '' before a send or
+     * when no id was set/generated. Lets a caller record the id to thread a future reply against.
+     *
+     * @return string the sent Message-ID (no angle brackets), or ''
+     */
+    public function getMessageId() { return (string) ($this->_messageId ?? ''); }
+
+    /**
      * Send the message. Pass a transport to override the config-resolved one (handy
      * for tests — e.g. a Zend_Mail_Transport_File that captures instead of delivers).
      * Throws Zend_Mail_Exception / transport exceptions on failure.
@@ -204,6 +254,22 @@ class Tiger_Mail
             $mail->setBodyText($this->_text !== null ? $this->_text : $this->_htmlToText($this->_html));
         } else {
             $mail->setBodyText((string) $this->_text);
+        }
+
+        // RFC 5322 threading headers (TIGER-445). Stamp a Message-ID — the one given, else a generated one
+        // (after from/recipients are set, so the generated id is well-formed) — and capture it so a caller
+        // can thread a future reply against it (getMessageId). In-Reply-To + References build the reply chain.
+        // Native on the SMTP/sendmail transports; the API drivers may carry them via _message() (opt-in).
+        $mail->setMessageId($this->_messageId !== null ? $this->_messageId : true);
+        $this->_messageId = (string) $mail->getMessageId();
+
+        $refs = $this->_references;
+        if ($this->_inReplyTo !== null) {
+            $mail->addHeader('In-Reply-To', '<' . $this->_inReplyTo . '>');
+            if (!in_array($this->_inReplyTo, $refs, true)) { $refs[] = $this->_inReplyTo; }
+        }
+        if ($refs) {
+            $mail->addHeader('References', implode(' ', array_map(static function ($r) { return '<' . $r . '>'; }, $refs)));
         }
 
         // Precedence: an explicit per-call transport, else the process default (tests), else config.
