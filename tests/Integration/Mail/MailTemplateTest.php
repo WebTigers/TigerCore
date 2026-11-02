@@ -136,4 +136,36 @@ final class MailTemplateTest extends IntegrationTestCase
         $this->assertStringContainsString('Mail is working', $html, 'the preheader is in the source for the inbox preview');
         $this->assertStringContainsString('display:none', $html, 'but hidden when the message is opened');
     }
+
+    #[Test]
+    public function without_a_logo_config_the_header_is_the_wordmark(): void
+    {
+        $html = $this->render('reset', ['url' => 'https://acme.example.com/r/x']);
+        $this->assertStringNotContainsString('<img', $html, 'no logo config → no image, the wordmark stands (deliverability default)');
+        $this->assertStringContainsString('Acme Corp', $html);
+    }
+
+    #[Test]
+    public function an_opt_in_logo_url_renders_an_img_in_the_header(): void
+    {
+        Zend_Registry::set('Zend_Config', new Zend_Config([
+            'tiger' => ['site' => ['name' => 'Acme Corp', 'url' => 'https://acme.example.com']],
+            'mail'  => ['from' => ['email' => 'no-reply@acme.example.com', 'name' => 'Acme'], 'logo' => 'https://acme.example.com/logo.png'],
+        ], true));
+
+        $html = $this->render('reset', ['url' => 'https://acme.example.com/r/x']);
+        $this->assertStringContainsString('<img src="https://acme.example.com/logo.png"', $html, 'the configured logo renders as an image');
+        $this->assertStringContainsString('alt="Acme Corp"', $html, 'with the site name as alt text');
+    }
+
+    #[Test]
+    public function a_footer_note_replaces_the_default_automated_message(): void
+    {
+        $withDefault = $this->render('reset', ['url' => 'https://acme.example.com/r/x']);
+        $this->assertStringContainsString('automated message', $withDefault, 'the default footer note is the automated-message line');
+
+        $withNote = $this->render('reset', ['url' => 'https://acme.example.com/r/x', 'footerNote' => 'Reply directly to this email to respond.']);
+        $this->assertStringContainsString('Reply directly to this email to respond.', $withNote, 'a reply email can invite a reply');
+        $this->assertStringNotContainsString('automated message', $withNote, 'the default line is replaced, not appended');
+    }
 }
