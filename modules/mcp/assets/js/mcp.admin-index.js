@@ -65,19 +65,49 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     });
 
-    // ---- token scope pickers (curated starter set checked; extras opt-in) ----
-    var MODULES = [
-        { m: 'cms', on: true }, { m: 'blog', on: true }, { m: 'media', on: true },
-        { m: 'search', on: true }, { m: 'docs', on: true },
-        { m: 'access', on: false }, { m: 'analytics', on: false }
-    ];
-    document.getElementById('mcp-scope-modules').innerHTML = MODULES.map(function (x) {
-        return '<div class="form-check form-check-inline me-2"><input class="form-check-input mcp-mod" type="checkbox" value="' + x.m + '" id="mcp-mod-' + x.m + '"' + (x.on ? ' checked' : '') + '>'
-             + '<label class="form-check-label small" for="mcp-mod-' + x.m + '">' + x.m + '</label></div>';
-    }).join('');
-    function scopeModules() {
+    // ---- token scope pickers: offers are DERIVED from the server registry (module checkboxes +
+    //      least-privilege role profiles), ACL-filtered — never a hardcoded list (TIGER-470). ----
+    var PROFILES = {};   // key -> offer, for the forced-read-only + exclusivity logic
+    var modsHost = document.getElementById('mcp-scope-modules');
+    var profSel  = document.getElementById('mcp-scope-profile');
+    var roEl     = document.getElementById('mcp-scope-readonly');
+
+    function renderScopes(offers) {
+        var mods  = offers.filter(function (o) { return !o.profile; });
+        var profs = offers.filter(function (o) { return o.profile; });
+        modsHost.innerHTML = mods.map(function (o) {
+            return '<div class="form-check form-check-inline me-2"><input class="form-check-input mcp-mod" type="checkbox" value="' + esc(o.key) + '" id="mcp-mod-' + esc(o.key) + '"' + (o['default'] ? ' checked' : '') + '>'
+                 + '<label class="form-check-label small" for="mcp-mod-' + esc(o.key) + '">' + esc(o.label || o.key) + '</label></div>';
+        }).join('');
+        PROFILES = {};
+        while (profSel.options.length > 1) { profSel.remove(1); }   // keep the static "none" option
+        profs.forEach(function (o) {
+            PROFILES[o.key] = o;
+            var opt = document.createElement('option');
+            opt.value = o.key; opt.textContent = o.label || o.key;
+            profSel.appendChild(opt);
+        });
+    }
+
+    // A profile defines the whole token — selecting one disables the module checkboxes and, when the
+    // profile forces read-only, locks the read-only switch on.
+    function onProfileChange() {
+        var p = PROFILES[profSel.value];
+        var active = !!p;
+        Array.prototype.forEach.call(modsHost.querySelectorAll('.mcp-mod'), function (c) { c.disabled = active; });
+        if (active && p.read_only === true) { roEl.checked = true; roEl.disabled = true; }
+        else { roEl.disabled = false; }
+    }
+    profSel.addEventListener('change', onProfileChange);
+
+    function collectScopes() {
+        if (profSel.value) { return profSel.value; }   // a profile is exclusive
         return Array.prototype.map.call(document.querySelectorAll('.mcp-mod:checked'), function (c) { return c.value; }).join(',');
     }
+
+    api('mcp', 'settings', 'scopes').then(function (res) {
+        renderScopes((res && res.data && res.data.scopes) || []);
+    });
 
     // ---- tokens (scoped: module=mcp, service=settings) ----
     function loadTokens() {
@@ -87,7 +117,8 @@ document.addEventListener('DOMContentLoaded', function () {
             host.innerHTML = rows.map(function (t) {
                 var id = t.credential_id || '';
                 var when = (t.created_at || '').substring(0, 16);
-                var badges = (t.org_scoped ? '<span class="badge text-bg-info-subtle text-info-emphasis border ms-1">org</span>' : '')
+                var badges = (t.role ? '<span class="badge text-bg-primary-subtle text-primary-emphasis border ms-1">' + esc(t.role) + '</span>' : '')
+                           + (t.org_scoped ? '<span class="badge text-bg-info-subtle text-info-emphasis border ms-1">org</span>' : '')
                            + (t.read_only ? '<span class="badge text-bg-secondary ms-1">read-only</span>' : '');
                 var mods = (t.modules || []).join(', ');
                 return '<div class="border rounded p-2 d-flex justify-content-between align-items-start gap-2">'
@@ -101,8 +132,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     document.getElementById('mcp-mint').addEventListener('click', function () {
         var body = {
-            modules:    scopeModules(),
-            read_only:  document.getElementById('mcp-scope-readonly').checked ? 1 : 0,
+            scopes:     collectScopes(),
+            read_only:  roEl.checked ? 1 : 0,
             org_scoped: document.getElementById('mcp-scope-org').checked ? 1 : 0
         };
         TigerButton.run(this, function () { return api('mcp', 'settings', 'mintToken', body); }).then(function (res) {

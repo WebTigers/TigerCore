@@ -229,6 +229,27 @@ one-click **mint token** — the WordPress-plugin-grade "it just works" setup.
   presents a static Bearer, which covers the v1 clients. When direct-HTTP MCP clients (no bridge) matter, add
   the OAuth authorization-server metadata + flow in front of the same tokens.
 
+### 7a. Role- and resource-scoped tokens + the scope registry (✅ BUILT — TIGER-470)
+
+The mint screen used to offer a **hardcoded** module list and mint every token with the operator's **own
+role**, so a least-privilege, role-scoped token (the TigerOps `observer`) was unreachable from the UI. Three
+additions fix it, all **additive** and enforcement-unchanged:
+
+- **`Tiger_Mcp_Scope`** — a registry of *scope offers* the mint UI derives from (ACL-filtered to who may mint
+  each), replacing the frozen JS list. Two shapes: a **module** offer (grants a module, token keeps the owner
+  role) and a **profile** offer (a complete least-privilege identity — a named `role` the token acts AS, an
+  optional resource fence, forced read-only). A profile is **exclusive**. A module **contributes** a profile
+  with **no core change**: it ships `configs/mcp-scope.ini` (the navigation.ini/menus.ini seam, skipped when
+  the module is deactivated) or calls `Tiger_Mcp_Scope::register()`. TigerOps ships `ops.observer`.
+- **A token's `role` now drives the ACL for a user-bound token too** — a `profile`-flagged token dispatches
+  *as* its role via the same identity-override the org path uses (`ServerController::_effectiveIdentity`); a
+  plain token still tracks its owner's live role. A token's non-inherited role only ever comes from a profile
+  the minter was ACL-authorized to mint, so it can **never escalate** — `Tiger_Mcp_Scope::resolve()` is the
+  gate. "Select nothing" is now **refused**, never widened to a default set (the old footgun).
+- **An optional `resources` fence** on the token (`{service: [methods]}`) — a tighter slice than the module
+  allow-list, enforced by `Tiger_Mcp_Token::denyReason` as a second, role-independent fence. `observer` rides
+  both: the parentless ACL role **and** a `task → report,list` token fence.
+
 ---
 
 ## 8. Off by default + the guardrails (the load-bearing section)

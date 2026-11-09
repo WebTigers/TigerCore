@@ -24,12 +24,23 @@ return [
     // Connect screen — tokens
     'mcp.tokens.title'    => 'Access tokens',
     'mcp.tokens.scope'    => 'Scope a new token',
+    'mcp.tokens.modules'  => 'Modules',
+    'mcp.tokens.profile'  => 'Profile (least-privilege role)',
+    'mcp.tokens.profile.none' => 'No profile — use the modules above',
+    'mcp.tokens.profile.help' => 'A profile mints a token that acts as a narrow role, confined to that module’s resources. It replaces the module choices above.',
     'mcp.tokens.readonly' => 'Read-only — no writes (reads only)',
     'mcp.tokens.org'      => 'Org token — acts as the org, not you (no bound user)',
     'mcp.tokens.mint'     => 'Mint token',
     'mcp.tokens.once'     => 'Copy this now — it’s shown only once.',
     'mcp.copy'            => 'Copy',
     'mcp.tokens.empty'    => 'No tokens yet — mint one to connect a client.',
+
+    // Connect screen — token scope (TIGER-470)
+    'mcp.scope.error.empty'             => 'Pick at least one module, or a profile, before minting.',
+    'mcp.scope.error.unknown'           => 'That scope no longer exists — reload and try again.',
+    'mcp.scope.error.not_allowed'       => 'You are not allowed to mint a token with that profile.',
+    'mcp.scope.error.profile_exclusive' => 'A profile defines the whole token — it can’t be combined with other scopes.',
+    'mcp.scope.pick'                    => 'Select the modules this token may reach, or choose a profile.',
 
     // Connect screen — connect a client
     'mcp.connect.client.title'   => 'Connect a client',

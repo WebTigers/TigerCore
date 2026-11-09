@@ -57,4 +57,34 @@ final class McpTokenTest extends UnitTestCase
         $this->assertContains('media', Tiger_Mcp_Token::DEFAULT_MODULES);
         $this->assertNotContains('access', Tiger_Mcp_Token::DEFAULT_MODULES, 'least-privilege: identity is opt-in');
     }
+
+    #[Test]
+    public function an_empty_resources_map_is_the_prior_behavior(): void
+    {
+        // No resource fence set → module + read-only only, exactly as before (back-compat).
+        $cfg = $this->cfg(['modules' => ['ops'], 'resources' => []]);
+        $this->assertNull(Tiger_Mcp_Token::denyReason($cfg, 'ops', 'report', 'task'));
+        $this->assertNull(Tiger_Mcp_Token::denyReason($cfg, 'ops', 'report'), 'service omitted → fence inert');
+    }
+
+    #[Test]
+    public function the_resource_fence_confines_to_named_service_methods(): void
+    {
+        // A token fenced to Ops task report/list: those two pass; a write method, an unnamed method, and
+        // an unnamed service are all refused — a tighter slice than the module allow-list.
+        $cfg = $this->cfg(['modules' => ['ops'], 'resources' => ['task' => ['report', 'list']]]);
+        $this->assertNull(Tiger_Mcp_Token::denyReason($cfg, 'ops', 'report', 'task'), 'report is in the fence');
+        $this->assertNull(Tiger_Mcp_Token::denyReason($cfg, 'ops', 'list', 'task'),   'list is in the fence');
+        $this->assertSame('out_of_resource', Tiger_Mcp_Token::denyReason($cfg, 'ops', 'setState', 'task'), 'write not in the fence');
+        $this->assertSame('out_of_resource', Tiger_Mcp_Token::denyReason($cfg, 'ops', 'report', 'audit'),  'service not in the fence');
+        $this->assertSame('out_of_resource', Tiger_Mcp_Token::denyReason($cfg, 'ops', 'report', null),     'no service → cannot satisfy the fence');
+    }
+
+    #[Test]
+    public function out_of_scope_still_wins_over_the_resource_fence(): void
+    {
+        // Module scope is the outer gate — a module not in the allow-list is out_of_scope regardless.
+        $cfg = $this->cfg(['modules' => ['ops'], 'resources' => ['task' => ['report']]]);
+        $this->assertSame('out_of_scope', Tiger_Mcp_Token::denyReason($cfg, 'cms', 'get', 'page'));
+    }
 }

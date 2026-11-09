@@ -40,7 +40,17 @@ $bridge = (string) $this->bridge;
       <div class="card-header fw-semibold"><i class="fa-solid fa-key me-2"></i><?= $this->escape($this->t('mcp.tokens.title')) ?></div>
       <div class="card-body">
         <label class="form-label small fw-semibold mb-1"><?= $this->escape($this->t('mcp.tokens.scope')) ?></label>
+        <p class="small text-body-secondary mb-2"><?= $this->escape($this->t('mcp.scope.pick')) ?></p>
+
+        <label class="form-label small mb-1"><?= $this->escape($this->t('mcp.tokens.modules')) ?></label>
         <div id="mcp-scope-modules" class="d-flex flex-wrap gap-2 mb-2"></div>
+
+        <label for="mcp-scope-profile" class="form-label small mb-1"><?= $this->escape($this->t('mcp.tokens.profile')) ?></label>
+        <select id="mcp-scope-profile" class="form-select form-select-sm mb-1">
+          <option value=""><?= $this->escape($this->t('mcp.tokens.profile.none')) ?></option>
+        </select>
+        <p class="small text-body-secondary mb-2"><?= $this->escape($this->t('mcp.tokens.profile.help')) ?></p>
+
         <div class="form-check form-switch mb-1"><input class="form-check-input" type="checkbox" id="mcp-scope-readonly"><label class="form-check-label small" for="mcp-scope-readonly"><?= $this->escape($this->t('mcp.tokens.readonly')) ?></label></div>
         <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="mcp-scope-org"><label class="form-check-label small" for="mcp-scope-org"><?= $this->escape($this->t('mcp.tokens.org')) ?></label></div>
         <button type="button" id="mcp-mint" class="btn btn-sm btn-outline-primary mb-2"><i class="fa-solid fa-plus me-1"></i><?= $this->escape($this->t('mcp.tokens.mint')) ?></button>
