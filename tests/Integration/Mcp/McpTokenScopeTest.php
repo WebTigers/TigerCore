@@ -66,7 +66,7 @@ final class McpTokenScopeTest extends IntegrationTestCase
     {
         $this->seedAdmin();
 
-        $r = $this->call('mintToken', ['modules' => 'cms,blog', 'read_only' => 1]);
+        $r = $this->call('mintToken', ['scopes' => 'cms,blog', 'read_only' => 1]);
         $this->assertSame(1, (int) $r->result);
         $this->assertStringStartsWith('tgr_', $r->data['token']);
 
@@ -83,11 +83,35 @@ final class McpTokenScopeTest extends IntegrationTestCase
     }
 
     #[Test]
-    public function mint_defaults_to_the_curated_set(): void
+    public function mint_refuses_an_empty_scope_instead_of_widening(): void
     {
         $this->seedAdmin();
+        // TIGER-470: "select nothing" is REFUSED, never silently widened to the default set (the footgun).
         $r = $this->call('mintToken', []);
-        $this->assertSame(Tiger_Mcp_Token::DEFAULT_MODULES, Tiger_Mcp_Token::config($r->data['credential_id'])['modules']);
+        $this->assertSame(0, (int) $r->result, 'an empty selection must be refused, not widened');
+    }
+
+    #[Test]
+    public function mint_against_a_role_profile_sets_the_role_and_resource_fence(): void
+    {
+        $this->seedAdmin();
+        // A registry profile the admin is authorized to mint → a role-scoped, resource-fenced token.
+        \Tiger_Mcp_Scope::resetRegistered();
+        \Tiger_Mcp_Scope::register([
+            'key' => 'test.observer', 'label' => 'Test observer', 'module' => 'cms',
+            'role' => 'observer', 'read_only' => 1, 'resources' => ['page' => 'datatable'],
+        ]);
+        try {
+            $r = $this->call('mintToken', ['scopes' => 'test.observer']);
+            $this->assertSame(1, (int) $r->result);
+            $c = Tiger_Mcp_Token::config($r->data['credential_id']);
+            $this->assertSame('observer', $c['role'], 'the token acts as the profile role');
+            $this->assertTrue($c['profile'], 'it is flagged a profile token');
+            $this->assertTrue($c['read_only'], 'the profile forces read-only');
+            $this->assertSame(['page' => ['datatable']], $c['resources'], 'the resource fence is stored');
+        } finally {
+            \Tiger_Mcp_Scope::resetRegistered();
+        }
     }
 
     #[Test]

@@ -16,7 +16,7 @@
  */
 class Tiger_Mcp_Token
 {
-    /** Option key prefix — `mcp.token.<credentialId>` => {modules[], read_only, org_scoped, role, org_id}. */
+    /** Option key prefix — `mcp.token.<credentialId>` => {modules[], read_only, org_scoped, role, org_id, resources{}}. */
     const OPT_CONFIG = 'mcp.token';
 
     /** Option key prefix — `mcp.meter.<prefix>` => {window, count}. */
@@ -33,7 +33,7 @@ class Tiger_Mcp_Token
      * The MCP policy for a token credential — the saved config, or the curated default if none.
      *
      * @param  string $credentialId
-     * @return array{modules:array,read_only:bool,org_scoped:bool,role:string,org_id:string}
+     * @return array{modules:array,read_only:bool,org_scoped:bool,role:string,org_id:string,resources:array}
      */
     public static function config($credentialId)
     {
@@ -54,6 +54,10 @@ class Tiger_Mcp_Token
             'org_scoped' => (bool) (is_array($c) ? ($c['org_scoped'] ?? false) : false),
             'role'       => (string) (is_array($c) ? ($c['role'] ?? '') : ''),
             'org_id'     => (string) (is_array($c) ? ($c['org_id'] ?? '') : ''),
+            'resources'  => (is_array($c) && isset($c['resources']) && is_array($c['resources'])) ? $c['resources'] : [],
+            // profile = minted against a role PROFILE, so the stored role is a deliberate least-privilege
+            // identity the token should dispatch AS (vs a plain token, whose role tracks its owner live).
+            'profile'    => (bool) (is_array($c) ? ($c['profile'] ?? false) : false),
         ];
     }
 
@@ -66,6 +70,8 @@ class Tiger_Mcp_Token
             'org_scoped' => !empty($config['org_scoped']),
             'role'       => (string) ($config['role'] ?? ''),
             'org_id'     => (string) ($config['org_id'] ?? ''),
+            'resources'  => is_array($config['resources'] ?? null) ? $config['resources'] : [],
+            'profile'    => !empty($config['profile']),
         ]);
     }
 
@@ -84,16 +90,23 @@ class Tiger_Mcp_Token
     }
 
     /**
-     * Why the token's POLICY denies a tool call (scope + read-only), or null if allowed. Pure — the
-     * enforcement decision, separate from metering (soft rate limit) + the ACL (which still gates every
-     * dispatch regardless). A write is any method that isn't a known read verb (fail-closed).
+     * Why the token's POLICY denies a tool call (scope + read-only + an optional resource fence), or
+     * null if allowed. Pure — the enforcement decision, separate from metering (soft rate limit) + the
+     * ACL (which still gates every dispatch regardless). A write is any method that isn't a known read
+     * verb (fail-closed).
      *
-     * @param  array  $config the token config
-     * @param  string $module
-     * @param  string $method
-     * @return string|null  'out_of_scope' | 'read_only' | null(allowed)
+     * The `resources` fence is the finer, OPTIONAL second axis (TIGER-470): when a token carries a
+     * non-empty `resources` map ({service: [methods]}), the call's `$service` must be a named key and
+     * `$method` one of its methods — a narrower slice than the module allow-list, independent of the
+     * token's role. Absent/empty `resources` → today's behavior (module + read-only only).
+     *
+     * @param  array       $config  the token config
+     * @param  string      $module
+     * @param  string      $method
+     * @param  string|null $service the MCP service slug (needed to evaluate the `resources` fence)
+     * @return string|null  'out_of_scope' | 'read_only' | 'out_of_resource' | null(allowed)
      */
-    public static function denyReason(array $config, $module, $method)
+    public static function denyReason(array $config, $module, $method, $service = null)
     {
         if (!self::allowsModule($config, $module)) {
             return 'out_of_scope';
@@ -101,6 +114,13 @@ class Tiger_Mcp_Token
         $isWrite = !in_array(strtolower((string) $method), Tiger_Agent_Forge::READ_VERBS, true);
         if (!empty($config['read_only']) && $isWrite) {
             return 'read_only';
+        }
+        $resources = $config['resources'] ?? [];
+        if (is_array($resources) && $resources) {
+            $allowed = $resources[(string) $service] ?? null;
+            if (!is_array($allowed) || !in_array((string) $method, $allowed, true)) {
+                return 'out_of_resource';
+            }
         }
         return null;
     }

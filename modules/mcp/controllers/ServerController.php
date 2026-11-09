@@ -87,16 +87,21 @@ class Mcp_ServerController extends Zend_Controller_Action
             $this->_emit(['jsonrpc' => '2.0', 'id' => $msg['id'] ?? null, 'error' => ['code' => -32002, 'message' => 'Forbidden: a session may only call /mcp from its own origin; use a Bearer token']]);
             return;
         }
-        $role     = ($identity && !empty($identity->role)) ? (string) $identity->role : 'guest';
-
-        // Resolve the token's MCP policy (scope + read-only + org-scoping + metering key). null for a
-        // session / no token → the full role surface, no per-token limits.
+        // Resolve the token's MCP policy (scope + read-only + role + org-scoping + metering key). null
+        // for a session / no token → the full role surface, no per-token limits.
         [$config, $prefix] = $this->_tokenPolicy($identity);
         $allowed = ($config !== null) ? (array) $config['modules'] : null;
-        $orgIdentity = ($config !== null && !empty($config['org_scoped'])) ? $this->_orgIdentity($identity, $config) : null;
 
-        $out = Tiger_Mcp_Server::handle($msg, $role, function ($module, $service, $method, $args) use ($config, $prefix, $orgIdentity, $role) {
-            return $this->_dispatchTool($module, $service, $method, (array) $args, $config, $prefix, $orgIdentity, $role);
+        // The effective dispatch identity (TIGER-470): an org-scoped token acts AS THE ORG; a
+        // role-scoped token acts AS its (least-privilege, mint-authorized) role; otherwise the
+        // Bearer/session identity stands. The ROLE used for tools/list AND the dispatch is this
+        // effective one — so discovery == authorization even for a role-scoped token.
+        $effIdentity = ($config !== null) ? $this->_effectiveIdentity($identity, $config) : null;
+        $role = ($effIdentity && !empty($effIdentity->role)) ? (string) $effIdentity->role
+              : (($identity && !empty($identity->role)) ? (string) $identity->role : 'guest');
+
+        $out = Tiger_Mcp_Server::handle($msg, $role, function ($module, $service, $method, $args) use ($config, $prefix, $effIdentity, $role) {
+            return $this->_dispatchTool($module, $service, $method, (array) $args, $config, $prefix, $effIdentity, $role);
         }, $allowed);
 
         if ($out === null) {
@@ -179,7 +184,7 @@ class Mcp_ServerController extends Zend_Controller_Action
      * org-scoped token, else the token/session identity), and audit the outcome. Returns the /api envelope
      * (a denial is a `result=0` envelope the engine renders as an MCP error).
      */
-    protected function _dispatchTool($module, $service, $method, array $args, $config, $prefix, $orgIdentity, $role = 'guest')
+    protected function _dispatchTool($module, $service, $method, array $args, $config, $prefix, $effIdentity, $role = 'guest')
     {
         $tool = $module . '__' . $service . '__' . $method;
 
@@ -189,12 +194,13 @@ class Mcp_ServerController extends Zend_Controller_Action
             return $this->_dispatchAgentTool($service, $method, $args, $config, $prefix, (string) $role);
         }
 
-        // Token policy (scope + read-only), then the soft rate limit. The service's own ACL still gates the
-        // dispatch below regardless — this is an EXTRA, tighter fence on top.
+        // Token policy (scope + read-only + the optional resource fence), then the soft rate limit. The
+        // service's own ACL still gates the dispatch below regardless — this is an EXTRA, tighter fence.
         if ($config !== null) {
-            $deny = Tiger_Mcp_Token::denyReason($config, $module, $method);
-            if ($deny === 'out_of_scope') { return $this->_denied($tool, $prefix, $deny, 'This token cannot call that tool (out of scope).'); }
-            if ($deny === 'read_only')    { return $this->_denied($tool, $prefix, $deny, 'This token is read-only.'); }
+            $deny = Tiger_Mcp_Token::denyReason($config, $module, $method, $service);
+            if ($deny === 'out_of_scope')    { return $this->_denied($tool, $prefix, $deny, 'This token cannot call that tool (out of scope).'); }
+            if ($deny === 'read_only')       { return $this->_denied($tool, $prefix, $deny, 'This token is read-only.'); }
+            if ($deny === 'out_of_resource') { return $this->_denied($tool, $prefix, $deny, 'This token cannot call that tool (outside its resource scope).'); }
         }
         if ($prefix !== '' && !Tiger_Mcp_Token::meter($prefix)) {
             return $this->_denied($tool, $prefix, 'rate_limited', 'Rate limit exceeded for this token.');
@@ -215,10 +221,11 @@ class Mcp_ServerController extends Zend_Controller_Action
         $req->setParam('svc_service', $service);
         $req->setParam('svc_action', $method);
         foreach ($args as $k => $v) { $req->setParam((string) $k, $v); }
-        // Org-scoped token → dispatch AS THE ORG (user_id=null) via the identity override; else the
-        // Bearer/session identity. The target service's own ACL + form-validate + transaction run unchanged.
-        $env = ($orgIdentity !== null)
-            ? (new Tiger_Ajax_ServiceFactory($req, $orgIdentity))->getResponse()
+        // A role-/org-scoped token → dispatch under the EFFECTIVE identity (org-acting, or the bound
+        // user acting AS the token's role) via the override; else the Bearer/session identity. The
+        // target service's own ACL + form-validate + transaction run unchanged.
+        $env = ($effIdentity !== null)
+            ? (new Tiger_Ajax_ServiceFactory($req, $effIdentity))->getResponse()
             : (new Tiger_Ajax_ServiceFactory($req))->getResponse();
 
         Tiger_Log::info('mcp.tools_call', [
@@ -333,6 +340,33 @@ class Mcp_ServerController extends Zend_Controller_Action
         }
         $env->messages[] = new Tiger_Model_MessageObject((string) ($entry['summary'] ?? ''), $ok ? 'info' : 'error');
         return $env;
+    }
+
+    /**
+     * The effective dispatch identity for a scoped token, or null to keep the Bearer/session identity
+     * and the user's own role (TIGER-470):
+     *   - org-scoped        → acts AS THE ORG (no bound user_id → system actor), role from the token;
+     *   - role-scoped (user) → the bound user (actor stamps intact) but acting AS the token's role;
+     *   - neither           → null (a plain module token runs as its owner, unchanged).
+     * A token's non-inherited role is only ever set by a mint-authorized profile (Tiger_Mcp_Scope),
+     * so this applies a role the minter was allowed to grant — never an escalation.
+     */
+    protected function _effectiveIdentity($identity, array $config)
+    {
+        if (!empty($config['org_scoped'])) {
+            return $this->_orgIdentity($identity, $config);
+        }
+        // A role PROFILE token (not a plain token whose role tracks its owner live) → act AS its role.
+        if (!empty($config['profile']) && ($config['role'] ?? '') !== '') {
+            return (object) [
+                'user_id'   => $identity->user_id ?? null,
+                'org_id'    => $identity->org_id ?? null,
+                'org_name'  => $identity->org_name ?? null,
+                'role'      => (string) $config['role'],
+                'mcp_token' => true,
+            ];
+        }
+        return null;
     }
 
     /** An org-acting identity for an org-scoped token — acts AS THE ORG (no bound user_id → system actor). */

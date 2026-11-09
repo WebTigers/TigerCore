@@ -31,10 +31,28 @@ class Mcp_Service_Settings extends Tiger_Service_Service
     }
 
     /**
-     * Mint an MCP access token WITH a scope (module allow-list + read-only + org-scoping). The plaintext is
-     * shown once. Least-privilege: an empty/omitted module set becomes the curated starter set.
+     * The scope offers the caller may mint a token against (TIGER-470) — the registry-derived,
+     * ACL-filtered set that drives the mint UI (module checkboxes + role profiles), replacing the
+     * hardcoded JS list.
      *
-     * @param  array $params {modules?: string[]|csv, read_only?: bool, org_scoped?: bool}
+     * @param  array $params unused
+     * @return void
+     */
+    public function scopes(array $params): void
+    {
+        if (!$this->_isAllowed('scopes')) { $this->_error('core.api.error.not_allowed'); return; }
+        $role = (string) (Zend_Auth::getInstance()->getIdentity()->role ?? 'guest');
+        $this->_success(['scopes' => Tiger_Mcp_Scope::offers($role)]);
+    }
+
+    /**
+     * Mint an MCP access token against a chosen set of SCOPE OFFERS (TIGER-470). The chosen offers are
+     * resolved + authorized by Tiger_Mcp_Scope: a module set grants those modules and keeps the caller's
+     * role; a role PROFILE (e.g. `ops.observer`) is exclusive and sets the token's role + resource fence +
+     * forced read-only. An EMPTY selection is REFUSED — "select nothing" never silently widens to a
+     * default set (the old footgun). The plaintext is shown once.
+     *
+     * @param  array $params {scopes: string[]|csv of offer keys, read_only?: bool, org_scoped?: bool}
      * @return void
      */
     public function mintToken(array $params): void
@@ -43,15 +61,25 @@ class Mcp_Service_Settings extends Tiger_Service_Service
         $identity = Zend_Auth::getInstance()->getIdentity();
         $userId   = $identity->user_id ?? null;
         if ($userId === null) { $this->_error('core.api.error.login_required'); return; }
+        $role = (string) ($identity->role ?? '');
+
+        try {
+            $scope = Tiger_Mcp_Scope::resolve($this->_scopeKeys($params), $role, $this->_flag($params, 'read_only'));
+        } catch (InvalidArgumentException $e) {
+            $this->_error($e->getMessage());   // a translation key (mcp.scope.error.*)
+            return;
+        }
 
         try {
             $r = (new Tiger_Model_UserCredential())->createToken($userId);
             Tiger_Mcp_Token::saveConfig($r['credential_id'], [
-                'modules'    => $this->_modules($params),
-                'read_only'  => $this->_flag($params, 'read_only'),
+                'modules'    => $scope['modules'],
+                'read_only'  => $scope['read_only'],
                 'org_scoped' => $this->_flag($params, 'org_scoped'),
-                'role'       => (string) ($identity->role ?? ''),
+                'role'       => $scope['role'],   // '' = act as the owner's live role; else the profile role
                 'org_id'     => (string) ($identity->org_id ?? ''),
+                'resources'  => $scope['resources'],
+                'profile'    => $scope['role'] !== '',   // a role profile → dispatch AS that role
             ]);
             $this->_success(['token' => $r['token'], 'prefix' => $r['prefix'], 'credential_id' => $r['credential_id']], 'mcp.token.created');
         } catch (Throwable $e) {
@@ -72,6 +100,8 @@ class Mcp_Service_Settings extends Tiger_Service_Service
             $t['modules']    = $c['modules'];
             $t['read_only']  = $c['read_only'];
             $t['org_scoped'] = $c['org_scoped'];
+            $t['role']       = $c['role'];
+            $t['resources']  = $c['resources'];
         }
         unset($t);
         $this->_success(['tokens' => $rows]);
@@ -98,14 +128,13 @@ class Mcp_Service_Settings extends Tiger_Service_Service
         $this->_success([], 'mcp.token.revoked');
     }
 
-    /** Sanitize the requested module scope to slugs; default to the curated starter set. */
-    protected function _modules(array $params): array
+    /** The chosen scope-offer keys from the request (csv or array), sanitized — no silent default. */
+    protected function _scopeKeys(array $params): array
     {
-        $req = $params['modules'] ?? null;
-        if (is_string($req)) { $req = array_filter(explode(',', $req)); }
-        if (!is_array($req) || !$req) { return Tiger_Mcp_Token::DEFAULT_MODULES; }
-        $out = array_filter(array_map(static fn($m) => preg_replace('/[^a-z0-9_-]/', '', strtolower((string) $m)), $req));
-        return $out ? array_values(array_unique($out)) : Tiger_Mcp_Token::DEFAULT_MODULES;
+        $req = $params['scopes'] ?? [];
+        if (is_string($req)) { $req = explode(',', $req); }
+        if (!is_array($req)) { return []; }
+        return array_values(array_filter(array_map(static fn($k) => preg_replace('/[^a-z0-9._-]/', '', strtolower((string) $k)), $req)));
     }
 
     /** A truthy checkbox/flag param. */
