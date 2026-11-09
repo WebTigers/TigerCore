@@ -6,6 +6,28 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.51.0] — 2026-11-09
+
+### Added
+- **`Tiger_Mcp_Scope`** (TIGER-470) — an MCP token **scope registry**: the set of "scope offers" the Connect
+  screen draws from, and the resolver that turns a chosen set into a concrete token policy. Two offer shapes —
+  a **module** offer (grants a module, keeps the owner's role) and an exclusive **role profile** (a named ACL
+  role the token acts AS, an optional resource fence, forced read-only). Any module **contributes** an offer
+  via `configs/mcp-scope.ini` or `Tiger_Mcp_Scope::register()` with **no change to the core `mcp` module**, and
+  the offer is skipped when the module is deactivated — so it lives and dies with the module, like the ACL role
+  it names.
+- **Resource-scoped MCP tokens** — `Tiger_Mcp_Token` gains an optional `resources` fence
+  (`{service: [methods]}`) enforced by `denyReason` as a second, role-independent axis on top of the module
+  allow-list and read-only flag.
+
+### Changed
+- **MCP tokens can be minted as a least-privilege ROLE** (TIGER-470) — a profile token dispatches *as* its
+  role (not just org-scoped tokens), via `Mcp_ServerController::_effectiveIdentity`. A token's non-inherited
+  role only ever comes from a profile the minter was ACL-authorized to mint, so it can never escalate; plain
+  tokens still track their owner's live role. The mint screen now **derives** its offerable set from the
+  registry (ACL-filtered) instead of a hardcoded list, and **refuses an empty selection** rather than silently
+  widening a token to the default module set.
+
 ## [1.48.0] — 2026-11-01
 
 ### Added
