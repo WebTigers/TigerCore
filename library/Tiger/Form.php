@@ -32,8 +32,22 @@
  * Baked in for every form: POST method, ViewHelper-only decorators, a translate
  * closure ($this->_t('some.key')), and CSRF (a hidden token element; override
  * csrf() to disable for an idempotent search/filter form). Validate in a service
- * with isValid()/isValidPartial() — see Tiger_Service_Service::_transaction() for
- * the canonical validate-then-transaction flow.
+ * with isValid() — see Tiger_Service_Service::_transaction() for the canonical
+ * validate-then-transaction flow.
+ *
+ * isValidPartial() is the right tool for PARTIAL UPDATES, and you do not need isValid() when you are
+ * not validating the whole form — that is what makes one form reusable across many small updates.
+ * It validates ONLY the keys present in the data. So when a value must be validated whether or not
+ * the caller sent it — the CSRF token above all — SET IT INTO THE ARRAY before you call:
+ *
+ *     // make sure the token is validated by isValidPartial()
+ *     $params['_csrf'] = !empty($params['_csrf']) ? $params['_csrf'] : '';
+ *
+ *     if ($form->isValidPartial($params)) { ... }
+ *
+ * Seed '' (or any non-null) and NOT null: the parent guards each element with isset(), so a key
+ * whose value is null is skipped exactly like a missing one. Verified on a live form — a null seed
+ * still passes the gate, a '' seed is correctly refused.
  *
  * @api
  */
