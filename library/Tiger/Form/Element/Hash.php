@@ -27,6 +27,27 @@
 class Tiger_Form_Element_Hash extends Zend_Form_Element_Hash
 {
     /**
+     * Expect the salt's session token — or, when the session holds none (never rendered, or expired),
+     * a random value nothing can match.
+     *
+     * Stock Zend passes `null` as the expected token in that case, which `Zend_Validate_Identical` then
+     * uses as an array key — a deprecation on PHP 8.5 for every submit that arrives after a token
+     * expired. An empty string would be worse: it would MATCH a caller who seeded `_csrf` to ''. A
+     * random value fails closed either way.
+     *
+     * @return self
+     */
+    public function initCsrfValidator()
+    {
+        $session = $this->getSession();
+        $expected = (isset($session->hash) && is_string($session->hash) && $session->hash !== '')
+            ? $session->hash
+            : bin2hex(random_bytes(16));
+        $this->addValidator('Identical', true, [$expected]);
+        return $this;
+    }
+
+    /**
      * Arm the CSRF token for its timeout WITHOUT the single-hop expiration Zend applies, reusing the
      * salt's unexpired token when there is one so earlier renders stay valid.
      *

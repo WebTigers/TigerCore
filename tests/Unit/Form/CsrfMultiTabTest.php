@@ -95,6 +95,7 @@ final class CsrfMultiTabTest extends UnitTestCase
             if (str_contains((string) $ns, 'shared')) { unset($_SESSION[$ns]); }
         }
         $this->assertFalse($this->form('shared')->isValid(['title' => 'x', '_csrf' => $token]), 'expired');
+        $this->assertFalse($this->form('shared')->isValid(['title' => 'x', '_csrf' => '']), 'an empty seed never matches a missing token');
         $this->assertNotSame($token, $this->render($this->form('shared')), 'a fresh token after expiry');
     }
 }
