@@ -6,6 +6,25 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.52.0] — 2026-11-10
+
+### Fixed
+- **Migrations that share a version number no longer shadow each other** (TIGER-477). Versions are one
+  namespace across core, the app and every module, but `tiger_migration` was keyed by version alone — so when
+  two independently written modules picked the same number, the second migration was silently treated as
+  applied and its schema was never created. The ledger is now keyed by `(version, name)` (an existing ledger is
+  upgraded in place on the next `migrate`), both files run, and an install that already skipped one gets it on
+  its next `migrate`. A migration file renamed after it ran (same version, new name) still counts as applied,
+  as long as no migration file on the install still declares the old name.
+
+### Added
+- `Tiger_Db_Migrator::duplicates()` — every version declared by more than one migration file, without touching
+  the database. `migrate:status` now flags shared versions.
+
+### Changed
+- `Tiger_Db_Migrator::migrate()`, `rollback()` and `status()` key a SHARED version as `<version>_<name>` (unique
+  versions keep their plain version key); `status()` entries now also carry `version`.
+
 ## [1.51.0] — 2026-11-09
 
 ### Added
