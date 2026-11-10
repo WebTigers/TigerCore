@@ -59,4 +59,34 @@ final class HashElementTest extends UnitTestCase
 
         $this->assertSame(1, $session->hops, 'stock Zend arms a single-use (1-hop) token');
     }
+
+    #[Test]
+    public function reusesTheLiveTokenForItsSaltInsteadOfReplacingIt(): void
+    {
+        // The multi-tab regression: rendering a second same-salt form overwrote the session token, so
+        // the first page's token stopped validating at once.
+        $session = $this->fakeSession();
+        $session->hash = 'token-from-the-first-render';
+
+        $el = new Tiger_Form_Element_Hash('_csrf', ['salt' => 'unit', 'timeout' => 7200]);
+        $el->setSession($session);
+        $el->initCsrfToken();
+
+        $this->assertSame('token-from-the-first-render', $session->hash, 'the live token is kept');
+        $this->assertSame('token-from-the-first-render', $el->getHash(), 'and this render carries it');
+        $this->assertSame('token-from-the-first-render', $el->getValue());
+        $this->assertSame(7200, $session->seconds, 'still armed on the timeout');
+    }
+
+    #[Test]
+    public function mintsAFreshTokenWhenTheSaltHasNone(): void
+    {
+        $session = $this->fakeSession();
+        $el = new Tiger_Form_Element_Hash('_csrf', ['salt' => 'unit', 'timeout' => 7200]);
+        $el->setSession($session);
+        $el->initCsrfToken();
+
+        $this->assertNotEmpty($session->hash);
+        $this->assertSame($session->hash, $el->getHash());
+    }
 }
