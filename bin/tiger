@@ -118,8 +118,12 @@ switch ($cmd) {
         break;
 
     case 'migrate:status':
-        foreach ((new Tiger_Db_Migrator(tiger_db(), tiger_migration_paths()))->status() as $version => $s) {
-            printf("  [%s] %s_%s\n", $s['applied'] ? 'x' : ' ', $version, $s['name']);
+        foreach ((new Tiger_Db_Migrator(tiger_db(), tiger_migration_paths()))->status() as $s) {
+            printf("  [%s] %s_%s\n", $s['applied'] ? 'x' : ' ', $s['version'], $s['name']);
+            if (!empty($s['duplicates'])) {
+                // TIGER-477: both run and are tracked separately, but a shared version is worth renumbering.
+                printf("      ! shared version %s — also declared by: %s\n", $s['version'], implode(', ', $s['duplicates']));
+            }
         }
         break;
 

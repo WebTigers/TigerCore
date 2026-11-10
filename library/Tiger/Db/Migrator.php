@@ -14,9 +14,22 @@
  *     ['up' => [...sql], 'down' => [...sql]]. `NNNN` is the version (sort key).
  *   - Migrations are discovered across MULTIPLE paths — core ships them in
  *     tiger-core/migrations; an app in application/migrations; a module in
- *     modules/<m>/migrations — and merged into one ascending-by-version sequence.
- *   - Applied versions are recorded in `tiger_migration`, so migrate() only ever
- *     runs what's pending, and is safe to run repeatedly.
+ *     modules/<m>/migrations — and merged into one sequence ordered by version, then name.
+ *   - Applied migrations are recorded in `tiger_migration`, keyed by (version, name), so
+ *     migrate() only ever runs what's pending, and is safe to run repeatedly.
+ *
+ * SHARED VERSION NUMBERS (TIGER-477): versions are one namespace across core, the app and
+ * every module, and independently-written modules DO collide (two modules both shipping a
+ * YYYYMMDD000001 file on the same day). The ledger used to be keyed by version alone, so
+ * the second file was silently treated as applied and its schema never created. Now each (version, name) is
+ * its own ledger row: both files run, and an install that already skipped one gets it on
+ * its next migrate. A pre-existing ledger keyed by version alone is upgraded in place.
+ * A file RENAMED after it ran (same version, new name) still counts as applied — but only when
+ * no migration file ANYWHERE on the install claims the old (version, name), judged against
+ * every migrations dir (Tiger_Module_Installer::migrationPaths()), not just the dirs this
+ * migrator was scoped to, so a module install/purge can never mistake another module's
+ * same-version migration for a rename. status() flags every shared version. Authors should still use
+ * a time-of-day suffix (YYYYMMDDHHMMSS) rather than a bare YYYYMMDD000001.
  *
  * CAVEAT (MySQL/MariaDB): DDL statements auto-commit — a CREATE/ALTER can't be
  * rolled back inside a transaction. So keep each migration to ONE logical change;
@@ -34,55 +47,74 @@ class Tiger_Db_Migrator
     /** @var string[] directories to scan for migration files, in precedence order */
     private $paths;
 
-    /** @var string ledger table recording applied versions (default `tiger_migration`) */
+    /** @var string ledger table recording applied migrations (default `tiger_migration`) */
     private $ledger;
+
+    /** @var array<string, string[]> version => every file declaring it, filled by discover() when >1 */
+    private $duplicates = [];
+
+    /** @var bool the ledger exists with its (version, name) key — checked once per migrator */
+    private $ledgerReady = false;
+
+    /** @var string[]|null every migrations dir on the install (the rename check's global view); null = auto */
+    private $claimPaths;
+
+    /** @var array<string, array<string, true>>|null version => [name => true] declared by ANY file on the install */
+    private $claimed = null;
 
     /**
      * Construct the migrator over a DB adapter and a set of migration directories.
      *
      * @param Zend_Db_Adapter_Abstract $db
      * @param string[]                 $paths       migration directories (existing ones; missing are ignored)
-     * @param string                   $ledgerTable the applied-versions ledger table. Defaults to the
+     * @param string                   $ledgerTable the applied-migrations ledger table. Defaults to the
      *                                              canonical `tiger_migration`; override it to run a migrator
      *                                              against an ISOLATED ledger (so a migration test's fixture
      *                                              versions never collide with — or roll back — the real
      *                                              schema's applied set).
+     * @param string[]|null            $claimPaths  every migrations dir on the install, for the rename check
+     *                                              (default: Tiger_Module_Installer::migrationPaths() — all of
+     *                                              core, the app and every module dir, active or not)
      * @return void
      */
-    public function __construct(Zend_Db_Adapter_Abstract $db, array $paths, $ledgerTable = 'tiger_migration')
+    public function __construct(Zend_Db_Adapter_Abstract $db, array $paths, $ledgerTable = 'tiger_migration', ?array $claimPaths = null)
     {
-        $this->db     = $db;
-        $this->paths  = array_values(array_filter($paths, 'is_dir'));
-        $this->ledger = (string) $ledgerTable;
+        $this->db         = $db;
+        $this->paths      = array_values(array_filter($paths, 'is_dir'));
+        $this->ledger     = (string) $ledgerTable;
+        $this->claimPaths = $claimPaths;
     }
 
     /**
-     * Apply all pending migrations in version order.
+     * Apply all pending migrations in (version, name) order.
      *
      * @param  callable|null $log optional fn(string $message) for progress output
-     * @return array         [version => name] of migrations applied this run
+     * @return array         [key => name] of migrations applied this run; key is the version, or
+     *                       "<version>_<name>" when the version is shared by more than one file
      */
     public function migrate($log = null)
     {
         $this->ensureTrackingTable();
-        $applied = $this->appliedVersions();
+        $all     = $this->discover();
+        $applied = $this->appliedMap();
         $ran     = [];
 
-        foreach ($this->discover() as $version => $m) {
-            if (isset($applied[$version])) {
+        foreach ($all as $key => $m) {
+            if ($this->isApplied($m, $applied)) {
                 continue;
             }
-            $this->emit($log, "  migrating {$version}_{$m['name']} ...");
+            $this->emit($log, "  migrating {$m['version']}_{$m['name']} ...");
             foreach ($m['up'] as $stmt) {
                 $this->run($stmt);
             }
             // Record only after every statement succeeded (see class caveat).
             $this->db->insert($this->ledger, [
-                'version'    => $version,
+                'version'    => $m['version'],
                 'name'       => $m['name'],
                 'applied_at' => date('Y-m-d H:i:s'),
             ]);
-            $ran[$version] = $m['name'];
+            $applied[$m['version']][$m['name']] = true;
+            $ran[$key] = $m['name'];
         }
 
         $this->emit($log, $ran ? '  applied ' . count($ran) . ' migration(s).' : '  nothing to migrate.');
@@ -90,33 +122,40 @@ class Tiger_Db_Migrator
     }
 
     /**
-     * Reverse the most recently applied migrations (highest versions first).
+     * Reverse the most recently applied migrations (highest version first; within a shared version,
+     * highest name first).
      *
      * @param  int           $steps how many to roll back
      * @param  callable|null $log
-     * @return array         [version => name] rolled back
+     * @return array         [key => name] rolled back (key as in migrate())
      */
     public function rollback($steps = 1, $log = null)
     {
         $this->ensureTrackingTable();
-        $all     = $this->discover();
-        $applied = array_keys($this->appliedVersions());
-        rsort($applied);                    // newest first
-        $target  = array_slice($applied, 0, max(0, (int) $steps));
-        $done    = [];
+        $all  = $this->discover();
+        $rows = $this->db->fetchAll(
+            'SELECT version, name FROM ' . $this->db->quoteIdentifier($this->ledger)
+            . ' ORDER BY version DESC, name DESC'
+        );
+        $target = array_slice($rows, 0, max(0, (int) $steps));
+        $done   = [];
 
-        foreach ($target as $version) {
-            if (!isset($all[$version])) {
-                $this->emit($log, "  ! no file for applied version {$version}; skipping");
+        foreach ($target as $row) {
+            $version = (string) $row['version'];
+            $m       = $this->fileFor($all, $version, (string) $row['name']);
+            if ($m === null) {
+                $this->emit($log, "  ! no file for applied {$version}_{$row['name']}; skipping");
                 continue;
             }
-            $m = $all[$version];
             $this->emit($log, "  rolling back {$version}_{$m['name']} ...");
             foreach ($m['down'] as $stmt) {
                 $this->run($stmt);
             }
-            $this->db->delete($this->ledger, $this->db->quoteInto('version = ?', $version));
-            $done[$version] = $m['name'];
+            $this->db->delete($this->ledger, [
+                $this->db->quoteInto('version = ?', $version),
+                $this->db->quoteInto('name = ?', (string) $row['name']),
+            ]);
+            $done[$this->keyFor($version, $m['name'])] = $m['name'];
         }
         return $done;
     }
@@ -141,31 +180,50 @@ class Tiger_Db_Migrator
     }
 
     /**
-     * Discovered vs applied, for a `migrate:status` view.
+     * Discovered vs applied, for a `migrate:status` view. A version shared by more than one file is
+     * listed once per file (keyed "<version>_<name>") and each carries `duplicates` — every file that
+     * declares that version — so the operator sees the collision.
      *
-     * @return array [version => ['name' => string, 'applied' => bool]]
+     * @return array [key => ['version' => string, 'name' => string, 'applied' => bool, 'duplicates'? => string[]]]
      */
     public function status()
     {
         $this->ensureTrackingTable();
-        $applied = $this->appliedVersions();
+        $applied = $this->appliedMap();
         $out     = [];
-        foreach ($this->discover() as $version => $m) {
-            $out[$version] = ['name' => $m['name'], 'applied' => isset($applied[$version])];
+        foreach ($this->discover() as $key => $m) {
+            $out[$key] = ['version' => $m['version'], 'name' => $m['name'], 'applied' => $this->isApplied($m, $applied)];
+            if (isset($this->duplicates[$m['version']])) {
+                $out[$key]['duplicates'] = $this->duplicates[$m['version']];
+            }
         }
         return $out;
+    }
+
+    /**
+     * Every version declared by more than one migration file across the scanned paths — no DB needed, so
+     * a module's CI can check for a collision up front.
+     *
+     * @return array<string, string[]> version => the files declaring it (path tails, e.g. "hosting/migrations/x.php")
+     */
+    public function duplicates()
+    {
+        $this->discover();
+        return $this->duplicates;
     }
 
     // --- internals ---------------------------------------------------------
 
     /**
-     * Scan all paths for migration files and merge into one version-sorted map.
+     * Scan all paths for migration files and merge them into one (version, name)-ordered map.
      *
-     * @return array [version => ['name' => string, 'up' => string[], 'down' => string[]]]
+     * @return array [key => ['version' => string, 'name' => string, 'up' => array, 'down' => array]]
+     *               key = version, or "<version>_<name>" when the version is shared
      */
     private function discover()
     {
         $found = [];
+        $files = [];
         foreach ($this->paths as $dir) {
             foreach (glob($dir . '/*.php') ?: [] as $file) {
                 $base = basename($file, '.php');           // e.g. "0001_create_org"
@@ -173,36 +231,142 @@ class Tiger_Db_Migrator
                     continue;                              // ignore non-conforming files
                 }
                 list(, $version, $name) = $mm;
+                $files[$version][] = self::displayPath($file);
                 $spec = include $file;
-                $found[$version] = [
-                    'name' => $name,
-                    'up'   => isset($spec['up'])   ? (array) $spec['up']   : [],
-                    'down' => isset($spec['down']) ? (array) $spec['down'] : [],
+                $found[$version . "\0" . $name] = [
+                    'version' => $version,
+                    'name'    => $name,
+                    'up'      => isset($spec['up'])   ? (array) $spec['up']   : [],
+                    'down'    => isset($spec['down']) ? (array) $spec['down'] : [],
                 ];
             }
         }
-        ksort($found, SORT_STRING);   // zero-padded versions sort correctly as strings
-        return $found;
+        ksort($found, SORT_STRING);   // zero-padded versions sort correctly as strings; NUL sorts before any name char
+
+        $this->duplicates = array_filter($files, static function ($list) { return count($list) > 1; });
+        ksort($this->duplicates, SORT_STRING);
+
+        $out = [];
+        foreach ($found as $m) {
+            $out[$this->keyFor($m['version'], $m['name'])] = $m;
+        }
+        return $out;
     }
 
-    /** @return array [version => true] of already-applied versions */
-    private function appliedVersions()
+    /** The public key for a migration: its version, or "<version>_<name>" when the version is shared. */
+    private function keyFor($version, $name)
     {
-        $rows = $this->db->fetchCol('SELECT version FROM ' . $this->db->quoteIdentifier($this->ledger));
-        return array_fill_keys($rows, true);
+        return isset($this->duplicates[$version]) ? $version . '_' . $name : (string) $version;
     }
 
-    /** Create the tracking table if it doesn't exist. */
+    /** @return array<string, array<string, true>> version => [name => true] of applied migrations */
+    private function appliedMap()
+    {
+        $map = [];
+        foreach ($this->db->fetchAll('SELECT version, name FROM ' . $this->db->quoteIdentifier($this->ledger)) as $r) {
+            $map[(string) $r['version']][(string) $r['name']] = true;
+        }
+        return $map;
+    }
+
+    /**
+     * Is this migration already applied? Exactly (version, name) in the ledger — or the file was RENAMED after
+     * it ran: it's the only file at its version here, and the ledger holds a row at that version whose name no
+     * file on the whole install declares any more.
+     */
+    private function isApplied(array $m, array $applied)
+    {
+        $rows = $applied[$m['version']] ?? [];
+        if (!$rows) {
+            return false;
+        }
+        if (isset($rows[$m['name']])) {
+            return true;
+        }
+        if (isset($this->duplicates[$m['version']])) {
+            return false;
+        }
+        foreach (array_keys($rows) as $ledgerName) {
+            if ($this->isOrphanRow($m['version'], (string) $ledgerName)) {
+                return true;   // a renamed file — its old name is claimed by nothing
+            }
+        }
+        return false;          // every ledger row at this version belongs to another live file
+    }
+
+    /**
+     * The discovered file for a ledger row: exact (version, name); else, when the row is an orphan (no file on
+     * the install declares it) and this migrator sees exactly one file at that version, that file (a rename).
+     */
+    private function fileFor(array $all, $version, $name)
+    {
+        $matches = [];
+        foreach ($all as $m) {
+            if ($m['version'] === $version) {
+                if ($m['name'] === $name) {
+                    return $m;
+                }
+                $matches[] = $m;
+            }
+        }
+        return (count($matches) === 1 && $this->isOrphanRow($version, $name)) ? $matches[0] : null;
+    }
+
+    /** True when no migration file on the whole install declares this (version, name). */
+    private function isOrphanRow($version, $name)
+    {
+        if ($this->claimed === null) {
+            $paths = $this->claimPaths;
+            if ($paths === null) {
+                $paths = class_exists('Tiger_Module_Installer') ? Tiger_Module_Installer::migrationPaths() : [];
+            }
+            $this->claimed = [];
+            foreach (array_merge($this->paths, $paths) as $dir) {
+                foreach (glob(rtrim((string) $dir, '/') . '/*.php') ?: [] as $file) {
+                    if (preg_match('/^(\d+)_(.+)$/', basename($file, '.php'), $mm)) {
+                        $this->claimed[$mm[1]][$mm[2]] = true;
+                    }
+                }
+            }
+        }
+        return !isset($this->claimed[(string) $version][(string) $name]);
+    }
+
+    /**
+     * Create the tracking table if it doesn't exist, keyed by (version, name). A ledger created by an
+     * older core (PRIMARY KEY on version alone) is upgraded in place — a tiny table, one ALTER, once.
+     */
     private function ensureTrackingTable()
     {
+        if ($this->ledgerReady) {
+            return;
+        }
+        $table = $this->db->quoteIdentifier($this->ledger);
         $this->db->query(
-            'CREATE TABLE IF NOT EXISTS ' . $this->db->quoteIdentifier($this->ledger) . ' (
+            'CREATE TABLE IF NOT EXISTS ' . $table . ' (
                 `version`    VARCHAR(64)  NOT NULL,
                 `name`       VARCHAR(191) NOT NULL,
                 `applied_at` DATETIME     NOT NULL,
-                PRIMARY KEY (`version`)
+                PRIMARY KEY (`version`, `name`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
         );
+        $pk = $this->db->fetchCol(
+            'SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND CONSTRAINT_NAME = ?
+             ORDER BY ORDINAL_POSITION',
+            [$this->ledger, 'PRIMARY']
+        );
+        if ($pk === ['version']) {
+            $this->db->query('ALTER TABLE ' . $table . ' DROP PRIMARY KEY, ADD PRIMARY KEY (`version`, `name`)');
+        }
+        $this->ledgerReady = true;
+    }
+
+    /** The last three path segments of a migration file (e.g. "hosting/migrations/2026…_x.php"), for messages. */
+    private static function displayPath($file)
+    {
+        $parts = explode('/', str_replace('\\', '/', (string) $file));
+        return implode('/', array_slice($parts, -3));
     }
 
     private function emit($log, $message)
