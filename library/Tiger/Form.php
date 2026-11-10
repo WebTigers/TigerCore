@@ -35,12 +35,12 @@
  * with isValid() — see Tiger_Service_Service::_transaction() for the canonical
  * validate-then-transaction flow.
  *
- * ⚠️ Do NOT reach for Zend_Form::isValidPartial() on a CSRF-protected write, including a sparse
- * PATCH. It validates only the keys PRESENT in the data, and `_csrf` is a key like any other — so a
- * caller who omits it is never checked for it and the CSRF gate becomes opt-out. Declare the fields
- * optional and use the full isValid(): an absent optional element passes, while `_csrf` stays
- * mandatory because Tiger_Form_Element_Hash is required. isValidPartial() is only safe on a form
- * that has disabled CSRF via csrf().
+ * isValidPartial() is SAFE here — Tiger_Form overrides it (see below) to force the CSRF token into
+ * the validated data, because Zend_Form::isValidPartial() validates only the keys PRESENT and would
+ * otherwise never check a `_csrf` the caller simply omitted. Use it for a sparse PATCH; the token
+ * stays mandatory while absent data fields stay absent. (The equally valid alternative is to declare
+ * every field optional and use the full isValid().) Either way: if you call Zend_Form::isValidPartial()
+ * on a form that is NOT a Tiger_Form, the token has to be present in the data or it is not checked.
  *
  * @api
  */
@@ -134,6 +134,41 @@ class Tiger_Form extends Zend_Form
     protected function csrfSalt(): string
     {
         return static::class;
+    }
+
+    /**
+     * isValidPartial() with the CSRF token still mandatory.
+     *
+     * Zend_Form::isValidPartial() validates only the keys PRESENT in the data — the loop body is
+     * guarded by `isset($check[$key])`. `_csrf` is a key like any other, so on the stock method a
+     * caller who simply OMITS the token is never checked for it, and the CSRF gate silently becomes
+     * opt-out. That is the whole bug: not that isValidPartial() is unsafe, but that the token has to
+     * be PRESENT in the data to be validated.
+     *
+     * So present it. Every hash element is force-set (to '' when absent) before delegating, which
+     * puts the token back in the validated set and makes a tokenless sparse PATCH fail the way a
+     * full isValid() would. A hash element is a GATE, not data — that is why only hash elements get
+     * this treatment and an ordinary required field still legitimately stays absent in a PATCH
+     * (which is the entire point of a partial validation).
+     *
+     * Note `isset()`, not array_key_exists(), is what the parent tests — so a key present with a
+     * null value is also skipped; '' is deliberate, since it is set AND fails the hash validator.
+     *
+     * Stateless (Bearer) requests carry no hash element at all, so there is nothing to force and
+     * nothing changes — those calls are CSRF-immune by construction (WEBSERVICES.md §8).
+     *
+     * @param  array $data
+     * @return bool
+     */
+    public function isValidPartial(array $data)
+    {
+        foreach ($this->getElements() as $name => $element) {
+            if ($element instanceof Zend_Form_Element_Hash && !isset($data[$name])) {
+                $data[$name] = '';
+            }
+        }
+
+        return parent::isValidPartial($data);
     }
 
     /** Translate a semantic key (returns the key itself when untranslated). */

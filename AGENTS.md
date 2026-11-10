@@ -344,7 +344,7 @@ public function create(array $params): void
     if (!$this->_isAllowed('create')) { $this->_error('core.api.error.not_allowed'); return; }
 
     $form = new Billing_Form_Invoice();
-    if (!$form->isValid($params)) { $this->_formErrors($form); return; }   // NOT isValidPartial — see below
+    if (!$form->isValid($params)) { $this->_formErrors($form); return; }   // sparse PATCH? isValidPartial() is safe on a Tiger_Form — see below
 
     try {
         $id = $this->_transaction(function ($db) use ($params) {
@@ -419,19 +419,32 @@ geocode / reverse / IP behind adapters, normalized `Place` payload) and **`Tiger
 (biased, localized country list). Both are config-driven and reachable via the public
 `Tiger_Service_Location` when a form needs them.
 
-### ⚠️ `isValidPartial()` turns CSRF into opt-out — don't use it on a CSRF-protected write
+### ⚠️ `isValidPartial()` only validates keys that are PRESENT — so the token must be present
 
-`Zend_Form::isValidPartial()` validates **only the keys present in the data**. `_csrf` is a key like
-any other, so a caller who simply **omits** it is never checked for it — the CSRF gate becomes
-opt-out, on exactly the sparse PATCH-style writes people reach for it on.
+`Zend_Form::isValidPartial()` validates **only the keys present in the data** (its loop body is
+guarded by `isset($check[$key])`). `_csrf` is a key like any other, so on the *stock* ZF1 method a
+caller who simply **omits** the token is never checked for it — the CSRF gate becomes opt-out, on
+exactly the sparse PATCH-style writes people reach for it on.
 
 Verified by mutation, not theory: swapping `isValid()` for `isValidPartial()` in
 `Desk_Service_Ticket::update` let a tokenless cross-site edit through with `result=1` (TIGER-479).
 
-**Use the full `isValid()` and declare every field optional instead.** That handles a sparse payload
-correctly — ZF1 returns `true` for an optional element whose value is absent — while `_csrf` stays
-mandatory, because `Tiger_Form_Element_Hash` is `required`. `isValidPartial()` is only safe on a
-form that has deliberately disabled CSRF (`csrf(): false` — an idempotent search/filter form).
+**The fix is to make the token present, which is what `Tiger_Form::isValidPartial()` now does for
+you** — it force-sets every hash element (to `''` when absent) before delegating to the parent, so a
+tokenless sparse PATCH fails exactly as a full `isValid()` would. A hash element is a **gate**, not
+data; an ordinary required field still legitimately stays absent, which is the entire point of a
+partial validation.
+
+So on a `Tiger_Form`, **`isValidPartial()` is the right tool for a sparse PATCH** and needs nothing
+extra. Two things to remember anyway:
+
+- If you call `isValidPartial()` on a plain `Zend_Form` (not a `Tiger_Form`), **you** own this —
+  seed the token into the data yourself (`$data['_csrf'] = $data['_csrf'] ?? '';`) or it is not
+  validated.
+- The equally valid alternative is the full `isValid()` with every field declared
+  `'required' => false` — ZF1 returns `true` for an optional element whose value is absent, while
+  `_csrf` stays mandatory because `Tiger_Form_Element_Hash` is `required`. That is what TigerDesk's
+  ticket/macro updates do, and it is fine; it just isn't the only safe option.
 
 Two neighbouring gotchas from the same conversion:
 
