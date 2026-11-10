@@ -6,6 +6,22 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.52.1] — 2026-11-10
+
+### Fixed
+- **Opening a second page no longer invalidates the first page's CSRF token** (TIGER-481). Every render of a
+  form overwrote its salt's session token, so with two tabs (or two forms sharing a salt) only the newest
+  page could submit — the older one failed with "security token expired" immediately. A render now reuses the
+  salt's live token, so every open page stays valid until the timeout. Expired, forged and other-salt tokens
+  are still refused.
+- A submit that arrives after its CSRF token expired no longer raises a PHP 8.5 deprecation: with no token
+  in the session the validator now expects a random value (fails closed, and never matches an empty `_csrf`)
+  instead of `null`.
+
+### Changed
+- Docs: `Tiger_Form` / `AGENTS.md` spell out the `isValidPartial()` pattern — seed `_csrf` into the params
+  before validating a partial update, or the token is never checked.
+
 ## [1.52.0] — 2026-11-10
 
 ### Fixed
