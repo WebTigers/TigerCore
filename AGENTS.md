@@ -329,6 +329,11 @@ geocode / reverse / IP behind adapters, normalized `Place` payload) and **`Tiger
   CMS builder's deep project blob (migration `0041` converted the existing columns).
 - Migrations are **additive-only** PHP files (`NNNN_name.php` returning `['up'=>[], 'down'=>[]]`)
   in `migrations/`. One logical DDL change per migration (MySQL auto-commits DDL).
+- Migration versions are **one namespace across core, the app and every module**. The ledger is keyed by
+  (version, name), so two files sharing a number both run, but `migrate:status` flags it. In a module, use a
+  time-of-day suffix (`YYYYMMDDHHMMSS_name.php`), never a bare `YYYYMMDD000001` another module can pick too.
+  Don't rename an applied migration's file at the same version unless its old name is gone from every
+  module (the migrator treats an unclaimed ledger name at that version as a rename).
 
 ## Authorization
 
