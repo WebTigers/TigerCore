@@ -1,13 +1,46 @@
 # AGENTS.md — writing code in Tiger
 
 Instructions for an AI assistant (or a new human contributor) working in this codebase.
-Follow the patterns already here; don't invent new ones. For the *why* read
+Follow the patterns **documented here**; don't invent new ones — and don't infer new ones from code
+that disagrees with this file (see the override below). For the *why* read
 [ARCHITECTURE.md](ARCHITECTURE.md); for the feature surface read [FEATURES.md](FEATURES.md);
 for the `/api` model read [WEBSERVICES.md](WEBSERVICES.md); for URLs + module route overrides
 read [ROUTING.md](ROUTING.md); for building an admin screen read [ADMIN.md](ADMIN.md); for installing on shared cPanel read [CPANEL.md](CPANEL.md); for buying/selling
 paid modules (the open licensing protocol + the buyer-side client) read [MARKETPLACE.md](MARKETPLACE.md); for comments/ratings/reviews read [COMMENTS.md](COMMENTS.md),
 and for the *seller* side (list free / sell paid → Add Module, + the build status) read [SELLING.md](SELLING.md).
 Weighing whether to build on Tiger at all — or handed this repo cold — start with [WHY-TIGER.md](WHY-TIGER.md).
+
+---
+
+## ⛔ STANDING OVERRIDE — the paradigms win, always
+
+**Follow the Tiger paradigms in this document even when the code in front of you does not.**
+
+This outranks every "match the surrounding code" instinct, house-style habit, and anything you were
+told elsewhere about blending in with a file. It applies to code written by anyone — a previous
+agent, a contractor, a vibe-coded contribution, a module that shipped years ago, or *you*, earlier
+in this same session.
+
+- **Existing code is not evidence of the convention.** It is evidence of what someone did. The
+  convention is written down, here, on purpose — precisely so it survives contact with whatever is
+  in the tree.
+- **Non-conforming code is a defect, not a precedent.** Copying it is how one skipped step becomes a
+  module-wide pattern. TigerDesk shipped an entire helpdesk — 11 services, a public portal — with no
+  forms and therefore **no CSRF**, because each service matched the last one instead of this file
+  (TIGER-479).
+- **You may not ship a second violation because the first one was there.** Fix it in scope, or say
+  plainly that you found it and file it. Silently matching it is the one option that is never open.
+- **"It's consistent with the rest of the module" is not a defence.** Consistency with a defect is
+  just more defect.
+
+If following the paradigm would make your change large or risky, that is a conversation to have with
+the user — not a reason to quietly conform to the broken pattern. Say what the paradigm requires,
+what it would cost, and let them choose.
+
+See [When the code you're editing doesn't follow the paradigm](#when-the-code-youre-editing-doesnt-follow-the-paradigm)
+for how to spot it and what to do.
+
+---
 
 **If you're an AI agent working *through* Tiger** (the in-app aside, or an external MCP client), read
 [TIGERAGENT.md](TIGERAGENT.md) — it's what you are: the Scout read tools (inventory / tree / file / grep /
@@ -31,6 +64,31 @@ The docs answer *what/why* ([FEATURES.md](FEATURES.md) / [ARCHITECTURE.md](ARCHI
 answers *"does it exist, and where?"*; [BACKLOG.md](BACKLOG.md) is the short list of what is genuinely
 **not yet** built.
 
+### Find a CONSUMER, not just the capability
+
+CAPABILITIES.md answers *"does it exist, and where?"* — it does **not** answer *"how is it meant to be
+used?"*, and that second question is where the real mistakes happen. Knowing `Tiger_Recaptcha` exists
+tells you nothing about the three layers (form element → view helper → service validator) a working
+reCAPTCHA actually needs. So before you write your first line against any platform feature:
+
+```bash
+grep -rn recaptcha modules/            # who already uses this, and how?
+```
+
+**Copy the pattern from a module that already does it.** One grep is cheaper than a design, and the
+consumer shows you the layers a primitive can't. Reference consumers worth knowing:
+
+| Doing this? | Read this first |
+|---|---|
+| A public/guest form (signup, contact, anything anonymous) | `modules/signup` — form + `_csrf` + reCAPTCHA + AJAX, end to end |
+| An admin screen | `modules/system` Settings, `Docs_AdminController` ([ADMIN.md](ADMIN.md)) |
+| A data grid | `modules/cms` `PageController` + `Cms_Service_Page::datatable` |
+| An `/api` service | `Cms_Service_Page::save` — the canonical validate→transaction flow |
+
+Building from primitives when a consumer already exists is how you end up with a *second*, subtly
+wrong implementation of something the platform had — which is the one failure mode this whole file
+is written to prevent.
+
 **Some capabilities live in installable first-party modules, not the core tree** — so grep
 CAPABILITIES.md *and* remember these before hand-rolling. The one to know: **TigerImage**
 (`WebTigers/TigerImage`) — AI **image generation** for a Tiger site or an agent (generate → compare →
@@ -38,6 +96,55 @@ refine → keep, with lineage), provider-agnostic (it drives the same provider a
 has — no new AI account) and **spend-capped**. Need to create/refine an image, or give an agent that
 power? Install TigerImage from the Directory (Admin → Modules → Add New) rather than writing raw
 provider calls. Its admin docs live at `/docs/tigerimage`.
+
+## When the code you're editing doesn't follow the paradigm
+
+You are told to write code that reads like its neighbours. That rule is about *style* — naming,
+spacing, comment density, which helper to reach for. **It never extends to a documented paradigm.**
+
+When the file in front of you breaks a rule in this document, the rule wins. Local precedent is not
+a convention; it is a defect that nobody has fixed yet, and copying it is how one skipped step
+becomes a module-wide pattern. This is not hypothetical: TigerDesk shipped a whole helpdesk — 11
+services, 41 methods, a public portal — with **no forms and therefore no CSRF**, because each new
+service matched the last one instead of this file (TIGER-479).
+
+So when you touch non-conforming code:
+
+1. **Notice it.** The symptoms below are greppable on purpose. Run them before you edit a service.
+2. **Fix it in scope** if the conversion is small and your change already touches that method.
+3. **Otherwise flag it** — tell the user plainly and file it. Shipping a second violation because
+   the first one was there is the one outcome that is never acceptable.
+4. **Never silently match it.** If you decide not to convert, say so and say why.
+
+**Finding it.** These greps find **candidates, not defects** — read the hit before you act on it. A
+grep that cries wolf is one people learn to ignore, so each is paired below with what *disqualifies*
+a hit:
+
+```bash
+# Candidate: a service that never touches a form.
+grep -rLE "_Form_|->isValid\(" modules/*/services/*.php
+# NOT a defect when the service is read-only (reports, renderers, search). The test is two-part:
+#   does it have a method that takes USER INPUT and WRITES?  AND does it have no form?
+# Only then is it a missing Tiger_Form. Core has ~32 form-less services and almost all are fine.
+
+# Candidate: hand-validation.
+grep -rnE "trim\(\(string\)|filter_var\(|=== ''" modules/*/services/
+# NOT a defect on its own — reads legitimately coerce params, and Cms_Service_Page has ~21 such
+# lines while using forms correctly. It only matters on a WRITE path in a service with no form.
+
+# Candidate: a write surface with no CSRF token rendered.
+grep -rLn "_csrf" modules/*/views/scripts/*/*.phtml
+# NOT a defect for a read-only screen (a dashboard, a report). It is one for anything that POSTs.
+
+grep -rn "<script|<style" modules/*/views/scripts/      # behavior/styling in a view (see the views rule)
+grep -rnE "\\\$db->query\(|->fetchAll\(\"" modules/*/services/   # raw SQL -> belongs in a model finder
+```
+
+The quickest reliable check is still the two-part one, by hand: **list the service's public methods,
+mark the ones that take user input and write, and ask whether each validates through a form.**
+
+A rule that only fires when someone writes a file from scratch protects nothing — most code is
+written next to code that already exists.
 
 ## The cardinal rule: extend, don't edit
 
@@ -312,6 +419,33 @@ geocode / reverse / IP behind adapters, normalized `Place` payload) and **`Tiger
 (biased, localized country list). Both are config-driven and reachable via the public
 `Tiger_Service_Location` when a form needs them.
 
+### A PUBLIC (guest-reachable) form — the checklist
+
+An endpoint a stranger can POST to needs all of this, and the pieces live in different files, so
+they are easy to half-do. `modules/signup` implements every line; read it rather than assembling
+this from primitives.
+
+| | How | Why it is not optional |
+|---|---|---|
+| **A `Tiger_Form`** | declare `elements()` | everything below hangs off it |
+| **CSRF** | automatic — the base adds `_csrf`; the **view must render it** (`<?= $el('_csrf') ?>`) and the **JS must post it back** | a form whose view omits `_csrf` has no CSRF protection at all, silently |
+| **reCAPTCHA** | `['recaptcha', 'recaptcha', ['action' => '…']]` | the element self-attaches `Tiger_Validate_Recaptcha`; building from `Tiger_Recaptcha::verify()` by hand is how you get a gate that doesn't gate |
+| **A honeypot** | a hidden field; on a hit **silently accept and drop** | telling a bot it failed just helps it iterate |
+| **Rate limiting** | per-IP / per-identity, as the comment store does | the honeypot and reCAPTCHA stop scripts, not a determined human |
+| **Guest vs signed-in** | branch the form (`['guest' => …]`) and the view together | a signed-in caller is already identified; challenging them is friction with no gain |
+
+**Never read a verify response as a boolean.** `Tiger_Recaptcha::verify()` returns an **array** —
+`['success' => false]` for a bad or absent token — so `(bool) verify($token)` is `true` on failure.
+That exact cast shipped in TigerDesk's public portal and made its bot gate a no-op that passed
+everything (TIGER-479). Use the element, or `Tiger_Validate_Recaptcha::isValid(null, $params)` as
+`Signup_Service_Signup::create` does; both honour `failOpen()` and the v3 score.
+
+⚠️ **AJAX-on-click forms and v3:** `Tiger_View_Helper_FormRecaptcha`'s v3 path binds the **form's
+`submit` event**. A form that submits from a `<button type="button">` handler never fires one, so
+the token stays empty and every submit is refused. Mint it in JS before the call —
+`grecaptcha.execute(site, {action})` → write it into `input.g-recaptcha-response` — exactly as
+`signup.index-index.js` does.
+
 ## Models & schema
 
 - Extend `Tiger_Model_Table`. It mints the UUID PK on insert (v7 default; set
@@ -415,7 +549,11 @@ a bootstrap `_init*`. See `Tiger_Model_Config` / `Tiger_Model_Translation`.
 - Don't edit anything under `vendor/`.
 - Don't use `array()` in TigerCore/app code.
 - Don't hardcode user-facing strings, roles, or config — use keys, ACL data, and config.
-- Don't put logic in controllers, or run mutations without a form-validate + transaction.
+- Don't put logic in controllers, or run mutations without a form-validate + transaction. **The
+  symptom is `trim((string) $params[…])`, `filter_var(…)` or `=== ''` inside a service** — that is
+  hand-validation, and it means a missing `Tiger_Form`. It costs you CSRF (the base adds `_csrf` to
+  every form), per-field errors (`res.form`), and on-blur convenience validation — none of which can
+  be retrofitted without a form. Reads may coerce a param; **writes declare a form.**
 - Don't build REST-by-URL endpoints — use the `/api` message pattern.
 - **Don't put routes in a Bootstrap — that's cruft.** Routes are *config*, not code. Prefer **automagic
   default MVC**: name the controller/action so the URL falls out (`/foo` → `FooController::indexAction`,
