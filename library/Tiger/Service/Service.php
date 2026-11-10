@@ -270,7 +270,7 @@ abstract class Tiger_Service_Service
      *   public function create(array $params): void
      *   {
      *       $form = new Some_Form();
-     *       if (!$form->isValid($params)) { $this->_formErrors($form); return; }   // isValidPartial() for PATCH
+     *       if (!$form->isValid($params)) { $this->_formErrors($form); return; }   // NOT isValidPartial()
      *       try {
      *           $id = $this->_transaction(function ($db) use ($params) {
      *               // ... inserts/updates; throw to abort + roll back ...

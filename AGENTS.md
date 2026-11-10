@@ -344,7 +344,7 @@ public function create(array $params): void
     if (!$this->_isAllowed('create')) { $this->_error('core.api.error.not_allowed'); return; }
 
     $form = new Billing_Form_Invoice();
-    if (!$form->isValid($params)) { $this->_formErrors($form); return; }   // isValidPartial() for PATCH
+    if (!$form->isValid($params)) { $this->_formErrors($form); return; }   // NOT isValidPartial — see below
 
     try {
         $id = $this->_transaction(function ($db) use ($params) {
@@ -418,6 +418,40 @@ Platform helpers worth knowing before you build your own: **`Tiger_Location`** (
 geocode / reverse / IP behind adapters, normalized `Place` payload) and **`Tiger_I18n_Country`**
 (biased, localized country list). Both are config-driven and reachable via the public
 `Tiger_Service_Location` when a form needs them.
+
+### ⚠️ `isValidPartial()` turns CSRF into opt-out — don't use it on a CSRF-protected write
+
+`Zend_Form::isValidPartial()` validates **only the keys present in the data**. `_csrf` is a key like
+any other, so a caller who simply **omits** it is never checked for it — the CSRF gate becomes
+opt-out, on exactly the sparse PATCH-style writes people reach for it on.
+
+Verified by mutation, not theory: swapping `isValid()` for `isValidPartial()` in
+`Desk_Service_Ticket::update` let a tokenless cross-site edit through with `result=1` (TIGER-479).
+
+**Use the full `isValid()` and declare every field optional instead.** That handles a sparse payload
+correctly — ZF1 returns `true` for an optional element whose value is absent — while `_csrf` stays
+mandatory, because `Tiger_Form_Element_Hash` is `required`. `isValidPartial()` is only safe on a
+form that has deliberately disabled CSRF (`csrf(): false` — an idempotent search/filter form).
+
+Two neighbouring gotchas from the same conversion:
+
+- **An optional element must NOT set `allowEmpty(false)`.** `Zend_Form::isValid()` hands a missing
+  element `null`, which `allowEmpty(false)` then sends through the validators — so "optional, but
+  not blank when sent" silently becomes "required". An element cannot tell *sent blank* from *not
+  sent*; that is a presence question, so ask it in the service against the raw params and push the
+  answer back with `$form->getElement($f)->addError($key)` so it still reaches the client as a
+  per-FIELD error.
+- **`StringTrim` on a param that may arrive as an ARRAY** (a tag list, a custom-fields map) casts
+  with `(string) $value` — an "Array to string conversion" warning, which a suite with
+  `failOnWarning` treats as a failure. Declare those elements with no filters and let the service's
+  normalizer own the shape.
+
+### Several forms on one page? Share the CSRF salt
+
+`Tiger_Form::csrfSalt()` defaults to the form class, so two forms mint two tokens in two session
+slots. A screen that renders one token and then posts to a second endpoint fails with "your security
+token expired" while behaving perfectly. Put one salt on a shared base for the set — see
+`csrfSalt()`'s own docblock, and `Desk_Form_TicketWrite` for a worked example.
 
 ### A PUBLIC (guest-reachable) form — the checklist
 

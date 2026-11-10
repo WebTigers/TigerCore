@@ -32,8 +32,15 @@
  * Baked in for every form: POST method, ViewHelper-only decorators, a translate
  * closure ($this->_t('some.key')), and CSRF (a hidden token element; override
  * csrf() to disable for an idempotent search/filter form). Validate in a service
- * with isValid()/isValidPartial() — see Tiger_Service_Service::_transaction() for
- * the canonical validate-then-transaction flow.
+ * with isValid() — see Tiger_Service_Service::_transaction() for the canonical
+ * validate-then-transaction flow.
+ *
+ * ⚠️ Do NOT reach for Zend_Form::isValidPartial() on a CSRF-protected write, including a sparse
+ * PATCH. It validates only the keys PRESENT in the data, and `_csrf` is a key like any other — so a
+ * caller who omits it is never checked for it and the CSRF gate becomes opt-out. Declare the fields
+ * optional and use the full isValid(): an absent optional element passes, while `_csrf` stays
+ * mandatory because Tiger_Form_Element_Hash is required. isValidPartial() is only safe on a form
+ * that has disabled CSRF via csrf().
  *
  * @api
  */
