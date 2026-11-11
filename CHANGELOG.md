@@ -6,6 +6,23 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.53.0] — 2026-11-11
+
+### Changed
+- **Every table now carries the standard columns** (`status`, `deleted`, `created_by`, `updated_by`,
+  `created_at`, `updated_at`), as AGENTS.md has always said domain tables should. Eleven tables were missing some:
+  `module`, `code_version`, `page_version`, `schedule_run`, `login`, `password_history`, `page_redirect`,
+  `page_taxonomy`, `session`, the git module's `git_operation_log` and the agent module's `agent_attachment`
+  (migrations 0058–0066 and one each in the git and agent modules). Every new column has a default, so existing rows and queries behave as before; where a table is
+  written outside `Tiger_Model_Table`, the database keeps the timestamps. Append-only logs stay append-only —
+  their `status`/`deleted` hold their defaults.
+- The migration ledger (`tiger_migration`) gains the same columns: new installs create it with them, and an
+  existing ledger is upgraded in place when the migrator first opens it (its name is configurable, so no
+  migration could name it).
+
+### Added
+- A schema test that fails when any migrated table is missing a standard column.
+
 ## [1.52.1] — 2026-11-10
 
 ### Fixed

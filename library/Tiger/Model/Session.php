@@ -5,8 +5,9 @@
  * Session — gateway for the DB session store (see migration 0010).
  *
  * A system table, so this extends Zend_Db_Table_Abstract directly (NOT
- * Tiger_Model_Table — session_id is the PHP session id, not a UUID, and there are
- * no soft-delete/actor columns). Used by the save handler's GC and by admin
+ * Tiger_Model_Table — session_id is the PHP session id, not a UUID). It carries the
+ * standard columns like every table (TIGER-488, migration 0066), but nothing here
+ * soft-deletes or stamps them: the database keeps the timestamps. Used by the save handler's GC and by admin
  * "your sessions" / force-logout flows.
  *
  * @api

@@ -75,4 +75,32 @@ final class SchemaAndModelTest extends IntegrationTestCase
         $migrator = new Tiger_Db_Migrator($this->db, [dirname(__DIR__, 2) . '/migrations']);
         $this->assertSame([], $migrator->migrate(), 'a second migrate() must be a no-op');
     }
+
+    /**
+     * Every table the migrations build carries the platform's standard columns (TIGER-488): status, deleted,
+     * created_by, updated_by, created_at, updated_at. Nineteen tables once shipped without some of them —
+     * mostly logs and system tables, each modelled on the last — and only an audit of a live database found
+     * it. This reads the real migrated schema, so a new table that skips one fails here. (Fixtures a test
+     * creates and drops, `zzz_*`, are not part of the platform.)
+     */
+    #[Test]
+    public function every_table_carries_the_standard_columns(): void
+    {
+        $rows = $this->db->fetchAll(
+            "SELECT c.TABLE_NAME AS t, c.COLUMN_NAME AS col FROM information_schema.COLUMNS c"
+            . " JOIN information_schema.TABLES tb ON tb.TABLE_SCHEMA = c.TABLE_SCHEMA AND tb.TABLE_NAME = c.TABLE_NAME"
+            . " WHERE c.TABLE_SCHEMA = DATABASE() AND tb.TABLE_TYPE = 'BASE TABLE' AND c.TABLE_NAME NOT LIKE 'zzz\\_%'"
+        );
+        $cols = [];
+        foreach ($rows as $r) { $cols[$r['t']][] = $r['col']; }
+        $this->assertNotEmpty($cols, 'the schema was migrated');
+
+        $missing = [];
+        foreach ($cols as $table => $have) {
+            $gap = array_diff(['status', 'deleted', 'created_by', 'updated_by', 'created_at', 'updated_at'], $have);
+            if ($gap) { $missing[] = $table . ' (' . implode(', ', $gap) . ')'; }
+        }
+        sort($missing);
+        $this->assertSame([], $missing, "tables missing standard columns:\n" . implode("\n", $missing));
+    }
 }

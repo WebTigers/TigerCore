@@ -298,5 +298,13 @@ final class MigratorTest extends IntegrationTestCase
         $this->assertSame(['version', 'name'], $cols, 'primary key upgraded to (version, name)');
         $this->assertSame(['9301_create_beta' => 'create_beta'], $ran, 'the existing row is kept, the shadowed one runs');
         $this->assertSame(['create_alpha', 'create_beta'], $this->ledgerRows('9301', self::LEGACY_LEDGER));
+
+        // The standard columns are added in place too (TIGER-488), with the old row given the defaults.
+        $have = $this->db->fetchCol('SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
+             AND TABLE_NAME = ?', [self::LEGACY_LEDGER]);
+        $this->assertSame([], array_values(array_diff(array_keys(Tiger_Db_Migrator::LEDGER_STANDARD_COLUMNS), $have)),
+            'the legacy ledger gained every standard column');
+        $old = $this->db->fetchRow('SELECT status, deleted FROM `' . self::LEGACY_LEDGER . '` WHERE name = ?', ['create_alpha']);
+        $this->assertSame(['status' => 'active', 'deleted' => '0'], array_map('strval', $old));
     }
 }
