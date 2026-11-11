@@ -41,6 +41,20 @@
  */
 class Tiger_Db_Migrator
 {
+    /**
+     * The platform's standard columns on the ledger (TIGER-488), as column name => definition. The ledger
+     * is only ever written with an explicit column list, so each one is nullable or defaulted, and the
+     * database keeps the timestamps.
+     */
+    const LEDGER_STANDARD_COLUMNS = [
+        'status'     => "`status`     VARCHAR(32) NOT NULL DEFAULT 'active'",
+        'deleted'    => '`deleted`    TINYINT(1)  NOT NULL DEFAULT 0',
+        'created_by' => '`created_by` CHAR(36)    NULL',
+        'updated_by' => '`updated_by` CHAR(36)    NULL',
+        'created_at' => '`created_at` DATETIME    NULL DEFAULT CURRENT_TIMESTAMP',
+        'updated_at' => '`updated_at` DATETIME    NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+    ];
+
     /** @var Zend_Db_Adapter_Abstract */
     private $db;
 
@@ -347,9 +361,24 @@ class Tiger_Db_Migrator
                 `version`    VARCHAR(64)  NOT NULL,
                 `name`       VARCHAR(191) NOT NULL,
                 `applied_at` DATETIME     NOT NULL,
+                ' . implode(",\n                ", self::LEDGER_STANDARD_COLUMNS) . ',
                 PRIMARY KEY (`version`, `name`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
         );
+        // A ledger created by an older core lacks the standard columns (TIGER-488): add whichever are
+        // missing, in place. Done here rather than in a migration because the ledger is this class's own
+        // table — its name is configurable (tests use isolated ledgers), so a migration could not name it.
+        $have = $this->db->fetchCol(
+            'SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?',
+            [$this->ledger]
+        );
+        $add = [];
+        foreach (self::LEDGER_STANDARD_COLUMNS as $col => $def) {
+            if (!in_array($col, $have, true)) { $add[] = 'ADD COLUMN ' . $def; }
+        }
+        if ($add) {
+            $this->db->query('ALTER TABLE ' . $table . ' ' . implode(', ', $add));
+        }
         $pk = $this->db->fetchCol(
             'SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE
              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND CONSTRAINT_NAME = ?
