@@ -475,6 +475,16 @@ takes two optional SEO attributes alongside `title`:
 - `image` → `og:image`, as a **media-library id** (resolved to a real URL + dimensions) **or** an absolute
   `http(s)` URL (a theme asset). Absent → the site-wide `tiger.seo.og_image` fallback.
 
+**Theme `content/` pages are in `/sitemap.xml` and `/llms.txt`** (TIGER-491), through the `site-pages`
+provider (`Tiger_Theme::sitemapPages()`): every page the theme serves at its own URL, with the hint's `title`
+and `description`. Layout/partial skeletons, locale variants (`about.es.phtml` is served at `/about`) and
+`index` (that is `/`) are left out, and a CMS row at the same slug keeps the entry. A page that should not be
+indexed — an archived or duplicate copy — opts out with `sitemap="no"`:
+
+```html
+<!-- tiger:page title="Pricing (2025)" sitemap="no" -->
+```
+
 A self-referencing canonical + `og:url` + `og:site_name` are always emitted. `layout="none"` pages own
 their whole document, so `forValues` is skipped for them. All of this still requires the layout to render
 the head registry (above) — that is the one thing a content page cannot supply for itself.

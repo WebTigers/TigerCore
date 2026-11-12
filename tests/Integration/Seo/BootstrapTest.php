@@ -131,4 +131,45 @@ final class BootstrapTest extends IntegrationTestCase
         $this->assertSame('All about us.', $byLoc['/about']['desc'], 'desc pulled from meta.seo.description');
         $this->assertArrayNotHasKey('/', $byLoc, 'the empty-slug homepage is skipped');
     }
+
+    #[Test]
+    public function theme_pages_join_the_sitemap_and_a_cms_row_at_the_same_url_keeps_its_entry(): void
+    {
+        $dir = sys_get_temp_dir() . '/tigseo-' . uniqid('', true);
+        mkdir($dir . '/content', 0777, true);
+        file_put_contents($dir . '/content/get-tiger.phtml', '<!-- tiger:page title="Get Tiger" -->');
+        file_put_contents($dir . '/content/about.phtml', '<!-- tiger:page title="About (theme copy)" -->');
+        \Zend_Registry::set('Tiger_ThemeDir', $dir);
+
+        try {
+            $this->loginAs('admin');
+            (new Tiger_Model_Page())->insert([
+                'org_id' => '', 'type' => Tiger_Model_Page::TYPE_PAGE, 'locale' => 'en',
+                'status' => Tiger_Model_Page::STATUS_PUBLISHED, 'title' => 'About Us', 'slug' => 'about',
+                'body' => '<p>hi</p>', 'meta' => '{}', 'published_at' => null,
+            ]);
+
+            $this->resetProviders();
+            $this->invoke('_initSeoSitemap');
+            $this->assertArrayHasKey('site-pages', Tiger_Sitemap::providers());
+
+            $locs = array_column(Tiger_Sitemap::collect(['locale' => 'en', 'orgId' => '']), 'loc');
+            $this->assertContains('/get-tiger', $locs, 'a theme-only page is listed');
+            $this->assertSame(1, count(array_keys($locs, '/about')), 'one entry per URL');
+
+            $grouped = Tiger_Sitemap::grouped(['locale' => 'en', 'orgId' => '']);
+            $about   = null;
+            foreach ($grouped['pages'] ?? [] as $row) {
+                if ($row['loc'] === '/about') { $about = $row; }
+            }
+            $this->assertSame('About Us', $about['title'] ?? null, 'the CMS row (which wins at request time) keeps the entry');
+            $this->assertNotContains('/about', array_column($grouped['site-pages'] ?? [], 'loc'), '/llms.txt lists it once');
+            $this->assertContains('/get-tiger', array_column($grouped['site-pages'] ?? [], 'loc'));
+        } finally {
+            \Zend_Registry::set('Tiger_ThemeDir', '');
+            array_map('unlink', glob($dir . '/content/*.phtml') ?: []);
+            @rmdir($dir . '/content');
+            @rmdir($dir);
+        }
+    }
 }
