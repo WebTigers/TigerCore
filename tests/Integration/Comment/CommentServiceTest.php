@@ -544,6 +544,18 @@ final class CommentServiceTest extends IntegrationTestCase
     }
 
     #[Test]
+    public function the_thread_payload_carries_a_csrf_field_for_the_post_form(): void
+    {
+        $svc = new Comment_Service_Comment();
+        $svc->list(['subject' => 'test.thing:t1']);
+
+        // The page script builds the post form itself, so the token must come from here (never cached
+        // HTML). A stateless call has no session to arm, so it is empty — the field must still be there.
+        $this->assertArrayHasKey('csrf', (array) $svc->getResponse()->data);
+        $this->assertIsString(((array) $svc->getResponse()->data)['csrf']);
+    }
+
+    #[Test]
     public function the_thread_payload_publishes_the_depth_limit_for_the_client(): void
     {
         $svc = new Comment_Service_Comment();

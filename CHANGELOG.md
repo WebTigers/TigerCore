@@ -6,6 +6,14 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.53.5] — 2026-11-12
+
+### Fixed
+- **Posting from the `[comments]` thread works.** `Comment_Form_Comment` carries a CSRF token, but the page
+  script builds the form itself and never sent one, so every browser post was refused as "security token
+  expired". `Comment_Service_Comment::list()` now returns `csrf` (armed in the session, reused if one is live, and
+  never baked into the possibly cached page HTML), and the script posts it with every comment and reply.
+
 ## [1.53.4] — 2026-11-12
 
 ### Fixed
