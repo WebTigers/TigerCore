@@ -6,6 +6,22 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.54.0] — 2026-11-12
+
+### Fixed
+- **The Module Manager can update licensed (TigerPASS) modules** (TIGER-496). The updater sent every module without
+  its own update provider to `installFromUrl` — an unsigned download the installer refuses for a `licensed`
+  manifest — so no paid module could ever be updated from the Module Manager. A licensed module now updates only
+  through its authority (`installFromAuthority`: entitlement check, signed download, signature verified before
+  extract). No license on the install → the update is refused and nothing is fetched.
+
+### Added
+- `Tiger_License_Pass` — which license a licensed module installs and updates under: the install's activated
+  TigerPASS key for a TigerPASS-shelf module (one subscription covers the shelf), else the module's own license,
+  else none. Also the install's domain for a domain-bound license (request host, else `tiger.site.url`, for CLI runs).
+- `System_Service_Modules::installLicensed` uses the activated TigerPASS key when no key is typed for a TigerPASS
+  module. TigerPASS never stands in for another vendor's license.
+
 ## [1.53.5] — 2026-11-12
 
 ### Fixed

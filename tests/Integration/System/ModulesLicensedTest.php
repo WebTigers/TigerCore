@@ -33,6 +33,8 @@ final class ModulesLicensedTest extends IntegrationTestCase
     protected function tearDown(): void
     {
         Tiger_License_Vendor::_reset();
+        \Tiger_License_Checker::_reset();
+        \Tiger_License_Authority::_reset();
         parent::tearDown();
     }
 
@@ -104,5 +106,30 @@ final class ModulesLicensedTest extends IntegrationTestCase
         $res = $this->call('installLicensed', ['vendor' => 'acme/TigerVendor']);   // no product, no key
         $this->assertSame(0, (int) $res->result);
         $this->assertStringContainsString('incomplete', json_encode($res->messages));
+    }
+
+    #[Test]
+    public function a_tigerpass_module_installs_under_the_activated_tigerpass_key_when_none_is_typed(): void
+    {
+        $this->loginAs('superadmin');
+        $vendor = \Tiger_License_Pass::VENDOR;
+        Tiger_License_Vendor::pin($vendor, ['vendor' => $vendor, 'api_base' => 'https://store.example/shop/authority', 'public_key' => $this->pub]);
+        \Tiger_License_Checker::setStore($this->memoryStore());
+        $asked = [];
+        \Tiger_License_Authority::setTransport(static function (string $url, array $payload) use (&$asked): ?array {
+            $asked[] = $payload; return null;   // the authority refuses — we only assert WHAT it was asked with
+        });
+
+        $none = $this->call('installLicensed', ['vendor' => $vendor, 'product' => 'shop']);
+        $this->assertStringContainsString('incomplete', json_encode($none->messages), 'no TigerPASS activated and no key typed: refused');
+        $this->assertSame([], $asked, 'the authority is not asked without a key');
+
+        \Tiger_License_Checker::remember(\Tiger_License_Pass::SLUG, ['key' => 'PASS-KEY', 'authority' => 'https://store.example/shop/authority', 'vendor' => $vendor, 'public_key' => $this->pub]);
+        $this->call('installLicensed', ['vendor' => $vendor, 'product' => 'shop']);
+        $this->assertSame('PASS-KEY', $asked[0]['key'] ?? null, 'the install went to the authority under the activated TigerPASS key');
+
+        $asked = [];
+        $this->call('installLicensed', ['vendor' => 'acme/TigerVendor', 'product' => 'acme-widget']);
+        $this->assertSame([], $asked, 'TigerPASS never stands in for another vendor\'s license');
     }
 }

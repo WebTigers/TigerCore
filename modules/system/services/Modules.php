@@ -22,10 +22,10 @@ class System_Service_Modules extends Tiger_Service_Service
      * per-module license — one subscription key unlocks the whole WebTigers premium shelf — so every
      * PASS-covered module resolves its entitlement from this single record (not its own slug).
      */
-    const PASS_SLUG = '__tigerpass__';
+    const PASS_SLUG = Tiger_License_Pass::SLUG;
 
     /** The `owner/repo` trust anchor for WebTigers-published premium modules (the TigerPASS shelf). */
-    const PASS_VENDOR = 'WebTigers/TigerVendor';
+    const PASS_VENDOR = Tiger_License_Pass::VENDOR;
 
     /** How long dismissing the TigerPASS promo banner snoozes it (days) before it may reappear. */
     const NAG_SNOOZE_DAYS = 30;
@@ -1060,7 +1060,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * the artifact signature, installs, and remembers the license so update-gating works. This is the
      * per-vendor paid path (distinct from the TigerPASS subscription in activatePass).
      *
-     * @param  array $params the /api payload (expects `vendor`, `product`|`slug`, `key`; optional `repository`, `force`)
+     * @param  array $params the /api payload (expects `vendor`, `product`|`slug`, `key` — optional for a TigerPASS module when the install has TigerPASS activated; optional `repository`, `force`)
      * @return void
      */
     public function installLicensed(array $params): void
@@ -1070,6 +1070,11 @@ class System_Service_Modules extends Tiger_Service_Service
         $vendor  = trim((string) ($params['vendor'] ?? ''));
         $product = trim((string) ($params['product'] ?? $params['slug'] ?? ''));
         $key     = trim((string) ($params['key'] ?? ''));
+        // A TigerPASS module installs under the install's activated TigerPASS key when no key is typed in —
+        // one subscription covers the whole shelf. The key is read here, in-process; it never reaches the client.
+        if ($key === '' && $vendor === self::PASS_VENDOR) {
+            $key = (string) ((Tiger_License_Checker::get(self::PASS_SLUG) ?? [])['key'] ?? '');
+        }
         if ($vendor === '' || $product === '' || $key === '') { $this->_error('system.license.incomplete'); return; }
 
         $pin = Tiger_License_Vendor::pinned($vendor);
@@ -1097,9 +1102,6 @@ class System_Service_Modules extends Tiger_Service_Service
     /** This install's domain (for the domain-bound license); the authority normalizes subdomains. */
     protected function _installDomain(): string
     {
-        $front = Zend_Controller_Front::getInstance();
-        $req   = $front->getRequest();
-        $host  = $req ? (string) $req->getHttpHost() : (string) ($_SERVER['HTTP_HOST'] ?? '');
-        return strtolower(preg_replace('/:\d+$/', '', $host));
+        return Tiger_License_Pass::installDomain();
     }
 }

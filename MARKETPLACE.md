@@ -196,6 +196,10 @@ VERIFY    periodically the Checker POSTs {key, domain, product} to the authority
 UPDATE    same three calls, gated: a lapsed license withholds the update ("renew to update"); everything
           else proceeds. Keys off the module's declared authority — a single-module purchase updates
           exactly like a marketplace one.
+          The Module Manager's updater does exactly this for every licensed module (core 1.54.0, TIGER-496): it
+          resolves the license via Tiger_License_Pass — the install's TigerPASS key for a TigerPASS-shelf module,
+          else the module's own license — and updates through installFromAuthority. No license → the update is
+          refused; a licensed module is never fetched as an unsigned release.
 MANAGE    the buyer self-serves on the seller's site: see seats + which key is on which domain, RESET a
           key (unbind it to move the license), ADD a website (bind a spare key).
 ```
