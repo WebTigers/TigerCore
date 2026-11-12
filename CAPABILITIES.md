@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**251 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**252 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -117,6 +117,7 @@
 - **Tiger_Generator_Module** `@api` — scaffolds a new application module.  ·  `library/Tiger/Generator/Module.php`
 - **Tiger_License_Authority** `@api` — the client for a license authority's DOWNLOAD endpoint.  ·  `library/Tiger/License/Authority.php`
 - **Tiger_License_Checker** `@api` — the client half of licensing: hold an install's keys, verify them against whichever authority a licensed module declares, and gate auto-update.  ·  `library/Tiger/License/Checker.php`
+- **Tiger_License_Pass** `@api` — which license a licensed module installs and updates under, on this install.  ·  `library/Tiger/License/Pass.php`
 - **Tiger_License_Store** `@api` — where an install keeps the licenses it holds (one record per licensed module).  ·  `library/Tiger/License/Store.php`
 - **Tiger_License_Store_Option** `@api` — the default license store, backed by the lazy `option` tier.  ·  `library/Tiger/License/Store/Option.php`
 - **Tiger_License_Vendor** `@api` — CONNECT + pin a paid module's vendor (its `[owner]/TigerVendor` repo).  ·  `library/Tiger/License/Vendor.php`

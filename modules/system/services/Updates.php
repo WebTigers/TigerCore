@@ -332,8 +332,28 @@ class System_Service_Updates extends Tiger_Service_Service
                 return ['slug' => $u['slug'], 'name' => $u['name'], 'ok' => false, 'log' => $log];
             }
 
-            $step('apply', true, 'Downloading the release, extracting, running migrations, republishing assets…');
-            $r = Tiger_Module_Installer::installFromUrl($u['repository'], $u['ref'] ?: null, ['force' => true]);
+            // A LICENSED module only ever arrives through its authority — verified, signed, checked before a
+            // byte is extracted. Never an unsigned download (the installer refuses one anyway). It updates under
+            // the install's TigerPASS key (a PASS module) or its own license; with neither, it is not updated.
+            if ($manifest && Tiger_Module_Pricing::isLicensed($manifest)) {
+                $lic = Tiger_License_Pass::licenseFor((string) $u['slug'], $manifest);
+                if ($lic === null) {
+                    $step('license', false, 'No license for this module on this install — activate TigerPASS (or attach its license) to update it. The installed version keeps running.');
+                    Tiger_Log::info('update.license.missing', ['item' => $u['slug']]);
+                    return ['slug' => $u['slug'], 'name' => $u['name'], 'ok' => false, 'log' => $log];
+                }
+                $step('apply', true, 'Verifying the license with the authority, downloading the signed release, verifying its signature…');
+                $r = Tiger_Module_Installer::installFromAuthority($lic['authority'], $lic['key'], [
+                    'product'    => (string) $u['slug'],
+                    'vendor'     => $lic['vendor'],
+                    'public_key' => $lic['public_key'],
+                    'domain'     => Tiger_License_Pass::installDomain(),
+                    'repository' => $u['repository'] ?? null,
+                ], ['force' => true]);
+            } else {
+                $step('apply', true, 'Downloading the release, extracting, running migrations, republishing assets…');
+                $r = Tiger_Module_Installer::installFromUrl($u['repository'], $u['ref'] ?: null, ['force' => true]);
+            }
             foreach (($r['dependencies'] ?? []) as $d) {
                 $step('dependency', !empty($d['ok']), ($d['name'] ?? 'dep') . ': ' . ($d['message'] ?? ''));
             }
