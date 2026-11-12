@@ -6,6 +6,17 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.54.2] — 2026-11-12
+
+### Security
+- **Every comment write now carries a CSRF token** (TIGER-494). `edit`, `delete` and `moderate` on
+  `Comment_Service_Comment`, and `Comment_Service_Settings::save`, had no form and so no CSRF check: any page could make
+  a signed-in user edit or delete their comments, or a moderator approve/spam comments or flip the AI spam toggle.
+  Each now validates a form (`Comment_Form_Edit|Delete|Moderate|Settings`); `edit` is a partial update and seeds
+  `_csrf` + `comment_id` before `isValidPartial()` so an omitted token is still refused. All comment forms share one
+  CSRF salt (`Comment_Form_Write`), so a page needs one token. The moderation screen renders it and
+  `comment.admin.js` posts it; the reader thread posts the token from `list()` on delete too.
+
 ## [1.54.1] — 2026-11-12
 
 ### Fixed

@@ -202,6 +202,13 @@ class Comment_Service_Comment extends Tiger_Service_Service
     {
         if (!$this->_enabled()) { return; }
 
+        // A partial update: isValidPartial() checks only the keys sent, so SEED the two that must always be
+        // checked — the CSRF token and the id — or a request that omits them skips validation (TIGER-494).
+        $params['_csrf']      = !empty($params['_csrf']) ? $params['_csrf'] : '';
+        $params['comment_id'] = (string) ($params['comment_id'] ?? '');
+        $form = new Comment_Form_Edit();
+        if (!$form->isValidPartial($params)) { $this->_formErrors($form); return; }
+
         $model = new Tiger_Model_Comment();
         $row   = $model->findById((string) ($params['comment_id'] ?? ''));
         if (!$row) { $this->_error('comment.error.not_found'); return; }
@@ -252,6 +259,9 @@ class Comment_Service_Comment extends Tiger_Service_Service
         if (!$this->_isAllowed('moderate')) { $this->_error('core.api.error.not_allowed'); return; }
         if (!$this->_enabled()) { return; }
 
+        $form = new Comment_Form_Moderate();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+
         $status = (string) ($params['status'] ?? '');
         if (!in_array($status, Tiger_Model_Comment::STATUSES, true)) { $this->_error('comment.error.bad_status'); return; }
 
@@ -279,6 +289,9 @@ class Comment_Service_Comment extends Tiger_Service_Service
     public function delete(array $params): void
     {
         if (!$this->_enabled()) { return; }
+
+        $form = new Comment_Form_Delete();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $model = new Tiger_Model_Comment();
         $row   = $model->findById((string) ($params['comment_id'] ?? ''));

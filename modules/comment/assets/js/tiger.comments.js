@@ -267,7 +267,7 @@
 
             if (del) {
                 busy(del, function () {
-                    return api({ method: 'delete', comment_id: del.getAttribute('data-id') });
+                    return api({ method: 'delete', comment_id: del.getAttribute('data-id'), _csrf: root.dataset.tcCsrf || '' });
                 }).then(function (res) { after(res); });
                 return;
             }

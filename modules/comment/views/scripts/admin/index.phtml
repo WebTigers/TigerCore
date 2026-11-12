@@ -23,6 +23,7 @@ $t = fn($k) => $this->t($k);
 </div>
 
 <div id="comment-feedback"></div>
+<div id="comment-csrf" hidden><?= $this->csrfForm->getElement('_csrf') ?></div>
 
 <?php if ($this->agentAvailable): ?>
     <?php // Rendered ONLY when an agent is connected — a toggle for a check that can't run is a lie. ?>
