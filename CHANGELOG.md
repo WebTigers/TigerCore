@@ -6,6 +6,14 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.54.1] — 2026-11-12
+
+### Fixed
+- **Add Module logos no longer 404 for a listing without an explicit `ref`** (TIGER-126).
+  `Tiger_Module_Registry::_resolveImages()` resolved repo-relative media against `ref ?? version ?? main`. Repos tag
+  with a leading "v", so a bare version (`1.2.0`) named no tag and every image 404'd. Media now resolves against the
+  listing's explicit `ref`, else `main` (what the repo README renders from).
+
 ## [1.54.0] — 2026-11-12
 
 ### Fixed
