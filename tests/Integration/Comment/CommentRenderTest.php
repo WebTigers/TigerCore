@@ -26,9 +26,13 @@ use Tiger_Model_Page;
 #[CoversClass(Tiger_Model_CommentAggregate::class)]
 final class CommentRenderTest extends IntegrationTestCase
 {
+    /** The registry config before this test; restored in tearDown so no flag leaks onward. */
+    private $_configBefore = null;
+
     protected function setUp(): void
     {
         parent::setUp();
+        $this->_configBefore = \Zend_Registry::isRegistered('Zend_Config') ? \Zend_Registry::get('Zend_Config') : null;
         Tiger_Comment::reset();
         Tiger_Comment::registerSubject([
             'key'     => 'test.thing',
@@ -41,6 +45,11 @@ final class CommentRenderTest extends IntegrationTestCase
     protected function tearDown(): void
     {
         Tiger_Comment::reset();
+        if ($this->_configBefore !== null) {
+            \Zend_Registry::set('Zend_Config', $this->_configBefore);
+        } elseif (\Zend_Registry::isRegistered('Zend_Config')) {
+            \Zend_Registry::getInstance()->offsetUnset('Zend_Config');
+        }
         parent::tearDown();
     }
 
@@ -52,6 +61,42 @@ final class CommentRenderTest extends IntegrationTestCase
         $this->assertStringContainsString('data-comment-subject="test.thing:t1"', $html);
         $this->assertStringContainsString('tiger-comments-list', $html);
         $this->assertStringContainsString('tiger-comments-form', $html);
+    }
+
+    private function mergeConfig(array $data): void
+    {
+        $base = \Zend_Registry::isRegistered('Zend_Config') ? \Zend_Registry::get('Zend_Config')->toArray() : [];
+        $cfg  = new \Zend_Config($base, true);
+        $cfg->merge(new \Zend_Config($data, true));
+        \Zend_Registry::set('Zend_Config', $cfg);
+    }
+
+    #[Test]
+    public function the_thread_loads_its_own_script_and_carries_its_strings(): void
+    {
+        $html = (new Comment_Service_Render())->thread('test.thing:t1');
+
+        // The shortcode is the only thing on a CMS page that knows the thread is there, so it must load
+        // the script itself — and a public theme may not load the i18n carrier, so strings ride along.
+        $this->assertStringContainsString('/_modules/comment/js/tiger.comments.js', $html);
+        $this->assertMatchesRegularExpression('#data-strings="[^"]*commentSubmit#', $html);
+    }
+
+    #[Test]
+    public function the_recaptcha_widget_renders_only_where_a_guest_could_post(): void
+    {
+        $recaptcha = ['enabled' => '1', 'version' => 'v2', 'site_key' => 'PUBLIC-SITE-KEY'];
+
+        $this->mergeConfig(['tiger' => ['recaptcha' => $recaptcha, 'comment' => ['allow_guests' => '0']]]);
+        $this->assertStringNotContainsString('g-recaptcha', (new Comment_Service_Render())->thread('test.thing:t1'),
+            'no guests, no challenge');
+
+        $this->mergeConfig(['tiger' => ['comment' => ['allow_guests' => '1']]]);
+        $this->assertStringContainsString('tiger-comments-captcha', (new Comment_Service_Render())->thread('test.thing:t1'));
+
+        $this->mergeConfig(['tiger' => ['recaptcha' => ['enabled' => '0']]]);
+        $this->assertStringNotContainsString('tiger-comments-captcha', (new Comment_Service_Render())->thread('test.thing:t1'),
+            'reCAPTCHA off: nothing rendered');
     }
 
     #[Test]

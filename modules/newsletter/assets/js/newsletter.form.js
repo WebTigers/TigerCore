@@ -39,6 +39,11 @@
             var after = function (res) {
                 (res && res.messages || []).forEach(function (m) { notify(box, m.message, m.class); });
                 if (res && res.result === 1) { form.reset(); }
+                // A v2 checkbox token is single-use, so re-arm it for the next try. (v3 mints a fresh token
+                // on every submit inside the formRecaptcha helper.)
+                if (form.querySelector('.g-recaptcha') && window.grecaptcha && grecaptcha.reset) {
+                    try { grecaptcha.reset(); } catch (e) {}
+                }
             };
 
             if (btn && window.TigerButton && TigerButton.run) {

@@ -17,6 +17,7 @@ return [
     'comment.posted_pending'        => 'Thanks — your comment is awaiting moderation.',
     'comment.updated'               => 'Updated.',
     'comment.deleted'               => 'Deleted.',
+    'comment.action.delete'         => 'Delete',
     'comment.moderated'             => 'Moderated.',
     'comment.empty'                 => 'No comments yet.',
     'comment.verified'              => 'Verified purchase',

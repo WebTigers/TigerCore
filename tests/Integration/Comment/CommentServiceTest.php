@@ -21,9 +21,13 @@ use Tiger_Model_Config;
 #[CoversClass(Comment_Service_Comment::class)]
 final class CommentServiceTest extends IntegrationTestCase
 {
+    /** The registry config as it was before this test, restored in tearDown so no flag leaks onward. */
+    private $_configBefore = null;
+
     protected function setUp(): void
     {
         parent::setUp();
+        $this->_configBefore = \Zend_Registry::isRegistered('Zend_Config') ? \Zend_Registry::get('Zend_Config') : null;
         // CSRF is a cookie-mode defence; a CLI test has no session, so run these the way a Bearer-token
         // API call does — the same seam the other service integration tests use.
         \Zend_Registry::set('tiger.auth.stateless', true);
@@ -50,6 +54,11 @@ final class CommentServiceTest extends IntegrationTestCase
         \Tiger_Comment_Spam::reset();
         \Tiger_Comment_Spam::setTransport(null);
         Tiger_Comment::reset();
+        if ($this->_configBefore !== null) {
+            \Zend_Registry::set('Zend_Config', $this->_configBefore);
+        } elseif ($reg->offsetExists('Zend_Config')) {
+            $reg->offsetUnset('Zend_Config');
+        }
         parent::tearDown();
     }
 
@@ -439,6 +448,99 @@ final class CommentServiceTest extends IntegrationTestCase
         $svc->post(['subject' => 'test.thing:OTHER', 'body' => 'grafted', 'parent_id' => $parent['comment_id'], '_t' => time() - 10]);
 
         $this->assertSame(0, (int) $svc->getResponse()->result);
+    }
+
+    /** Merge config onto a modifiable copy (the same read-only-safe merge enable() does). */
+    private function mergeConfig(array $data): void
+    {
+        $base = \Zend_Registry::isRegistered('Zend_Config') ? \Zend_Registry::get('Zend_Config')->toArray() : [];
+        $merged = new \Zend_Config($base, true);
+        $merged->merge(new \Zend_Config($data, true));
+        \Zend_Registry::set('Zend_Config', $merged);
+    }
+
+    /** Guests allowed; reCAPTCHA on with a site key but no secret, so verification fails closed with no HTTP. */
+    private function guestsWithRecaptcha(bool $recaptcha): void
+    {
+        $this->mergeConfig(['tiger' => [
+            'comment'   => ['allow_guests' => '1', 'moderation' => 'hold'],
+            'recaptcha' => ['enabled' => $recaptcha ? '1' : '0', 'version' => 'v2', 'site_key' => 'PUBLIC-SITE-KEY', 'secret_key' => ''],
+        ]]);
+    }
+
+    private function guestPost(array $extra = []): object
+    {
+        $svc = new Comment_Service_Comment();
+        $svc->post($extra + ['subject' => 'test.thing:t1', 'body' => 'From a guest', '_t' => time() - 10,
+                             'author_name' => 'Grace Guest', 'author_email' => 'grace@example.com']);
+        return $svc->getResponse();
+    }
+
+    private function storedBodies(string $body): int
+    {
+        return (int) $this->db->fetchOne('SELECT COUNT(*) FROM comment WHERE body = ?', [$body]);
+    }
+
+    #[Test]
+    public function a_guest_can_post_when_guests_are_allowed(): void
+    {
+        $this->guestsWithRecaptcha(false);
+
+        $res = $this->guestPost();
+
+        $this->assertSame(1, (int) $res->result, 'a guest with a name + email may post when the install allows guests');
+        $this->assertSame(1, $this->storedBodies('From a guest'));
+    }
+
+    #[Test]
+    public function a_guest_post_without_a_recaptcha_token_is_refused(): void
+    {
+        $this->guestsWithRecaptcha(true);
+
+        $res = $this->guestPost();
+
+        $this->assertSame(0, (int) $res->result);
+        $this->assertArrayHasKey('recaptcha', (array) $res->form, 'the refusal comes from the form\'s reCAPTCHA element');
+        $this->assertSame(0, $this->storedBodies('From a guest'), 'nothing is stored');
+
+        $bad = $this->guestPost(['g-recaptcha-response' => 'forged-token']);
+        $this->assertSame(0, (int) $bad->result, 'a token that does not verify is refused too');
+    }
+
+    #[Test]
+    public function a_signed_in_author_is_not_asked_for_recaptcha(): void
+    {
+        $this->guestsWithRecaptcha(true);
+        $this->login('member-user');
+
+        $out = $this->post(['body' => 'From a member']);
+
+        $this->assertSame(1, $out['result'], 'a signed-in author is already identified');
+        $this->assertSame(1, $this->storedBodies('From a member'));
+    }
+
+    #[Test]
+    public function the_thread_payload_tells_the_client_who_may_post(): void
+    {
+        $payload = function (): array {
+            $svc = new Comment_Service_Comment();
+            $svc->list(['subject' => 'test.thing:t1']);
+            return (array) $svc->getResponse()->data;
+        };
+
+        $closed = $payload();
+        $this->assertTrue($closed['guest']);
+        $this->assertFalse($closed['canPost'], 'guests not allowed: the client offers no form');
+
+        $this->guestsWithRecaptcha(false);
+        $open = $payload();
+        $this->assertTrue($open['guest'], 'the client must render name + email');
+        $this->assertTrue($open['canPost']);
+
+        $this->login('member-user');
+        $member = $payload();
+        $this->assertFalse($member['guest']);
+        $this->assertTrue($member['canPost']);
     }
 
     #[Test]

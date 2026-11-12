@@ -17,6 +17,7 @@ return [
     'comment.posted_pending'        => 'धन्यवाद — आपकी टिप्पणी मॉडरेशन की प्रतीक्षा में है।',
     'comment.updated'               => 'अपडेट किया गया।',
     'comment.deleted'               => 'हटाया गया।',
+    'comment.action.delete'         => 'हटाएँ',
     'comment.moderated'             => 'मॉडरेट किया गया।',
     'comment.empty'                 => 'अभी तक कोई टिप्पणी नहीं।',
     'comment.verified'              => 'सत्यापित खरीद',

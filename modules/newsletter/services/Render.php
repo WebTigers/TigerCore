@@ -30,7 +30,7 @@ class Newsletter_Service_Render
         $button = (string) ($options['button'] ?? $this->_t('newsletter.form.submit'));
         $source = preg_replace('/[^a-z0-9_.\-]/i', '', (string) ($options['source'] ?? 'form')) ?: 'form';
 
-        $js = $view->escape($view->asset('/_modules/newsletter/js/newsletter.form.js'));
+        $js = $view->escape($this->_asset($view, '/_modules/newsletter/js/newsletter.form.js'));
 
         return '<section class="tiger-newsletter" data-newsletter-source="' . $view->escape($source) . '">'
              . ($title !== '' ? '<h2 class="h5 mb-2">' . $view->escape($title) . '</h2>' : '')
@@ -51,6 +51,9 @@ class Newsletter_Service_Render
              .     '<label class="form-label" for="tiger-newsletter-email">' . $view->escape($this->_t('newsletter.form.email')) . '</label>'
              .     '<input type="email" class="form-control" id="tiger-newsletter-email" name="email" autocomplete="email" required>'
              .   '</div>'
+             // The form's reCAPTCHA element, rendered here because this form is hand-built markup. Empty when
+             // reCAPTCHA is off; for v3 the helper mints the token on this form's real submit event.
+             .   $view->formRecaptcha('g-recaptcha-response', null, ['action' => 'newsletter_subscribe'])
              .   '<button type="submit" class="btn btn-primary">' . $view->escape($button) . '</button>'
              . '</form>'
              . '<script src="' . $js . '" defer></script>'
@@ -70,6 +73,15 @@ class Newsletter_Service_Render
             $view->addHelperPath(TIGER_CORE_PATH . '/library/Tiger/View/Helper', 'Tiger_View_Helper');
         }
         return $view;
+    }
+
+    /**
+     * The cache-busted asset URL — or the bare path outside a booted app (CLI, queued job, test), where
+     * there is no docroot (PUBLIC_PATH) for the asset helper to stat.
+     */
+    protected function _asset($view, $path)
+    {
+        return defined('PUBLIC_PATH') ? $view->asset($path) : $path;
     }
 
     /** Translate a key, falling back to the key itself. */
