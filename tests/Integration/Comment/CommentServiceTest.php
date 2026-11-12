@@ -555,6 +555,65 @@ final class CommentServiceTest extends IntegrationTestCase
         $this->assertIsString(((array) $svc->getResponse()->data)['csrf']);
     }
 
+    /**
+     * TIGER-494: every comment write carries a CSRF token in cookie mode. Before, edit / delete / moderate and the
+     * settings save had no form at all, so any page could make a signed-in user (or moderator) act cross-site.
+     * Stateless (Bearer) calls stay CSRF-free by design; these run as a cookie session would.
+     */
+    #[Test]
+    public function every_comment_write_refuses_a_tokenless_cross_site_request(): void
+    {
+        $this->loginAs('admin');
+        $this->post(['body' => 'Target']);
+        $id = (string) (new Tiger_Model_Comment())->byStatus(Tiger_Model_Comment::STATUS_PENDING, 5)[0]['comment_id'];
+
+        \Zend_Registry::set('tiger.auth.stateless', false);   // cookie mode: CSRF applies
+        try {
+            $calls = ['moderate' => 1, 'edit' => 1, 'delete' => 1];
+            foreach ($calls as $name => $call) {
+                $svc = new Comment_Service_Comment();
+                $method = $name;
+                $args = ['comment_id' => $id] + ($name === 'moderate' ? ['status' => Tiger_Model_Comment::STATUS_APPROVED] : [])
+                      + ($name === 'edit' ? ['body' => 'Rewritten cross-site'] : []);
+                $svc->$method($args);
+                $res = $svc->getResponse();
+                $this->assertSame(0, (int) $res->result, "$name without a token is refused");
+                $this->assertStringContainsString('core.api.error.csrf', json_encode($res->messages), "$name: the CSRF refusal");
+            }
+
+            $settings = new \Comment_Service_Settings();
+            $settings->save(['spam_agent' => '0']);
+            $this->assertStringContainsString('core.api.error.csrf', json_encode($settings->getResponse()->messages), 'settings save: the CSRF refusal');
+        } finally {
+            \Zend_Registry::set('tiger.auth.stateless', true);
+        }
+
+        $row = (new Tiger_Model_Comment())->findById($id);
+        $this->assertNotNull($row, 'not deleted');
+        $this->assertSame(Tiger_Model_Comment::STATUS_PENDING, (string) $row->status, 'not moderated');
+        $this->assertSame('Target', (string) $row->body, 'not edited');
+    }
+
+    #[Test]
+    public function an_edit_that_omits_the_token_key_is_still_checked(): void
+    {
+        // isValidPartial() validates only the keys sent: without the service's seed, a request that simply
+        // leaves `_csrf` out would skip the check. The seed makes the absence itself a refusal.
+        $this->loginAs('admin');
+        $this->post(['body' => 'Original']);
+        $id = (string) (new Tiger_Model_Comment())->byStatus(Tiger_Model_Comment::STATUS_PENDING, 5)[0]['comment_id'];
+
+        \Zend_Registry::set('tiger.auth.stateless', false);
+        try {
+            $svc = new Comment_Service_Comment();
+            $svc->edit(['comment_id' => $id, 'body' => 'No token key at all']);
+            $this->assertSame(0, (int) $svc->getResponse()->result);
+        } finally {
+            \Zend_Registry::set('tiger.auth.stateless', true);
+        }
+        $this->assertSame('Original', (string) (new Tiger_Model_Comment())->findById($id)->body);
+    }
+
     #[Test]
     public function the_thread_payload_publishes_the_depth_limit_for_the_client(): void
     {

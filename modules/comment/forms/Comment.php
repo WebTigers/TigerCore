@@ -11,7 +11,7 @@
  * The validators declared here also power convenience (on-blur) validation for free, and are what
  * `/api/openapi` would reflect as the request schema.
  */
-class Comment_Form_Comment extends Tiger_Form
+class Comment_Form_Comment extends Comment_Form_Write
 {
     /** @var bool does this subject accept star ratings? */
     protected $_ratings = false;

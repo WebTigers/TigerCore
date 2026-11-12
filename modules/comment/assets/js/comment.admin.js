@@ -72,7 +72,7 @@
             spam.addEventListener('change', function () {
                 var body = new URLSearchParams({
                     module: 'comment', service: 'settings', method: 'save',
-                    spam_agent: spam.checked ? '1' : '0'
+                    spam_agent: spam.checked ? '1' : '0', _csrf: csrf()
                 });
                 fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
                     .then(function (r) { return r.json().catch(function () { return {}; }); })
@@ -93,7 +93,7 @@
             TigerButton.run(btn, function () {
                 var body = new URLSearchParams({
                     module: 'comment', service: 'comment', method: 'moderate',
-                    comment_id: btn.getAttribute('data-id'), status: btn.getAttribute('data-status')
+                    comment_id: btn.getAttribute('data-id'), status: btn.getAttribute('data-status'), _csrf: csrf()
                 });
                 return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
                     .then(function (r) { return r.json().catch(function () { return {}; }); });
@@ -102,6 +102,12 @@
                 if (res && res.result === 1 && grid) { grid.ajax.reload(null, false); }
             });
         });
+    }
+
+    /** The screen's CSRF token (rendered once by the view; every action on this screen shares its salt). */
+    function csrf() {
+        var el = document.querySelector('#comment-csrf input[name="_csrf"]');
+        return el ? el.value : '';
     }
 
     if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot); } else { boot(); }

@@ -30,5 +30,7 @@ class Comment_AdminController extends Tiger_Controller_Admin_Action
         // toggle that silently does nothing is worse than no toggle.
         $this->view->agentAvailable = Tiger_Comment_Spam::agentAvailable();
         $this->view->spamAgent      = Tiger_Comment_Spam::agentEnabled();
+        // The CSRF token every action on this screen posts (moderate + settings share one salt — Comment_Form_Write).
+        $this->view->csrfForm       = new Comment_Form_Moderate();
     }
 }

@@ -20,6 +20,9 @@ class Comment_Service_Settings extends Tiger_Service_Service
     {
         if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
 
+        $form = new Comment_Form_Settings();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+
         $wanted = !empty($params['spam_agent']);
 
         if ($wanted && !Tiger_Comment_Spam::agentAvailable()) {
