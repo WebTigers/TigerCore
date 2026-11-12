@@ -216,7 +216,8 @@ class Tiger_Theme
      *    base page's URL, never its own;
      *  - not `index` — that is `/`, which the sitemap always lists.
      * A page opts out with `sitemap="no"` in its `tiger:page` hint (an archived or duplicate copy).
-     * A CMS row at the same slug wins at request time; the sitemap de-duplicates by URL.
+     * A CMS row at the same slug wins at request time; the sitemap de-duplicates by URL. `title`/`desc`
+     * come back as plain text (HTML entities in the hint decoded).
      *
      * @param  string|null $themeDir the theme dir (null = the active theme)
      * @return array<int,array{loc:string,title:string,desc:string}> sorted by title
@@ -230,7 +231,12 @@ class Tiger_Theme
                 || strtolower(trim((string) ($row['sitemap'] ?? ''))) === 'no') {
                 continue;
             }
-            $out[] = ['loc' => '/' . $slug, 'title' => (string) $row['title'], 'desc' => (string) ($row['description'] ?? '')];
+            // Hint values are written as HTML (`Developers &amp; Open Source`); sitemap consumers want text.
+            $out[] = [
+                'loc'   => '/' . $slug,
+                'title' => html_entity_decode((string) $row['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                'desc'  => html_entity_decode((string) ($row['description'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+            ];
         }
         return $out;
     }

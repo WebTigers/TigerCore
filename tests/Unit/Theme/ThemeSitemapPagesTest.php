@@ -55,13 +55,16 @@ final class ThemeSitemapPagesTest extends UnitTestCase
     {
         $this->file('get-tiger.phtml', '<!-- tiger:page title="Get Tiger" description="Plans and pricing." -->');
         $this->file('vibe.phtml');
+        $this->file('developers.phtml', '<!-- tiger:page title="Developers &amp; Open Source" description="Free &amp; open." -->');
         $this->file('guides/start.phtml', '<!-- tiger:page title="Start here" -->');
 
         $pages = $this->byLoc();
-        $this->assertSame(['/get-tiger', '/guides/start', '/vibe'], $this->sorted(array_keys($pages)));
+        $this->assertSame(['/developers', '/get-tiger', '/guides/start', '/vibe'], $this->sorted(array_keys($pages)));
         $this->assertSame('Get Tiger', $pages['/get-tiger']['title']);
         $this->assertSame('Plans and pricing.', $pages['/get-tiger']['desc']);
         $this->assertSame('', $pages['/vibe']['desc'], 'no description hint → empty, never a placeholder');
+        $this->assertSame('Developers & Open Source', $pages['/developers']['title'], 'HTML entities in the hint are decoded');
+        $this->assertSame('Free & open.', $pages['/developers']['desc']);
     }
 
     #[Test]
