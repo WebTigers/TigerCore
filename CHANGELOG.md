@@ -6,6 +6,23 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.53.3] — 2026-11-12
+
+### Security
+- **reCAPTCHA on the guest newsletter and comment forms.** Both accept anonymous posts and the newsletter emails
+  whatever address it is given, yet neither carried reCAPTCHA. `Newsletter_Form_Subscribe` and the guest branch
+  of `Comment_Form_Comment` now declare the `recaptcha` element (actions `newsletter_subscribe` and `comment_post`);
+  a pass-through when reCAPTCHA is off. The `[newsletter_form]` markup renders the widget inside its form.
+
+### Fixed
+- **The `[comments]` / `[reviews]` thread now works on a page.** The shortcode rendered an empty mount point and
+  nothing loaded `tiger.comments.js`, so no one could read or post a thread. The shell now loads the script and
+  carries its strings (`data-strings`), and the script falls back to plain DOM when the theme does not load
+  `TigerButton`/`TigerDOM` (a public theme need not).
+- **A guest could never post a comment.** The server requires a guest's name and email; the client never sent
+  them. `Comment_Service_Comment::list()` now returns `guest` and `canPost`, and the client renders the guest
+  fields (or a sign-in note when guests are not allowed).
+
 ## [1.53.2] — 2026-11-12
 
 ### Security

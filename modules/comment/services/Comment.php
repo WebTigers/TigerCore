@@ -50,6 +50,10 @@ class Comment_Service_Comment extends Tiger_Service_Service
             // The client offers a Reply only where one can actually be posted — the depth rule is the
             // server's, so the button disappears at the limit rather than failing on submit.
             'threading' => $subject ? (int) $subject['threading'] : 0,
+            // A guest must give a name + email (and pass reCAPTCHA) to post; the client renders those
+            // fields only when this says so. `canPost` is false when guests may not comment at all.
+            'guest'     => (string) ($this->_user_id ?? '') === '',
+            'canPost'   => (string) ($this->_user_id ?? '') !== '' || Tiger_Comment::allowsGuests(),
         ]);
     }
 

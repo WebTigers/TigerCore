@@ -11,7 +11,8 @@
  * a cached, anonymously-served page where a session-bound token would either be absent (guest) or
  * stale (a page cached longer than the token's lifetime). A newsletter subscribe is a public, low-value
  * write whose real protection is the double opt-in — nothing is confirmed unless the recipient clicks
- * the emailed link — backed by the honeypot and per-IP rate limit the service applies.
+ * the emailed link — backed by reCAPTCHA (when the install has it on), the honeypot and the per-IP rate
+ * limit the service applies.
  */
 class Newsletter_Form_Subscribe extends Tiger_Form
 {
@@ -46,6 +47,10 @@ class Newsletter_Form_Subscribe extends Tiger_Form
                     'placeholder'  => $this->_t('newsletter.form.name'),
                 ],
             ]],
+            // A subscribe emails whatever address it is given, so a script could aim it at anyone's inbox.
+            // Self-attaches Tiger_Validate_Recaptcha (a pass-through when reCAPTCHA is off). Unlike a CSRF
+            // token, a v3 token is minted at submit time, so a cached page is no obstacle.
+            ['recaptcha', 'recaptcha', ['action' => 'newsletter_subscribe']],
         ];
     }
 }

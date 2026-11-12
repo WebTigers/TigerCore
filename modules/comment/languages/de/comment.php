@@ -17,6 +17,7 @@ return [
     'comment.posted_pending'        => 'Danke — Ihr Kommentar wartet auf Freigabe.',
     'comment.updated'               => 'Aktualisiert.',
     'comment.deleted'               => 'Gelöscht.',
+    'comment.action.delete'         => 'Löschen',
     'comment.moderated'             => 'Moderiert.',
     'comment.empty'                 => 'Noch keine Kommentare.',
     'comment.verified'              => 'Verifizierter Kauf',

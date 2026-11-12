@@ -70,6 +70,9 @@ class Comment_Form_Comment extends Tiger_Form
                 'validators' => [['EmailAddress', false, ['allow' => Zend_Validate_Hostname::ALLOW_DNS]]],
                 'attribs'    => ['class' => 'form-control', 'placeholder' => $this->_t('comment.form.email')],
             ]];
+            // Guests only: a signed-in author is already identified. Self-attaches Tiger_Validate_Recaptcha
+            // (a pass-through when reCAPTCHA is off).
+            $elements[] = ['recaptcha', 'recaptcha', ['action' => 'comment_post']];
         }
 
         return $elements;

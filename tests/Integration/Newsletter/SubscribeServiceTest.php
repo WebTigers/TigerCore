@@ -18,9 +18,13 @@ use Tiger\Tests\Support\IntegrationTestCase;
 #[CoversClass(Newsletter_Service_Subscribe::class)]
 final class SubscribeServiceTest extends IntegrationTestCase
 {
+    /** The registry config before this test; restored in tearDown so the reCAPTCHA flag never leaks. */
+    private $_configBefore = null;
+
     protected function setUp(): void
     {
         parent::setUp();
+        $this->_configBefore = \Zend_Registry::isRegistered('Zend_Config') ? \Zend_Registry::get('Zend_Config') : null;
         // Run as a Bearer-style API call (no CLI session); the form has no CSRF element anyway.
         \Zend_Registry::set('tiger.auth.stateless', true);
         $_SERVER['REMOTE_ADDR']    = '203.0.113.7';
@@ -32,6 +36,11 @@ final class SubscribeServiceTest extends IntegrationTestCase
         $reg = \Zend_Registry::getInstance();
         if ($reg->offsetExists('tiger.auth.stateless')) { $reg->offsetUnset('tiger.auth.stateless'); }
         unset($_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_USER_AGENT']);
+        if ($this->_configBefore !== null) {
+            \Zend_Registry::set('Zend_Config', $this->_configBefore);
+        } elseif ($reg->offsetExists('Zend_Config')) {
+            $reg->offsetUnset('Zend_Config');
+        }
         parent::tearDown();
     }
 
@@ -175,5 +184,41 @@ final class SubscribeServiceTest extends IntegrationTestCase
         $svc = new Newsletter_Service_Subscribe();
         $svc->datatable([]);
         $this->assertSame(1, (int) $svc->getResponse()->result, 'an admin can');
+    }
+
+    /** reCAPTCHA on with a site key but no secret: verification fails closed with no HTTP. */
+    private function recaptchaOn(): void
+    {
+        $base = \Zend_Registry::isRegistered('Zend_Config') ? \Zend_Registry::get('Zend_Config')->toArray() : [];
+        $cfg  = new \Zend_Config($base, true);
+        $cfg->merge(new \Zend_Config(['tiger' => ['recaptcha' => [
+            'enabled' => '1', 'version' => 'v2', 'site_key' => 'PUBLIC-SITE-KEY', 'secret_key' => '',
+        ]]], true));
+        \Zend_Registry::set('Zend_Config', $cfg);
+    }
+
+    #[Test]
+    public function a_subscribe_without_a_recaptcha_token_is_refused_and_sends_nothing(): void
+    {
+        $this->recaptchaOn();
+
+        $svc = new Newsletter_Service_Subscribe();
+        $svc->subscribe(['email' => 'bot-target@example.com', '_t' => time() - 10]);
+        $res = $svc->getResponse();
+
+        $this->assertSame(0, (int) $res->result);
+        $this->assertArrayHasKey('recaptcha', (array) $res->form, 'the refusal comes from the form\'s reCAPTCHA element');
+        $this->assertNull($this->rowFor('bot-target@example.com'), 'no row, so no confirmation mail to an address a script chose');
+    }
+
+    #[Test]
+    public function the_embeddable_form_carries_the_recaptcha_widget_only_when_it_is_on(): void
+    {
+        $off = (new \Newsletter_Service_Render())->form();
+        $this->assertStringNotContainsString('g-recaptcha', $off, 'reCAPTCHA off: nothing rendered');
+
+        $this->recaptchaOn();
+        $on = (new \Newsletter_Service_Render())->form();
+        $this->assertMatchesRegularExpression('#<form[^>]*>.*class="g-recaptcha".*</form>#s', $on, 'the widget sits INSIDE the form, so its token posts with it');
     }
 }

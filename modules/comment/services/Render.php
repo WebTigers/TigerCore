@@ -14,6 +14,22 @@
  */
 class Comment_Service_Render
 {
+    /** The thread script's strings: its key => the translation key (sent as the shell's data-strings). */
+    const STRINGS = [
+        'commentBody'       => 'comment.form.body',
+        'commentDelete'     => 'comment.action.delete',
+        'commentEmail'      => 'comment.form.email',
+        'commentEmpty'      => 'comment.empty',
+        'commentName'       => 'comment.form.name',
+        'commentOutOf5'     => 'comment.out_of_5',
+        'commentRating'     => 'comment.rating',
+        'commentRatingNone' => 'comment.form.rating_none',
+        'commentReply'      => 'comment.form.reply',
+        'commentSignIn'     => 'comment.error.sign_in',
+        'commentSubmit'     => 'comment.form.submit',
+        'commentVerified'   => 'comment.verified',
+    ];
+
     /**
      * The comment thread mount point — an empty container the module's JS fills from `/api`.
      *
@@ -30,11 +46,33 @@ class Comment_Service_Render
         $title = $options['title'] ?? $this->_t($type === '' || !Tiger_Comment::acceptsRatings($type)
             ? 'comment.heading.comments' : 'comment.heading.reviews');
 
-        return '<section class="tiger-comments" data-comment-subject="' . $view->escape($type . ':' . $id) . '">'
+        // Guest posts carry a reCAPTCHA token. The widget lives in the server-rendered shell, not in the
+        // JS-built form: a v2 checkbox only auto-renders from markup present at load, and the v3 site key
+        // reaches the script as a data attribute. The script hides the box for a signed-in reader.
+        $captcha = '';
+        $v3Site  = '';
+        if (Tiger_Comment::allowsGuests() && Tiger_Recaptcha::isEnabled()) {
+            $captcha = '<div class="tiger-comments-captcha mt-2">'
+                     . $view->formRecaptcha('g-recaptcha-response', null, ['action' => 'comment_post'])
+                     . '</div>';
+            $v3Site  = Tiger_Recaptcha::version() === 'v3' ? Tiger_Recaptcha::siteKey() : '';
+        }
+
+        $js = $view->escape($this->_asset($view, '/_modules/comment/js/tiger.comments.js'));
+
+        // A public theme may not load the i18n carrier, so the script's strings ride on the shell.
+        $strings = [];
+        foreach (self::STRINGS as $jsKey => $key) { $strings[$jsKey] = $this->_t($key); }
+
+        return '<section class="tiger-comments" data-comment-subject="' . $view->escape($type . ':' . $id) . '"'
+             . ' data-recaptcha-site="' . $view->escape($v3Site) . '"'
+             . ' data-strings="' . $view->escape(json_encode($strings, JSON_UNESCAPED_UNICODE)) . '">'
              . '<h2 class="h5 mb-3">' . $view->escape((string) $title) . '</h2>'
              . '<div class="tiger-comments-feedback"></div>'
              . '<div class="tiger-comments-list"></div>'
              . '<div class="tiger-comments-form"></div>'
+             . $captcha
+             . '<script src="' . $js . '" defer></script>'
              . '</section>';
     }
 
@@ -120,6 +158,15 @@ class Comment_Service_Render
             $view->addHelperPath(TIGER_CORE_PATH . '/library/Tiger/View/Helper', 'Tiger_View_Helper');
         }
         return $view;
+    }
+
+    /**
+     * The cache-busted asset URL — or the bare path outside a booted app (CLI, queued job, test), where
+     * there is no docroot (PUBLIC_PATH) for the asset helper to stat.
+     */
+    protected function _asset($view, $path)
+    {
+        return defined('PUBLIC_PATH') ? $view->asset($path) : $path;
     }
 
     /** Translate a key, falling back to the key itself. */

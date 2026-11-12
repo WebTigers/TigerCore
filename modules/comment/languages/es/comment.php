@@ -17,6 +17,7 @@ return [
     'comment.posted_pending'        => 'Gracias: tu comentario está pendiente de moderación.',
     'comment.updated'               => 'Actualizado.',
     'comment.deleted'               => 'Eliminado.',
+    'comment.action.delete'         => 'Eliminar',
     'comment.moderated'             => 'Moderado.',
     'comment.empty'                 => 'Aún no hay comentarios.',
     'comment.verified'              => 'Compra verificada',
