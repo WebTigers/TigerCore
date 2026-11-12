@@ -263,6 +263,19 @@ final class RegistryTest extends UnitTestCase
     }
 
     #[Test]
+    public function media_without_an_explicit_ref_resolves_from_main_not_the_bare_version(): void
+    {
+        // Repos tag with a leading "v": the bare version names no tag, so resolving against it 404s every image.
+        $this->primeIndex(['modules' => [[
+            'module' => 'Bare', 'slug' => 'bare', 'repository' => 'https://github.com/Acme/Bare',
+            'version' => '1.2.0', 'logo' => 'media/logo.jpg',
+        ]]]);
+
+        $m = Tiger_Module_Registry::search('bare')[0];
+        $this->assertSame('https://raw.githubusercontent.com/Acme/Bare/main/media/logo.jpg', $m['logo']);
+    }
+
+    #[Test]
     public function a_vimeo_video_becomes_a_player_embed_and_a_self_hosted_mp4_resolves_to_raw(): void
     {
         $this->primeIndex(['modules' => [

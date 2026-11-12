@@ -228,7 +228,9 @@ class Tiger_Module_Registry
         if (!preg_match('#github\.com/([^/]+)/([^/]+?)/?$#i', (string) ($m['repository'] ?? ''), $r)) {
             return $m;
         }
-        $ref  = (string) ($m['ref'] ?? $m['version'] ?? 'main');
+        // The listing's explicit ref, else main — never the bare `version`: repos tag with a leading "v", so
+        // "1.2.0" names no tag and every image 404s (TIGER-126). Main is also what the repo README renders from.
+        $ref  = (string) (($m['ref'] ?? '') !== '' ? $m['ref'] : 'main');
         $base = "https://raw.githubusercontent.com/{$r[1]}/{$r[2]}/{$ref}/";
         $abs  = static function ($p) use ($base) {
             $p = (string) $p;
