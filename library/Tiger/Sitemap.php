@@ -84,14 +84,17 @@ class Tiger_Sitemap
     /**
      * Like collect(), but GROUPED by provider key and preserving each entry's optional `title` +
      * `desc` — the shape /llms.txt needs (a section per content type, with human labels). The XML
-     * sitemap uses collect(); the LLM index uses this.
+     * sitemap uses collect(); the LLM index uses this. A URL appears once across ALL groups, under the
+     * first provider that lists it — the same rule as collect(), so a page that is both a CMS row and a
+     * theme file is not listed twice.
      *
      * @param  array $context passed to each provider (expects `locale`, `orgId`)
      * @return array<string,array<int,array{loc:string,lastmod:?string,title:string,desc:string}>>
      */
     public static function grouped(array $context = [])
     {
-        $out = [];
+        $out  = [];
+        $seen = [];
         foreach (self::$_providers as $key => $provider) {
             try {
                 $set = $provider($context);
@@ -102,7 +105,6 @@ class Tiger_Sitemap
                 continue;
             }
             $rows = [];
-            $seen = [];
             foreach ($set as $entry) {
                 $loc = isset($entry['loc']) ? (string) $entry['loc'] : '';
                 if ($loc === '' || isset($seen[$loc])) {

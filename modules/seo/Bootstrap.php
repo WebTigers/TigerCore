@@ -69,5 +69,12 @@ class Seo_Bootstrap extends Zend_Application_Module_Bootstrap
             }
             return $urls;
         });
+
+        // The active theme's own content pages (TIGER-491): served by Tiger_Controller_Plugin_ThemeContent
+        // with no CMS row, so the provider above never saw them. Registered AFTER 'pages' so a CMS row at
+        // the same URL keeps its entry (collect() keeps the first `loc` it sees).
+        Tiger_Sitemap::register('site-pages', function (array $ctx) {
+            return Tiger_Theme::sitemapPages();
+        });
     }
 }

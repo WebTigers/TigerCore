@@ -145,7 +145,10 @@ class Tiger_Theme
      * partials() (which each re-scan the tree); use this where the whole set is needed at once (the
      * Theme Templates datatable, which a large theme — Porto ~830 — makes worth doing in one scan).
      *
-     * @return array<int,array<string,string>> [{kind,slug,title,layout,skin}] sorted by title
+     * `description` and `sitemap` are the hint's raw values ('' when absent) — read in this same pass so
+     * {@see sitemapPages()} never re-reads the tree.
+     *
+     * @return array<int,array<string,string>> [{kind,slug,title,layout,skin,description,sitemap}] sorted by title
      */
     public static function forkables($themeDir = null)
     {
@@ -173,7 +176,9 @@ class Tiger_Theme
             return [];
         }
         ksort($files);
-        $fp     = md5($root . '|' . serialize($files));
+        // The leading tag versions the cached row shape: change it whenever a field is added, or a cache
+        // written before the field existed is served (minus that field) until some file changes.
+        $fp     = md5('v2|' . $root . '|' . serialize($files));
         $cached = self::_cacheGet($root, $fp);
         if ($cached !== null) { return $cached; }
 
@@ -191,10 +196,42 @@ class Tiger_Theme
                 'title'  => $meta['title']  ?? ucfirst(str_replace(['-', '/'], ' ', $slug)),
                 'layout' => $meta['layout'] ?? '',
                 'skin'   => $meta['skin']   ?? '',
+                'description' => $meta['description'] ?? '',
+                'sitemap'     => $meta['sitemap']     ?? '',
             ];
         }
         usort($out, static function ($a, $b) { return strcasecmp($a['title'], $b['title']); });
         self::_cacheSet($root, $fp, $out);
+        return $out;
+    }
+
+    /**
+     * The active theme's content pages a guest can reach at their own URL, for /sitemap.xml and
+     * /llms.txt (TIGER-491). Without this, a site whose pages come from its theme rather than CMS rows
+     * (webtigers.com's whole Solutions set) had none of them in its sitemap.
+     *
+     * Only what {@see Tiger_Controller_Plugin_ThemeContent} would serve at `/<slug>`:
+     *  - pages, not layout/partial skeletons;
+     *  - no locale variants (`index.es`) — the plugin's slug is dot-free, so the variant is served AT the
+     *    base page's URL, never its own;
+     *  - not `index` — that is `/`, which the sitemap always lists.
+     * A page opts out with `sitemap="no"` in its `tiger:page` hint (an archived or duplicate copy).
+     * A CMS row at the same slug wins at request time; the sitemap de-duplicates by URL.
+     *
+     * @param  string|null $themeDir the theme dir (null = the active theme)
+     * @return array<int,array{loc:string,title:string,desc:string}> sorted by title
+     */
+    public static function sitemapPages($themeDir = null)
+    {
+        $out = [];
+        foreach (self::forkables($themeDir) as $row) {
+            $slug = (string) $row['slug'];
+            if ($row['kind'] !== 'page' || $slug === 'index' || strpos($slug, '.') !== false
+                || strtolower(trim((string) ($row['sitemap'] ?? ''))) === 'no') {
+                continue;
+            }
+            $out[] = ['loc' => '/' . $slug, 'title' => (string) $row['title'], 'desc' => (string) ($row['description'] ?? '')];
+        }
         return $out;
     }
 

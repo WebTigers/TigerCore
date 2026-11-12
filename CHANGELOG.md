@@ -6,6 +6,17 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.53.1] — 2026-11-12
+
+### Fixed
+- **`/sitemap.xml` now lists the active theme's content pages** (TIGER-491). It only listed CMS page rows, so a
+  site whose pages ship in its theme's `content/` (served by `Tiger_Controller_Plugin_ThemeContent`) had none of
+  them in its sitemap or `/llms.txt`. A new `site-pages` provider (`Tiger_Theme::sitemapPages()`) adds every page
+  the theme serves at its own URL, leaving out layout/partial skeletons, locale variants and `index`. A page opts
+  out with `sitemap="no"` in its `tiger:page` hint (THEMES.md). A CMS row at the same URL keeps its entry.
+- `Tiger_Sitemap::grouped()` lists a URL once across all groups, as `collect()` already did, so `/llms.txt` no
+  longer repeats a page that two providers both list.
+
 ## [1.53.0] — 2026-11-11
 
 ### Changed
