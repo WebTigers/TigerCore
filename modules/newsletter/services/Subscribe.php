@@ -230,10 +230,11 @@ class Newsletter_Service_Subscribe extends Tiger_Service_Service
         }
     }
 
-    /** Translate a key, falling back to the key itself (so a missing string is never a fatal). */
+    /** Translate a key: the active locale, else English, else the key itself (never a fatal). */
     protected function _t($key)
     {
         if (!$this->_translate) { return $key; }
-        return $this->_translate->isTranslated($key) ? $this->_translate->translate($key) : $key;
+        if ($this->_translate->isTranslated($key)) { return $this->_translate->translate($key); }
+        return $this->_translate->isTranslated($key, false, 'en') ? $this->_translate->translate($key, 'en') : $key;   // English, never a raw key
     }
 }

@@ -84,11 +84,12 @@ class Newsletter_Service_Render
         return defined('PUBLIC_PATH') ? $view->asset($path) : $path;
     }
 
-    /** Translate a key, falling back to the key itself. */
+    /** Translate a key: the active locale, else English, else the key itself. */
     protected function _t($key)
     {
         if (!Zend_Registry::isRegistered('Zend_Translate')) { return $key; }
         $t = Zend_Registry::get('Zend_Translate');
-        return $t->isTranslated($key) ? $t->translate($key) : $key;
+        if ($t->isTranslated($key)) { return $t->translate($key); }
+        return $t->isTranslated($key, false, 'en') ? $t->translate($key, 'en') : $key;   // a missing locale degrades to English, never a raw key
     }
 }
