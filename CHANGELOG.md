@@ -15,6 +15,9 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
   no subjects, no `[comments]`/`[reviews]`/`[stars]`/`[rating_summary]` shortcodes, no spam checker and no admin
   item. Registration moved to `Comment_Plugin_Register`, a front-controller plugin that reads the flag per
   request after the full bootstrap. Off still registers nothing.
+- **The newsletter form and the comment thread no longer show raw i18n keys** in a locale the module has no
+  strings for. Their translate helpers now fall back to English before the key (active locale → `en` → key), the
+  same order `Register_Widget_Registration` uses.
 
 ## [1.53.3] — 2026-11-12
 

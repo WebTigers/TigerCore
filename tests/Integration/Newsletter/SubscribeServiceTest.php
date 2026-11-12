@@ -221,4 +221,22 @@ final class SubscribeServiceTest extends IntegrationTestCase
         $on = (new \Newsletter_Service_Render())->form();
         $this->assertMatchesRegularExpression('#<form[^>]*>.*class="g-recaptcha".*</form>#s', $on, 'the widget sits INSIDE the form, so its token posts with it');
     }
+
+    #[Test]
+    public function a_locale_without_the_string_falls_back_to_english_never_a_raw_key(): void
+    {
+        $had = \Zend_Registry::isRegistered('Zend_Translate') ? \Zend_Registry::get('Zend_Translate') : null;
+        $tr  = new \Zend_Translate(['adapter' => 'array', 'content' => ['newsletter.form.title' => 'Stay in the loop'], 'locale' => 'en']);
+        $tr->addTranslation(['content' => ['unrelated.key' => 'x'], 'locale' => 'de']);
+        $tr->setLocale('de');
+        \Zend_Registry::set('Zend_Translate', $tr);
+        try {
+            $html = (new \Newsletter_Service_Render())->form();
+        } finally {
+            if ($had !== null) { \Zend_Registry::set('Zend_Translate', $had); } else { \Zend_Registry::getInstance()->offsetUnset('Zend_Translate'); }
+        }
+
+        $this->assertStringContainsString('Stay in the loop', $html, 'the English string, not the key');
+        $this->assertStringNotContainsString('newsletter.form.title', $html);
+    }
 }
