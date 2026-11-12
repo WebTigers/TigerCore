@@ -54,7 +54,32 @@ class Comment_Service_Comment extends Tiger_Service_Service
             // fields only when this says so. `canPost` is false when guests may not comment at all.
             'guest'     => (string) ($this->_user_id ?? '') === '',
             'canPost'   => (string) ($this->_user_id ?? '') !== '' || Tiger_Comment::allowsGuests(),
+            // The post form's CSRF token. The thread shell may sit on a cached page, so the token comes
+            // from this per-view /api call, never baked into the HTML. Same form class => same salt.
+            'csrf'      => $this->_csrfToken(),
         ]);
+    }
+
+    /**
+     * A CSRF token for Comment_Form_Comment, armed in this session; '' where there is no session to arm
+     * (a stateless Bearer call — which the CSRF check does not apply to anyway).
+     *
+     * @return string
+     */
+    protected function _csrfToken(): string
+    {
+        try {
+            $el = (new Comment_Form_Comment())->getElement('_csrf');
+            if (!$el) { return ''; }
+            // Reuse a live token: two threads on one page would otherwise each mint one, and the second
+            // would invalidate the first.
+            $live = (string) ($el->getSession()->hash ?? '');
+            if ($live !== '') { return $live; }
+            $el->initCsrfToken();
+            return (string) $el->getHash();
+        } catch (Throwable $e) {
+            return '';
+        }
     }
 
     /**

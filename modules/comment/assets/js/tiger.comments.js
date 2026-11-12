@@ -137,6 +137,7 @@
         var maxDepth = typeof d.threading === 'number' ? d.threading : 0;
         var canPost  = d.canPost !== false;
         root.dataset.tcGuest = d.guest ? '1' : '';
+        root.dataset.tcCsrf  = d.csrf || '';   // the post form's CSRF token, fresh per view (never baked into cached HTML)
         list.innerHTML = all.length
             ? tree(all).map(function (c) { return commentHTML(c, canPost && (c.depth || 0) < maxDepth); }).join('')
             : '<p class="text-body-secondary">' + esc(t('commentEmpty', 'No comments yet.')) + '</p>';
@@ -254,7 +255,8 @@
                             subject:   root.getAttribute('data-comment-subject') || '',
                             body:      bodyEl ? bodyEl.value : '',
                             parent_id: send.getAttribute('data-parent'),
-                            _t:        String(Math.floor(Date.now() / 1000) - 5)
+                            _t:        String(Math.floor(Date.now() / 1000) - 5),
+                            _csrf:     root.dataset.tcCsrf || ''
                         }, extras));
                     });
                 }).then(function (res) { after(res); });
@@ -279,7 +281,8 @@
                         body:       (root.querySelector('.tc-body-input') || {}).value || '',
                         rating:     (root.querySelector('.tc-rating') || {}).value || '',
                         _hp:        (root.querySelector('.tc-hp-field') || {}).value || '',
-                        _t:         form ? form.dataset.rendered : ''
+                        _t:         form ? form.dataset.rendered : '',
+                        _csrf:      root.dataset.tcCsrf || ''
                     }, extras));
                 });
             }).then(function (res) { after(res); });
