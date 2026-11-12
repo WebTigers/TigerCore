@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**250 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**251 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -357,6 +357,7 @@
 - **Tiger_Sms_Adapter_Telnyx** `@api` — the Telnyx SMS adapter.  ·  `library/Tiger/Sms/Adapter/Telnyx.php`
 - **Tiger_Sms_Adapter_Twilio** `@api` — the Twilio SMS adapter (the industry-standard API).  ·  `library/Tiger/Sms/Adapter/Twilio.php`
 - **Tiger_Sms_Adapter_Vonage** `@api` — the Vonage (formerly Nexmo) SMS adapter.  ·  `library/Tiger/Sms/Adapter/Vonage.php`
+- **Tiger_Sns** `@api` — authenticate an Amazon SNS HTTP(S) delivery before acting on it (TIGER-295).  ·  `library/Tiger/Sns.php`
 
 ## Modules (`modules/*` — activatable features)
 

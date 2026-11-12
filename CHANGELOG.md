@@ -6,6 +6,20 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.53.2] — 2026-11-12
+
+### Security
+- **The media SNS callback (`POST /media/callback`) now authenticates every message** (TIGER-295). It accepted any
+  anonymous POST and, for a `SubscriptionConfirmation`, requested whatever `SubscribeURL` the body named — on every
+  install, whether or not video moderation was configured. Now the endpoint answers 404 unless `media.scan.video` is on
+  and `media.scan.video_sns_topic` is set; a message must name that topic and carry a valid SNS signature; and a
+  subscription is confirmed only at an `sns.<region>.amazonaws.com` URL.
+
+### Added
+- `Tiger_Sns` — verifies an Amazon SNS HTTP(S) message (signature versions 1 and 2, certificate only from an SNS
+  host) and confirms a subscription only at an SNS URL. Reusable by any SNS receiver.
+- Config `media.scan.video_sns_topic` (default empty).
+
 ## [1.53.1] — 2026-11-12
 
 ### Fixed
