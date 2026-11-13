@@ -6,6 +6,16 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.54.3] — 2026-11-13
+
+### Changed
+- **No more "beta" wording anywhere Tiger describes itself.** The `/cms` landing page dropped the "Beta"
+  badge on the cPanel install card and the `--stability=beta` flag from its `composer create-project`
+  command; `UPDATING.md` gives the plain stable command; `ROADMAP-1.0.md` now records that 1.0 shipped
+  (2026-08-24) instead of reading as an open pre-launch plan; `TIGERAGENT.md` states the agent is shipped.
+  Version-constraint examples in `DEPENDENCIES.md` and the module generator's `dependency.ini` template use
+  current stable versions.
+
 ## [1.54.2] — 2026-11-12
 
 ### Security

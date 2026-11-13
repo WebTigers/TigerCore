@@ -7,11 +7,11 @@ store, or the shell. For the platform *why* read [ARCHITECTURE.md](ARCHITECTURE.
 contract read [WEBSERVICES.md](WEBSERVICES.md); for the admin shell read [ADMIN.md](ADMIN.md); for the
 sibling "runs community code in-process, stated honestly" design read [CODE.md](CODE.md).
 
-> **Status: Phase 1 + 1.5 BUILT (alphaware, on `feat/tiger-agent`).** The vertical slice runs end to
+> **Status: shipped in tiger-core.** The agent runs end to
 > end: the persistent app-shell aside, eight provider adapters (Anthropic, OpenAI, Gemini, xAI Grok, Groq, Mistral, DeepSeek, OpenRouter — via a shared OpenAI-compatible base), the multi-step ReAct turn Loop,
 > the response contract + parser, the permission-gated Forge (all four write tiers), the **Scout read
 > surface** (§2b), **auto-mode** (§3a), the data model, and the settings screen. Where a section says
-> "roadmap" it isn't built yet; everything else describes code in this branch. **What shipped** —
+> "roadmap" it isn't built yet; everything else describes shipped code. **What shipped** —
 > library: `Tiger_Agent` (facade), `Tiger_Agent_Contract`, `Tiger_Agent_Loop` (multi-step), `Tiger_Agent_Forge`,
 > `Tiger_Agent_Scout` (read.inventory/tree/file/grep), `Tiger_Agent_Tools`, `Tiger_Agent_Provider_*`
 > (Adapter/Anthropic/Factory), `Tiger_Model_Agent{Conversation,Message,Run}` + migrations 0034–0036;

@@ -188,10 +188,10 @@ INI;
 ; (only when toggling this module) — no boot cost. Delete this file if unused.
 [requires]
 ; modules[] = "account"
-; modules[] = "billing >=0.5.0-beta"
+; modules[] = "billing >=1.2"
 ;
 ; Tested-Tiger-version metadata (also advisory, "not tested for Tiger X.Y.Z") lives in a module.json
-; manifest, not here — "compat": { "tiger": { "min": "0.36.0-beta", "max": "0.41.0-beta" } }.
+; manifest, not here — "compat": { "tiger": { "min": "1.50.0", "max": "1.54.2" } }.
 
 INI;
 

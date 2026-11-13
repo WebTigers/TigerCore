@@ -192,7 +192,7 @@ is ever blocked (`Tiger_Module_Installer::_checkRequires` keeps only PHP as a ha
 Declare in `module.json` the Tiger version range the module was **tested** against:
 
 ```json
-"compat": { "tiger": { "min": "0.36.0-beta", "max": "0.41.0-beta" } }
+"compat": { "tiger": { "min": "1.50.0", "max": "1.54.2" } }
 ```
 
 `Tiger_Module_Compat::check($manifest)` compares that to the running **`TIGER_VERSION`** (the canonical
@@ -217,7 +217,7 @@ carry a **version constraint** (space / `@` / `:` separated), compared with the 
 ```ini
 [requires]
 modules[] = "account"
-modules[] = "billing >=0.5.0-beta"
+modules[] = "billing >=1.2"
 ```
 
 - **on activate** — `missingReport($slug)` surfaces requirements that are **absent, inactive, or too

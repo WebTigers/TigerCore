@@ -42,7 +42,7 @@ class Tiger_Update_Core
      * a `*vendor*.zip` asset + its `*.zip.sha256`. Returns {url, sha256, version} or null when no
      * such release ZIP is published yet (the caller then falls back to Composer/advisory).
      *
-     * @param  string $version the target version (e.g. "0.6.0-beta")
+     * @param  string $version the target version (e.g. "1.54.2")
      * @param  string $org
      * @param  string $repo
      * @return array|null
