@@ -6,6 +6,14 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.54.4] — 2026-11-13
+
+### Fixed
+- **Theme page titles were double-encoded.** A `tiger:page` hint lives in HTML, so its text is written
+  HTML-encoded (`&amp;`, `&#039;`); the head helpers escape on output, so a title like
+  "Developers &amp; Open Source" reached the browser as `&amp;amp;`. `PageController::themeContentAction`
+  now decodes the hint's `title` and `description` once before handing them on.
+
 ## [1.54.3] — 2026-11-13
 
 ### Changed

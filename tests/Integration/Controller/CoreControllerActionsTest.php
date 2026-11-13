@@ -484,6 +484,31 @@ final class CoreControllerActionsTest extends ControllerTestCase
         }
     }
 
+    #[Test]
+    public function theme_content_decodes_an_html_encoded_hint_title_once(): void
+    {
+        // Authors HTML-encode the hint (it lives in markup). The head escapes on output, so the
+        // controller must hand on plain text — else "&amp;" reaches the browser as "&amp;amp;".
+        $themeDir = sys_get_temp_dir() . '/w6-theme-' . bin2hex(random_bytes(4));
+        mkdir($themeDir . '/content', 0777, true);
+        file_put_contents(
+            $themeDir . '/content/enc.phtml',
+            "<!-- tiger:page title=\"Devs &amp; Partners d&#039;h\u{00e9}bergement\" description=\"A &amp; B\" -->\n<p>x</p>"
+        );
+        Zend_Registry::set('Tiger_ThemeDir', $themeDir);
+
+        try {
+            $this->dispatchAction(PageController::class, 'themeContent', ['theme_content_slug' => 'enc'], 'GET');
+            $this->assertSame("Devs & Partners d'h\u{00e9}bergement", $this->controller()->view->title);
+            $this->assertSame('A & B', $this->controller()->view->pageMeta['description']);
+        } finally {
+            Zend_Registry::set('Tiger_ThemeDir', '');
+            @unlink($themeDir . '/content/enc.phtml');
+            @rmdir($themeDir . '/content');
+            @rmdir($themeDir);
+        }
+    }
+
     // ===== AdminController ====================================================
 
     #[Test]

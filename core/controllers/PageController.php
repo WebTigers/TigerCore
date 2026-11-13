@@ -118,6 +118,12 @@ class PageController extends Tiger_Controller_Action
 
         $raw  = (string) file_get_contents($file);
         $meta = Tiger_Theme::hint($raw, 'tiger:page');
+        // The hint sits in HTML, so authors write its text HTML-encoded (`&amp;`, `&#039;`). The head
+        // helpers escape on output, so decode the human-readable values ONCE here — otherwise a title
+        // like "Developers &amp; Open Source" reaches the browser double-encoded.
+        foreach (['title', 'description'] as $k) {
+            if (isset($meta[$k])) { $meta[$k] = html_entity_decode($meta[$k], ENT_QUOTES | ENT_HTML5, 'UTF-8'); }
+        }
         $body = preg_replace('/^\s*<!--\s*tiger:page\b.*?-->\s*/s', '', $raw, 1);   // strip the hint line
 
         // Per-page head/scripts from the hint, resolved against the theme's own asset base.
