@@ -43,6 +43,37 @@ jobs:
       - name: Unit suite
         run: composer test:unit
 
+  # Known-vulnerable dependencies (SECURITY.md). One PHP is enough: advisories are about package
+  # versions, which composer.lock pins for every leg of the matrix alike.
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Composer audit
+        run: composer audit --no-interaction
+
+      # Tiger is a stable 1.x line. A README or docs page still calling it "beta" is what made an
+      # outside review conclude it was pre-release (TIGER-497). CHANGELOG history and tests are exempt.
+      - name: No "beta" release-status wording in docs
+        run: |
+          P='status:\*{0,2} *(public |early )?beta|is (in|still in) (public |early )?beta|public beta|early beta|--stability=beta|"minimum-stability": *"beta"'
+          if grep -rniE "$P" --include='*.md' --include='*.phtml' --exclude=CHANGELOG.md \
+               --exclude-dir={vendor,tests,.git,node_modules} .; then
+            echo "::error::Docs describe Tiger as beta — it is a stable 1.x release line."; exit 1
+          fi
+
   # The client half of localization. Plain node + assert, no package.json: Tiger.t() is one function
   # every module's JavaScript goes through, and a test that needs no toolchain is one that still runs.
   javascript:
