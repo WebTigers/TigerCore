@@ -9,7 +9,7 @@
  *
  *   [requires]
  *   modules[] = "account"
- *   modules[] = "billing >=0.5.0-beta"
+ *   modules[] = "billing >=1.2"
  *
  * These are CONVENIENCE ALERTS, never hard blocks:
  *   - on activate:   missing($slug) / missingReport($slug) -> required modules absent, inactive, OR
@@ -150,7 +150,7 @@ class Tiger_Module_Dependency
     /**
      * Parse [requires] modules[] from a module dir's configs/dependency.ini into slug + constraint
      * pairs (lowercased slug, deduped by slug). Each entry is a bare slug or "slug <constraint>"
-     * where the separator is whitespace, `@`, or `:` — e.g. "billing >=0.5.0-beta", "pay@^1.0".
+     * where the separator is whitespace, `@`, or `:` — e.g. "billing >=1.2", "pay@^1.0".
      */
     protected static function _readRequirements($dir)
     {

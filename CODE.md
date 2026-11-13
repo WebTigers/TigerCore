@@ -273,7 +273,7 @@ A first-party **`code` module** (`modules/code`), reachable at **`/code`** (`Cod
   caution; "View more" surfaces the `TIGER.md`.
 - **First code module, listed:** `WebTigers/TigerCodeSnippets` (slug `code-utils`, MIT) — 6
   dependency-free helper snippets — is accepted in the Vendor Registry (`type:code`, `category:Developer`,
-  pinned `v0.1.0-beta`).
+  pinned `v1.0.1`).
 
 ---
 

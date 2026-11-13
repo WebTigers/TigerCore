@@ -38,7 +38,7 @@ vendor/bin/tiger migrate                      # apply any new schema (always run
   entry for TigerCore resolves from **GitHub directly** (a new tag is available instantly); a
   plain install resolves from **Packagist** (a tag may lag a minute behind the GitHub push — use
   `composer update --no-cache` if you just tagged).
-- **Beta:** `composer create-project webtigers/tiger my-app --stability=beta`; the flag drops at 1.0.
+- **New app:** `composer create-project webtigers/tiger my-app` (stable releases; no `--stability` flag).
 - **After updating,** run `migrate`, re-`link:assets` if theme assets changed, and clear caches
   (opcache; any module build caches — e.g. `var/cache/tiger-docs`, `var/docs-generated`).
 
