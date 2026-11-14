@@ -6,6 +6,15 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.54.5] — 2026-11-14
+
+### Fixed
+- **A license check could bind to the wrong domain on a multi-domain Tiger.** A module license is cached once
+  per install, but each check sent the host of whatever request triggered it. Activating or updating from a
+  tenant domain could bind the key to that tenant, and checks from the main domain then lapsed the whole
+  install (no module updates). `Tiger_License_Checker` now pins the domain the license was activated on and
+  every check sends it; a license stored before this pins on its first check from a real host (TIGER-316).
+
 ## [1.54.4] — 2026-11-13
 
 ### Fixed
