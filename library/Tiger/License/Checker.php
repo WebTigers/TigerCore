@@ -90,11 +90,20 @@ class Tiger_License_Checker
      */
     public static function remember(string $slug, array $license): void
     {
+        $key  = (string) ($license['key'] ?? '');
+        $prev = self::store()->get($slug);
+        // TIGER-316: a license belongs to ONE domain — the host it was activated on. Pin it here so every later
+        // check sends that host, whichever of the install's domains the request came in on. Re-remembering the
+        // SAME key keeps its pin (a module update re-remembers from any host, often the CLI); a new key re-pins.
+        $domain = (string) ($license['domain'] ?? '');
+        if ($domain === '' && $prev && ($prev['key'] ?? '') === $key) { $domain = (string) ($prev['domain'] ?? ''); }
+        if ($domain === '') { $domain = self::_domain(); }
         self::store()->put($slug, [
-            'key'        => (string) ($license['key'] ?? ''),
+            'key'        => $key,
             'authority'  => (string) ($license['authority'] ?? ''),
             'vendor'     => (string) ($license['vendor'] ?? ''),
             'public_key' => (string) ($license['public_key'] ?? ''),
+            'domain'     => $domain,
         ]);
     }
 
@@ -144,9 +153,19 @@ class Tiger_License_Checker
             return $cached;   // fresh cache — no network
         }
 
+        // The pinned activation domain, never the request's host: on a Tiger serving several domains a check
+        // from a tenant host must not bind the key to that tenant or lapse the whole install (TIGER-316).
+        // A record from before the pin (or remembered from the CLI) pins on its first check from a real host.
+        $domain = (string) ($context['domain'] ?? '');
+        if ($domain === '') { $domain = (string) ($lic['domain'] ?? ''); }
+        if ($domain === '') {
+            $domain = self::_domain();
+            if ($domain !== '') { $lic['domain'] = $domain; }
+        }
+
         $resp = self::_ask((string) $lic['authority'], [
             'key'     => (string) $lic['key'],
-            'domain'  => (string) ($context['domain'] ?? self::_domain()),
+            'domain'  => $domain,
             'product' => $slug,
         ] + (isset($context['extra']) && is_array($context['extra']) ? $context['extra'] : []));
 

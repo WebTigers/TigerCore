@@ -197,6 +197,66 @@ final class CheckerTest extends UnitTestCase
         $this->assertTrue($g['licensed']);
         $this->assertFalse($g['blocked']);
     }
+    // ---- TIGER-316: the license is checked against the domain it was activated on ---------------------------
+
+    /** A signed-valid fake authority that records the domain each check sends. */
+    private function recordsDomains(array &$seen): void
+    {
+        $keys = $this->keys;
+        Tiger_License_Checker::setTransport(static function ($authority, $payload) use (&$seen, $keys) {
+            $seen[] = $payload['domain'];
+            $json = json_encode(['valid' => true, 'ttl' => 60]);
+            return ['payload' => $json, 'signature' => Tiger_Crypto_Signature::sign($json, $keys['secret_key'])];
+        });
+    }
+
+    #[Test]
+    public function aCheckFromATenantHostSendsTheActivationDomain(): void
+    {
+        $seen = [];
+        $this->recordsDomains($seen);
+        $_SERVER['HTTP_HOST'] = 'main.example';
+        Tiger_License_Checker::remember('shop', $this->license());
+
+        $_SERVER['HTTP_HOST'] = 'tenant.example';   // the same install, reached on a tenant domain
+        Tiger_License_Checker::verify('shop', [], 1000);
+        unset($_SERVER['HTTP_HOST']);
+
+        $this->assertSame(['main.example'], $seen, 'never the tenant host: it would rebind or lapse the install');
+    }
+
+    #[Test]
+    public function reRememberingTheSameKeyKeepsItsPinButANewKeyRePins(): void
+    {
+        $_SERVER['HTTP_HOST'] = 'main.example';
+        Tiger_License_Checker::remember('shop', $this->license());
+        unset($_SERVER['HTTP_HOST']);   // a module update re-remembers from the CLI
+        Tiger_License_Checker::remember('shop', $this->license());
+        $this->assertSame('main.example', Tiger_License_Checker::get('shop')['domain']);
+
+        $_SERVER['HTTP_HOST'] = 'other.example';
+        Tiger_License_Checker::remember('shop', $this->license(['key' => 'KEY-NEW']));
+        unset($_SERVER['HTTP_HOST']);
+        $this->assertSame('other.example', Tiger_License_Checker::get('shop')['domain']);
+    }
+
+    #[Test]
+    public function aRecordWithoutAPinPinsOnItsFirstCheckFromARealHost(): void
+    {
+        $seen = [];
+        $this->recordsDomains($seen);
+        $this->store->put('shop', $this->license());   // stored before the pin existed
+
+        $_SERVER['HTTP_HOST'] = 'main.example';
+        Tiger_License_Checker::verify('shop', [], 1000);
+        $_SERVER['HTTP_HOST'] = 'tenant.example';
+        Tiger_License_Checker::verify('shop', [], 5000);   // cache expired: asks again
+        unset($_SERVER['HTTP_HOST']);
+
+        $this->assertSame(['main.example', 'main.example'], $seen);
+        $this->assertSame('main.example', Tiger_License_Checker::get('shop')['domain']);
+    }
+
 }
 
 /** In-memory license store for the unit tests (no DB). */
@@ -208,4 +268,5 @@ final class ArrayLicenseStore implements Tiger_License_Store
     public function get(string $slug): ?array { return $this->data[$slug] ?? null; }
     public function put(string $slug, array $record): void { $this->data[$slug] = $record; }
     public function forget(string $slug): void { unset($this->data[$slug]); }
+
 }
