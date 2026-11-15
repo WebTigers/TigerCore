@@ -8,6 +8,7 @@ return [
     // Service / API messages
     'signup.disabled'        => 'El registro público está desactivado actualmente.',
     'signup.error.recaptcha' => 'No pudimos verificar que eres humano; inténtalo de nuevo.',
+    'signup.error.org' => 'Esta página de registro no está disponible en este momento. Inténtalo más tarde.',
     'signup.check_email'     => 'Cuenta creada: revisa tu correo electrónico para verificarla y luego inicia sesión.',
     'signup.verified'        => 'Tu correo electrónico está verificado y tu cuenta está activa.',
     'signup.invalid_link'    => 'Este enlace de verificación no es válido o ha caducado.',

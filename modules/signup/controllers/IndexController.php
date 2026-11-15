@@ -39,7 +39,8 @@ class Signup_IndexController extends Tiger_Controller_Action
         }
         $this->view->title    = 'Create your account';
         $this->view->authWide = true;   // multi-column form needs the wide card
-        $this->view->form     = new Signup_Form_Signup();
+        $this->view->form     = new Signup_Form_Signup();   // core /signup: a new user gets a new org
+        $this->view->form->bind();                          // pin that mode server-side for the submit
     }
 
     /**
