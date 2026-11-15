@@ -6,6 +6,36 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.58.0] — 2026-11-15
+
+### Security (TIGER-511)
+- **An `admin` could take over a `superadmin`/`developer` account.** `Access_Service_User::save` updated any
+  user and set their password outright, so an admin could re-password a superadmin and sign in as them
+  (superadmin reaches the Code Area = PHP execution). New capability **`Tiger_Access_ManageRole`** whose
+  privilege is the TARGET's role (core acl.ini: admin → user/manager/supermanager/admin; superadmin adds
+  superadmin; developer holds `*`). Save, password-set and delete check it against EVERY membership the
+  target holds; the Users grid hides the controls on rows the caller can't manage. The base service gains
+  `_mayManageRole($role)` / `_mayManageUser($userId)` — the gate for any code that GRANTS a role too.
+- **The comment read gate never blocked.** `Comment_Service_Comment::_mayRead` read a `Tiger_Acl` registry
+  key that is never set and answered true; it now asks `_isAllowed()` and fails closed. The built-in `page`
+  and `blog.post` subjects report a new `visible` flag (published, schedule arrived, owned by the site org or
+  the shared tier), and a thread is refused for read and post on a draft or another org's content.
+  `Tiger_Comment::resolve()` returns `visible` (defaults to `exists` for providers that don't set it).
+- **CMS menu writes by id crossed orgs.** `Cms_Service_Menu::save`/`delete` acted on a `menu_id` alone; the
+  row (and a new item's parent) must now be in the caller's scoped org. `Tiger_Model_Menu::deleteItem()`
+  takes the org (signature change) and its subtree walk never leaves it; new `Tiger_Model_Menu::itemInOrg()`.
+- **Site search returned other orgs' public media.** The `/api` search and `/search` page now pass the site
+  org; `Tiger_Model_Media::search()` constrains to `org_id IN (site, '')` and decides private visibility from
+  the authenticated org, not a role name.
+- **Newsletter subscribers leaked across orgs.** Subscribe stamps the site org (guests used to get `''`), and
+  reads use the org alone (every org used to read the `''` tier, so every org's audience held every guest).
+  Migration **0067** moves legacy `''` rows to the install org — exact on a single-site install; on a
+  multi-site install those rows can't be attributed and land in the install org too.
+- **Analytics/Matomo staff exclusion was a role list.** Now the capability
+  `Tiger_Analytics_ExcludeFromTracking` (`exclude`, granted at manager) via the new
+  `Tiger_Acl_Acl::identityIsAllowed()` — the capability check for non-service code. The TIGER-335 guard test
+  now also scans module plugins and catches an `in_array($role, [...])` role list.
+
 ## [1.57.0] — 2026-11-15
 
 ### Added

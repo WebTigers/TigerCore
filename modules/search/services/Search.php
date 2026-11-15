@@ -27,6 +27,8 @@ class Search_Service_Search extends Tiger_Service_Service
             return;
         }
         $res = Tiger_Search::query($term, [
+            // The SITE being searched, never "every org" — providers scope to it (TIGER-511).
+            'orgId' => Tiger_Model_Org::siteOrgId(),
             'role'  => $this->_role(),
             'limit' => isset($params['limit']) ? (int) $params['limit'] : 6,
             'only'  => isset($params['only']) ? (array) $params['only'] : null,

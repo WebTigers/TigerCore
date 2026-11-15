@@ -56,6 +56,7 @@ return [
     'access.user.email_taken'    => 'यह ईमेल पहले से उपयोग में है।',
     'access.user.username_taken' => 'यह उपयोगकर्ता नाम पहले से उपयोग में है।',
     'access.user.no_self_delete' => 'आप अपना स्वयं का खाता नहीं हटा सकते।',
+    'access.user.role_not_manageable' => 'आप ऐसे उपयोगकर्ता को प्रबंधित नहीं कर सकते जिसकी भूमिका को प्रबंधित करने की आपको अनुमति नहीं है।',
 
     // --- Organizations: list ---
     'access.org.list.title'      => 'संगठन',

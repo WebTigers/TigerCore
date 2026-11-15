@@ -249,6 +249,52 @@ abstract class Tiger_Service_Service
         return $acl->isAllowed($role, $resource, $privilege);
     }
 
+    /**
+     * The ACL resource naming the "manage a member who holds role X" capability (TIGER-511).
+     *
+     * The PRIVILEGE is the TARGET's role: `isAllowed(<caller role>, 'Tiger_Access_ManageRole', 'superadmin')`
+     * asks "may the caller edit, re-password, delete, or grant a superadmin?". Core's acl.ini grants
+     * `admin` user/manager/supermanager/admin, `superadmin` adds superadmin, and `developer` holds `*`.
+     * A custom role is denied to everyone below `developer` until an app grants it — fail closed.
+     */
+    const RESOURCE_MANAGE_ROLE = 'Tiger_Access_ManageRole';
+
+    /**
+     * May the CALLER manage (edit, set the password of, delete, or grant) a member holding `$role`?
+     *
+     * Use it before ASSIGNING a role too: a caller can never grant a role it may not manage, which is
+     * what keeps an `admin` from minting a `superadmin` (TIGER-511).
+     *
+     * @param  string $role the target role (the one held, or the one about to be granted)
+     * @return bool         fails closed on an empty role or no ACL
+     */
+    protected function _mayManageRole($role)
+    {
+        $role = (string) $role;
+        return $role !== '' && $this->_isAllowed($role, self::RESOURCE_MANAGE_ROLE);
+    }
+
+    /**
+     * May the CALLER manage this user — i.e. every role the user holds in ANY org (TIGER-511)?
+     *
+     * A user's authority is the highest role across their memberships, and the role lives on the
+     * membership, so every non-deleted membership counts (an invited or suspended one can be
+     * reactivated). A user with no membership holds no role and is manageable by anyone who may
+     * manage users at all.
+     *
+     * @param  string $userId the target user
+     * @return bool
+     */
+    protected function _mayManageUser($userId)
+    {
+        foreach ((new Tiger_Model_OrgUser())->orgsForUser((string) $userId) as $membership) {
+            if (!$this->_mayManageRole((string) $membership->role)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     // ----- data / transactions ----------------------------------------------
 
     /** The default DB adapter, or a clear failure if none is configured. */

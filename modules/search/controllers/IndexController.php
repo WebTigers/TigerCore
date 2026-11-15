@@ -22,7 +22,10 @@ class Search_IndexController extends Tiger_Controller_Action
             }
         } catch (Throwable $e) {}
 
-        $results = $term !== '' ? Tiger_Search::query($term, ['role' => $role, 'limit' => 20]) : null;
+        // Scoped to the SITE being served, so one tenant's search never surfaces another's (TIGER-511).
+        $results = $term !== ''
+            ? Tiger_Search::query($term, ['orgId' => Tiger_Model_Org::siteOrgId(), 'role' => $role, 'limit' => 20])
+            : null;
 
         $this->view->term    = $term;
         $this->view->results = $results;

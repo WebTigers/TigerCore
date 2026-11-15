@@ -249,12 +249,14 @@ class Tiger_Model_Media extends Tiger_Model_Table
      * Full-text search of the media library (the seam behind the Tiger_Search "media" provider).
      *
      * MATCH…AGAINST the ft_media index (filename/title/caption/description), with a LIKE fallback for
-     * short terms / an unsynced index. Visibility is enforced: **public + clean** media to everyone;
-     * **private + clean** media only to a signed-in caller in the owning org. Unscanned/infected/
-     * rejected/in-review items are never surfaced.
+     * short terms / an unsynced index. Scope is the SITE's org (`$ctx['orgId']`, else
+     * `Tiger_Model_Org::siteOrgId()`) plus the shared `''` tier — another org's media never surfaces,
+     * public or not (TIGER-511). Within that: **public + clean** media to everyone; **private + clean**
+     * media only to a signed-in member of the site's org (the authenticated org stamped on
+     * `Tiger_Model_Table::org()`). Unscanned/infected/rejected/in-review items are never surfaced.
      *
      * @param  string $term the query
-     * @param  array  $ctx  Tiger_Search context: role, orgId, locale, limit
+     * @param  array  $ctx  Tiger_Search context: orgId (the site), role, locale, limit
      * @param  int    $limit max rows (clamped 1..50)
      * @return array   matching rows (media_id, disk, storage_key, visibility, kind, mime_type, variants,
      *                 filename, title, caption, description, score)
@@ -265,17 +267,25 @@ class Tiger_Model_Media extends Tiger_Model_Table
         if ($term === '') { return []; }
         $db    = $this->getAdapter();
         $limit = max(1, min(50, (int) $limit));
-        $role  = (string) ($ctx['role'] ?? 'guest');
-        $orgId = (string) ($ctx['orgId'] ?? '');
+        // The SITE being searched: the caller's ctx, else the current site — never "every org". Media
+        // from any other org is out of scope even when public (TIGER-511).
+        $siteOrg = (string) ($ctx['orgId'] ?? '');
+        if ($siteOrg === '') { $siteOrg = Tiger_Model_Org::siteOrgId(); }
+        $scope   = array_values(array_unique([$siteOrg, '']));
+        // The VIEWER's org comes from the authenticated identity (the auth layer stamps it; a guest has
+        // none) — never from a role name. Private media shows only to a member of the site's own org.
+        $viewerOrg = (string) (self::org() ?? '');
+        $showPriv  = $viewerOrg !== '' && $viewerOrg === $siteOrg;
 
-        $gate = function (Zend_Db_Select $select) use ($db, $role, $orgId) {
+        $gate = function (Zend_Db_Select $select) use ($db, $scope, $siteOrg, $showPriv) {
             $select->where('deleted = ?', 0)
+                   ->where('org_id IN (?)', $scope)
                    ->where('scan_status IN (?)', [self::SCAN_CLEAN, self::SCAN_APPROVED, self::SCAN_SKIPPED]);
-            // Public media is visible to everyone; private only to a signed-in caller in the owning org.
+            // Public media is visible to everyone; private only to a signed-in member of the site's org.
             $pub = $db->quoteInto('visibility = ?', self::VISIBILITY_PUBLIC);
-            if ($role !== 'guest' && $orgId !== '') {
+            if ($showPriv) {
                 $priv = '(' . $db->quoteInto('visibility = ?', self::VISIBILITY_PRIVATE)
-                      . ' AND ' . $db->quoteInto('org_id = ?', $orgId) . ')';
+                      . ' AND ' . $db->quoteInto('org_id = ?', $siteOrg) . ')';
                 $select->where('(' . $pub . ' OR ' . $priv . ')');
             } else {
                 $select->where($pub);

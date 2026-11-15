@@ -256,32 +256,62 @@ class Tiger_Model_Menu extends Tiger_Model_Table
     }
 
     /**
-     * Soft-delete an item AND all its descendants (deleting a parent removes its subtree).
+     * One live menu item, ONLY if it belongs to this org scope — the row-level guard for a write.
+     *
+     * A save/delete addressed by `menu_id` must prove the row is the caller's; a bare id lookup would
+     * let one tenant edit or delete another's menu (TIGER-511).
+     *
+     * @param  string $menuId the item id
+     * @param  string $orgId  the tenant scope ('' = global)
+     * @return Zend_Db_Table_Row_Abstract|null the row, or null when it is not in that scope
+     */
+    public function itemInOrg($menuId, $orgId)
+    {
+        if ((string) $menuId === '') { return null; }
+        return $this->fetchRow(
+            $this->activeSelect()
+                ->where('menu_id = ?', (string) $menuId)
+                ->where('org_id = ?', (string) $orgId)
+        ) ?: null;
+    }
+
+    /**
+     * Soft-delete an item AND all its descendants (deleting a parent removes its subtree) — within
+     * one org scope only.
+     *
+     * The org is required (TIGER-511): an item outside it deletes nothing, and the descendant walk
+     * never crosses into another org's rows even if a foreign row names this one as its parent.
      *
      * @param string $menuId the item id to delete
-     * @return int the number of rows soft-deleted (the item plus its descendants)
+     * @param string $orgId  the tenant scope the item must belong to ('' = global)
+     * @return int the number of rows soft-deleted (the item plus its descendants; 0 when not in scope)
      */
-    public function deleteItem($menuId)
+    public function deleteItem($menuId, $orgId)
     {
-        $ids   = $this->_descendantIds((string) $menuId);
+        $orgId = (string) $orgId;
+        if (!$this->itemInOrg($menuId, $orgId)) { return 0; }
+
+        $ids   = $this->_descendantIds((string) $menuId, $orgId);
         $ids[] = (string) $menuId;
         $ids   = array_values(array_unique($ids));
-        $this->softDelete($this->getAdapter()->quoteInto('menu_id IN (?)', $ids));
+        $db    = $this->getAdapter();
+        $this->softDelete($db->quoteInto('menu_id IN (?)', $ids) . ' AND ' . $db->quoteInto('org_id = ?', $orgId));
         return count($ids);
     }
 
-    /** All live descendant ids of an item (depth-first). */
-    protected function _descendantIds($menuId, array $acc = [])
+    /** All live descendant ids of an item within one org (depth-first). */
+    protected function _descendantIds($menuId, $orgId, array $acc = [])
     {
         $db = $this->getAdapter();
         $children = $db->fetchCol(
             $db->select()->from($this->_name, ['menu_id'])
                 ->where('deleted = 0')
+                ->where('org_id = ?', (string) $orgId)
                 ->where('parent_id = ?', (string) $menuId)
         );
         foreach ($children as $childId) {
             $acc[] = $childId;
-            $acc = $this->_descendantIds($childId, $acc);
+            $acc = $this->_descendantIds($childId, $orgId, $acc);
         }
         return $acc;
     }

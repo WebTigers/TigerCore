@@ -12,6 +12,9 @@
  */
 class Analytics_Plugin_Tag extends Zend_Controller_Plugin_Abstract
 {
+    /** The ACL capability that exempts a signed-in visitor from tracking (core acl.ini, TIGER-511). */
+    const EXCLUDE_RESOURCE = 'Tiger_Analytics_ExcludeFromTracking';
+
     /** Emit-once latch (the tag is identical on every dispatch/forward). */
     private static $_done = false;
 
@@ -77,15 +80,16 @@ class Analytics_Plugin_Tag extends Zend_Controller_Plugin_Abstract
         return self::_boolConfig('analytics.exclude_signed_in', true);
     }
 
-    /** True if the current visitor is authenticated with a staff (manager+) role. */
+    /**
+     * True if the signed-in visitor holds the "exclude from tracking" capability (TIGER-511).
+     *
+     * Decided by the ACL (`Tiger_Analytics_ExcludeFromTracking` / `exclude`, granted at manager in core
+     * acl.ini), never a list of role names — so a renamed or app-added staff role follows the grant.
+     * Fails toward TRACKING: no identity, no ACL, or an unknown role → not excluded.
+     */
     private static function _isSignedInStaff()
     {
-        if (!class_exists('Zend_Auth') || !Zend_Auth::getInstance()->hasIdentity()) {
-            return false;
-        }
-        $identity = Zend_Auth::getInstance()->getIdentity();
-        $role     = is_object($identity) && isset($identity->role) ? strtolower((string) $identity->role) : '';
-        return in_array($role, ['manager', 'supermanager', 'admin', 'superadmin', 'developer'], true);
+        return Tiger_Acl_Acl::identityIsAllowed(self::EXCLUDE_RESOURCE, 'exclude');
     }
 
     /** A Zend_View to reach the placeholder helper (shares the process-wide registry). */

@@ -25,10 +25,10 @@ final class AudienceTest extends IntegrationTestCase
         parent::tearDown();
     }
 
-    private function seed(string $email, string $status, ?string $name = null): void
+    private function seed(string $email, string $status, ?string $name = null, string $orgId = ''): void
     {
         (new Newsletter_Model_Subscriber())->insert([
-            'org_id' => '',
+            'org_id' => $orgId,
             'email'  => $email,
             'name'   => $name,
             'status' => $status,
@@ -66,6 +66,21 @@ final class AudienceTest extends IntegrationTestCase
 
         $this->assertSame(['confirmed-a@example.com', 'confirmed-b@example.com'], $emails);
         $this->assertSame('Ada Lovelace', $members[array_search('confirmed-a@example.com', array_column($members, 'email'), true)]['name']);
+    }
+
+    #[Test]
+    public function an_orgs_audience_is_its_own_list_only(): void
+    {
+        // TIGER-511: reads used to add the '' tier to EVERY org, so org A's audience held org B's
+        // guests (stamped ''). Each org now reads exactly its own rows.
+        $this->seed('a@example.com',      Newsletter_Model_Subscriber::STATUS_CONFIRMED, null, 'org-a');
+        $this->seed('b@example.com',      Newsletter_Model_Subscriber::STATUS_CONFIRMED, null, 'org-b');
+        $this->seed('legacy@example.com', Newsletter_Model_Subscriber::STATUS_CONFIRMED, null, '');
+
+        $emails = array_column(Newsletter_Service_Audience::resolveMembers('org-a', Newsletter_Service_Audience::SEGMENT), 'email');
+        $this->assertSame(['a@example.com'], $emails, 'org A never sees org B or the shared tier');
+        $this->assertSame(1, Newsletter_Service_Audience::listSegments('org-a')[0]['count']);
+        $this->assertSame(['b@example.com'], array_column(Newsletter_Service_Audience::resolveMembers('org-b', Newsletter_Service_Audience::SEGMENT), 'email'));
     }
 
     #[Test]

@@ -56,7 +56,10 @@ class Newsletter_Service_Subscribe extends Tiger_Service_Service
 
         $email  = strtolower(trim((string) $values['email']));
         $name   = trim((string) ($values['name'] ?? '')) ?: null;
-        $orgId  = (string) (Tiger_Model_Table::org() ?? '');
+        // The SITE's list — a guest has no authenticated org, and a signed-in visitor subscribing on
+        // this site joins this site's list, not their own org's (TIGER-511). Never '' (the shared tier
+        // every org's audience used to read).
+        $orgId  = (string) Tiger_Model_Org::siteOrgId();
         $source = preg_replace('/[^a-z0-9_.\-]/i', '', (string) ($params['source'] ?? 'form')) ?: 'form';
 
         $model = new Newsletter_Model_Subscriber();

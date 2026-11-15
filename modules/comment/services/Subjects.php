@@ -25,9 +25,10 @@ class Comment_Service_Subjects
             if (!$row) { return ['title' => '', 'url' => '', 'exists' => false]; }
 
             return [
-                'title'  => (string) $row->title,
-                'url'    => '/' . ltrim((string) $row->slug, '/'),
-                'exists' => true,
+                'title'   => (string) $row->title,
+                'url'     => '/' . ltrim((string) $row->slug, '/'),
+                'exists'  => true,
+                'visible' => self::_publicOnSite($row),
             ];
         } catch (Throwable $e) {
             return ['title' => '', 'url' => '', 'exists' => false];
@@ -49,12 +50,33 @@ class Comment_Service_Subjects
             if (!$row) { return ['title' => '', 'url' => '', 'exists' => false]; }
 
             return [
-                'title'  => (string) $row->title,
-                'url'    => '/blog/' . ltrim((string) $row->slug, '/'),
-                'exists' => true,
+                'title'   => (string) $row->title,
+                'url'     => '/blog/' . ltrim((string) $row->slug, '/'),
+                'exists'  => true,
+                'visible' => self::_publicOnSite($row),
             ];
         } catch (Throwable $e) {
             return ['title' => '', 'url' => '', 'exists' => false];
         }
+    }
+
+    /**
+     * Does the CURRENT SITE publicly show this page/article row? (TIGER-511)
+     *
+     * Mirrors the public read gate (`Tiger_Model_Page::resolveBySlug`): published, its schedule has
+     * arrived, and owned by the site's org or the shared `''` tier. Without it a thread could be read or
+     * posted on a draft, or on another tenant's page, by anyone who learned its id.
+     *
+     * @param  Zend_Db_Table_Row_Abstract $row a `page` row
+     * @return bool
+     */
+    private static function _publicOnSite($row)
+    {
+        if ((string) $row->status !== Tiger_Model_Page::STATUS_PUBLISHED) { return false; }
+
+        $at = (string) ($row->published_at ?? '');
+        if ($at !== '' && strtotime($at) > time()) { return false; }
+
+        return in_array((string) $row->org_id, [Tiger_Model_Org::siteOrgId(), ''], true);
     }
 }

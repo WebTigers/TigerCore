@@ -56,6 +56,7 @@ return [
     'access.user.email_taken'    => 'Ese correo electrónico ya está en uso.',
     'access.user.username_taken' => 'Ese nombre de usuario ya está en uso.',
     'access.user.no_self_delete' => 'No puedes eliminar tu propia cuenta.',
+    'access.user.role_not_manageable' => 'No puedes gestionar a un usuario que tiene un rol que no tienes permiso para gestionar.',
 
     // --- Organizations: list ---
     'access.org.list.title'      => 'Organizaciones',
