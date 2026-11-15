@@ -824,10 +824,11 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
                 $this->_setNestedConfig($config, $row->config_key, $row->config_value);
             }
             // Org tier: the authenticated user's org, else — for an anonymous PUBLIC visitor — the
-            // org resolved from the request host (_initSiteOrg). So a multi-site install serves each
-            // host its own tenant's theme/skin/home/settings, while an unmapped/single-site install is
-            // unchanged (no site org resolved -> null -> global only, exactly as before).
-            $orgId = $this->_currentOrgId() ?: $this->_siteOrg;
+            // org resolved from the request host (_initSiteOrg), else the install's own org. So a
+            // multi-site install serves each host its own tenant's theme/skin/home/settings, and a
+            // single-site install's visitors, webhooks and scheduler pings read the same org-scoped
+            // settings its admin saved (TIGER-505; see _configOrgId).
+            $orgId = $this->_configOrgId($config);
             if ($orgId !== null && $orgId !== '') {
                 foreach ($model->getForScope(Tiger_Model_Config::SCOPE_ORG, $orgId) as $row) {
                     $this->_setNestedConfig($config, $row->config_key, $row->config_value);
@@ -849,6 +850,29 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
         $config->setReadOnly();
         Zend_Registry::set('Zend_Config', $config);
         return $config;
+    }
+
+    /**
+     * Whose org config tier this request folds (TIGER-505). Every install has an org, so every request
+     * gets one: the signed-in user's org; else the tenant org the request host maps to (multi-site); else
+     * the install's own org (`tiger.site.org_id`, else the founding org) — so an anonymous visitor, a
+     * webhook or a scheduler ping on a single-site install reads the same org-scoped settings the admin
+     * saved, instead of the global tier alone.
+     *
+     * @param  Zend_Config $config the config folded so far (ini + global tier), read for `tiger.site.org_id`
+     * @return string|null the org id, or null when no org exists yet (a pre-install install)
+     */
+    protected function _configOrgId(Zend_Config $config)
+    {
+        $orgId = $this->_currentOrgId() ?: $this->_siteOrg;
+        if ($orgId !== null && $orgId !== '') {
+            return (string) $orgId;
+        }
+        $t    = $config->get('tiger');
+        $s    = $t ? $t->get('site') : null;
+        $conf = ($s && $s->get('org_id')) ? (string) $s->get('org_id') : '';
+        $id   = Tiger_Model_Org::installOrgId($conf);
+        return $id !== '' ? $id : null;
     }
 
     /** The active org id from the authenticated identity (session), or null. */

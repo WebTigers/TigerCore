@@ -526,6 +526,14 @@ from the caller's role, passed into the model finder; a finder that hard-codes
 `org_id = <caller's org>` has decided no app-wide role exists. And a missing org filter is only a
 defect if a tenant-scoped role can actually reach that surface — read the `acl.ini` grant first.
 
+**A module stays in its org lane.** Not every install is multi-tenant, but every install has an org,
+and a module scopes everything to the caller's current org: every update/delete checks the row's org
+(never a bare `findById` on a write), reads are limited to that org, and settings are written at
+`SCOPE_ORG`, not `SCOPE_GLOBAL`. A module is not multi-org aware — which org a request belongs to is
+core's job. Org-scoped settings reach every request: the config tier folds the signed-in user's org,
+else the tenant org the host maps to, else the install's own org (`Tiger_Model_Org::installOrgId`), so a
+visitor, a webhook or a scheduler ping on a single-site install reads what the admin saved (TIGER-505).
+
 Module `configs/acl.ini` grants access to that module's controllers/services. Two resource shapes: a **controller** dispatch gates on
 `isAllowed($role, <Controller>, <action>)` (privilege = action); an **`/api` service** gates on
 `isAllowed($role, <ServiceClass>, <method>)` (privilege = method). Declaring the rule is part of
