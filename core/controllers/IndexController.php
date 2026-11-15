@@ -150,11 +150,8 @@ class IndexController extends Zend_Controller_Action
      */
     protected function _homePageId()
     {
-        if (!Zend_Registry::isRegistered('Zend_Config')) {
-            return '';
-        }
-        $cfg  = Zend_Registry::get('Zend_Config');
-        $site = $cfg->get('tiger') ? $cfg->tiger->get('site') : null;
-        return $site ? (string) $site->get('home_page') : '';
+        // The SITE org's home page (TIGER-511) — a visitor signed in to another org still lands on
+        // this site's home, never their own org's.
+        return trim((string) Tiger_Model_Config::siteValue('tiger.site.home_page', ''));
     }
 }

@@ -20,11 +20,17 @@ class Signup_Service_Signup extends Tiger_Service_Service
 {
     const VERIFY_TTL = 86400;   // 24h
 
-    /** The admin feature flag: is the public signup form turned off? Lives in the lazy option table
-     *  (checked only on the signup path — not eager config). Default: enabled. */
+    /**
+     * The admin feature flag: is the public signup form turned off on THIS site? Lives in the lazy
+     * option table (checked only on the signup path — not eager config). Read for the SITE org being
+     * served (TIGER-511) — its own value, else the install-wide one — never the signed-in visitor's org
+     * nor another org's. Default: enabled.
+     *
+     * @return bool
+     */
     public static function isPublicDisabled(): bool
     {
-        return (new Tiger_Model_Option())->get(Tiger_Model_Option::SCOPE_GLOBAL, '', 'signup.public_disabled') === '1';
+        return (new Tiger_Model_Option())->getForOrg((string) Tiger_Model_Org::siteOrgId(), 'signup.public_disabled') === '1';
     }
 
     /**

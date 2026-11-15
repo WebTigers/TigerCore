@@ -144,16 +144,17 @@ class Seo_Service_Social extends Tiger_Service_Service
     }
 
     /**
-     * The config scope these writes land in. GLOBAL today — a public view page is the single site's
-     * page, and anonymous requests only receive GLOBAL config by design. Kept in one place so a
-     * future multi-site module can flip the whole screen to per-org scoping in one edit, exactly as
-     * Identity_Service_Identity does.
+     * The config scope these writes land in: the caller's org (TIGER-511), so one org's cards never
+     * replace another's. Every request folds an org tier (the signed-in org, the host's tenant org,
+     * else the install org) and Seo_Service_Head reads the SITE org's value, so an org-scoped card
+     * reaches anonymous visitors. A blank field forgets the ORG row only — the install-wide (global)
+     * card, if any, then applies again. Global only on an install with no org at all.
      *
      * @return array [scope, scopeId]
      */
     protected function _scope()
     {
-        return [Tiger_Model_Config::SCOPE_GLOBAL, ''];
+        return Tiger_Model_Config::settingScope();
     }
 
     // -- internals -----------------------------------------------------------------------------------
@@ -170,19 +171,13 @@ class Seo_Service_Social extends Tiger_Service_Service
         ];
     }
 
-    /** Read a dot-notation config value from the live cascade; '' when unset. */
+    /**
+     * Read a dot-notation value for the caller's org (its row → global → ini; TIGER-511) — the tier
+     * save() writes, so the screen shows what it saves. '' when unset.
+     */
     private static function _config($dotKey)
     {
-        if (!Zend_Registry::isRegistered('Zend_Config')) {
-            return '';
-        }
-        $node = Zend_Registry::get('Zend_Config');
-        foreach (explode('.', (string) $dotKey) as $seg) {
-            if (!($node instanceof Zend_Config)) { return ''; }
-            $node = $node->get($seg);
-            if ($node === null) { return ''; }
-        }
-        return is_scalar($node) ? trim((string) $node) : '';
+        return trim((string) Tiger_Model_Config::currentValue((string) $dotKey, ''));
     }
 
     /**

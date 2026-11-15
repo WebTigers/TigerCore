@@ -10,12 +10,24 @@
  * Preview renders exactly what a send would produce (Tiger_Mail::renderTemplate), including an unsaved
  * draft. ACL: admin+ (modules/email/configs/acl.ini); every method re-guards with _isAllowed (TIGER-335).
  *
+ * Scope (TIGER-511): overrides are authored at the caller's ORG (`_scope()`), never the global row, so
+ * one org's templates never replace another's. An org with no override of its own inherits the
+ * install-wide (global) override, then the shipped file; Tiger_Mail resolves the same cascade at send.
+ *
  * @api
  */
 class Email_Service_Template extends Tiger_Service_Service
 {
-    /** v1 authors the global/platform override; per-org scoping reuses the same store (Tiger_Model_EmailTemplate). */
-    const SCOPE = '';
+    /**
+     * The org overrides are authored at: the caller's org ('' — the global row — only on an install
+     * with no org at all).
+     *
+     * @return string
+     */
+    protected function _scope(): string
+    {
+        return Tiger_Model_Config::settingScope()[1];
+    }
 
     /**
      * The list of registered email events (DataTables) — each annotated with its override state.
@@ -32,9 +44,10 @@ class Email_Service_Template extends Tiger_Service_Service
         $model = new Tiger_Model_EmailTemplate();
 
         $canEdit = $this->_isAllowed('save');
+        $scope   = $this->_scope();
         $rows    = [];
         foreach (Tiger_Mail::registeredTemplates() as $def) {
-            $custom = (bool) $model->byKey($def['key'], self::SCOPE);
+            $custom = (bool) $model->byKey($def['key'], $scope);
             $rows[] = [
                 'key'        => $def['key'],
                 'label'      => $t ? (string) $t->translate($def['label']) : $def['label'],
@@ -85,13 +98,18 @@ class Email_Service_Template extends Tiger_Service_Service
         $defs = Tiger_Mail::registeredTemplates();
         if ($key === '' || !isset($defs[$key])) { $this->_error('email.error.unknown_template'); return; }
 
-        $row = (new Tiger_Model_EmailTemplate())->byKey($key, self::SCOPE);
+        // The org's own override is what this screen edits; with none, show the override the org
+        // currently INHERITS (the install-wide one) — what a send renders, and what a save would copy.
+        $model = new Tiger_Model_EmailTemplate();
+        $own   = $model->byKey($key, $this->_scope());
+        $row   = $own ?: $model->resolve($key, $this->_scope());
         $this->_success([
             'key'        => $key,
             'def'        => $defs[$key],
             'subject'    => $row ? (string) $row->subject : '',
             'body'       => $row ? (string) $row->body : '',
-            'customized' => (bool) $row,
+            'customized' => (bool) $own,
+            'inherited'  => !$own && (bool) $row,
         ]);
     }
 
@@ -112,10 +130,11 @@ class Email_Service_Template extends Tiger_Service_Service
         $key = (string) $v['template_key'];
         if (!isset(Tiger_Mail::registeredTemplates()[$key])) { $this->_error('email.error.unknown_template'); return; }
 
+        $scope = $this->_scope();   // the caller's org — never the request's `scope` field
         try {
-            $this->_transaction(function () use ($key, $v) {
+            $this->_transaction(function () use ($key, $v, $scope) {
                 (new Tiger_Model_EmailTemplate())->store(
-                    $key, self::SCOPE, (string) $v['subject'], (string) $v['body']
+                    $key, $scope, (string) $v['subject'], (string) $v['body']
                 );
             });
             $this->_success(['key' => $key, 'customized' => true], 'email.saved');
@@ -137,9 +156,10 @@ class Email_Service_Template extends Tiger_Service_Service
         $key = (string) ($params['key'] ?? '');
         if (!isset(Tiger_Mail::registeredTemplates()[$key])) { $this->_error('email.error.unknown_template'); return; }
 
+        $scope = $this->_scope();
         try {
-            $this->_transaction(function () use ($key) {
-                (new Tiger_Model_EmailTemplate())->reset($key, self::SCOPE);
+            $this->_transaction(function () use ($key, $scope) {
+                (new Tiger_Model_EmailTemplate())->reset($key, $scope);
             });
             $this->_success(['key' => $key, 'customized' => false], 'email.reset');
         } catch (Throwable $e) {
@@ -166,7 +186,7 @@ class Email_Service_Template extends Tiger_Service_Service
         $vars    = $this->_sampleVars($defs[$key]);
 
         try {
-            $out = Tiger_Mail::renderTemplate($key, $vars, self::SCOPE, $subject, $body);
+            $out = Tiger_Mail::renderTemplate($key, $vars, $this->_scope(), $subject, $body);
             $this->_success(['subject' => $out['subject'], 'html' => $out['html']]);
         } catch (Throwable $e) {
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');

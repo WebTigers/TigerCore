@@ -35,9 +35,10 @@ Logo/favicon are stored as **media UUIDs** (validated), not files.
 
 ## Conventions + gotchas (this module)
 
-- **`_scope()` is a deliberate override seam.** It returns `[SCOPE_GLOBAL, '']` today; a future
-  multi-site module flips identity to per-org **without touching the rest**. Guests only receive GLOBAL
-  config by design — that's why identity is global for now.
+- **Identity is per org (TIGER-511).** `_scope()` returns `Tiger_Model_Config::settingScope()` — the
+  caller's org; the global row is only the install-wide fallback. The admin screen reads
+  `currentValue()`; public readers (layout `siteName`, favicon, SEO head) read `siteValue()` — the site
+  org, never a signed-in visitor's own org.
 - **Logo + favicon are NOT form elements** — they're media references the view renders with the
   `mediaField()` helper; their hidden inputs post with the form and the service reads them from
   `$params` (validated to a UUID or cleared).

@@ -47,8 +47,12 @@ class System_SettingsController extends Tiger_Controller_Admin_Action
 
         $al = (new Tiger_Service_Authentication())->autologoutConfig();
 
-        $rc   = Tiger_Recaptcha::settings();
-        $mail = Tiger_Mail::settings();
+        // Per-site values (reCAPTCHA, consent, mail From, the signup switch) are read for the caller's
+        // org — the tier System_Service_Settings writes them to (TIGER-511) — so the screen shows exactly
+        // what it saves; install-wide values (session, transport, location) read the global tier.
+        $org  = Tiger_Model_Config::currentOrgId();
+        $rc   = Tiger_Recaptcha::settings($org);
+        $mail = Tiger_Mail::settings($org);
 
         $form = new System_Form_Settings();
         $form->populate([
@@ -89,10 +93,9 @@ class System_SettingsController extends Tiger_Controller_Admin_Action
         $this->view->mailHasField    = $mail['has_field'];
         $this->view->location  = (class_exists('Tiger_Location') && method_exists('Tiger_Location', 'settings'))
             ? Tiger_Location::settings() : null;
-        $this->view->consent   = class_exists('Tiger_Consent') ? Tiger_Consent::settings() : null;
+        $this->view->consent   = class_exists('Tiger_Consent') ? Tiger_Consent::settings($org) : null;
         // Signup: the "disable public signup" flag lives in the lazy option table (checked only on
-        // the signup route, so it doesn't belong in eager config).
-        $this->view->signupDisabled = (new Tiger_Model_Option())
-            ->get(Tiger_Model_Option::SCOPE_GLOBAL, '', 'signup.public_disabled') === '1';
+        // the signup route, so it doesn't belong in eager config). The org's own value, else global.
+        $this->view->signupDisabled = (new Tiger_Model_Option())->getForOrg($org, 'signup.public_disabled') === '1';
     }
 }

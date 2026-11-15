@@ -33,7 +33,9 @@ class Comment_Service_Settings extends Tiger_Service_Service
 
         try {
             $this->_transaction(function () use ($wanted) {
-                (new Tiger_Model_Config())->set('global', '', Tiger_Comment_Spam::CONFIG_AGENT, $wanted ? '1' : '0');
+                // At the caller's org (TIGER-511) — one org's moderation posture never changes another's.
+                [$scope, $sid] = Tiger_Model_Config::settingScope();
+                (new Tiger_Model_Config())->set($scope, $sid, Tiger_Comment_Spam::CONFIG_AGENT, $wanted ? '1' : '0');
             });
             $this->_success(['spam_agent' => $wanted], 'comment.admin.saved');
         } catch (Throwable $e) {

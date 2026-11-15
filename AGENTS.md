@@ -533,6 +533,11 @@ and a module scopes everything to the caller's current org: every update/delete 
 core's job. Org-scoped settings reach every request: the config tier folds the signed-in user's org,
 else the tenant org the host maps to, else the install's own org (`Tiger_Model_Org::installOrgId`), so a
 visitor, a webhook or a scheduler ping on a single-site install reads what the admin saved (TIGER-505).
+For a per-site setting (TIGER-511): write at `Tiger_Model_Config::settingScope()`; show it on the admin
+screen with `Tiger_Model_Config::currentValue()` (the same tier you save); read it on a public path or a
+per-request plugin with `Tiger_Model_Config::siteValue()` — the merged `Zend_Config` folds the SIGNED-IN
+visitor's org, so a member of org B browsing site A would otherwise get B's value. All three fall back to
+the install-wide (global) row, then the ini — never another org's value.
 
 Module `configs/acl.ini` grants access to that module's controllers/services. Two resource shapes: a **controller** dispatch gates on
 `isAllowed($role, <Controller>, <action>)` (privilege = action); an **`/api` service** gates on

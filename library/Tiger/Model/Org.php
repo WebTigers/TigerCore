@@ -76,12 +76,13 @@ class Tiger_Model_Org extends Tiger_Model_Table
     /**
      * Override the current-site org (a multi-site module resolves this from the request host, early).
      *
-     * @param  string $orgId
+     * @param  string|null $orgId the site org; null clears the per-request cache so the next
+     *                            siteOrgId() resolves again (tests)
      * @return void
      */
     public static function setSiteOrgId($orgId)
     {
-        self::$_siteOrgId = (string) $orgId;
+        self::$_siteOrgId = ($orgId === null) ? null : (string) $orgId;
     }
 
     /**

@@ -14,7 +14,7 @@ use Zend_Registry;
 /**
  * Identity_Service_Identity — the /api service behind the Site Identity screen. It validates the form,
  * then writes the site name/tagline, the logo + favicon media references, and the social URLs to the
- * GLOBAL config tier inside a transaction. Wave-4 coverage: the ACL gate, the validate-and-persist happy
+ * caller's ORG config tier (TIGER-511) inside a transaction. Wave-4 coverage: the ACL gate, the validate-and-persist happy
  * path (every KEYS entry + logo/favicon land in `config`), the media-id sanitizer (a UUID is kept, junk
  * clears to ''), and the reject paths (missing required name, malformed social URL) that write nothing.
  */
@@ -41,9 +41,10 @@ final class IdentityServiceTest extends IntegrationTestCase
         return (new Identity_Service_Identity(['action' => 'save'] + $params))->getResponse();
     }
 
+    /** The caller's org row — where identity lands (TIGER-511; loginAs() signs in to `org-test`). */
     private function cfg(string $key): ?string
     {
-        return (new Tiger_Model_Config())->get(Tiger_Model_Config::SCOPE_GLOBAL, '', $key);
+        return (new Tiger_Model_Config())->get(Tiger_Model_Config::SCOPE_ORG, 'org-test', $key);
     }
 
     // ----- ACL ----------------------------------------------------------------------------------

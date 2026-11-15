@@ -4,8 +4,14 @@
 /**
  * System_Service_Settings — /api service for the System settings screen.
  *
- * Validates System_Form_Settings, then writes to the DB `config` table (scope=global)
- * via Tiger_Model_Config — the live-override tier, effective next request, no deploy.
+ * Validates System_Form_Settings, then writes to the DB `config` table via
+ * Tiger_Model_Config — the live-override tier, effective next request, no deploy.
+ *
+ * Two tiers (TIGER-511). PER SITE, at the caller's org (the install-wide value stays the fallback):
+ * the reCAPTCHA keys + options (domain-bound), the cookie-consent banner, the mail From identity, and
+ * the public-signup kill switch. INSTALL-WIDE, global: session TTLs + auto-logout, the mail transport /
+ * provider / SMTP and API credentials, and the location providers. The screen reads each tier the same
+ * way, so it shows what it saves.
  * Config-discipline: the config store, not a settings table. ACL: admin+
  * (modules/system/configs/acl.ini).
  *
@@ -99,10 +105,13 @@ class System_Service_Settings extends Tiger_Service_Service
             }
 
             // Signup tab — the public-signup kill switch. Lives in the lazy option table (checked only
-            // on the signup route, so it's not eager config). Absent checkbox = off.
+            // on the signup route, so it's not eager config). Absent checkbox = off. Per site: written at
+            // the caller's org (TIGER-511) and read for the SITE org on the public signup path.
             if (array_key_exists('signup_settings', $params)) {
+                [$scope, $sid] = Tiger_Model_Config::settingScope();
                 (new Tiger_Model_Option())->set(
-                    Tiger_Model_Option::SCOPE_GLOBAL, '', 'signup.public_disabled',
+                    $scope === Tiger_Model_Config::SCOPE_ORG ? Tiger_Model_Option::SCOPE_ORG : Tiger_Model_Option::SCOPE_GLOBAL,
+                    $sid, 'signup.public_disabled',
                     !empty($params['signup_disabled']) ? '1' : '0'
                 );
             }

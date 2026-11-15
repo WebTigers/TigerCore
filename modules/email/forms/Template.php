@@ -21,7 +21,8 @@ class Email_Form_Template extends Tiger_Form
                 'required' => true,
                 'filters'  => ['StringTrim'],
             ]],
-            // The scope the override is stored at ('' = the global/platform default). Hidden; '' in v1.
+            // Legacy, IGNORED on save: the override is always stored at the caller's org (TIGER-511) —
+            // a client-sent scope could otherwise write another org's (or the global) template.
             ['hidden', 'scope', [
                 'required' => false,
                 'filters'  => ['StringTrim'],

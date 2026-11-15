@@ -59,7 +59,9 @@ A site can tag without reporting. Don't conflate them.
   shows a "Connect Google Analytics" prompt when unconnected.
 - **The two switches (`enabled`, `exclude_signed_in`) are NOT form elements** — the form validates only
   `ga4_measurement_id` (`^G-[A-Z0-9]{4,}$`); the switches + OAuth fields come straight off `$params`.
-- **Config scope is GLOBAL today**, isolated in `_scope()` (multi-site flips to per-org later).
+- **Config is per org (TIGER-511)**: `_scope()` and `Tiger_Google_Analytics` write at the caller's org
+  (global = install-wide fallback); the screen + reporting read `Tiger_Model_Config::currentValue()`, the
+  tag reads `siteValue()`.
 - **Everything is `class_exists`/`method_exists`-guarded** against a Core predating
   `Tiger_Tracking`/`Tiger_Dashboard`/`Tiger_Google_Analytics` — the module still loads (degraded) on
   older cores.

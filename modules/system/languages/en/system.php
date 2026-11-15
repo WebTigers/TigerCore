@@ -320,6 +320,10 @@ return [
 
     // ---- Settings: Signup ------------------------------------------------------------------
     'system.settings.signup.header'       => 'Public signup',
+    // Which tier a settings card saves to (TIGER-511): this site's org, or the whole install.
+    'system.settings.scope.site'          => 'This site',
+    'system.settings.scope.install'       => 'Whole install',
+    'system.settings.scope.from_help'     => 'The From address is saved for this site; the mail server and its credentials apply to the whole install.',
     'system.settings.signup.intro'        => 'The public <code>/signup</code> form lets anyone create an account (a new org + owner). Turn it off for an invite-only or single-tenant install — the page then returns a 404 and the API refuses new signups. Existing accounts and email verification are unaffected.',
     'system.settings.signup.disable'      => 'Disable public signup form',
     'system.settings.signup.disable_help' => 'Default: off (public signup is open). When on, <code>/signup</code> 404s.',

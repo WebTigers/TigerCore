@@ -24,6 +24,14 @@ $mailHasField    = (array) $this->mailHasField;
 $mailIsSmtp      = isset($mailProviders[$mailProvider])
     && $mailProviders[$mailProvider]['kind'] === Tiger_Mail_Provider::KIND_SMTP
     && $mailProvider !== 'sendmail';
+// Which tier a card saves to (TIGER-511): 'site' = this site's org (with the install-wide value as its
+// fallback), 'install' = every site on the install. The screen shows exactly the tier it saves.
+$tier = function ($which) {
+    $site = ($which === 'site');
+    return '<span class="badge rounded-pill ms-2 fw-normal ' . ($site ? 'text-bg-primary' : 'text-bg-secondary') . '">'
+         . '<i class="fa-solid ' . ($site ? 'fa-globe' : 'fa-server') . ' me-1"></i>'
+         . $this->escape($this->t($site ? 'system.settings.scope.site' : 'system.settings.scope.install')) . '</span>';
+};
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
@@ -71,7 +79,7 @@ $mailIsSmtp      = isset($mailProviders[$mailProvider])
             <div class="row g-4">
                 <div class="col-lg-7">
                     <div class="card">
-                        <div class="card-header fw-semibold"><i class="fa-solid fa-shield-halved me-2"></i><?= $this->t('system.settings.tab_session') ?></div>
+                        <div class="card-header fw-semibold"><i class="fa-solid fa-shield-halved me-2"></i><?= $this->t('system.settings.tab_session') ?><?= $tier('install') ?></div>
                         <div class="card-body">
                             <div class="mb-4">
                                 <label class="form-label mb-1"><?= $this->t('system.settings.session.max_timeout') ?> <span class="text-body-secondary fw-normal"><?= $this->t('system.settings.session.max_timeout_hint') ?></span></label>
@@ -150,7 +158,7 @@ $mailIsSmtp      = isset($mailProviders[$mailProvider])
             <div class="row g-4">
                 <div class="col-lg-7">
                     <div class="card">
-                        <div class="card-header fw-semibold"><i class="fa-solid fa-envelope me-2"></i><?= $this->t('system.settings.smtp.header') ?></div>
+                        <div class="card-header fw-semibold"><i class="fa-solid fa-envelope me-2"></i><?= $this->t('system.settings.smtp.header') ?><?= $tier('install') ?></div>
                         <div class="card-body">
                             <p class="text-body-secondary mb-3"><?= $this->t('system.settings.smtp.intro') ?></p>
 
@@ -245,6 +253,7 @@ $mailIsSmtp      = isset($mailProviders[$mailProvider])
                                     <label class="form-label" for="set-mail-from-name"><?= $this->t('system.settings.smtp.from_name') ?></label>
                                     <?= $el('mail_from_name') ?>
                                 </div>
+                                <div class="col-12 form-text mt-1"><?= $tier('site') ?> <?= $this->escape($this->t('system.settings.scope.from_help')) ?></div>
                             </div>
                         </div>
                     </div>
@@ -274,7 +283,7 @@ $mailIsSmtp      = isset($mailProviders[$mailProvider])
             <div class="row g-4">
                 <div class="col-lg-7">
                     <div class="card">
-                        <div class="card-header fw-semibold"><i class="fa-solid fa-user-check me-2"></i><?= $this->t('system.settings.recaptcha.header') ?></div>
+                        <div class="card-header fw-semibold"><i class="fa-solid fa-user-check me-2"></i><?= $this->t('system.settings.recaptcha.header') ?><?= $tier('site') ?></div>
                         <div class="card-body">
                             <p class="text-body-secondary small mb-3"><?= $this->t('system.settings.recaptcha.get_key_pre') ?> <a href="https://www.google.com/recaptcha/admin" target="_blank" rel="noopener">google.com/recaptcha/admin</a>. <?= $this->t('system.settings.recaptcha.get_key_post') ?></p>
 
@@ -351,7 +360,7 @@ $mailIsSmtp      = isset($mailProviders[$mailProvider])
             <div class="row g-4">
                 <div class="col-lg-7">
                     <div class="card mb-4">
-                        <div class="card-header fw-semibold"><i class="fa-solid fa-map-location-dot me-2"></i><?= $this->t('system.settings.location.ip_geo') ?></div>
+                        <div class="card-header fw-semibold"><i class="fa-solid fa-map-location-dot me-2"></i><?= $this->t('system.settings.location.ip_geo') ?><?= $tier('install') ?></div>
                         <div class="card-body">
                             <div class="mb-3" style="max-width:24rem">
                                 <label class="form-label" for="loc-ip-provider"><?= $this->t('system.settings.location.provider') ?></label>
@@ -406,7 +415,7 @@ $mailIsSmtp      = isset($mailProviders[$mailProvider])
             <div class="row g-4">
                 <div class="col-lg-7">
                     <div class="card">
-                        <div class="card-header fw-semibold"><i class="fa-solid fa-cookie-bite me-2"></i><?= $this->t('system.settings.consent.header') ?></div>
+                        <div class="card-header fw-semibold"><i class="fa-solid fa-cookie-bite me-2"></i><?= $this->t('system.settings.consent.header') ?><?= $tier('site') ?></div>
                         <div class="card-body">
                             <p class="text-body-secondary small"><?= $this->t('system.settings.consent.intro') ?></p>
                             <?php
@@ -472,7 +481,7 @@ $mailIsSmtp      = isset($mailProviders[$mailProvider])
             <div class="row g-4">
                 <div class="col-lg-7">
                     <div class="card">
-                        <div class="card-header fw-semibold"><i class="fa-solid fa-user-plus me-2"></i><?= $this->t('system.settings.signup.header') ?></div>
+                        <div class="card-header fw-semibold"><i class="fa-solid fa-user-plus me-2"></i><?= $this->t('system.settings.signup.header') ?><?= $tier('site') ?></div>
                         <div class="card-body">
                             <p class="text-body-secondary small"><?= $this->t('system.settings.signup.intro') ?></p>
                             <div class="form-check form-switch">

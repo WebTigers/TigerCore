@@ -4,9 +4,9 @@
 /**
  * Matomo_Service_Matomo — the /api service behind the Matomo settings screen. Validates the URL +
  * site id + affiliate dimension, then writes the Matomo config (enabled + url + site_id +
- * exclude-signed-in + affiliate.dimension_id) to the config tier (live-override, no deploy). GLOBAL
- * scope for now — the single site; a future multi-site module flips it to per-org (isolated in
- * `_scope()`, same pattern as the Analytics module).
+ * exclude-signed-in + affiliate.dimension_id) to the config tier (live-override, no deploy) at the
+ * caller's ORG (TIGER-511) — `_scope()`; the install-wide value stays the fallback. The public tag
+ * (Matomo_Plugin_Tag) reads the SITE org's value.
  *
  * @api
  */
@@ -56,12 +56,13 @@ class Matomo_Service_Matomo extends Tiger_Service_Service
     }
 
     /**
-     * The config scope for Matomo writes. GLOBAL today; a multi-site module overrides to per-org.
+     * The config scope for Matomo writes: the caller's org (TIGER-511). Global only on an install
+     * with no org at all.
      *
      * @return array [scope, scopeId]
      */
     protected function _scope()
     {
-        return [Tiger_Model_Config::SCOPE_GLOBAL, ''];
+        return Tiger_Model_Config::settingScope();
     }
 }

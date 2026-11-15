@@ -25,25 +25,22 @@ class Analytics_AdminController extends Tiger_Controller_Admin_Action
      */
     public function indexAction()
     {
-        $tiger = Zend_Registry::get('Zend_Config')->get('tiger');
-        $a     = $tiger ? $tiger->get('analytics') : null;
-        $ga4   = $a ? $a->get('ga4') : null;
-
+        // The caller's org tier (its own value, else the install-wide one) — the tier the save writes
+        // (TIGER-511), so the screen shows exactly what it will save.
         $form = new Analytics_Form_Settings();
         $form->populate([
-            'ga4_measurement_id' => $ga4 ? (string) $ga4->get('measurement_id') : '',
+            'ga4_measurement_id' => (string) Tiger_Model_Config::currentValue('tiger.analytics.ga4.measurement_id', ''),
         ]);
 
-        $b = static function ($node, $key, $default = false) {
-            return $node && $node->get($key) !== null
-                ? filter_var((string) $node->get($key), FILTER_VALIDATE_BOOLEAN)
-                : $default;
+        $b = static function ($key, $default = false) {
+            $v = Tiger_Model_Config::currentValue($key);
+            return $v !== null ? filter_var((string) $v, FILTER_VALIDATE_BOOLEAN) : $default;
         };
 
         $this->view->title           = 'Analytics — Tiger Admin';
         $this->view->form            = $form;
-        $this->view->enabled         = $b($a, 'enabled', false);
-        $this->view->excludeSignedIn = $b($a, 'exclude_signed_in', true);
+        $this->view->enabled         = $b('tiger.analytics.enabled', false);
+        $this->view->excludeSignedIn = $b('tiger.analytics.exclude_signed_in', true);
 
         // Reporting/OAuth connection state for the "Connect Google" section.
         $this->view->ga = [

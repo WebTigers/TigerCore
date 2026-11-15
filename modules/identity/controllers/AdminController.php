@@ -31,36 +31,30 @@ class Identity_AdminController extends Tiger_Controller_Admin_Action
      */
     public function indexAction()
     {
-        $tiger  = Zend_Registry::get('Zend_Config')->get('tiger');
-        $site   = $tiger ? $tiger->get('site') : null;
-        $seo    = $tiger ? $tiger->get('seo') : null;
-        $social = $seo ? $seo->get('social') : null;
-
-        $g = static function ($node, $key, $default = '') {
-            return ($node && (string) $node->get($key) !== '') ? (string) $node->get($key) : $default;
+        // The caller's org tier (its own value, else the install-wide one) — the tier save() writes,
+        // so the screen shows exactly what it will save (TIGER-511).
+        $g = static function ($key, $default = '') {
+            $v = (string) Tiger_Model_Config::currentValue($key, '');
+            return $v !== '' ? $v : $default;
         };
 
-        $ogImage   = $g($seo, 'og_image');
+        $ogImage   = $g('tiger.seo.og_image');
         $isMediaId = (bool) preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $ogImage);
 
+        $values = [];
+        foreach (Identity_Service_Identity::KEYS as $field => $key) {
+            $values[$field] = $g($key);
+        }
+        if ($values['site_name'] === '') { $values['site_name'] = 'Tiger'; }
+        $values['og_image_url'] = $isMediaId ? '' : $ogImage;
+
         $form = new Identity_Form_Identity();
-        $form->populate([
-            'site_name'        => $g($site, 'name', 'Tiger'),
-            'tagline'          => $g($site, 'tagline'),
-            'site_description' => $g($site, 'description'),
-            'og_image_url'     => $isMediaId ? '' : $ogImage,
-            'social_twitter'   => $g($social, 'twitter'),
-            'social_facebook'  => $g($social, 'facebook'),
-            'social_instagram' => $g($social, 'instagram'),
-            'social_linkedin'  => $g($social, 'linkedin'),
-            'social_youtube'   => $g($social, 'youtube'),
-            'social_github'    => $g($social, 'github'),
-        ]);
+        $form->populate($values);
 
         $this->view->title    = 'Site Identity — Tiger Admin';
         $this->view->form     = $form;
-        $this->view->logoId   = $g($site, 'logo');
-        $this->view->faviconId = $g($site, 'favicon');
+        $this->view->logoId   = $g('tiger.site.logo');
+        $this->view->faviconId = $g('tiger.site.favicon');
         $this->view->ogImageId = $isMediaId ? $ogImage : '';
     }
 }
