@@ -10,6 +10,8 @@ return [
     'mcp.settings.disabled' => 'MCP सर्वर अक्षम किया गया।',
     'mcp.token.created'     => 'टोकन बनाया गया।',
     'mcp.token.revoked'     => 'टोकन रद्द किया गया।',
+    'mcp.token.error.org_scoped_app_wide' => 'संगठन टोकन ऐसी भूमिका के रूप में कार्य नहीं कर सकता जो हर संगठन तक पहुँचती है। एक सीमित प्रोफ़ाइल चुनें, या संगठन विकल्प के बिना टोकन बनाएँ।',
+    'mcp.token.error.org_scoped_no_org'   => 'संगठन टोकन के लिए एक संगठन चाहिए — आप किसी संगठन में साइन इन नहीं हैं।',
 
     // Connect screen — header
     'mcp.connect.title'     => 'MCP सर्वर',

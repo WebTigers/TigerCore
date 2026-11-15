@@ -5,6 +5,7 @@ return [
     // Service / API messages
     'backup.done'             => 'Backup concluído.',
     'backup.failed'           => 'O backup falhou. Verifique os registros para mais detalhes.',
+    'backup.secrets.not_allowed' => 'Somente um superadministrador pode incluir segredos em um backup.',
     'backup.deleted'          => 'Backup excluído.',
     'backup.restore.done'     => 'Restauração concluída.',
     'backup.restore.failed'   => 'A restauração falhou. Seu backup de segurança anterior está disponível.',

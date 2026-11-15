@@ -13,8 +13,15 @@
  */
 class Tiger_Session_SaveHandler_DbTable extends Zend_Session_SaveHandler_DbTable
 {
-    /** Roles that get the short (sensitive) session TTL. */
-    private static $_privileged = ['admin', 'superadmin', 'developer'];
+    /**
+     * The capability that puts a session on the short (sensitive) TTL tier (TIGER-511) — a named ACL
+     * resource, not a role list. Core's acl.ini grants privilege `short_ttl` at `admin` (superadmin +
+     * developer inherit), the same roles the old hardcoded list named.
+     */
+    const RESOURCE_PRIVILEGED = 'Tiger_Session_Privileged';
+
+    /** The privilege on RESOURCE_PRIVILEGED that selects the short tier. */
+    const PRIVILEGE_SHORT_TTL = 'short_ttl';
 
     /**
      * Write the session row, stamping identity context + a role-based lifetime.
@@ -31,7 +38,7 @@ class Tiger_Session_SaveHandler_DbTable extends Zend_Session_SaveHandler_DbTable
         }
 
         $ctx      = $this->_identityContext();
-        $lifetime = $this->_lifetimeForRole($ctx['role']);
+        $lifetime = $this->_lifetimeForRole($ctx['role'], !empty($ctx['user_id']));
         $row      = $this->find($id)->current();
 
         if (empty($row)) {
@@ -100,15 +107,31 @@ class Tiger_Session_SaveHandler_DbTable extends Zend_Session_SaveHandler_DbTable
      * Idle TTL (seconds) stamped as `lifetime`; GC reaps once (now - modified) >
      * lifetime. Tiered + config-driven (tiger.session.ttl.*), tunable live via the
      * `config` table:
-     *   - privileged (admin/superadmin/developer) → short (sensitive)
-     *   - guest                                   → short-ish
-     *   - other authenticated                     → long
+     *   - a role holding Tiger_Session_Privileged/short_ttl → privileged (short, sensitive)
+     *   - no signed-in user                                 → guest (short-ish)
+     *   - any other authenticated session                   → authed (long)
+     *
+     * The tier is decided by the ACL (TIGER-511), never a role list. A session is written at the END of
+     * the request, and on an early-failing request (bootstrap error, CLI, install) the ACL may not be
+     * built yet — then an authenticated session gets the SHORTER of the privileged and authed tiers: a
+     * session we can't classify is treated as sensitive, never handed the long tier by default.
+     *
+     * @param  string $role   the identity's role
+     * @param  bool   $authed whether a user is signed in (false → the guest tier)
+     * @return int            seconds
      */
-    protected function _lifetimeForRole($role)
+    protected function _lifetimeForRole($role, $authed = true)
     {
         $ttl = $this->_ttlConfig();
-        if (in_array($role, self::$_privileged, true)) { return $ttl['privileged']; }
-        if ($role === 'guest') { return $ttl['guest']; }
+        if (!$authed) {
+            return $ttl['guest'];
+        }
+        if (!Tiger_Acl_Acl::isAvailable()) {
+            return min($ttl['privileged'], $ttl['authed']);   // can't ask → the safer, shorter tier
+        }
+        if (Tiger_Acl_Acl::roleIsAllowed((string) $role, self::RESOURCE_PRIVILEGED, self::PRIVILEGE_SHORT_TTL)) {
+            return $ttl['privileged'];
+        }
         return $ttl['authed'];
     }
 

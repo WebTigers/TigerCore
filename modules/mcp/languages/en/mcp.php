@@ -10,6 +10,8 @@ return [
     'mcp.settings.disabled' => 'MCP server disabled.',
     'mcp.token.created'     => 'Token minted.',
     'mcp.token.revoked'     => 'Token revoked.',
+    'mcp.token.error.org_scoped_app_wide' => 'An org token can’t act as a role that reaches every organization. Choose a narrower profile, or mint a token without the org option.',
+    'mcp.token.error.org_scoped_no_org'   => 'An org token needs an organization — you aren’t signed in to one.',
 
     // Connect screen — header
     'mcp.connect.title'     => 'MCP Server',

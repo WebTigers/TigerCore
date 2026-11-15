@@ -82,15 +82,81 @@ final class BackupServiceTest extends IntegrationTestCase
     // ---- ACL -------------------------------------------------------------------------------------
 
     #[Test]
-    public function the_shipped_acl_gates_backup_to_admin_and_up(): void
+    public function the_shipped_acl_gates_backup_per_privilege(): void
     {
         $this->loginAs('admin');
         $acl = Zend_Registry::get('Zend_Acl');
 
         $this->assertTrue($acl->has('Backup_Service_Backup'), 'the acl.ini resource loaded');
-        $this->assertTrue($acl->isAllowed('admin', 'Backup_Service_Backup'));
-        $this->assertFalse($acl->isAllowed('user', 'Backup_Service_Backup'), 'a plain user is denied');
-        $this->assertFalse($acl->isAllowed('guest', 'Backup_Service_Backup'));
+        $this->assertTrue($acl->has(Backup_Service_Backup::RESOURCE_DATA), 'the contents capability loaded');
+        foreach (['run', 'remove', 'saveSettings'] as $m) {
+            $this->assertTrue($acl->isAllowed('admin', 'Backup_Service_Backup', $m), "admin may $m");
+            $this->assertFalse($acl->isAllowed('manager', 'Backup_Service_Backup', $m), "a manager may not $m");
+            $this->assertFalse($acl->isAllowed('user', 'Backup_Service_Backup', $m), "a plain user may not $m");
+            $this->assertFalse($acl->isAllowed('guest', 'Backup_Service_Backup', $m));
+        }
+        // TIGER-511: an archive holds every org's data (+ secrets) — reading or restoring one is superadmin.
+        $this->assertFalse($acl->isAllowed('admin', 'Backup_Service_Backup', 'restore'), 'admin may not restore');
+        $this->assertTrue($acl->isAllowed('superadmin', 'Backup_Service_Backup', 'restore'));
+        foreach (['download', 'restore', 'include_secrets'] as $p) {
+            $this->assertFalse($acl->isAllowed('admin', Backup_Service_Backup::RESOURCE_DATA, $p), "admin lacks $p");
+            $this->assertTrue($acl->isAllowed('superadmin', Backup_Service_Backup::RESOURCE_DATA, $p), "superadmin holds $p");
+            $this->assertTrue($acl->isAllowed('developer', Backup_Service_Backup::RESOURCE_DATA, $p), "developer holds $p");
+        }
+        // The screen itself stays admin (resource-level, so the sidebar item still renders for admin).
+        $this->assertTrue($acl->isAllowed('admin', 'Backup_IndexController'));
+        $this->assertFalse($acl->isAllowed('manager', 'Backup_IndexController'));
+    }
+
+    // ---- TIGER-511: restore + secrets are superadmin ---------------------------------------------
+
+    #[Test]
+    public function an_admin_is_refused_restore(): void
+    {
+        $this->loginAs('admin');
+        $res = $this->dispatch(['action' => 'restore', 'backup_id' => 'anything', 'confirm' => 'RESTORE']);
+        $this->assertSame(0, (int) $res->result);
+        $this->assertStringContainsString('not_allowed', $this->messages($res), 'refused at the gate, before any lookup');
+    }
+
+    #[Test]
+    public function an_admin_is_refused_a_backup_that_includes_secrets(): void
+    {
+        $this->loginAs('admin');
+        $before = count((new Tiger_Model_Backup())->recent(1000));
+        $res = $this->dispatch(['action' => 'run', 'components' => 'database', 'disk' => 'local', 'include_secrets' => '1']);
+        $this->assertSame(0, (int) $res->result, 'asking for secrets without the capability is refused, not downgraded');
+        $this->assertStringContainsString('backup.secrets.not_allowed', $this->messages($res));
+        $this->assertSame($before, count((new Tiger_Model_Backup())->recent(1000)), 'no archive was started');
+    }
+
+    #[Test]
+    public function an_admin_cannot_turn_scheduled_secrets_on_nor_silently_flip_them(): void
+    {
+        $cfg = new Tiger_Model_Config();
+        $g   = Tiger_Model_Config::SCOPE_GLOBAL;
+        $cfg->set($g, '', 'tiger.backup.include_secrets', '1');   // a superadmin's earlier choice
+
+        $this->loginAs('admin');
+        $on = $this->dispatch(['action' => 'saveSettings', 'components' => 'database', 'disk' => 'local', 'include_secrets' => '1']);
+        $this->assertSame(0, (int) $on->result);
+        $this->assertStringContainsString('backup.secrets.not_allowed', $this->messages($on));
+
+        // The screen hides the switch from an admin, so its save carries no include_secrets at all —
+        // the rest saves, and the superadmin's stored choice is left exactly as it was.
+        $save = $this->dispatch(['action' => 'saveSettings', 'components' => 'database', 'disk' => 'local', 'retention_max' => '3']);
+        $this->assertSame(1, (int) $save->result, $this->messages($save));
+        $this->assertSame('3', $cfg->get($g, '', 'tiger.backup.retention.max'));
+        $this->assertSame('1', $cfg->get($g, '', 'tiger.backup.include_secrets'), 'an admin save never flips the secrets switch');
+    }
+
+    #[Test]
+    public function a_superadmin_may_back_up_with_secrets(): void
+    {
+        $this->loginAs('superadmin');
+        $res = $this->dispatch(['action' => 'run', 'components' => 'database', 'disk' => 'local', 'include_secrets' => '1']);
+        $this->assertSame(1, (int) $res->result, $this->messages($res));
+        $this->artifacts[] = $this->localBackupDir() . '/' . $res->data['filename'];
     }
 
     #[Test]
@@ -179,7 +245,7 @@ final class BackupServiceTest extends IntegrationTestCase
     #[Test]
     public function restore_requires_the_typed_confirmation(): void
     {
-        $this->loginAs('admin');
+        $this->loginAs('superadmin');   // restore is superadmin (TIGER-511)
         $res = $this->dispatch(['action' => 'restore', 'backup_id' => 'anything', 'confirm' => 'yes please']);
 
         $this->assertSame(0, (int) $res->result, 'a wrong confirm string is refused BEFORE any restore work');
@@ -189,7 +255,7 @@ final class BackupServiceTest extends IntegrationTestCase
     #[Test]
     public function restore_reports_not_found_for_an_unknown_backup_even_when_confirmed(): void
     {
-        $this->loginAs('admin');
+        $this->loginAs('superadmin');
         $res = $this->dispatch(['action' => 'restore', 'backup_id' => 'no-such-id', 'confirm' => 'RESTORE']);
 
         $this->assertSame(0, (int) $res->result);
@@ -199,7 +265,7 @@ final class BackupServiceTest extends IntegrationTestCase
     #[Test]
     public function restore_refuses_a_backup_that_did_not_finish_ok(): void
     {
-        $this->loginAs('admin');
+        $this->loginAs('superadmin');
         // A catalog row still 'running' (never finished) must not be restorable — guarded before any
         // destructive action. We insert the row directly (rides the per-test transaction).
         $id = (new Tiger_Model_Backup())->begin('TigerBackup-unfinished.zip', 'local', ['database'], 'manual');
@@ -214,7 +280,7 @@ final class BackupServiceTest extends IntegrationTestCase
     #[Test]
     public function save_settings_writes_the_backup_config_tier(): void
     {
-        $this->loginAs('admin');
+        $this->loginAs('superadmin');   // include_secrets=1 needs the Tiger_Backup_Data capability (TIGER-511)
         $res = $this->dispatch([
             'action'          => 'saveSettings',
             'components'      => 'database,media',

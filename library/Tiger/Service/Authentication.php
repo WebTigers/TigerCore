@@ -34,14 +34,23 @@ class Tiger_Service_Authentication
     /** Role for an unauthenticated request. */
     const ROLE_GUEST = 'guest';
 
-    /** Roles whose dashboard is the back office (`/admin`); every other role lands on `/account`. */
-    const ADMIN_HOME_ROLES = ['admin', 'superadmin', 'developer'];
+    /**
+     * The capability "this identity's dashboard is the back office" (TIGER-511) — a named ACL resource,
+     * not a role list. Core's acl.ini grants privilege `enter` at `admin` (superadmin + developer
+     * inherit), the same roles the old hardcoded list named; an app that adds or renames an admin-class
+     * role gets the right landing from its `acl.ini` alone.
+     */
+    const RESOURCE_ADMIN_HOME = 'Tiger_Admin_Home';
+
+    /** The privilege on RESOURCE_ADMIN_HOME that sends an identity to `/admin`. */
+    const PRIVILEGE_ADMIN_HOME = 'enter';
 
     /**
-     * The post-login landing — the identity's "dashboard": the back office for an admin-class role,
-     * otherwise the account surface. ONE authority shared by the login flow (AuthController) and the
-     * authorization gate (Tiger_Controller_Plugin_Authorization), so "where does this person belong"
-     * is answered the same way whether they just signed in or were bounced off a forbidden page.
+     * The post-login landing — the identity's "dashboard": the back office for a role holding the
+     * `Tiger_Admin_Home` capability, otherwise the account surface. ONE authority shared by the login flow
+     * (AuthController) and the authorization gate (Tiger_Controller_Plugin_Authorization), so "where does
+     * this person belong" is answered the same way whether they just signed in or were bounced off a
+     * forbidden page. Fails to `/account` (the lower surface) when the ACL can't answer.
      *
      * @param  object|null $identity the Zend_Auth identity (reads ->role; null/role-less → /account)
      * @return string                a local path — '/admin' or '/account'
@@ -49,7 +58,8 @@ class Tiger_Service_Authentication
     public static function homeFor($identity)
     {
         $role = ($identity && isset($identity->role)) ? (string) $identity->role : '';
-        return in_array($role, self::ADMIN_HOME_ROLES, true) ? '/admin' : '/account';
+        return Tiger_Acl_Acl::roleIsAllowed($role, self::RESOURCE_ADMIN_HOME, self::PRIVILEGE_ADMIN_HOME)
+            ? '/admin' : '/account';
     }
 
     /**

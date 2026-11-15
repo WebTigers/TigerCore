@@ -5,6 +5,7 @@ return [
     // Service / API messages
     'backup.done'             => 'बैकअप पूरा हुआ।',
     'backup.failed'           => 'बैकअप विफल रहा। विवरण के लिए लॉग जाँचें।',
+    'backup.secrets.not_allowed' => 'केवल एक सुपरएडमिन ही बैकअप में सीक्रेट शामिल कर सकता है।',
     'backup.deleted'          => 'बैकअप हटाया गया।',
     'backup.restore.done'     => 'पुनर्स्थापना पूरी हुई।',
     'backup.restore.failed'   => 'पुनर्स्थापना विफल रही। आपका पुनर्स्थापना-पूर्व सुरक्षा बैकअप उपलब्ध है।',

@@ -10,6 +10,8 @@ return [
     'mcp.settings.disabled' => 'Servidor MCP desativado.',
     'mcp.token.created'     => 'Token gerado.',
     'mcp.token.revoked'     => 'Token revogado.',
+    'mcp.token.error.org_scoped_app_wide' => 'Um token de organização não pode atuar com uma função que alcança todas as organizações. Escolha um perfil mais restrito ou crie um token sem a opção de organização.',
+    'mcp.token.error.org_scoped_no_org'   => 'Um token de organização precisa de uma organização, e você não está conectado a nenhuma.',
 
     // Connect screen — header
     'mcp.connect.title'     => 'Servidor MCP',
