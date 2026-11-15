@@ -46,16 +46,31 @@ class Tiger_Model_Org extends Tiger_Model_Table
         $t   = $cfg ? $cfg->get('tiger') : null;
         $s   = $t ? $t->get('site') : null;
         $id  = ($s && $s->get('org_id')) ? (string) $s->org_id : '';
-        if ($id === '') {
-            try {
-                $m   = new self();
-                $row = $m->fetchRow($m->activeSelect()->order('created_at ASC')->limit(1));   // the founding org
-                $id  = $row ? (string) $row->org_id : '';
-            } catch (Throwable $e) {
-                $id = '';
-            }
+        return self::$_siteOrgId = self::installOrgId($id);
+    }
+
+    /**
+     * The install's own org — the org a single-site install runs as: the configured `tiger.site.org_id`
+     * when given, else the **founding org** (the oldest active org). Unlike {@see siteOrgId()} this is
+     * NOT cached and NOT overridden by a request host, so the bootstrap can call it while it is still
+     * folding the config (before `Zend_Config` is registered) without pinning a stale per-request value.
+     *
+     * @param  string $configured the configured `tiger.site.org_id` ('' when unset)
+     * @return string the org id, or '' if no org exists yet (a pre-install install)
+     */
+    public static function installOrgId($configured = '')
+    {
+        $configured = (string) $configured;
+        if ($configured !== '') {
+            return $configured;
         }
-        return self::$_siteOrgId = $id;
+        try {
+            $m   = new self();
+            $row = $m->fetchRow($m->activeSelect()->order('created_at ASC')->limit(1));   // the founding org
+            return $row ? (string) $row->org_id : '';
+        } catch (Throwable $e) {
+            return '';
+        }
     }
 
     /**
