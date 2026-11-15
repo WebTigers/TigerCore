@@ -56,6 +56,43 @@ class System_Bootstrap extends Zend_Application_Module_Bootstrap
     }
 
     /**
+     * Per-domain TigerPASS seats (TIGER-505) — the notice + the daily reconcile.
+     *
+     * NOTICE: on a multi-domain install, an admin working on a tenant domain that has no valid seat sees a key
+     * icon with a badge in the admin header (Tiger_Admin_Header, `visible` only on that host, admin+ via the
+     * Sites resource) linking to System › Sites, where the coverage column says what to do. The public site
+     * shows nothing and nothing is ever disabled — nag, never disable. The check is option reads only.
+     *
+     * JOB: once a day, claim a seat for every served domain that lacks one and refresh each seat's cached
+     * verdict. Idempotent and fail-soft; a refused claim just leaves that domain uncovered.
+     */
+    protected function _initLicenseSeats()
+    {
+        if (!class_exists('Tiger_License_Seats')) { return; }
+
+        Tiger_Admin_Header::register([
+            'key'      => 'system_license_seat',
+            'label'    => 'system.seats.notice',
+            'icon'     => 'fa-key',
+            'href'     => '/system/sites',
+            'resource' => 'System_SitesController',
+            'order'    => 5,
+            'badge'    => 1,
+            'visible'  => static fn() => Tiger_License_Seats::needsSeat(Tiger_License_Pass::installDomain()),
+        ]);
+
+        if (!class_exists('Tiger_Schedule')) { return; }
+        Tiger_Schedule::register([
+            'key'     => 'system.license_seats',
+            'label'   => 'Claim and verify TigerPASS seats for every served domain',
+            'every'   => Tiger_Schedule::DAILY,
+            'at'      => '03:45',
+            'run'     => static function () { Tiger_License_Seats::run(); },
+            'managed' => false,
+        ]);
+    }
+
+    /**
      * Keep the Updates badge honest (TIGER-112).
      *
      * The badge on Modules > Updates reads a summary the last full check wrote; it never checks for

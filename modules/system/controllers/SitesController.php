@@ -22,6 +22,9 @@ class System_SitesController extends Tiger_Controller_Admin_Action
         $this->view->title         = 'Sites — Tiger Admin';
         $this->view->useDataTables = true;   // the layout loads jQuery + DataTables when set
         $this->view->form          = new System_Form_Site();
+        // Per-domain TigerPASS seats (TIGER-505): cached coverage only — no network on a page render.
+        $this->view->seatsOn       = Tiger_License_Seats::main() !== null;
+        $this->view->seatCoverage  = $this->view->seatsOn ? Tiger_License_Seats::coverage() : null;
         $this->view->orgCount      = (int) (new Tiger_Model_Org())->fetchAll(
             (new Tiger_Model_Org())->activeSelect()
         )->count();

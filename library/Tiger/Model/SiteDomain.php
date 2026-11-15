@@ -86,6 +86,20 @@ class Tiger_Model_SiteDomain extends Tiger_Model_Table
     }
 
     /**
+     * Every ACTIVE mapped hostname (status active, not deleted), alphabetical — the install's served domains,
+     * for per-domain license seats (Tiger_License_Seats).
+     *
+     * @return array<int,string> the hostnames
+     */
+    public function activeHosts()
+    {
+        $sel = $this->activeSelect()->from($this->_name, ['domain'])
+            ->where('status = ?', 'active')
+            ->order('domain ASC');
+        return array_map('strval', $this->getAdapter()->fetchCol($sel));
+    }
+
+    /**
      * Is a host already mapped (active, not deleted)? Optionally ignore one row (the one being edited).
      *
      * @param  string      $host      the request host (raw; normalized internally)

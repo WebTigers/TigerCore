@@ -66,7 +66,7 @@ $allowed = function ($resource) use ($acl, $userRole) {
          over /api on open, instead of navigating. The panel is DECLARATIVE — the item names the endpoints
          and its label KEYS; we resolve the keys here (active locale) and hand tiger.header-flyout.js the
          already-translated strings on a data-* attribute, so this core theme partial imports no module. -->
-    <?php foreach (Tiger_Admin_Header::items() as $hi): if (!$allowed($hi['resource'])) { continue; }
+    <?php foreach (Tiger_Admin_Header::items() as $hi): if (!$allowed($hi['resource']) || !Tiger_Admin_Header::isVisible($hi)) { continue; }
         // The badge is resolved AFTER the ACL filter, so a count is never computed for an item the user
         // cannot see. Zero renders nothing — a grey "0" is noise.
         $badge = Tiger_Admin_Header::badgeCount($hi);

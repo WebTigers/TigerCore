@@ -10,6 +10,10 @@
  * they serve. A host is unique across the whole install (it resolves to exactly one org); a site's
  * `www` and apex are two separate rows. ACL: admin+ (modules/system/configs/acl.ini).
  *
+ * TigerPASS seats (TIGER-505): each served apex needs its own seat on the main key's license
+ * (Tiger_License_Seats). save() claims one after the commit, datatable() reports each row's coverage, and
+ * checkSeats() claims on demand. Coverage is information only — nothing here ever blocks a mapping.
+ *
  * @api
  */
 class System_Service_Sites extends Tiger_Service_Service
@@ -35,9 +39,15 @@ class System_Service_Sites extends Tiger_Service_Service
 
         $canDelete = $this->_isAllowed('delete');
 
+        // Per-domain TigerPASS coverage (cached verdicts only — never the network on a grid load).
+        $seatsOn   = Tiger_License_Seats::main() !== null;
+        $manageUrl = $seatsOn ? Tiger_License_Seats::manageUrl() : '';
+
         $rows = [];
         foreach ($data['rows'] as $r) {
             $rows[] = [
+                'coverage'       => $seatsOn ? Tiger_License_Seats::stateFor((string) $r['domain']) : Tiger_License_Seats::NONE,
+                'manage_url'     => $manageUrl,
                 'site_domain_id' => $r['site_domain_id'],
                 'domain'         => $r['domain'],
                 'org_id'         => $r['org_id'],
@@ -87,10 +97,42 @@ class System_Service_Sites extends Tiger_Service_Service
                 }
                 return $model->insert($data);
             });
-            $this->_success(['site_domain_id' => $newId], 'system.sites.saved', '/system/sites');
         } catch (Throwable $e) {
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
+            return;
         }
+
+        // A newly served domain needs its own TigerPASS seat, claimed with the main key (TIGER-505). Best
+        // effort and AFTER the commit: a refused or unreachable claim never undoes the mapping — the domain
+        // just shows "Not covered" until a seat exists (nag, never disable).
+        $seats = Tiger_License_Seats::reconcile();
+        $this->_success(['site_domain_id' => $newId, 'seats' => $seats], 'system.sites.saved', '/system/sites');
+    }
+
+    /**
+     * "Check seats" — claim a TigerPASS seat for every served domain that lacks one, then return the coverage.
+     * The on-demand twin of the daily `system.license_seats` job; idempotent, and a domain the authority
+     * refuses (no spare seat) simply stays uncovered.
+     *
+     * @param  array $params the request payload carrying `_csrf` (the Sites screen's token)
+     * @return void
+     */
+    public function checkSeats(array $params): void
+    {
+        if (!$this->_isAllowed('checkSeats')) { $this->_error('core.api.error.not_allowed'); return; }
+
+        // A write (it may bind a seat at the authority) → the screen's CSRF token is validated. The Sites form
+        // owns the page's token, so validate just that key — seeded '' so a missing token is refused.
+        $form = new System_Form_Site();
+        $check = ['_csrf' => !empty($params['_csrf']) ? $params['_csrf'] : ''];
+        if (!$form->isValidPartial($check)) { $this->_formErrors($form); return; }
+
+        if (Tiger_License_Seats::main() === null) { $this->_error('system.seats.no_pass'); return; }
+
+        $result = Tiger_License_Seats::reconcile();
+        Tiger_License_Seats::verifyAll();
+        $cov = Tiger_License_Seats::coverage();
+        $this->_success(['reconcile' => $result, 'coverage' => $cov], 'system.seats.checked');
     }
 
     /**

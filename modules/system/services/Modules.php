@@ -468,7 +468,9 @@ class System_Service_Modules extends Tiger_Service_Service
     public function passInfo(array $params): void
     {
         if (!$this->_isAllowed('passInfo')) { $this->_error('core.api.error.not_allowed'); return; }
-        $this->_success(['pass' => self::_passState(), 'nag' => self::_passNagState()]);
+        // `seats` — per-domain coverage for a multi-domain install ("N of M domains covered", TIGER-505).
+        // Cached verdicts only; never the network.
+        $this->_success(['pass' => self::_passState(), 'nag' => self::_passNagState(), 'seats' => Tiger_License_Seats::coverage()]);
     }
 
     /**

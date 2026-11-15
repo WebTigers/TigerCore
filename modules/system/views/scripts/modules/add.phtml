@@ -181,6 +181,7 @@ if ($passCheckout === '') { $passCheckout = 'https://webtigers.com/checkout/tige
             <div class="card-header fw-semibold"><i class="fa-solid fa-paw me-2"></i><?= $this->t('system.add.pass_header') ?></div>
             <div class="card-body">
                 <div id="pass-tab-status" class="mb-3"></div>
+                <p id="pass-tab-seats" class="small text-body-secondary mb-3" hidden></p>
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" role="switch" id="pass-nag-toggle">
                     <label class="form-check-label" for="pass-nag-toggle"><?= $this->t('system.add.pass_disable_nag') ?></label>
@@ -233,6 +234,8 @@ $this->i18n([
     'noVendor' => 'system.js.no_vendor',
     'popupBlocked' => 'system.js.popup_blocked',
     'tigerpassWelcome' => 'system.js.tigerpass_welcome',
+    'seatsSummary' => 'system.seats.summary',
+    'seatsManage' => 'system.seats.manage',
     'trustBody' => 'system.js.trust_body',
     'trustChangedClause' => 'system.js.trust_changed_clause',
     'trustConfirm' => 'system.js.trust_confirm',

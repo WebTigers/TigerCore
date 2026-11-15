@@ -471,4 +471,17 @@ return [
     'system.sites.js.confirm_delete' => 'Stop serving a site on "%s"? The hostname falls back to the default site.',
     'system.sites.js.added'          => 'Domain mapped.',
     'system.sites.js.net_error'      => 'Network error — please try again.',
+    // Per-domain TigerPASS seats (TIGER-505)
+    'system.seats.col'       => 'TigerPASS',
+    'system.seats.main'      => 'Main domain',
+    'system.seats.covered'   => 'Covered',
+    'system.seats.uncovered' => 'Not covered',
+    'system.seats.lapsed'    => 'Seat lapsed',
+    'system.seats.add_seat'  => 'add a seat',
+    'system.seats.check'     => 'Check seats',
+    'system.seats.checked'   => 'Seats checked.',
+    'system.seats.no_pass'   => 'This install has no TigerPASS key. Activate TigerPASS under Modules › Add New first.',
+    'system.seats.summary'   => '%1$s of %2$s domains covered by TigerPASS.',
+    'system.seats.manage'    => 'Manage domains',
+    'system.seats.notice'    => 'This domain has no TigerPASS seat. Open Sites to add one.',
 ];
