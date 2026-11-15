@@ -109,19 +109,10 @@ class Seo_LlmsController extends Zend_Controller_Action
         return $v === null || (string) $v === '1';
     }
 
-    /** Read a `tiger.<dotKey>` config value. */
+    /** Read a `tiger.<dotKey>` value for the SITE being served (site org → global → ini; TIGER-511). */
     private static function _config($dotKey, $default = '')
     {
-        if (!Zend_Registry::isRegistered('Zend_Config')) {
-            return $default;
-        }
-        $node = Zend_Registry::get('Zend_Config')->get('tiger');
-        foreach (explode('.', $dotKey) as $seg) {
-            if (!($node instanceof Zend_Config)) { return $default; }
-            $node = $node->get($seg);
-            if ($node === null) { return $default; }
-        }
-        return is_scalar($node) ? (string) $node : $default;
+        return (string) Tiger_Model_Config::siteValue('tiger.' . $dotKey, $default);
     }
 
     /** Turn a provider key/slug into a section title ('blog' -> 'Blog', 'listing-pages' -> 'Listing Pages'). */

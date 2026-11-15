@@ -23,7 +23,8 @@
  * Report results are file-cached (GA has quotas).
  *
  * Config (tiger.analytics.*): oauth.mode, connect.base_url (broker), oauth.client_id,
- * oauth.client_secret_enc (byo), property_id, oauth.refresh_token_enc.
+ * oauth.client_secret_enc (byo), property_id, oauth.refresh_token_enc. All written and read at the
+ * caller's ORG (TIGER-511), falling back to the install-wide value; `connect.base_url` is ini-only.
  *
  * @api
  */
@@ -113,36 +114,51 @@ class Tiger_Google_Analytics
     }
 
     /**
-     * Persist the connect mode (broker | byo).
+     * Persist the connect mode (broker | byo) at an org (TIGER-511).
      *
-     * @param  string $mode
+     * @param  string      $mode
+     * @param  string|null $orgId the org to save for; null = the caller's current org
      * @return void
      */
-    public static function saveMode($mode)
+    public static function saveMode($mode, $orgId = null)
     {
         $mode = ($mode === self::MODE_BYO) ? self::MODE_BYO : self::MODE_BROKER;
-        (new Tiger_Model_Config())->set(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.analytics.oauth.mode', $mode);
+        [$scope, $sid] = Tiger_Model_Config::settingScope($orgId);
+        (new Tiger_Model_Config())->set($scope, $sid, 'tiger.analytics.oauth.mode', $mode);
     }
 
     /**
      * Persist the BYO OAuth client creds + property id (secret encrypted; blank secret keeps the
      * current). Property id is saved in both modes; the client creds are only used in BYO mode.
      *
-     * @param  string $clientId
-     * @param  string $clientSecret blank = keep existing
-     * @param  string $propertyId
+     * Everything here is ORG-scoped (TIGER-511), the BYO client included: broker mode keeps no client
+     * creds on the install at all (WebTigers' one broker client lives in the TigerOAuth Lambda), so the
+     * only client stored here is an org's OWN Google Cloud client — and the same org-admin screen writes
+     * it, so a global write would let one org's admin repoint another org's reporting.
+     *
+     * @param  string      $clientId
+     * @param  string      $clientSecret blank = keep existing
+     * @param  string      $propertyId
+     * @param  string|null $orgId        the org to save for; null = the caller's current org
      * @return void
      */
-    public static function saveOauthConfig($clientId, $clientSecret, $propertyId)
+    public static function saveOauthConfig($clientId, $clientSecret, $propertyId, $orgId = null)
     {
         $cfg = new Tiger_Model_Config();
-        $g   = Tiger_Model_Config::SCOPE_GLOBAL;
-        $cfg->set($g, '', 'tiger.analytics.oauth.client_id', trim((string) $clientId));
-        $cfg->set($g, '', 'tiger.analytics.property_id',     preg_replace('/\D+/', '', (string) $propertyId));
+        [$g, $sid] = Tiger_Model_Config::settingScope($orgId);
+        $cfg->set($g, $sid, 'tiger.analytics.oauth.client_id', trim((string) $clientId));
+        $cfg->set($g, $sid, 'tiger.analytics.property_id',     preg_replace('/\D+/', '', (string) $propertyId));
         $secret = trim((string) $clientSecret);
         if ($secret !== '' && class_exists('Tiger_Crypto') && Tiger_Crypto::isConfigured()) {
-            $cfg->set($g, '', 'tiger.analytics.oauth.client_secret_enc', (string) Tiger_Crypto::encrypt($secret));
+            $cfg->set($g, $sid, 'tiger.analytics.oauth.client_secret_enc', (string) Tiger_Crypto::encrypt($secret));
         }
+    }
+
+    /** Store (or clear, with '') the encrypted refresh token at the caller's org (TIGER-511). */
+    private static function _storeRefreshToken($enc)
+    {
+        [$scope, $sid] = Tiger_Model_Config::settingScope();
+        (new Tiger_Model_Config())->set($scope, $sid, 'tiger.analytics.oauth.refresh_token_enc', (string) $enc);
     }
 
     /** Forget the OAuth connection (drop the refresh token). Client creds + property id stay. */
@@ -175,7 +191,7 @@ class Tiger_Google_Analytics
             ]);
             $revoked = ($res !== null);
         }
-        (new Tiger_Model_Config())->set(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.analytics.oauth.refresh_token_enc', '');
+        self::_storeRefreshToken('');
         self::$_access = null;
         @unlink(self::_cacheFile());
         return ['revoked' => $revoked];
@@ -236,8 +252,7 @@ class Tiger_Google_Analytics
             return ['ok' => false, 'error' => 'The connect service did not return a token. Please try again.'];
         }
         if (class_exists('Tiger_Crypto') && Tiger_Crypto::isConfigured()) {
-            (new Tiger_Model_Config())->set(Tiger_Model_Config::SCOPE_GLOBAL, '',
-                'tiger.analytics.oauth.refresh_token_enc', (string) Tiger_Crypto::encrypt((string) $data['refresh_token']));
+            self::_storeRefreshToken((string) Tiger_Crypto::encrypt((string) $data['refresh_token']));
         }
         self::$_access = null;
         @unlink(self::_cacheFile());
@@ -294,8 +309,7 @@ class Tiger_Google_Analytics
             return ['ok' => false, 'error' => $res['error_description'] ?? ($res['error'] ?? 'No refresh token returned — revoke the app in your Google account and try again.')];
         }
         if (class_exists('Tiger_Crypto') && Tiger_Crypto::isConfigured()) {
-            (new Tiger_Model_Config())->set(Tiger_Model_Config::SCOPE_GLOBAL, '',
-                'tiger.analytics.oauth.refresh_token_enc', (string) Tiger_Crypto::encrypt((string) $res['refresh_token']));
+            self::_storeRefreshToken((string) Tiger_Crypto::encrypt((string) $res['refresh_token']));
         }
         self::$_access = $res['access_token'] ?? null;
         @unlink(self::_cacheFile());
@@ -648,18 +662,13 @@ class Tiger_Google_Analytics
         return $base . '/ga-' . substr(md5(self::propertyId()), 0, 10) . ($days ? '-' . $days . 'd' : '') . '.json';
     }
 
-    /** Read a `tiger.<dotKey>` config value with a default. */
+    /**
+     * Read a `tiger.<dotKey>` value for the caller's org (its row → global → ini; TIGER-511). Reporting
+     * is an admin surface, so it reads the tier the Analytics screen writes — one org's GA connection
+     * never answers for another's.
+     */
     private static function _config($dotKey, $default = '')
     {
-        if (!Zend_Registry::isRegistered('Zend_Config')) {
-            return $default;
-        }
-        $node = Zend_Registry::get('Zend_Config')->get('tiger');
-        foreach (explode('.', $dotKey) as $seg) {
-            if (!($node instanceof Zend_Config)) { return $default; }
-            $node = $node->get($seg);
-            if ($node === null) { return $default; }
-        }
-        return is_scalar($node) ? (string) $node : $default;
+        return (string) Tiger_Model_Config::currentValue('tiger.' . $dotKey, $default);
     }
 }

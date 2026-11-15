@@ -25,26 +25,27 @@ class Matomo_AdminController extends Tiger_Controller_Admin_Action
      */
     public function indexAction()
     {
-        $tiger = Zend_Registry::get('Zend_Config')->get('tiger');
-        $m     = $tiger ? $tiger->get('matomo') : null;
-        $aff   = $m ? $m->get('affiliate') : null;
+        // The caller's org tier (its own value, else the install-wide one) — the tier the save writes
+        // (TIGER-511), so the screen shows exactly what it will save.
+        $v = static function ($key, $default = '') {
+            return (string) Tiger_Model_Config::currentValue($key, $default);
+        };
 
         $form = new Matomo_Form_Settings();
         $form->populate([
-            'matomo_url'                    => $m ? (string) $m->get('url') : '',
-            'matomo_site_id'                => $m && $m->get('site_id') !== null ? (string) $m->get('site_id') : '',
-            'matomo_affiliate_dimension_id' => $aff && $aff->get('dimension_id') !== null ? (string) $aff->get('dimension_id') : '1',
+            'matomo_url'                    => $v('tiger.matomo.url'),
+            'matomo_site_id'                => $v('tiger.matomo.site_id'),
+            'matomo_affiliate_dimension_id' => $v('tiger.matomo.affiliate.dimension_id', '1'),
         ]);
 
-        $b = static function ($node, $key, $default = false) {
-            return $node && $node->get($key) !== null
-                ? filter_var((string) $node->get($key), FILTER_VALIDATE_BOOLEAN)
-                : $default;
+        $b = static function ($key, $default = false) {
+            $raw = Tiger_Model_Config::currentValue($key);
+            return $raw !== null ? filter_var((string) $raw, FILTER_VALIDATE_BOOLEAN) : $default;
         };
 
         $this->view->title           = 'Matomo — Tiger Admin';
         $this->view->form            = $form;
-        $this->view->enabled         = $b($m, 'enabled', false);
-        $this->view->excludeSignedIn = $b($m, 'exclude_signed_in', true);
+        $this->view->enabled         = $b('tiger.matomo.enabled', false);
+        $this->view->excludeSignedIn = $b('tiger.matomo.exclude_signed_in', true);
     }
 }

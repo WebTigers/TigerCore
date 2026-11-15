@@ -6,6 +6,59 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.59.0] — 2026-11-15
+
+### Changed — per-site settings are org-scoped (TIGER-511)
+Every install has an org, and a per-site setting saved by one org's admin no longer lands in the global
+tier where it reached every other org. Each screen below now WRITES at the caller's org and shows that
+same tier (its own value, else the install-wide one); public paths and per-request plugins read the SITE
+org (the host's tenant, else the install org), so a visitor signed in to another org still sees this
+site's value. Existing global rows keep resolving as every org's fallback — nothing to migrate.
+- **Site Identity** (name, tagline, description, logo, favicon, share image, social links), **CMS
+  settings** (site name, home page, generator meta), **SEO social cards**, **Google Analytics** (tag
+  settings, property, connect mode, BYO client, stored refresh token), **Matomo**, **email template
+  overrides** (the editor ignores a client-sent `scope`), the **AI comment-spam switch**, the
+  **public-signup kill switch** (`option` tier), and in **System settings** the reCAPTCHA keys/options,
+  the cookie-consent banner, and the mail **From** identity. Session TTLs, the mail transport/provider/
+  SMTP + API credentials and the location providers stay install-wide; the System screen now badges each
+  card "This site" or "Whole install".
+- GA's OAuth client is org-scoped too: broker mode stores no client on the install (WebTigers' one broker
+  client lives in the TigerOAuth Lambda), and a BYO client is the org's own, written from the same
+  org-admin screen — so a global write would let one org repoint another's reporting.
+- Readers moved to the site org: the layout's `siteName` + generator meta, the favicon, every SEO head /
+  schema / llms.txt value, the analytics + Matomo tags, the reCAPTCHA widget + verify, the consent gate +
+  banner, the home page, the blog feed title, the spam check, the signup gate, and a `Tiger_Mail` send that
+  names no org (its template override, From and site name).
+
+### Added
+- `Tiger_Model_Config::siteValue($key, $default)` (site org row → global → ini), `orgValue($orgId, $key,
+  $default)`, `currentValue()`, `currentOrgId()` (the caller's org, else the site org) and
+  `settingScope($orgId = null)` (where a per-org setting is written); rows are cached per request and the
+  cache is dropped on `set()`/`forget()`. `setIniBase()` records the ini tier at boot.
+- `Tiger_Model_Option::getForOrg($orgId, $key)` — the org's value, else the global one.
+- An optional `$orgId` on `Tiger_Recaptcha` getters/`settings()`/`saveSettings()`, `Tiger_Consent::mode()`/
+  `honorGpc()`/`settings()`/`saveSettings()`, `Tiger_Mail::settings()`/`saveSettings()`,
+  `Tiger_Google_Analytics::saveMode()`/`saveOauthConfig()` and `Tiger_Comment_Spam::agentEnabled()`.
+- `Tiger_Model_Org::setSiteOrgId(null)` clears the per-request cache.
+- `Tiger_Acl_Acl::roleIsAllowed()` (a fail-closed check for a role you were handed) and
+  `Tiger_Acl_Acl::isAvailable()`.
+
+### Changed — role lists become ACL capabilities (TIGER-511)
+- The post-login landing and the session TTL tier are ACL capabilities (`Tiger_Admin_Home`/`enter`,
+  `Tiger_Session_Privileged`/`short_ttl`, both granted at admin) instead of hardcoded role lists. Access is
+  unchanged for the stock roles; apps can grant either to custom roles in `acl.ini`.
+- If the ACL isn't available when a session is written, an authenticated session gets the SHORTER TTL tier.
+
+### Security (TIGER-511)
+- Backup download, restore (from history or an upload) and including secrets are now **superadmin**
+  (`Tiger_Backup_Data`). Admin keeps the screen, creating backups without secrets, deleting, and the schedule
+  settings; an admin settings save never flips the stored secrets switch.
+- Org-scoped MCP tokens re-check the owner's ACTIVE membership in the token's org on every request and take
+  the role from it. Tokens whose role is app-wide (holds `Tiger_Tenancy_AllOrgs`) are refused at mint and per
+  request.
+- The TIGER-335 guard test now fails the build on a role-name list anywhere in `library/`, `core/` or
+  `modules/`.
+
 ## [1.58.0] — 2026-11-15
 
 ### Security (TIGER-511)

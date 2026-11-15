@@ -161,19 +161,13 @@ class Matomo_Plugin_Tag extends Zend_Controller_Plugin_Abstract
         return new Zend_View();
     }
 
-    /** Read a `tiger.<dotKey>` config value with a default. */
+    /**
+     * Read a `tiger.<dotKey>` value for the SITE being served (TIGER-511): the site org's row → global
+     * → ini — never the signed-in visitor's own org's tracker.
+     */
     private static function _config($dotKey, $default = '')
     {
-        if (!Zend_Registry::isRegistered('Zend_Config')) {
-            return $default;
-        }
-        $node = Zend_Registry::get('Zend_Config')->get('tiger');
-        foreach (explode('.', $dotKey) as $seg) {
-            if (!($node instanceof Zend_Config)) { return $default; }
-            $node = $node->get($seg);
-            if ($node === null) { return $default; }
-        }
-        return is_scalar($node) ? (string) $node : $default;
+        return (string) Tiger_Model_Config::siteValue('tiger.' . $dotKey, $default);
     }
 
     /** Read a boolean-ish `tiger.<dotKey>` config value. */

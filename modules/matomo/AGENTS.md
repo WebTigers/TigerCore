@@ -31,7 +31,7 @@ speaks Matomo's client-side tracking API (`_paq`) and (future) its HTTP Reportin
 - `views/scripts/admin/index.phtml` + `assets/js/matomo.settings.js` (the save wiring).
 - **No `models/`** — settings live in `Tiger_Model_Config` (the live-override tier).
 
-## Config keys (all `tiger.matomo.*`, GLOBAL scope today)
+## Config keys (all `tiger.matomo.*`, per org — TIGER-511)
 
 - `enabled` (bool) · `url` (the Matomo base URL, trailing-slashed) · `site_id` (idsite, int) ·
   `exclude_signed_in` (bool, default on) · `affiliate.dimension_id` (the visit-scoped custom-dimension
@@ -59,8 +59,8 @@ speaks Matomo's client-side tracking API (`_paq`) and (future) its HTTP Reportin
   validated in the plugin before ever being emitted (don't trust the stored config shape).
 - **The two switches (`enabled`, `exclude_signed_in`) are NOT form elements** — the form validates only
   the URL / site id / dimension index; the switches come straight off `$params`.
-- **Config scope is GLOBAL today**, isolated in `_scope()` (multi-site flips to per-org later — same as
-  the analytics module).
+- **Config is per org (TIGER-511)**: `_scope()` writes at the caller's org (global = install-wide
+  fallback); the screen reads `Tiger_Model_Config::currentValue()`, the tag reads `siteValue()`.
 - **Everything is `class_exists`-guarded** against a Core predating `Tiger_Tracking`/`Tiger_Admin_Settings`
   — the module still loads (degraded) on older cores.
 

@@ -145,11 +145,10 @@ class Blog_IndexController extends Tiger_Controller_Action
         return defined('LANG') ? LANG : 'en';
     }
 
-    /** Site name from config (for the feed title), with a sane default. */
+    /** The SITE's name (for the feed title; site org → global → ini, TIGER-511), with a sane default. */
     protected function _siteName()
     {
-        $cfg = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
-        $t   = $cfg ? $cfg->get('tiger') : null;
-        return ($t && $t->get('site') && $t->site->get('name')) ? (string) $t->site->name : 'Blog';
+        $name = trim((string) Tiger_Model_Config::siteValue('tiger.site.name', ''));
+        return $name !== '' ? $name : 'Blog';
     }
 }

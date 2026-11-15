@@ -311,6 +311,9 @@ return [
 
     // ---- Settings: Signup ------------------------------------------------------------------
     'system.settings.signup.header'       => 'Inscription publique',
+    'system.settings.scope.site'          => 'Ce site',
+    'system.settings.scope.install'       => 'Toute l\'installation',
+    'system.settings.scope.from_help'     => 'L\'adresse d\'expéditeur est enregistrée pour ce site ; le serveur de messagerie et ses identifiants s\'appliquent à toute l\'installation.',
     'system.settings.signup.intro'        => 'Le formulaire public <code>/signup</code> permet à quiconque de créer un compte (une nouvelle organisation + propriétaire). Désactivez-le pour une installation sur invitation uniquement ou mono-locataire — la page renvoie alors un 404 et l\'API refuse les nouvelles inscriptions. Les comptes existants et la vérification d\'e-mail ne sont pas affectés.',
     'system.settings.signup.disable'      => 'Désactiver le formulaire d\'inscription public',
     'system.settings.signup.disable_help' => 'Par défaut : désactivé (l\'inscription publique est ouverte). Lorsqu\'il est activé, <code>/signup</code> renvoie un 404.',

@@ -26,19 +26,18 @@ class Cms_SettingsController extends Tiger_Controller_Admin_Action
      */
     public function indexAction()
     {
-        $cfg   = Zend_Registry::get('Zend_Config');
-        $tiger = $cfg->get('tiger');
-        $site  = $tiger ? $tiger->get('site') : null;
-
-        $home = $site ? (string) $site->get('home_page') : '';
+        // The caller's org tier (its own value, else the install-wide one, else the ini) — the tier
+        // Cms_Service_Settings writes (TIGER-511), so the screen shows exactly what it will save.
+        $home = (string) Tiger_Model_Config::currentValue('tiger.site.home_page', '');
+        $name = (string) Tiger_Model_Config::currentValue('tiger.site.name', '');
+        $gen  = (string) Tiger_Model_Config::currentValue('tiger.site.generator_meta', '');
 
         $form = new Cms_Form_Settings();
         $form->populate([
-            'site_name' => ($site && (string) $site->get('name') !== '') ? (string) $site->name : 'Tiger',
+            'site_name' => $name !== '' ? $name : 'Tiger',
             'home_page' => $home,
             // Config holds the flag positively; the checkbox asks "hide?" — invert on the way in.
-            'hide_generator' => ($site && (string) $site->get('generator_meta') !== ''
-                                 && !filter_var((string) $site->get('generator_meta'), FILTER_VALIDATE_BOOLEAN)) ? 1 : 0,
+            'hide_generator' => ($gen !== '' && !filter_var($gen, FILTER_VALIDATE_BOOLEAN)) ? 1 : 0,
         ]);
 
         $this->view->title = 'Settings — Tiger Admin';

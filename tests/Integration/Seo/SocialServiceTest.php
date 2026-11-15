@@ -71,9 +71,10 @@ final class SocialServiceTest extends IntegrationTestCase
         return (new Seo_Service_Social(['action' => $method] + $params))->getResponse();
     }
 
+    /** The caller's org row — where cards land (TIGER-511; loginAs() signs in to `org-test`). */
     private function cfg(string $key): ?string
     {
-        return (new Tiger_Model_Config())->get(Tiger_Model_Config::SCOPE_GLOBAL, '', $key);
+        return (new Tiger_Model_Config())->get(Tiger_Model_Config::SCOPE_ORG, 'org-test', $key);
     }
 
     /** The `pages` row for one key, or null. */

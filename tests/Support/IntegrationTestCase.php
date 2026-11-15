@@ -55,6 +55,9 @@ abstract class IntegrationTestCase extends TestCase
         Tiger_Model_Table::setActor(null);
         Tiger_Model_Table::setOrg('');
         Tiger_Agent::reset();               // agent facade memoizes the default per request
+        // Per-request caches that would otherwise outlive the rolled-back rows they were read from.
+        \Tiger_Model_Config::resetCache();
+        \Tiger_Model_Org::setSiteOrgId(null);
         $this->db->beginTransaction();
     }
 
@@ -70,6 +73,8 @@ abstract class IntegrationTestCase extends TestCase
         }
         Tiger_Model_Table::setActor(null);
         Tiger_Model_Table::setOrg('');
+        \Tiger_Model_Config::resetCache();
+        \Tiger_Model_Org::setSiteOrgId(null);
         Zend_Auth::getInstance()->clearIdentity();   // Zend_Auth is a process singleton — never leak an identity
         parent::tearDown();
     }

@@ -4,6 +4,9 @@
 /**
  * Tiger_Consent — the GDPR cookie-consent gate. Answers one question for any tracker: *may I load?*
  *
+ * Per site (TIGER-511): every `tiger.consent.*` value resolves for the SITE org being served (its row →
+ * the install-wide row → the ini), and saveSettings() writes at the caller's org.
+ *
  * Three modes (config `tiger.consent.mode`, set from Settings → Security → Cookies):
  *   - `off`    — consent not required; trackers load freely (non-EU sites).
  *   - `auto`   — require consent only if a tracker is actually present (reads Tiger_Tracking); the
@@ -37,11 +40,12 @@ class Tiger_Consent
     /**
      * The configured consent mode (`tiger.consent.mode`), defaulting to `off`.
      *
+     * @param  string|null $orgId the org to read for; null = the site being served (TIGER-511)
      * @return string one of MODE_OFF|MODE_AUTO|MODE_ALWAYS
      */
-    public static function mode()
+    public static function mode($orgId = null)
     {
-        $m = strtolower(trim((string) self::_config('consent.mode', self::MODE_OFF)));
+        $m = strtolower(trim((string) self::_config('consent.mode', self::MODE_OFF, $orgId)));
         return in_array($m, [self::MODE_AUTO, self::MODE_ALWAYS], true) ? $m : self::MODE_OFF;
     }
 
@@ -128,11 +132,12 @@ class Tiger_Consent
      * Do we honor GPC as a CCPA opt-out? Config `tiger.consent.honor_gpc`, default ON (the compliant
      * behavior — set to 0 only if you have a specific reason not to).
      *
+     * @param  string|null $orgId the org to read for; null = the site being served (TIGER-511)
      * @return bool
      */
-    public static function honorGpc()
+    public static function honorGpc($orgId = null)
     {
-        $v = strtolower(trim((string) self::_config('consent.honor_gpc', '1')));
+        $v = strtolower(trim((string) self::_config('consent.honor_gpc', '1', $orgId)));
         return !in_array($v, ['0', 'off', 'false', 'no'], true);
     }
 
@@ -158,64 +163,66 @@ class Tiger_Consent
     ];
 
     /**
-     * The current cookie-consent settings (for the admin form + the banner).
+     * The cookie-consent settings (for the banner, and the admin form).
      *
-     * @return array mode, message, accept_label, reject_label, policy_url
+     * @param  string|null $orgId the org to read for; null = the SITE being served (the banner) — the
+     *                            admin screen passes the caller's org (TIGER-511)
+     * @return array mode, message, accept_label, reject_label, policy_url, ccpa_notice, honor_gpc, gpc
      */
-    public static function settings()
+    public static function settings($orgId = null)
     {
-        $get = static function ($key, $default) {
-            $v = trim((string) self::_config('consent.' . $key, ''));
+        $get = static function ($key, $default) use ($orgId) {
+            $v = trim((string) self::_config('consent.' . $key, '', $orgId));
             return $v !== '' ? $v : $default;
         };
         return [
-            'mode'         => self::mode(),
+            'mode'         => self::mode($orgId),
             'message'      => $get('message', self::DEFAULTS['message']),
             'accept_label' => $get('accept_label', self::DEFAULTS['accept_label']),
             'reject_label' => $get('reject_label', self::DEFAULTS['reject_label']),
             'policy_url'   => $get('policy_url', self::DEFAULTS['policy_url']),
             'ccpa_notice'  => $get('ccpa_notice', self::DEFAULTS['ccpa_notice']),
-            'honor_gpc'    => self::honorGpc(),   // whether we honor the GPC opt-out signal
-            'gpc'          => self::gpc(),         // is a GPC signal present on THIS request?
+            'honor_gpc'    => self::honorGpc($orgId),   // whether we honor the GPC opt-out signal
+            'gpc'          => self::gpc(),               // is a GPC signal present on THIS request?
         ];
     }
 
     /**
-     * Persist the cookie-consent settings to the config tier (GLOBAL scope). Shared writer, called
-     * from the System settings save (mirrors Tiger_Recaptcha::saveSettings).
+     * Persist the cookie-consent settings to the config tier at an ORG (TIGER-511) — the banner copy and
+     * policy URL are the site's, so one org's save never changes another org's banner; the install-wide
+     * value stays the fallback. Shared writer, called from the System settings save (mirrors
+     * Tiger_Recaptcha::saveSettings).
      *
-     * @param  array $data mode, message, accept_label, reject_label, policy_url
+     * @param  array       $data  mode, message, accept_label, reject_label, policy_url, ccpa_notice, honor_gpc
+     * @param  string|null $orgId the org to save for; null = the caller's current org
      * @return void
      */
-    public static function saveSettings(array $data)
+    public static function saveSettings(array $data, $orgId = null)
     {
         $cfg  = new Tiger_Model_Config();
-        $g    = Tiger_Model_Config::SCOPE_GLOBAL;
+        [$g, $sid] = Tiger_Model_Config::settingScope($orgId);
         $mode = strtolower(trim((string) ($data['mode'] ?? self::MODE_OFF)));
         if (!in_array($mode, [self::MODE_OFF, self::MODE_AUTO, self::MODE_ALWAYS], true)) {
             $mode = self::MODE_OFF;
         }
-        $cfg->set($g, '', 'tiger.consent.mode',         $mode);
-        $cfg->set($g, '', 'tiger.consent.message',      trim((string) ($data['message'] ?? '')));
-        $cfg->set($g, '', 'tiger.consent.accept_label', trim((string) ($data['accept_label'] ?? '')));
-        $cfg->set($g, '', 'tiger.consent.reject_label', trim((string) ($data['reject_label'] ?? '')));
-        $cfg->set($g, '', 'tiger.consent.policy_url',   trim((string) ($data['policy_url'] ?? '')));
-        $cfg->set($g, '', 'tiger.consent.ccpa_notice',  trim((string) ($data['ccpa_notice'] ?? '')));
-        $cfg->set($g, '', 'tiger.consent.honor_gpc',    !empty($data['honor_gpc']) ? '1' : '0');
+        $cfg->set($g, $sid, 'tiger.consent.mode',         $mode);
+        $cfg->set($g, $sid, 'tiger.consent.message',      trim((string) ($data['message'] ?? '')));
+        $cfg->set($g, $sid, 'tiger.consent.accept_label', trim((string) ($data['accept_label'] ?? '')));
+        $cfg->set($g, $sid, 'tiger.consent.reject_label', trim((string) ($data['reject_label'] ?? '')));
+        $cfg->set($g, $sid, 'tiger.consent.policy_url',   trim((string) ($data['policy_url'] ?? '')));
+        $cfg->set($g, $sid, 'tiger.consent.ccpa_notice',  trim((string) ($data['ccpa_notice'] ?? '')));
+        $cfg->set($g, $sid, 'tiger.consent.honor_gpc',    !empty($data['honor_gpc']) ? '1' : '0');
     }
 
-    /** Read a `tiger.<dotKey>` config value with a default. */
-    private static function _config($dotKey, $default = '')
+    /**
+     * Read a `tiger.<dotKey>` value for one org: its row → global → ini (TIGER-511). Null org = the SITE
+     * being served — the consent gate and banner are the site's, whoever is signed in.
+     */
+    private static function _config($dotKey, $default = '', $orgId = null)
     {
-        if (!Zend_Registry::isRegistered('Zend_Config')) {
-            return $default;
-        }
-        $node = Zend_Registry::get('Zend_Config')->get('tiger');
-        foreach (explode('.', $dotKey) as $seg) {
-            if (!($node instanceof Zend_Config)) { return $default; }
-            $node = $node->get($seg);
-            if ($node === null) { return $default; }
-        }
-        return is_scalar($node) ? (string) $node : $default;
+        $k = 'tiger.' . $dotKey;
+        return (string) (($orgId === null)
+            ? Tiger_Model_Config::siteValue($k, $default)
+            : Tiger_Model_Config::orgValue((string) $orgId, $k, $default));
     }
 }

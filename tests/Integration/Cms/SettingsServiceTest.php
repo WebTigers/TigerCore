@@ -15,11 +15,11 @@ use Zend_Registry;
  * Cms_Service_Settings — the /api Settings service (save only).
  *
  * The domain specific worth proving: Settings does NOT write a settings table — it writes the site
- * name + home page into the DB `config` table (scope=global) via Tiger_Model_Config, the live-override
- * tier of the config cascade (config-discipline: config store, no option landfill). Coverage: the ACL
- * gate (admin+), the validate→write (site_name required → form error, no config row), an upsert that
- * updates the same key in place rather than duplicating it, and that the values land as global config
- * rows.
+ * name + home page into the DB `config` table at the caller's org (TIGER-511) via Tiger_Model_Config, the
+ * live-override tier of the config cascade (config-discipline: config store, no option landfill).
+ * Coverage: the ACL gate (admin+), the validate→write (site_name required → form error, no config row), an
+ * upsert that updates the same key in place rather than duplicating it, and that the values land as ORG
+ * config rows.
  *
  * Config::set writes directly (no service-level transaction), so these tests live inside the harness's
  * per-test transaction.
@@ -45,9 +45,10 @@ final class SettingsServiceTest extends IntegrationTestCase
         return (new Cms_Service_Settings(['action' => $action] + $params))->getResponse();
     }
 
-    private function globalConfig(string $key): ?string
+    /** The caller's org row — where the settings land (TIGER-511; loginAs() signs in to `org-test`). */
+    private function orgConfig(string $key): ?string
     {
-        return (new Tiger_Model_Config())->get(Tiger_Model_Config::SCOPE_GLOBAL, '', $key);
+        return (new Tiger_Model_Config())->get(Tiger_Model_Config::SCOPE_ORG, 'org-test', $key);
     }
 
     // ----- ACL gate -----------------------------------------------------------------------------
@@ -66,20 +67,20 @@ final class SettingsServiceTest extends IntegrationTestCase
         $this->assertStringContainsString('not_allowed', json_encode($res->messages), 'plain user denied');
 
         // Nothing leaked into config from a denied call.
-        $this->assertNull($this->globalConfig('tiger.site.name'));
+        $this->assertNull($this->orgConfig('tiger.site.name'));
     }
 
     // ----- save writes to the config tier -------------------------------------------------------
 
     #[Test]
-    public function save_writes_site_name_and_home_page_to_global_config(): void
+    public function save_writes_site_name_and_home_page_to_the_callers_org_config(): void
     {
         $this->loginAs('admin');
         $res = $this->call('save', ['site_name' => 'My Tiger Site', 'home_page' => '']);
 
         $this->assertSame(1, (int) $res->result);
-        $this->assertSame('My Tiger Site', $this->globalConfig('tiger.site.name'), 'site name lands in the config tier');
-        $this->assertSame('', $this->globalConfig('tiger.site.home_page'), 'home page (empty = built-in landing) is written too');
+        $this->assertSame('My Tiger Site', $this->orgConfig('tiger.site.name'), 'site name lands in the config tier');
+        $this->assertSame('', $this->orgConfig('tiger.site.home_page'), 'home page (empty = built-in landing) is written too');
     }
 
     #[Test]
@@ -89,9 +90,9 @@ final class SettingsServiceTest extends IntegrationTestCase
         $this->call('save', ['site_name' => 'First Name', 'home_page' => '']);
         $this->call('save', ['site_name' => 'Second Name', 'home_page' => '']);
 
-        $this->assertSame('Second Name', $this->globalConfig('tiger.site.name'), 'last write wins');
+        $this->assertSame('Second Name', $this->orgConfig('tiger.site.name'), 'last write wins');
         $count = (int) $this->db->fetchOne(
-            "SELECT COUNT(*) FROM config WHERE scope = 'global' AND scope_id = '' AND config_key = 'tiger.site.name' AND deleted = 0"
+            "SELECT COUNT(*) FROM config WHERE scope = 'org' AND scope_id = 'org-test' AND config_key = 'tiger.site.name' AND deleted = 0"
         );
         $this->assertSame(1, $count, 'upsert — a single config row, not a duplicate per save');
     }
@@ -101,7 +102,7 @@ final class SettingsServiceTest extends IntegrationTestCase
     {
         $this->loginAs('admin');
         $this->call('save', ['site_name' => '   Spaced Site   ', 'home_page' => '']);
-        $this->assertSame('Spaced Site', $this->globalConfig('tiger.site.name'));
+        $this->assertSame('Spaced Site', $this->orgConfig('tiger.site.name'));
     }
 
     // ----- the generator-meta flag --------------------------------------------------------------
@@ -113,7 +114,7 @@ final class SettingsServiceTest extends IntegrationTestCase
         // The box unticked doesn't submit at all; cms.settings.js sends the explicit '0' modelled here.
         $this->call('save', ['site_name' => 'S', 'home_page' => '', 'hide_generator' => '0']);
 
-        $this->assertSame('1', $this->globalConfig('tiger.site.generator_meta'),
+        $this->assertSame('1', $this->orgConfig('tiger.site.generator_meta'),
             'not hidden is stored as generator_meta=1 — the same polarity configs/core.ini ships');
     }
 
@@ -124,7 +125,7 @@ final class SettingsServiceTest extends IntegrationTestCase
         $res = $this->call('save', ['site_name' => 'S', 'home_page' => '', 'hide_generator' => '1']);
 
         $this->assertSame(1, (int) $res->result);
-        $this->assertSame('0', $this->globalConfig('tiger.site.generator_meta'),
+        $this->assertSame('0', $this->orgConfig('tiger.site.generator_meta'),
             'the checkbox asks the opposite question from the flag; the service reconciles it');
     }
 
@@ -137,7 +138,7 @@ final class SettingsServiceTest extends IntegrationTestCase
         $this->call('save', ['site_name' => 'S', 'home_page' => '', 'hide_generator' => '1']);
         $this->call('save', ['site_name' => 'S', 'home_page' => '', 'hide_generator' => '0']);
 
-        $this->assertSame('1', $this->globalConfig('tiger.site.generator_meta'), 'the opt-out is reversible');
+        $this->assertSame('1', $this->orgConfig('tiger.site.generator_meta'), 'the opt-out is reversible');
     }
 
     #[Test]
@@ -146,7 +147,7 @@ final class SettingsServiceTest extends IntegrationTestCase
         $this->loginAs('admin');
         $this->call('save', ['site_name' => 'S', 'home_page' => '']);
 
-        $this->assertSame('1', $this->globalConfig('tiger.site.generator_meta'),
+        $this->assertSame('1', $this->orgConfig('tiger.site.generator_meta'),
             'absent reads as not-hidden — nothing silently opts a site out');
     }
 

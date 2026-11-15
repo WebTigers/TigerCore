@@ -463,19 +463,13 @@ class Seo_Service_Head
         return new Zend_View();
     }
 
-    /** Read a `tiger.<dotKey>` config value (org-cascaded, live) with a default. */
+    /**
+     * Read a `tiger.<dotKey>` value for the SITE being served (TIGER-511): the site org's row → global
+     * → ini. Head tags are the site's, so a visitor signed in to another org never sees that org's.
+     */
     private static function _config($dotKey, $default = '')
     {
-        if (!Zend_Registry::isRegistered('Zend_Config')) {
-            return $default;
-        }
-        $node = Zend_Registry::get('Zend_Config')->get('tiger');
-        foreach (explode('.', $dotKey) as $seg) {
-            if (!($node instanceof Zend_Config)) { return $default; }
-            $node = $node->get($seg);
-            if ($node === null) { return $default; }
-        }
-        return is_scalar($node) ? (string) $node : $default;
+        return (string) Tiger_Model_Config::siteValue('tiger.' . $dotKey, $default);
     }
 
     /**

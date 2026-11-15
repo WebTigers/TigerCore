@@ -542,17 +542,17 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
         $view->skins       = $availableSkins;   // for the skin switcher
         $view->themeAssets = '/_theme';
 
-        // Site name (config, per-org-aware) available to every view/layout.
-        $cfg  = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
-        $site = ($cfg && $cfg->get('tiger')) ? $cfg->tiger->get('site') : null;
-        $view->siteName = ($site && (string) $site->get('name') !== '') ? (string) $site->name : 'Tiger';
+        // Site name available to every view/layout — the SITE org's (TIGER-511): a visitor signed in to
+        // another org still sees this site's name, not their own org's.
+        $name = trim((string) Tiger_Model_Config::siteValue('tiger.site.name', ''));
+        $view->siteName = ($name !== '') ? $name : 'Tiger';
 
         // The public layout's generator meta: NAME ONLY, never a version. A version string would hand a
         // vulnerability scanner the exact build to match CVEs against, across an install base nobody
         // patches on our schedule. The shipped default is ON and lives in configs/core.ini
         // (tiger.site.generator_meta); the admin's "Hide Tiger meta tag" writes the config row that
         // overrides it. Absent entirely (a stripped ini) still reads as on — the flag fails VISIBLE.
-        $gen = $site ? (string) $site->get('generator_meta') : '';
+        $gen = (string) Tiger_Model_Config::siteValue('tiger.site.generator_meta', '');
         $view->showGenerator = ($gen === '' || filter_var($gen, FILTER_VALIDATE_BOOLEAN));
 
         Zend_Controller_Action_HelperBroker::getStaticHelper('viewRenderer')->setView($view);
@@ -812,6 +812,9 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
         $this->bootstrap('session');   // start the session (DB handler) BEFORE reading the identity
 
         $config = new Zend_Config($this->getOptions(), true);   // ini cascade base (modifiable)
+        // The ini tier on its own, for the per-org resolvers (Tiger_Model_Config::siteValue/orgValue),
+        // which must fall back to the file value without the signed-in visitor's org tier on top.
+        Tiger_Model_Config::setIniBase($this->getOptions());
 
         // DB override layer (the runtime tier of the cascade): global config first,
         // then the CURRENT ORG's config on top (org wins). Dot-notation keys fold

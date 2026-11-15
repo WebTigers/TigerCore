@@ -12,11 +12,11 @@
  * (the og:image fallback). The latter is a media id OR an absolute URL — Head resolves either,
  * preferring an id because the media row yields a real absolute URL + true pixel dimensions.
  *
- * Scope: writes at GLOBAL scope for now — the single site's identity, visible to guests on
- * public pages (anonymous requests only receive GLOBAL config, by design; core stays
- * multi-site-unaware). The scope lives in one place (`_scope()`) so the future multi-site
- * module, which resolves the acting org per domain and loads that org's config for guests,
- * can flip identity to per-org scoping without touching the rest of this service.
+ * Scope (TIGER-511): written at the caller's ORG (`_scope()` → Tiger_Model_Config::settingScope),
+ * never the global tier, so one org's identity never bleeds into another's. The install-wide
+ * (global) row stays the fallback for an org that hasn't set its own. Public readers (the layout's
+ * site name, the favicon, the head tags) resolve the SITE org's value via
+ * Tiger_Model_Config::siteValue; the admin screen shows the caller's org via currentValue.
  *
  * @api
  */
@@ -86,14 +86,14 @@ class Identity_Service_Identity extends Tiger_Service_Service
     }
 
     /**
-     * The config scope for identity writes. GLOBAL today (the single site, guest-visible). The
-     * multi-site module overrides this to (SCOPE_ORG, <domain's org>).
+     * The config scope for identity writes: the caller's org (TIGER-511). Global only on an install
+     * with no org at all.
      *
      * @return array [scope, scopeId]
      */
     protected function _scope()
     {
-        return [Tiger_Model_Config::SCOPE_GLOBAL, ''];
+        return Tiger_Model_Config::settingScope();
     }
 
     /** A value that looks like a media UUID, else '' (clears the reference). */

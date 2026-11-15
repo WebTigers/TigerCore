@@ -39,9 +39,10 @@ final class AnalyticsServiceTest extends IntegrationTestCase
         return (new Analytics_Service_Analytics(['action' => 'save'] + $params))->getResponse();
     }
 
+    /** The caller's org row — where analytics lands (TIGER-511; loginAs() signs in to `org-test`). */
     private function cfg(string $key): ?string
     {
-        return (new Tiger_Model_Config())->get(Tiger_Model_Config::SCOPE_GLOBAL, '', $key);
+        return (new Tiger_Model_Config())->get(Tiger_Model_Config::SCOPE_ORG, 'org-test', $key);
     }
 
     // ----- ACL ----------------------------------------------------------------------------------

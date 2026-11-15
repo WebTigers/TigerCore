@@ -95,11 +95,24 @@ class Tiger_Comment_Spam
      * provider, no key, a key rotated out from under it). The admin screen only OFFERS the toggle
      * when `agentAvailable()` is true; this is what the runtime honours.
      *
+     * Per site (TIGER-511): the switch is read for ONE org — by default the SITE the comment is posted
+     * on (its row → the install-wide row → the ini), or `$orgId` (the admin screen shows the caller's).
+     *
+     * @param  string|null $orgId the org to read for; null = the site being served
      * @return bool
      */
-    public static function agentEnabled()
+    public static function agentEnabled($orgId = null)
     {
-        return (bool) self::_cfg(self::CONFIG_AGENT, false) && self::agentAvailable();
+        return self::_switchedOn($orgId) && self::agentAvailable();
+    }
+
+    /** Is the AI spam switch stored ON for the org (null = the site org)? */
+    protected static function _switchedOn($orgId = null)
+    {
+        $v = ($orgId === null)
+            ? Tiger_Model_Config::siteValue(self::CONFIG_AGENT, '0')
+            : Tiger_Model_Config::orgValue((string) $orgId, self::CONFIG_AGENT, '0');
+        return (bool) $v;
     }
 
     /**
@@ -140,7 +153,7 @@ class Tiger_Comment_Spam
         // seam contract as Tiger_Module_Longform.
         if (self::$_transport === null && !self::agentEnabled()) {
             // "Configured but unusable" is worth an operator seeing; "never configured" is not.
-            if (self::_cfg(self::CONFIG_AGENT, false)) {
+            if (self::_switchedOn()) {
                 Tiger_Log::info('comment.spam.agent_unavailable', [
                     'reason' => 'no connected agent — the comment passed through unchecked',
                 ]);
@@ -195,19 +208,5 @@ class Tiger_Comment_Spam
         $out     = $adapter->complete($system, [['role' => 'user', 'content' => $prompt]],
                                       Tiger_Agent::model(), Tiger_Agent::apiKey());
         return (string) ($out['text'] ?? '');
-    }
-
-    /** A `tiger.comment.*` config value. */
-    protected static function _cfg($key, $default = null)
-    {
-        if (!Zend_Registry::isRegistered('Zend_Config')) { return $default; }
-
-        $node = Zend_Registry::get('Zend_Config');
-        foreach (explode('.', $key) as $part) {
-            if (!$node instanceof Zend_Config) { return $default; }
-            $node = $node->get($part);
-            if ($node === null) { return $default; }
-        }
-        return $node instanceof Zend_Config ? $default : $node;
     }
 }

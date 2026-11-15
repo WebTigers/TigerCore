@@ -42,8 +42,14 @@ class Tiger_Mail
     protected $_references = [];
     /** @var Zend_Config|null */
     protected $_config;
-    /** The org whose authored template override template() prefers; '' = the global/platform default. */
-    protected $_orgId = '';
+    /**
+     * The org whose authored template override and From identity this message uses; '' = the global/
+     * platform default only; null (unset) = the SITE org being served (TIGER-511) — the site a visitor
+     * reset a password on, or a scheduler/webhook ran for.
+     *
+     * @var string|null
+     */
+    protected $_orgId = null;
 
     /**
      * A process-wide transport override. When set, it wins over the config-resolved transport for
@@ -112,7 +118,8 @@ class Tiger_Mail
     }
 
     /**
-     * Scope which org's authored override template() prefers (chainable). '' keeps the global default.
+     * Scope which org's authored override template() prefers and whose From identity the message uses
+     * (chainable). '' keeps the global default. Unset, a message uses the SITE org (TIGER-511).
      *
      * @param  string $orgId the org id, or '' for the global/platform override
      * @return self          this instance, for chaining
@@ -121,6 +128,15 @@ class Tiger_Mail
     {
         $this->_orgId = (string) $orgId;
         return $this;
+    }
+
+    /** The org this message resolves per-org settings for: forOrg()'s, else the site org (TIGER-511). */
+    protected function _mailOrgId()
+    {
+        if ($this->_orgId !== null) {
+            return (string) $this->_orgId;
+        }
+        return class_exists('Tiger_Model_Org') ? (string) Tiger_Model_Org::siteOrgId() : '';
     }
 
     /**
@@ -487,7 +503,7 @@ class Tiger_Mail
     {
         if (!class_exists('Tiger_Model_EmailTemplate')) { return null; }
         try {
-            return (new Tiger_Model_EmailTemplate())->resolve((string) $name, $this->_orgId);
+            return (new Tiger_Model_EmailTemplate())->resolve((string) $name, $this->_mailOrgId());
         } catch (Throwable $e) {
             return null;
         }
@@ -558,11 +574,10 @@ class Tiger_Mail
         return ['subject' => $mail->_subject, 'html' => (string) $mail->_html];
     }
 
-    /** The install's site name, for the email header/footer. */
+    /** The site name for the email header/footer — this message's org (TIGER-511), else global/ini. */
     protected function _siteName()
     {
-        $cfg = $this->_config ?: (Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null);
-        $name = ($cfg && $cfg->get('tiger') && $cfg->tiger->get('site')) ? (string) $cfg->tiger->site->get('name') : '';
+        $name = trim((string) Tiger_Model_Config::orgValue($this->_mailOrgId(), 'tiger.site.name', ''));
         if ($name !== '') { return $name; }
         return $this->_configFrom()[1] ?: 'Tiger';
     }
@@ -695,14 +710,18 @@ class Tiger_Mail
      * The current mail settings, for an admin screen. The password is NEVER returned — only
      * `has_password`, so the secret can't be read back out through the UI.
      *
+     * The transport + credentials are install-wide; the From identity is the given org's (TIGER-511 —
+     * its own value, else the install-wide one), the tier saveSettings() writes it to.
+     *
+     * @param  string|null $orgId the org whose From to show; null = the caller's current org
      * @return array{transport:string,host:string,port:string,ssl:string,auth:string,username:string,has_password:bool,from_email:string,from_name:string}
      */
-    public static function settings()
+    public static function settings($orgId = null)
     {
         $cfg  = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
         $mail = ($cfg && $cfg->get('mail')) ? $cfg->mail : null;
         $smtp = ($mail && $mail->get('smtp')) ? $mail->smtp : null;
-        $from = ($mail && $mail->get('from')) ? $mail->from : null;
+        $org  = ($orgId === null) ? Tiger_Model_Config::currentOrgId() : (string) $orgId;
 
         $has = $smtp && ((string) $smtp->get('password_enc') !== '' || (string) $smtp->get('password') !== '');
 
@@ -731,8 +750,8 @@ class Tiger_Mail
             'auth'         => $smtp ? (string) $smtp->get('auth') : '',
             'username'     => $smtp ? (string) $smtp->get('username') : '',
             'has_password' => (bool) $has,
-            'from_email'   => $from ? (string) $from->get('email') : '',
-            'from_name'    => $from ? (string) $from->get('name') : '',
+            'from_email'   => (string) Tiger_Model_Config::orgValue($org, 'mail.from.email', ''),
+            'from_name'    => (string) Tiger_Model_Config::orgValue($org, 'mail.from.name', ''),
         ];
     }
 
@@ -743,13 +762,23 @@ class Tiger_Mail
      * A BLANK password keeps the stored one, so an admin can edit the host or the From identity
      * without re-typing the secret (and without the UI ever having to hold it).
      *
-     * @param  array $values transport, host, port, ssl, auth, username, password, from_email, from_name
+     * Tiers (TIGER-511): the From identity is per-site (it must match the site's domain for SPF/DKIM),
+     * so it is written at the org; the transport, provider and SMTP/API credentials are install-level
+     * plumbing and stay global.
+     *
+     * @param  array       $values transport, host, port, ssl, auth, username, password, from_email, from_name
+     * @param  string|null $orgId  the org the From identity is saved for; null = the caller's current org
      * @return void
      */
-    public static function saveSettings(array $values)
+    public static function saveSettings(array $values, $orgId = null)
     {
         $cfg = new Tiger_Model_Config();
         $g   = Tiger_Model_Config::SCOPE_GLOBAL;
+        [$fromScope, $fromId] = Tiger_Model_Config::settingScope($orgId);
+        $saveFrom = static function () use ($cfg, $values, $fromScope, $fromId) {
+            if (array_key_exists('from_email', $values)) { $cfg->set($fromScope, $fromId, 'mail.from.email', trim((string) $values['from_email'])); }
+            if (array_key_exists('from_name', $values))  { $cfg->set($fromScope, $fromId, 'mail.from.name',  trim((string) $values['from_name'])); }
+        };
 
         // The provider drives the transport KIND: an API provider switches mail.transport to 'api'
         // and stores its credentials; every other provider keeps the smtp/mail path below.
@@ -762,8 +791,7 @@ class Tiger_Mail
                 if (Tiger_Mail_Provider::get($provider)['kind'] === Tiger_Mail_Provider::KIND_API) {
                     $cfg->set($g, '', 'mail.transport', 'api');
                     // The From identity still applies to an API send.
-                    if (array_key_exists('from_email', $values)) { $cfg->set($g, '', 'mail.from.email', trim((string) $values['from_email'])); }
-                    if (array_key_exists('from_name', $values))  { $cfg->set($g, '', 'mail.from.name',  trim((string) $values['from_name'])); }
+                    $saveFrom();
                     return;
                 }
             }
@@ -787,8 +815,7 @@ class Tiger_Mail
             $auth = strtolower(trim((string) $values['auth']));
             $cfg->set($g, '', 'mail.smtp.auth', in_array($auth, ['login', 'plain', 'crammd5'], true) ? $auth : '');
         }
-        if (array_key_exists('from_email', $values)) { $cfg->set($g, '', 'mail.from.email', trim((string) $values['from_email'])); }
-        if (array_key_exists('from_name', $values))  { $cfg->set($g, '', 'mail.from.name',  trim((string) $values['from_name'])); }
+        $saveFrom();
 
         // Secret — only when a new value is given (blank keeps the current). Encrypt at rest, and
         // clear any legacy plaintext row so the secret doesn't linger in two places.
@@ -803,13 +830,18 @@ class Tiger_Mail
         }
     }
 
-    /** The configured default sender ([email, name]). */
+    /**
+     * The configured default sender ([email, name]) — the message org's From (TIGER-511: the site org
+     * unless forOrg() named one), else the install-wide value, else the ini.
+     */
     protected function _configFrom()
     {
-        $from = ($this->_config && $this->_config->get('mail')) ? $this->_config->mail->get('from') : null;
+        $org   = $this->_mailOrgId();
+        $email = trim((string) Tiger_Model_Config::orgValue($org, 'mail.from.email', ''));
+        $name  = trim((string) Tiger_Model_Config::orgValue($org, 'mail.from.name', ''));
         return [
-            ($from && (string) $from->get('email') !== '') ? (string) $from->email : 'no-reply@localhost',
-            ($from && (string) $from->get('name')  !== '') ? (string) $from->name  : 'Tiger',
+            $email !== '' ? $email : 'no-reply@localhost',
+            $name  !== '' ? $name  : 'Tiger',
         ];
     }
 

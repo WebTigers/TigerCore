@@ -81,6 +81,23 @@ class Tiger_Model_Option extends Tiger_Model_Table
     }
 
     /**
+     * Fetch an org's option, falling back to the install-wide (global) value — never another org's
+     * (TIGER-511). '' as the org reads the global value only.
+     *
+     * @param  string $orgId the org whose value to read
+     * @param  string $key   the dot-notation option key
+     * @return string|null the org value, else the global value, else null
+     */
+    public function getForOrg($orgId, $key)
+    {
+        if ((string) $orgId !== '') {
+            $v = $this->get(self::SCOPE_ORG, (string) $orgId, $key);
+            if ($v !== null) { return $v; }
+        }
+        return $this->get(self::SCOPE_GLOBAL, '', $key);
+    }
+
+    /**
      * Fetch a JSON option decoded to an array, or $default when unset/unparseable.
      *
      * @param  string $scope

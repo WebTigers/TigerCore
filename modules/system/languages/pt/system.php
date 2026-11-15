@@ -311,6 +311,9 @@ return [
 
     // ---- Settings: Signup ------------------------------------------------------------------
     'system.settings.signup.header'       => 'Cadastro público',
+    'system.settings.scope.site'          => 'Este site',
+    'system.settings.scope.install'       => 'Toda a instalação',
+    'system.settings.scope.from_help'     => 'O endereço do remetente é salvo para este site; o servidor de e-mail e suas credenciais valem para toda a instalação.',
     'system.settings.signup.intro'        => 'O formulário público <code>/signup</code> permite que qualquer pessoa crie uma conta (uma nova organização + proprietário). Desative-o para uma instalação somente por convite ou de inquilino único — a página então retorna um 404 e a API recusa novos cadastros. Contas existentes e a verificação de e-mail não são afetadas.',
     'system.settings.signup.disable'      => 'Desativar o formulário de cadastro público',
     'system.settings.signup.disable_help' => 'Padrão: desativado (o cadastro público está aberto). Quando ativado, <code>/signup</code> retorna 404.',

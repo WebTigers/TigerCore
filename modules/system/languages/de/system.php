@@ -311,6 +311,9 @@ return [
 
     // ---- Settings: Signup ------------------------------------------------------------------
     'system.settings.signup.header'       => 'Öffentliche Registrierung',
+    'system.settings.scope.site'          => 'Diese Website',
+    'system.settings.scope.install'       => 'Gesamte Installation',
+    'system.settings.scope.from_help'     => 'Die Absenderadresse wird für diese Website gespeichert; der Mailserver und seine Zugangsdaten gelten für die gesamte Installation.',
     'system.settings.signup.intro'        => 'Das öffentliche <code>/signup</code>-Formular lässt jeden ein Konto erstellen (eine neue Organisation + Eigentümer). Schalten Sie es für eine reine Einladungs- oder Einzelmandanten-Installation aus — die Seite gibt dann einen 404 zurück und die API verweigert neue Registrierungen. Bestehende Konten und die E-Mail-Verifizierung sind nicht betroffen.',
     'system.settings.signup.disable'      => 'Öffentliches Registrierungsformular deaktivieren',
     'system.settings.signup.disable_help' => 'Standard: aus (öffentliche Registrierung ist offen). Wenn an, gibt <code>/signup</code> einen 404 zurück.',

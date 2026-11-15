@@ -20,6 +20,10 @@
  *                pass (1, default — a reCAPTCHA outage shouldn't lock out your login)
  *                or fail (0). A definitive "not a human" verdict always fails closed.
  *
+ * Per site (TIGER-511): keys are bound to a domain, so every value resolves for ONE org — by default
+ * the SITE being served (the widget + verify), or an explicit `$orgId` (the admin screen) — its row,
+ * then the install-wide row, then the ini. saveSettings() writes at the caller's org.
+ *
  * @api
  */
 class Tiger_Recaptcha
@@ -28,39 +32,42 @@ class Tiger_Recaptcha
     const SCRIPT_URL = 'https://www.google.com/recaptcha/api.js';
 
     /**
-     * Is reCAPTCHA switched on for this install?
+     * Is reCAPTCHA switched on for this site?
      *
+     * @param  string|null $orgId the org to read for; null = the site being served (TIGER-511)
      * @return bool
      */
-    public static function isEnabled()
+    public static function isEnabled($orgId = null)
     {
-        return (bool) self::_get('enabled', 0);
+        return (bool) self::_get('enabled', 0, $orgId);
     }
 
     /**
      * The public site key (rendered in the widget), or '' if unset.
      *
+     * @param  string|null $orgId the org to read for; null = the site being served
      * @return string
      */
-    public static function siteKey()
+    public static function siteKey($orgId = null)
     {
-        return (string) self::_get('site_key', '');
+        return (string) self::_get('site_key', '', $orgId);
     }
 
     /**
      * The server-side secret key, or '' if unset.
      *
+     * @param  string|null $orgId the org to read for; null = the site being served
      * @return string
      */
-    public static function secretKey()
+    public static function secretKey($orgId = null)
     {
-        $plain = (string) self::_get('secret_key', '');
+        $plain = (string) self::_get('secret_key', '', $orgId);
         if ($plain !== '') {
             return $plain;                                    // plaintext (local.ini / application.ini)
         }
         // Admin-screen path: the secret is stored ENCRYPTED at rest in the config tier (Tiger_Crypto;
         // key in local.ini) — so the no-shell operator can set it in the UI without a plaintext DB row.
-        $enc = (string) self::_get('secret_key_enc', '');
+        $enc = (string) self::_get('secret_key_enc', '', $orgId);
         if ($enc !== '' && class_exists('Tiger_Crypto') && Tiger_Crypto::isConfigured()) {
             try { return (string) Tiger_Crypto::decrypt($enc); } catch (Throwable $e) { return ''; }
         }
@@ -70,32 +77,35 @@ class Tiger_Recaptcha
     /**
      * "v2" (checkbox) or "v3" (score).
      *
+     * @param  string|null $orgId the org to read for; null = the site being served
      * @return string
      */
-    public static function version()
+    public static function version($orgId = null)
     {
-        $v = strtolower((string) self::_get('version', 'v2'));
+        $v = strtolower((string) self::_get('version', 'v2', $orgId));
         return ($v === 'v3') ? 'v3' : 'v2';
     }
 
     /**
      * v3 minimum passing score.
      *
+     * @param  string|null $orgId the org to read for; null = the site being served
      * @return float
      */
-    public static function minScore()
+    public static function minScore($orgId = null)
     {
-        return (float) self::_get('min_score', 0.5);
+        return (float) self::_get('min_score', 0.5, $orgId);
     }
 
     /**
      * Pass on a transport failure (can't reach Google)? Default yes (availability).
      *
+     * @param  string|null $orgId the org to read for; null = the site being served
      * @return bool
      */
-    public static function failOpen()
+    public static function failOpen($orgId = null)
     {
-        return (bool) self::_get('fail_open', 1);
+        return (bool) self::_get('fail_open', 1, $orgId);
     }
 
     /**
@@ -160,11 +170,12 @@ class Tiger_Recaptcha
      * v3 only: should the floating reCAPTCHA badge be hidden? Google permits it *if* the reCAPTCHA
      * legal notice is shown instead (see legalNotice()).
      *
+     * @param  string|null $orgId the org to read for; null = the site being served
      * @return bool
      */
-    public static function hideBadge()
+    public static function hideBadge($orgId = null)
     {
-        return (bool) self::_get('hide_badge', 0);
+        return (bool) self::_get('hide_badge', 0, $orgId);
     }
 
     /**
@@ -202,63 +213,74 @@ class Tiger_Recaptcha
      * Current settings for prefilling an admin form. The secret is NEVER returned — only a
      * `has_secret` flag — so a configured secret is not echoed back into the page.
      *
+     * @param  string|null $orgId the org whose settings to show; null = the caller's current org (the
+     *                            tier saveSettings() writes, so the screen shows what it saves)
      * @return array{enabled:int, version:string, site_key:string, has_secret:bool, min_score:float, fail_open:int, hide_badge:int}
      */
-    public static function settings()
+    public static function settings($orgId = null)
     {
+        $org = ($orgId === null) ? Tiger_Model_Config::currentOrgId() : (string) $orgId;
         return [
-            'enabled'    => self::isEnabled() ? 1 : 0,
-            'version'    => self::version(),
-            'site_key'   => self::siteKey(),
-            'has_secret' => self::secretKey() !== '',
-            'min_score'  => self::minScore(),
-            'fail_open'  => self::failOpen() ? 1 : 0,
-            'hide_badge' => self::hideBadge() ? 1 : 0,
+            'enabled'    => self::isEnabled($org) ? 1 : 0,
+            'version'    => self::version($org),
+            'site_key'   => self::siteKey($org),
+            'has_secret' => self::secretKey($org) !== '',
+            'min_score'  => self::minScore($org),
+            'fail_open'  => self::failOpen($org) ? 1 : 0,
+            'hide_badge' => self::hideBadge($org) ? 1 : 0,
         ];
     }
 
     /**
-     * Persist reCAPTCHA settings to the config tier (scope=global, live-override, no deploy). Only the
-     * keys present in $values are written. The secret is written ONLY when a non-empty value is supplied
-     * (blank = keep the current one) and is stored ENCRYPTED at rest (Tiger_Crypto). Shared by the core
-     * System settings screen and any module that surfaces the same controls (e.g. TigerShield).
+     * Persist reCAPTCHA settings to the config tier (live-override, no deploy) at an ORG (TIGER-511):
+     * the keys are bound to the site's domain, so each org's site carries its own — one org's save never
+     * changes another's widget. The install-wide (global) value stays the fallback. Only the keys present
+     * in $values are written. The secret is written ONLY when a non-empty value is supplied (blank = keep
+     * the current one) and is stored ENCRYPTED at rest (Tiger_Crypto). Shared by the core System
+     * settings screen and any module that surfaces the same controls (e.g. TigerShield).
      *
-     * @param  array $values enabled, version, site_key, secret_key, min_score, fail_open, hide_badge
+     * @param  array       $values enabled, version, site_key, secret_key, min_score, fail_open, hide_badge
+     * @param  string|null $orgId  the org to save for; null = the caller's current org
      * @return void
      */
-    public static function saveSettings(array $values)
+    public static function saveSettings(array $values, $orgId = null)
     {
         $cfg = new Tiger_Model_Config();
-        $g   = Tiger_Model_Config::SCOPE_GLOBAL;
+        [$g, $sid] = Tiger_Model_Config::settingScope($orgId);
 
-        if (array_key_exists('enabled', $values))   { $cfg->set($g, '', 'tiger.recaptcha.enabled', !empty($values['enabled']) ? '1' : '0'); }
-        if (array_key_exists('version', $values))   { $cfg->set($g, '', 'tiger.recaptcha.version', ((string) $values['version'] === 'v3') ? 'v3' : 'v2'); }
-        if (array_key_exists('site_key', $values))  { $cfg->set($g, '', 'tiger.recaptcha.site_key', trim((string) $values['site_key'])); }
-        if (array_key_exists('min_score', $values)) { $cfg->set($g, '', 'tiger.recaptcha.min_score', (string) max(0, min(1, (float) $values['min_score']))); }
-        if (array_key_exists('fail_open', $values)) { $cfg->set($g, '', 'tiger.recaptcha.fail_open', !empty($values['fail_open']) ? '1' : '0'); }
-        if (array_key_exists('hide_badge', $values)){ $cfg->set($g, '', 'tiger.recaptcha.hide_badge', !empty($values['hide_badge']) ? '1' : '0'); }
+        if (array_key_exists('enabled', $values))   { $cfg->set($g, $sid, 'tiger.recaptcha.enabled', !empty($values['enabled']) ? '1' : '0'); }
+        if (array_key_exists('version', $values))   { $cfg->set($g, $sid, 'tiger.recaptcha.version', ((string) $values['version'] === 'v3') ? 'v3' : 'v2'); }
+        if (array_key_exists('site_key', $values))  { $cfg->set($g, $sid, 'tiger.recaptcha.site_key', trim((string) $values['site_key'])); }
+        if (array_key_exists('min_score', $values)) { $cfg->set($g, $sid, 'tiger.recaptcha.min_score', (string) max(0, min(1, (float) $values['min_score']))); }
+        if (array_key_exists('fail_open', $values)) { $cfg->set($g, $sid, 'tiger.recaptcha.fail_open', !empty($values['fail_open']) ? '1' : '0'); }
+        if (array_key_exists('hide_badge', $values)){ $cfg->set($g, $sid, 'tiger.recaptcha.hide_badge', !empty($values['hide_badge']) ? '1' : '0'); }
 
-        // Secret — only when a new value is provided (blank keeps the current). Encrypt at rest.
+        // Secret — only when a new value is provided (blank keeps the current). Encrypt at rest, and
+        // blank the plaintext key at the SAME tier: secretKey() prefers a plaintext value, so a global or
+        // ini plaintext secret would otherwise shadow this org's encrypted one and pair it with the wrong
+        // site key.
         if (!empty($values['secret_key'])) {
             $secret = trim((string) $values['secret_key']);
             if (class_exists('Tiger_Crypto') && Tiger_Crypto::isConfigured()) {
-                $cfg->set($g, '', 'tiger.recaptcha.secret_key_enc', Tiger_Crypto::encrypt($secret));
+                $cfg->set($g, $sid, 'tiger.recaptcha.secret_key_enc', Tiger_Crypto::encrypt($secret));
+                $cfg->set($g, $sid, 'tiger.recaptcha.secret_key', '');
             } else {
-                $cfg->set($g, '', 'tiger.recaptcha.secret_key', $secret);   // no crypto available → plaintext fallback
+                $cfg->set($g, $sid, 'tiger.recaptcha.secret_key', $secret);   // no crypto available → plaintext fallback
             }
         }
     }
 
-    /** Read a tiger.recaptcha.* value from the config cascade. */
-    protected static function _get($key, $default)
+    /**
+     * Read a tiger.recaptcha.* value for one org: its row → global → ini (TIGER-511). Null org = the
+     * SITE being served (Tiger_Model_Config::siteValue) — the widget and the verify are the site's, so
+     * a visitor signed in to another org is still checked with this site's keys. '' counts as unset.
+     */
+    protected static function _get($key, $default, $orgId = null)
     {
-        $cfg = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
-        if ($cfg && $cfg->get('tiger') && $cfg->tiger->get('recaptcha')) {
-            $val = $cfg->tiger->recaptcha->get($key);
-            if ($val !== null && $val !== '') {
-                return $val;
-            }
-        }
-        return $default;
+        $k   = 'tiger.recaptcha.' . $key;
+        $val = ($orgId === null)
+            ? Tiger_Model_Config::siteValue($k)
+            : Tiger_Model_Config::orgValue((string) $orgId, $k);
+        return ($val !== null && $val !== '') ? $val : $default;
     }
 }

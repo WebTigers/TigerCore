@@ -4,8 +4,8 @@
 /**
  * Analytics_Service_Analytics — the /api service behind the Analytics settings screen. Validates the
  * GA4 Measurement ID, then writes the analytics config (enabled + id + exclude-signed-in) to the
- * config tier (live-override, no deploy). GLOBAL scope for now — the single site; a future multi-site
- * module flips it to per-org (isolated in `_scope()`, same pattern as Site Identity).
+ * config tier (live-override, no deploy) at the caller's ORG (TIGER-511) — `_scope()`; the install-wide
+ * value stays the fallback. The public tag (Analytics_Plugin_Tag) reads the SITE org's value.
  *
  * @api
  */
@@ -43,11 +43,12 @@ class Analytics_Service_Analytics extends Tiger_Service_Service
                 // Google OAuth client creds (secret encrypted; blank secret keeps the current one).
                 // The Connect flow reads these afterward. Broker mode needs no client creds locally.
                 if (class_exists('Tiger_Google_Analytics')) {
-                    Tiger_Google_Analytics::saveMode((string) ($params['oauth_mode'] ?? ''));
+                    Tiger_Google_Analytics::saveMode((string) ($params['oauth_mode'] ?? ''), $scopeId);
                     Tiger_Google_Analytics::saveOauthConfig(
                         (string) ($params['oauth_client_id']     ?? ''),
                         (string) ($params['oauth_client_secret'] ?? ''),
-                        (string) ($params['property_id']         ?? '')
+                        (string) ($params['property_id']         ?? ''),
+                        $scopeId
                     );
                 }
             });
@@ -58,12 +59,13 @@ class Analytics_Service_Analytics extends Tiger_Service_Service
     }
 
     /**
-     * The config scope for analytics writes. GLOBAL today; the multi-site module overrides to per-org.
+     * The config scope for analytics writes: the caller's org (TIGER-511). Global only on an install
+     * with no org at all.
      *
      * @return array [scope, scopeId]
      */
     protected function _scope()
     {
-        return [Tiger_Model_Config::SCOPE_GLOBAL, ''];
+        return Tiger_Model_Config::settingScope();
     }
 }

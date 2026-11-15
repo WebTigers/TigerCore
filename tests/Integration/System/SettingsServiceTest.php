@@ -16,7 +16,8 @@ use Zend_Registry;
 /**
  * System_Service_Settings — the /api behind the core Settings screen (session lifetime + auto-logout +
  * reCAPTCHA), admin+ per modules/system/configs/acl.ini. The happy path validates System_Form_Settings
- * then writes to the `config` DB tier (scope=global) — the live-override pattern, no deploy. These
+ * then writes to the `config` DB tier (session/transport global; reCAPTCHA/consent/From/signup at the
+ * caller's org, TIGER-511) — the live-override pattern, no deploy. These
  * tests characterize: the ACL gate (guest denied), a form-validation refusal that writes NOTHING, and a
  * valid save landing every value in the config table (session TTL floored, auto-logout toggle/window/
  * action, reCAPTCHA fields; a blank secret is left untouched).
@@ -154,13 +155,15 @@ final class SettingsServiceTest extends IntegrationTestCase
         ]));
         $this->assertSame(1, (int) $res->result, $this->messages($res));
 
+        // Per site (TIGER-511): at the caller's org, never the global tier.
         $cfg = new Tiger_Model_Config();
-        $g   = Tiger_Model_Config::SCOPE_GLOBAL;
-        $this->assertSame('1', $cfg->get($g, '', 'tiger.recaptcha.enabled'));
-        $this->assertSame('v3', $cfg->get($g, '', 'tiger.recaptcha.version'));
-        $this->assertSame('test-site-key', $cfg->get($g, '', 'tiger.recaptcha.site_key'));
-        $this->assertSame('0.7', $cfg->get($g, '', 'tiger.recaptcha.min_score'));
-        $this->assertNull($cfg->get($g, '', 'tiger.recaptcha.secret_key'), 'a blank secret writes nothing');
+        $o   = Tiger_Model_Config::SCOPE_ORG;
+        $this->assertSame('1', $cfg->get($o, 'org-test', 'tiger.recaptcha.enabled'));
+        $this->assertSame('v3', $cfg->get($o, 'org-test', 'tiger.recaptcha.version'));
+        $this->assertSame('test-site-key', $cfg->get($o, 'org-test', 'tiger.recaptcha.site_key'));
+        $this->assertSame('0.7', $cfg->get($o, 'org-test', 'tiger.recaptcha.min_score'));
+        $this->assertNull($cfg->get($o, 'org-test', 'tiger.recaptcha.secret_key'), 'a blank secret writes nothing');
+        $this->assertNull($cfg->get(Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.recaptcha.site_key'), 'nothing global');
     }
 
     #[Test]
@@ -182,13 +185,16 @@ final class SettingsServiceTest extends IntegrationTestCase
         ]));
         $this->assertSame(1, (int) $res->result, $this->messages($res));
 
+        // Consent + the signup switch are per site (the caller's org, TIGER-511); location is install-wide.
         $cfg = new Tiger_Model_Config();
         $g   = Tiger_Model_Config::SCOPE_GLOBAL;
-        $this->assertSame('auto', $cfg->get($g, '', 'tiger.consent.mode'));
+        $this->assertSame('auto', $cfg->get(Tiger_Model_Config::SCOPE_ORG, 'org-test', 'tiger.consent.mode'));
+        $this->assertNull($cfg->get($g, '', 'tiger.consent.mode'), 'consent is not written global');
         $this->assertSame('nominatim', $cfg->get($g, '', 'tiger.location.ip.provider'));
 
         $opt = new \Tiger_Model_Option();
-        $this->assertSame('1', $opt->get(\Tiger_Model_Option::SCOPE_GLOBAL, '', 'signup.public_disabled'), 'the signup kill switch persisted');
+        $this->assertSame('1', $opt->get(\Tiger_Model_Option::SCOPE_ORG, 'org-test', 'signup.public_disabled'), 'the signup kill switch persisted');
+        $this->assertNull($opt->get(\Tiger_Model_Option::SCOPE_GLOBAL, '', 'signup.public_disabled'), 'not global');
     }
 
     // ---- locationTest ----------------------------------------------------------------------------
