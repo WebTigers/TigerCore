@@ -40,6 +40,24 @@ site's value. Existing global rows keep resolving as every org's fallback — no
   `honorGpc()`/`settings()`/`saveSettings()`, `Tiger_Mail::settings()`/`saveSettings()`,
   `Tiger_Google_Analytics::saveMode()`/`saveOauthConfig()` and `Tiger_Comment_Spam::agentEnabled()`.
 - `Tiger_Model_Org::setSiteOrgId(null)` clears the per-request cache.
+- `Tiger_Acl_Acl::roleIsAllowed()` (a fail-closed check for a role you were handed) and
+  `Tiger_Acl_Acl::isAvailable()`.
+
+### Changed — role lists become ACL capabilities (TIGER-511)
+- The post-login landing and the session TTL tier are ACL capabilities (`Tiger_Admin_Home`/`enter`,
+  `Tiger_Session_Privileged`/`short_ttl`, both granted at admin) instead of hardcoded role lists. Access is
+  unchanged for the stock roles; apps can grant either to custom roles in `acl.ini`.
+- If the ACL isn't available when a session is written, an authenticated session gets the SHORTER TTL tier.
+
+### Security (TIGER-511)
+- Backup download, restore (from history or an upload) and including secrets are now **superadmin**
+  (`Tiger_Backup_Data`). Admin keeps the screen, creating backups without secrets, deleting, and the schedule
+  settings; an admin settings save never flips the stored secrets switch.
+- Org-scoped MCP tokens re-check the owner's ACTIVE membership in the token's org on every request and take
+  the role from it. Tokens whose role is app-wide (holds `Tiger_Tenancy_AllOrgs`) are refused at mint and per
+  request.
+- The TIGER-335 guard test now fails the build on a role-name list anywhere in `library/`, `core/` or
+  `modules/`.
 
 ## [1.58.0] — 2026-11-15
 
