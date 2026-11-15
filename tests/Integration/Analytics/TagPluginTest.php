@@ -124,6 +124,39 @@ final class TagPluginTest extends IntegrationTestCase
     }
 
     #[Test]
+    public function the_staff_exclusion_is_decided_by_the_acl_not_a_role_list(): void
+    {
+        // TIGER-511: `Tiger_Analytics_ExcludeFromTracking` (granted at manager) decides it.
+        $this->config(['enabled' => '1', 'exclude_signed_in' => '1', 'ga4' => ['measurement_id' => 'G-ACLCHECK']]);
+
+        $this->loginAs('user');
+        (new Analytics_Plugin_Tag())->preDispatch(new Zend_Controller_Request_Simple());
+        $this->assertStringContainsString('G-ACLCHECK', $this->tracking(), 'a plain user lacks the capability → tagged');
+
+        // Revoke the capability from admin in the live ACL: admin is now tracked — a role list could
+        // never express that.
+        $this->resetLatch();
+        $this->view->placeholder('tigerTracking')->exchangeArray([]);
+        $this->loginAs('admin');
+        Zend_Registry::get('Zend_Acl')->deny('admin', 'Tiger_Analytics_ExcludeFromTracking', 'exclude');
+        try {
+            (new Analytics_Plugin_Tag())->preDispatch(new Zend_Controller_Request_Simple());
+            $this->assertStringContainsString('G-ACLCHECK', $this->tracking(), 'capability revoked → admin is tagged');
+        } finally {
+            Zend_Registry::set('Zend_Acl', new \Tiger_Acl_Acl());   // never leave a tampered ACL behind
+        }
+    }
+
+    #[Test]
+    public function a_manager_holds_the_exclusion_capability(): void
+    {
+        $this->config(['enabled' => '1', 'exclude_signed_in' => '1', 'ga4' => ['measurement_id' => 'G-MANAGER1']]);
+        $this->loginAs('manager');
+        (new Analytics_Plugin_Tag())->preDispatch(new Zend_Controller_Request_Simple());
+        $this->assertSame('', $this->tracking(), 'granted at manager → not tagged');
+    }
+
+    #[Test]
     public function predispatch_tags_signed_in_staff_when_exclusion_is_off(): void
     {
         // With exclusion turned off, even a signed-in admin gets tagged.

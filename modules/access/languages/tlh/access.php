@@ -57,6 +57,7 @@ return [
     'access.user.email_taken'    => 'That email is already in use.',
     'access.user.username_taken' => 'That username is already in use.',
     'access.user.no_self_delete' => 'You cannot delete your own account.',
+    'access.user.role_not_manageable' => 'You cannot manage a user who holds a role you are not allowed to manage.',
 
     // --- Organizations: list ---
     'access.org.list.title'      => 'Organizations',

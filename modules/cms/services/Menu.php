@@ -191,10 +191,17 @@ class Cms_Service_Menu extends Tiger_Service_Service
                 $map      = $this->_ensureForked($menuKey, $orgId);
                 $menuId   = !empty($params['menu_id']) ? $this->_mapId($params['menu_id'], $map) : null;
                 if ($menuId) {
-                    $model->update($data, $model->getAdapter()->quoteInto('menu_id = ?', $menuId));
+                    // The row must be in the caller's scoped org — never an update by id alone (TIGER-511).
+                    $row = $model->itemInOrg($menuId, $orgId);
+                    if (!$row) { throw new DomainException('core.api.error.not_allowed'); }
+                    $row->setFromArray($data)->save();
                     $id = $menuId;
                 } else {
                     $parentId           = !empty($params['parent_id']) ? $this->_mapId($params['parent_id'], $map) : null;
+                    // A new item may only hang under a parent of the same org.
+                    if ($parentId !== null && !$model->itemInOrg($parentId, $orgId)) {
+                        throw new DomainException('core.api.error.not_allowed');
+                    }
                     $data['menu_key']   = $menuKey;
                     $data['org_id']     = $orgId;
                     $data['parent_id']  = $parentId;
@@ -205,6 +212,8 @@ class Cms_Service_Menu extends Tiger_Service_Service
             });
             $this->_success(['menu_id' => $out['id'], 'idmap' => $out['idmap']], 'cms.menu.item_saved',
                 '/cms/menu/edit/key/' . rawurlencode($menuKey));
+        } catch (DomainException $e) {
+            $this->_error($e->getMessage());   // an out-of-scope id: the transaction rolled back, nothing written
         } catch (Throwable $e) {
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
         }
@@ -228,7 +237,10 @@ class Cms_Service_Menu extends Tiger_Service_Service
             // Deleting an item from a theme menu materializes it first (fork), then drops the item.
             $map    = $this->_ensureForked($menuKey, $orgId);
             $model  = new Tiger_Model_Menu();
-            $n      = $model->deleteItem($this->_mapId($id, $map));
+            $itemId = (string) $this->_mapId($id, $map);
+            // The item must be in the caller's scoped org — never a delete by id alone (TIGER-511).
+            if (!$model->itemInOrg($itemId, $orgId)) { $this->_error('core.api.error.not_allowed'); return; }
+            $n      = $model->deleteItem($itemId, $orgId);
             $this->_success(['deleted' => $n, 'idmap' => $map], 'cms.menu.item_deleted');
         } catch (Throwable $e) {
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');

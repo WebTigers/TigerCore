@@ -14,8 +14,11 @@
  *
  *   key        string    the stored `subject_type` (e.g. 'page', 'blog.post', 'shop.product')
  *   label      string    human name, for the moderation queue
- *   resolve    callable  fn(string $id): array{title:string,url:string,exists:bool}
- *   resource   ?string   ACL resource gating who may READ the thread (the SUBJECT's own resource, so
+ *   resolve    callable  fn(string $id): array{title:string,url:string,exists:bool,visible?:bool}
+ *                        `visible` = the current site publicly shows it (published, in the site's org);
+ *                        a thread on a subject that is not visible can't be read or posted to. Omitted
+ *                        → it follows `exists` (a provider with no draft/tenant concept).
+ *   resource  ?string   ACL resource gating who may READ the thread (the SUBJECT's own resource, so
  *                        a thread never becomes a side channel to content the reader can't see)
  *   privilege  string    the privilege checked on that resource (default 'index')
  *   ratings    bool      may a comment here carry a star rating? (a blog post: no; a product: yes)
@@ -137,7 +140,7 @@ class Tiger_Comment
     }
 
     /**
-     * Resolve a subject to `{title, url, exists}` for display and orphan detection.
+     * Resolve a subject to `{title, url, exists, visible}` for display, orphan detection and the read gate.
      *
      * Fail-soft: an unregistered type, a missing resolver or a throwing one yields a non-existent
      * subject rather than an exception — the moderation queue must still render a row whose subject
@@ -145,11 +148,11 @@ class Tiger_Comment
      *
      * @param  string $type the subject type
      * @param  string $id   the subject id
-     * @return array{title:string,url:string,exists:bool}
+     * @return array{title:string,url:string,exists:bool,visible:bool}
      */
     public static function resolve($type, $id)
     {
-        $miss = ['title' => '', 'url' => '', 'exists' => false];
+        $miss = ['title' => '', 'url' => '', 'exists' => false, 'visible' => false];
 
         $s = self::subject($type);
         if (!$s || !$s['resolve'] || !is_callable($s['resolve'])) { return $miss; }
@@ -157,10 +160,13 @@ class Tiger_Comment
         try {
             $out = call_user_func($s['resolve'], (string) $id);
             if (!is_array($out)) { return $miss; }
+            $exists = (bool) ($out['exists'] ?? false);
             return [
-                'title'  => (string) ($out['title'] ?? ''),
-                'url'    => (string) ($out['url'] ?? ''),
-                'exists' => (bool) ($out['exists'] ?? false),
+                'title'   => (string) ($out['title'] ?? ''),
+                'url'     => (string) ($out['url'] ?? ''),
+                'exists'  => $exists,
+                // Never visible when it doesn't exist, whatever the provider said.
+                'visible' => $exists && (bool) ($out['visible'] ?? $exists),
             ];
         } catch (Throwable $e) {
             return $miss;

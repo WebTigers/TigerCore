@@ -220,10 +220,37 @@ final class MediaLibraryTest extends IntegrationTestCase
         $this->insertMedia(['visibility' => 'private', 'org_id' => $org, 'title' => 'Manuscript Draft', 'filename' => 'manuscript.pdf', 'kind' => 'pdf', 'scan_status' => Tiger_Model_Media::SCAN_CLEAN]);
         $this->insertMedia(['visibility' => 'private', 'org_id' => Tiger_Uuid::v7(), 'title' => 'Manuscript Other', 'filename' => 'other.pdf', 'kind' => 'pdf', 'scan_status' => Tiger_Model_Media::SCAN_CLEAN]);
 
+        // The viewer is identified by the authenticated org the auth layer stamps — not a role name.
+        \Tiger_Model_Table::setOrg($org);
         $mine = $this->media->search('manuscript', ['role' => 'user', 'orgId' => $org]);
         $titles = array_column($mine, 'title');
         $this->assertContains('Manuscript Draft', $titles, 'the owning org sees its private media');
         $this->assertNotContains('Manuscript Other', $titles, 'another org\'s private media stays hidden');
+
+        // Same site, but a GUEST (no authenticated org): private stays hidden even with the role claim.
+        \Tiger_Model_Table::setOrg('');
+        $asGuest = array_column($this->media->search('manuscript', ['role' => 'user', 'orgId' => $org]), 'title');
+        $this->assertNotContains('Manuscript Draft', $asGuest, 'a role string alone never unlocks private media');
+    }
+
+    #[Test]
+    public function search_on_site_a_never_returns_org_b_media_even_public(): void
+    {
+        $siteA = Tiger_Uuid::v7();
+        $orgB  = Tiger_Uuid::v7();
+        $this->insertMedia(['org_id' => $siteA, 'title' => 'Harbor Alpha', 'filename' => 'harbor-a.jpg']);
+        $this->insertMedia(['org_id' => $orgB,  'title' => 'Harbor Bravo', 'filename' => 'harbor-b.jpg']);
+        $this->insertMedia(['org_id' => '',     'title' => 'Harbor Shared', 'filename' => 'harbor-s.jpg']);
+
+        $titles = array_column($this->media->search('harbor', ['role' => 'guest', 'orgId' => $siteA]), 'title');
+        $this->assertContains('Harbor Alpha', $titles, 'the site\'s own public media is found');
+        $this->assertContains('Harbor Shared', $titles, 'the shared tier is in every site\'s scope');
+        $this->assertNotContains('Harbor Bravo', $titles, 'another org\'s PUBLIC media never surfaces on site A');
+
+        // A signed-in member of org B browsing site A still can't pull B's media into A's search.
+        \Tiger_Model_Table::setOrg($orgB);
+        $titles = array_column($this->media->search('harbor', ['role' => 'admin', 'orgId' => $siteA]), 'title');
+        $this->assertNotContains('Harbor Bravo', $titles);
     }
 
     #[Test]

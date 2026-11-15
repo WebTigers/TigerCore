@@ -550,6 +550,12 @@ is **ONE primitive for this, and it never compares a role string**:
   be written by accident); `$resource` defaults to the service class.
 - **`_roleIsAllowed($role, $privilege, $resource = null)`** — the same question about **any** role,
   including a third party's (e.g. "may the member I'm about to act on do this?"). Both fail **closed**.
+- **`_mayManageRole($role)` / `_mayManageUser($userId)`** — before editing, re-passwording, deleting or
+  **granting a role to** a user, ask whether the caller may manage that role (`Tiger_Access_ManageRole`,
+  privilege = the target's role; `_mayManageUser` checks every membership the target holds). An admin
+  that can set a superadmin's password IS a superadmin (TIGER-511).
+- **Outside a service** (a plugin, a view helper) use `Tiger_Acl_Acl::identityIsAllowed($resource,
+  $privilege)` — never a list of role names.
 
 The four rules that keep the F5 class from recurring — follow them in every new service + `acl.ini`:
 

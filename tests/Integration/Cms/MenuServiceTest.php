@@ -243,4 +243,57 @@ final class MenuServiceTest extends IntegrationTestCase
         $this->assertSame(1, (int) $res->data['updated'], 'only the in-scope item is touched');
         $this->assertSame(0, (int) $this->db->fetchOne('SELECT sort_order FROM menu WHERE menu_id = ?', [$foreign]), 'the foreign item is untouched');
     }
+
+    // ----- org scope on a write addressed by id (TIGER-511) -------------------------------------
+
+    #[Test]
+    public function save_refuses_another_orgs_item_id(): void
+    {
+        $this->loginAs('admin');   // acting in org-test
+        $foreign = $this->seedItem(['org_id' => 'org-other', 'menu_key' => 'primary', 'label' => 'Theirs']);
+
+        // Passing the caller's own scope ('' or their org) must not reach a row that lives elsewhere.
+        foreach (['', 'org-test'] as $scope) {
+            $res = $this->call('save', ['menu_id' => $foreign, 'menu_key' => 'primary', 'org_id' => $scope, 'label' => 'Hijacked']);
+            $this->assertSame(0, (int) $res->result, "refused under scope '{$scope}'");
+            $this->assertStringContainsString('not_allowed', json_encode($res->messages));
+        }
+        $this->assertSame('Theirs', (string) $this->db->fetchOne('SELECT label FROM menu WHERE menu_id = ?', [$foreign]), 'untouched');
+    }
+
+    #[Test]
+    public function save_refuses_a_parent_from_another_org(): void
+    {
+        $this->loginAs('admin');
+        $foreignParent = $this->seedItem(['org_id' => 'org-other', 'menu_key' => 'primary', 'label' => 'Their parent']);
+        $before = (int) $this->db->fetchOne('SELECT COUNT(*) FROM menu');
+
+        $res = $this->call('save', ['menu_key' => 'primary', 'org_id' => '', 'parent_id' => $foreignParent, 'label' => 'Grafted']);
+        $this->assertSame(0, (int) $res->result, 'cannot hang an item under another org\'s parent');
+        $this->assertSame($before, (int) $this->db->fetchOne('SELECT COUNT(*) FROM menu'), 'no row written');
+    }
+
+    #[Test]
+    public function save_still_updates_an_item_in_the_callers_own_org(): void
+    {
+        $this->loginAs('admin');
+        $mine = $this->seedItem(['org_id' => 'org-test', 'menu_key' => 'primary', 'label' => 'Mine']);
+
+        $res = $this->call('save', ['menu_id' => $mine, 'menu_key' => 'primary', 'org_id' => 'org-test', 'label' => 'Mine v2']);
+        $this->assertSame(1, (int) $res->result, json_encode($res->messages));
+        $this->assertSame('Mine v2', (string) $this->db->fetchOne('SELECT label FROM menu WHERE menu_id = ?', [$mine]));
+    }
+
+    #[Test]
+    public function delete_refuses_another_orgs_item_id(): void
+    {
+        $this->loginAs('admin');
+        $foreign = $this->seedItem(['org_id' => 'org-other', 'menu_key' => 'primary', 'label' => 'Theirs']);
+
+        foreach (['', 'org-test'] as $scope) {
+            $res = $this->call('delete', ['menu_id' => $foreign, 'org_id' => $scope]);
+            $this->assertSame(0, (int) $res->result, "refused under scope '{$scope}'");
+        }
+        $this->assertSame(0, (int) $this->db->fetchOne('SELECT deleted FROM menu WHERE menu_id = ?', [$foreign]), 'still live');
+    }
 }

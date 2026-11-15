@@ -98,7 +98,7 @@ final class MenuAdminTest extends IntegrationTestCase
         $grand  = $this->insertItem(['org_id' => $org, 'label' => 'Grandchild', 'parent_id' => $child, 'sort_order' => 0]);
         $sibling = $this->insertItem(['org_id' => $org, 'label' => 'Sibling', 'sort_order' => 1]);
 
-        $n = $this->menu->deleteItem($parent);
+        $n = $this->menu->deleteItem($parent, $org);
         $this->assertSame(3, $n, 'the parent plus its two descendants were soft-deleted');
 
         // The subtree is gone from the editor set; the sibling survives.
@@ -107,6 +107,22 @@ final class MenuAdminTest extends IntegrationTestCase
         // findById excludes deleted rows, so read the flag directly to prove the grandchild was soft-deleted.
         $grandDeleted = (int) $this->db->fetchOne($this->db->quoteInto('SELECT deleted FROM menu WHERE menu_id = ?', $grand));
         $this->assertSame(1, $grandDeleted, 'the grandchild is soft-deleted, not orphaned');
+    }
+
+    #[Test]
+    public function delete_item_refuses_an_item_outside_the_given_org(): void
+    {
+        $orgA  = Tiger_Uuid::v7();
+        $orgB  = Tiger_Uuid::v7();
+        $itemB = $this->insertItem(['org_id' => $orgB, 'label' => 'B item', 'sort_order' => 0]);
+        // A row in org A that names B's item as its parent must not be swept up by B's delete either.
+        $this->insertItem(['org_id' => $orgA, 'label' => 'A child of B', 'parent_id' => $itemB, 'sort_order' => 0]);
+
+        $this->assertSame(0, $this->menu->deleteItem($itemB, $orgA), 'org A cannot delete org B\'s item');
+        $this->assertSame(0, (int) $this->db->fetchOne($this->db->quoteInto('SELECT deleted FROM menu WHERE menu_id = ?', $itemB)));
+
+        $this->assertSame(1, $this->menu->deleteItem($itemB, $orgB), 'its own org deletes it — and only its own rows');
+        $this->assertSame(['A child of B'], array_column($this->menu->itemsForEditor('primary', $orgA), 'label'));
     }
 
     #[Test]

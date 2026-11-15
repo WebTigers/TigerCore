@@ -38,6 +38,7 @@ class Comment_Service_Comment extends Tiger_Service_Service
         [$type, $id] = $this->_subjectFrom($params);
         if ($type === '') { $this->_error('comment.error.unknown_subject'); return; }
         if (!$this->_mayRead($type)) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_visible($type, $id)) { $this->_error('core.api.error.not_allowed'); return; }
 
         $rows = (new Tiger_Model_Comment())->thread($type, $id);
 
@@ -99,7 +100,10 @@ class Comment_Service_Comment extends Tiger_Service_Service
 
         // A subject the provider says is gone takes no new comments — otherwise a deleted page
         // accumulates an unreachable thread nobody will ever moderate.
-        if (!Tiger_Comment::resolve($type, $id)['exists']) { $this->_error('comment.error.subject_gone'); return; }
+        $subject = Tiger_Comment::resolve($type, $id);
+        if (!$subject['exists']) { $this->_error('comment.error.subject_gone'); return; }
+        // A draft, a scheduled page or another org's content takes no comments (TIGER-511).
+        if (!$subject['visible']) { $this->_error('core.api.error.not_allowed'); return; }
 
         $userId = (string) ($this->_user_id ?? '');
         if ($userId === '' && !Tiger_Comment::allowsGuests()) { $this->_error('comment.error.sign_in'); return; }
@@ -379,19 +383,41 @@ class Comment_Service_Comment extends Tiger_Service_Service
         return [$type, $id];
     }
 
-    /** May the caller read this subject's thread? Gated on the SUBJECT's own ACL resource. */
+    /**
+     * May the caller read this subject's thread? Gated on the SUBJECT's own ACL resource.
+     *
+     * Asked through the one authorization primitive (TIGER-335), which reads the registered `Zend_Acl`
+     * and fails CLOSED. It used to read a `Tiger_Acl` registry key that is never set and returned true
+     * when it was missing — so the gate never blocked anyone (TIGER-511). A subject that declares no
+     * resource is public by its provider's own choice.
+     */
     protected function _mayRead($type)
     {
         $s = Tiger_Comment::subject($type);
-        if (!$s || empty($s['resource'])) { return true; }
+        if (!$s) { return false; }
+        if (empty($s['resource'])) { return true; }
 
         try {
-            $acl  = Zend_Registry::isRegistered('Tiger_Acl') ? Zend_Registry::get('Tiger_Acl') : null;
-            $role = $this->_identity->role ?? 'guest';
-            return $acl ? (bool) $acl->isAllowed($role, $s['resource'], $s['privilege']) : true;
+            return $this->_isAllowed((string) $s['privilege'], (string) $s['resource']);
         } catch (Throwable $e) {
-            return true;   // an ACL lookup failure must not silently hide a public thread
+            return false;   // an ACL failure must never open a thread
         }
+    }
+
+    /**
+     * Is this subject one the CURRENT SITE publicly shows — so its thread may be read or posted to?
+     *
+     * The subject's provider answers (`Tiger_Comment::resolve()` → `visible`): a draft, a scheduled
+     * page, or another org's content is refused, so a thread can never become a side channel to
+     * content the reader cannot see (TIGER-511).
+     *
+     * @param  string $type the subject type
+     * @param  string $id   the subject id
+     * @return bool
+     */
+    protected function _visible($type, $id)
+    {
+        return (bool) Tiger_Comment::resolve($type, $id)['visible'];
     }
 
     /** Was this submitted implausibly fast for a human? */

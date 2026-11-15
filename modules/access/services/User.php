@@ -43,6 +43,12 @@ class Access_Service_User extends Tiger_Service_Service
         $rows = [];
         foreach ($data['rows'] as $r) {
             $isSelf = ($r['user_id'] === $this->_user_id);
+            // A row whose user holds a role the caller may not manage is not editable here (TIGER-511) —
+            // the flag only draws the controls; save/delete re-check against the live memberships.
+            $manageable = true;
+            foreach (array_filter(array_map('trim', explode(',', (string) ($r['role_names'] ?? '')))) as $heldRole) {
+                if (!$this->_mayManageRole($heldRole)) { $manageable = false; break; }
+            }
             $rows[] = [
                 'user_id'    => $r['user_id'],
                 'email'      => $r['email'],
@@ -52,8 +58,8 @@ class Access_Service_User extends Tiger_Service_Service
                 'status'     => $r['status'],
                 'created'    => substr((string) $r['created_at'], 0, 10),
                 'is_self'    => $isSelf,
-                'can_edit'   => $canEdit,
-                'can_delete' => $canDelete && !$isSelf,   // never delete your own account
+                'can_edit'   => $canEdit && $manageable,
+                'can_delete' => $canDelete && $manageable && !$isSelf,   // never delete your own account
             ];
         }
 
@@ -76,6 +82,11 @@ class Access_Service_User extends Tiger_Service_Service
         $v = $form->getValues();
 
         $userId   = !empty($params['user_id']) ? (string) $params['user_id'] : null;
+        // TIGER-511: editing a user — and above all setting their password — is acting AS them. The
+        // caller must be allowed to manage EVERY role the target holds, or an admin could re-password a
+        // superadmin and sign in with it.
+        if ($userId !== null && !$this->_mayManageUser($userId)) { $this->_error('access.user.role_not_manageable'); return; }
+
         $email    = strtolower(trim((string) $v['email']));
         $username = trim((string) $v['username']);
         $username = $username !== '' ? $username : null;
@@ -131,6 +142,7 @@ class Access_Service_User extends Tiger_Service_Service
         $id = !empty($params['user_id']) ? (string) $params['user_id'] : '';
         if ($id === '') { $this->_error('core.api.error.general'); return; }
         if ($id === $this->_user_id) { $this->_error('access.user.no_self_delete'); return; }
+        if (!$this->_mayManageUser($id)) { $this->_error('access.user.role_not_manageable'); return; }   // TIGER-511
 
         try {
             (new Tiger_Model_User())->softDelete(['user_id = ?' => $id]);

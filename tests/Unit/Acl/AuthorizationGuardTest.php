@@ -58,6 +58,8 @@ final class AuthorizationGuardTest extends UnitTestCase
             '/->\s*inheritsRole\s*\(/',
             '/(===|!==|==|!=)\s*[\'"](' . $roles . ')[\'"]/',
             '/[\'"](' . $roles . ')[\'"]\s*(===|!==|==|!=)/',
+            // A role LIST membership test — `in_array($role, ['manager', 'admin', …])` (TIGER-511).
+            '/in_array\s*\(\s*\$\w*role\w*\s*,\s*\[[^\]]*[\'"](' . $roles . ')[\'"]/i',
         ];
         foreach ($patterns as $re) {
             if (preg_match_all($re, $code, $m)) {
@@ -71,7 +73,12 @@ final class AuthorizationGuardTest extends UnitTestCase
     public function no_module_service_decides_authorization_by_comparing_a_role_string(): void
     {
         $offenders = [];
-        foreach (glob(self::repo() . '/modules/*/services/*.php') as $file) {
+        // Services AND front-controller plugins — a plugin's role list is the same defect (TIGER-511).
+        $files = array_merge(
+            glob(self::repo() . '/modules/*/services/*.php') ?: [],
+            glob(self::repo() . '/modules/*/plugins/*.php') ?: []
+        );
+        foreach ($files as $file) {
             $hits = self::offences(file_get_contents($file));
             if ($hits) {
                 $offenders[str_replace(self::repo() . '/', '', $file)] = array_values(array_unique($hits));
@@ -94,6 +101,7 @@ final class AuthorizationGuardTest extends UnitTestCase
         $this->assertNotEmpty(self::offences("<?php \$ok = \$acl->inheritsRole(\$r, 'admin');"));
         $this->assertNotEmpty(self::offences("<?php if (!\$this->_isAdmin()) { return; }"));
         $this->assertNotEmpty(self::offences("<?php \$this->_isAtLeastAdmin();"));
+        $this->assertNotEmpty(self::offences("<?php return in_array(\$role, ['manager', 'admin'], true);"), 'a role LIST is a role compare');
         // ...while the clean primitive + a role name in a comment/string-key do NOT trip it.
         $this->assertEmpty(self::offences("<?php if (!\$this->_isAllowed('save')) { return; }"));
         $this->assertEmpty(self::offences("<?php // guard: never compare \$role === 'admin' here\n\$x = 1;"));

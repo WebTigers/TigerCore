@@ -133,6 +133,34 @@ final class TagPluginTest extends IntegrationTestCase
     }
 
     #[Test]
+    public function the_staff_exclusion_is_decided_by_the_acl_not_a_role_list(): void
+    {
+        // TIGER-511: `Tiger_Analytics_ExcludeFromTracking` (granted at manager) decides it.
+        $this->config(['enabled' => '1', 'exclude_signed_in' => '1', 'url' => 'https://mat.example.com/', 'site_id' => '7']);
+
+        $this->loginAs('user');
+        (new Matomo_Plugin_Tag())->preDispatch(new Zend_Controller_Request_Simple());
+        $this->assertStringContainsString("setSiteId', '7'", $this->tracking(), 'a plain user lacks the capability → tagged');
+
+        $this->resetLatch();
+        $this->view->placeholder('tigerTracking')->exchangeArray([]);
+        $this->loginAs('manager');
+        (new Matomo_Plugin_Tag())->preDispatch(new Zend_Controller_Request_Simple());
+        $this->assertSame('', $this->tracking(), 'granted at manager → not tagged');
+
+        // Revoke the capability from admin in the live ACL: admin is now tracked.
+        $this->resetLatch();
+        $this->loginAs('admin');
+        Zend_Registry::get('Zend_Acl')->deny('admin', 'Tiger_Analytics_ExcludeFromTracking', 'exclude');
+        try {
+            (new Matomo_Plugin_Tag())->preDispatch(new Zend_Controller_Request_Simple());
+            $this->assertStringContainsString("setSiteId', '7'", $this->tracking(), 'capability revoked → admin is tagged');
+        } finally {
+            Zend_Registry::set('Zend_Acl', new \Tiger_Acl_Acl());
+        }
+    }
+
+    #[Test]
     public function predispatch_tags_signed_in_staff_when_exclusion_is_off(): void
     {
         $this->config(['enabled' => '1', 'exclude_signed_in' => '0', 'url' => 'https://mat.example.com/', 'site_id' => '7']);

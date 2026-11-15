@@ -167,4 +167,26 @@ final class SearchServiceTest extends IntegrationTestCase
         $res = $this->call(['term' => 'aliasterm']);
         $this->assertGreaterThanOrEqual(1, $res->data['total'], 'the `term` alias drives the query');
     }
+
+    #[Test]
+    public function the_query_is_scoped_to_the_current_site_org(): void
+    {
+        // TIGER-511: the service used to call Tiger_Search::query() with no orgId, so the media provider
+        // searched every org. Capture the ctx a provider actually receives.
+        $seen = null;
+        Tiger_Search::register([
+            'key'    => 'probe',
+            'label'  => 'Probe',
+            'search' => function ($term, $ctx) use (&$seen) { $seen = $ctx['orgId']; return []; },
+        ]);
+        $prop  = new \ReflectionProperty(\Tiger_Model_Org::class, '_siteOrgId');
+        $prior = $prop->getValue();
+        \Tiger_Model_Org::setSiteOrgId('site-org-a');
+        try {
+            $this->call(['q' => 'anything', 'only' => ['probe']]);
+        } finally {
+            $prop->setValue(null, $prior);   // never leak a pinned site org into later tests
+        }
+        $this->assertSame('site-org-a', $seen, 'providers search the SITE\'s org, not every org');
+    }
 }

@@ -10,7 +10,7 @@
  * consumer can accidentally email a pending or opted-out address.
  *
  * Reads exclude soft-deleted rows via activeSelect(); the audience finders additionally filter to
- * confirmed + the caller's org.
+ * confirmed + exactly the caller's org (no shared '' tier — TIGER-511).
  *
  * @api
  * @since 1.9.0
@@ -112,12 +112,13 @@ class Newsletter_Model_Subscriber extends Tiger_Model_Table
     }
 
     /**
-     * Scope a select to a tenant PLUS the global ('') scope.
+     * Scope a select to ONE tenant's list — the org only, never the shared '' tier.
      *
-     * Anonymous visitors on a single-site install resolve to the global org (''), exactly like a
-     * shipped CMS page — so an operator acting in their own org must still see those subscribers.
-     * Including '' is safe for real multi-site: there the host→org plugin stamps every request
-     * (guests included) with its site's org, so '' only ever accumulates single-site rows.
+     * A subscriber is consent given to ONE site. Reads used to add the '' scope to every org, and guest
+     * sign-ups were stamped '' (a guest has no authenticated org), so every org's audience — and the
+     * Tiger_Audience segment a mailer sends to — included every other site's guest subscribers
+     * (TIGER-511). Subscribe now stamps the site's org, and migration 0067 moved the legacy '' rows to
+     * the install org.
      *
      * @param  Zend_Db_Select $select
      * @param  string         $orgId
@@ -125,10 +126,7 @@ class Newsletter_Model_Subscriber extends Tiger_Model_Table
      */
     protected function _orgScoped($select, $orgId)
     {
-        $orgId = (string) $orgId;
-        // IN (?) with an array is Zend_Db's portable, safely-quoted multi-value form.
-        $scopes = $orgId === '' ? [''] : ['', $orgId];
-        return $select->where('org_id IN (?)', $scopes);
+        return $select->where('org_id = ?', (string) $orgId);
     }
 
     /**

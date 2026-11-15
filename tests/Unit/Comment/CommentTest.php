@@ -86,7 +86,7 @@ final class CommentTest extends UnitTestCase
         $this->assertNull(Tiger_Comment::subject('made.up'));
         $this->assertFalse(Tiger_Comment::acceptsRatings('made.up'));
         $this->assertSame(
-            ['title' => '', 'url' => '', 'exists' => false],
+            ['title' => '', 'url' => '', 'exists' => false, 'visible' => false],
             Tiger_Comment::resolve('made.up', '1')
         );
     }
@@ -107,7 +107,7 @@ final class CommentTest extends UnitTestCase
         Tiger_Comment::registerSubject($this->provider());
 
         $this->assertSame(
-            ['title' => 'Blue Widget', 'url' => '/shop/blue', 'exists' => true],
+            ['title' => 'Blue Widget', 'url' => '/shop/blue', 'exists' => true, 'visible' => true],
             Tiger_Comment::resolve('shop.product', 'abc')
         );
     }

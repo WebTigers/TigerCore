@@ -29,13 +29,22 @@ final class SubscribeServiceTest extends IntegrationTestCase
         \Zend_Registry::set('tiger.auth.stateless', true);
         $_SERVER['REMOTE_ADDR']    = '203.0.113.7';
         $_SERVER['HTTP_USER_AGENT'] = 'phpunit';
+
+        // Subscribe stamps the SITE's org (TIGER-511) — pin one so the rows are findable, restore after.
+        $prop = new \ReflectionProperty(\Tiger_Model_Org::class, '_siteOrgId');
+        $this->siteOrgBefore = $prop->getValue();
+        \Tiger_Model_Org::setSiteOrgId(self::SITE_ORG);
     }
+
+    private const SITE_ORG = 'site-org-newsletter';
+    private $siteOrgBefore = null;
 
     protected function tearDown(): void
     {
         $reg = \Zend_Registry::getInstance();
         if ($reg->offsetExists('tiger.auth.stateless')) { $reg->offsetUnset('tiger.auth.stateless'); }
         unset($_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_USER_AGENT']);
+        (new \ReflectionProperty(\Tiger_Model_Org::class, '_siteOrgId'))->setValue(null, $this->siteOrgBefore);
         if ($this->_configBefore !== null) {
             \Zend_Registry::set('Zend_Config', $this->_configBefore);
         } elseif ($reg->offsetExists('Zend_Config')) {
@@ -55,7 +64,26 @@ final class SubscribeServiceTest extends IntegrationTestCase
 
     private function rowFor(string $email): ?array
     {
-        return (new Newsletter_Model_Subscriber())->forEmail('', $email);
+        return (new Newsletter_Model_Subscriber())->forEmail(self::SITE_ORG, $email);
+    }
+
+    #[Test]
+    public function a_guest_subscribe_lands_in_the_site_org_never_the_shared_tier(): void
+    {
+        $this->subscribe(['email' => 'guest-site@example.com']);
+
+        $this->assertNotNull($this->rowFor('guest-site@example.com'), 'stamped with the site org');
+        $this->assertNull((new Newsletter_Model_Subscriber())->forEmail('', 'guest-site@example.com'), 'never stamped \'\'');
+    }
+
+    #[Test]
+    public function a_signed_in_subscribe_joins_the_sites_list_not_their_own_orgs(): void
+    {
+        $this->login('member-x', 'members-own-org', 'user');
+        $this->subscribe(['email' => 'member-site@example.com']);
+
+        $this->assertNotNull($this->rowFor('member-site@example.com'), 'the site\'s list');
+        $this->assertNull((new Newsletter_Model_Subscriber())->forEmail('members-own-org', 'member-site@example.com'));
     }
 
     #[Test]

@@ -65,6 +65,36 @@ class Tiger_Acl_Acl extends Zend_Acl
     }
 
     /**
+     * Does the SIGNED-IN identity hold `$privilege` on `$resource`, per the registered ACL?
+     *
+     * The capability check for code that is not a service (a front-controller plugin, a view helper),
+     * where `Tiger_Service_Service::_isAllowed()` is not available — so it never has to fall back to a
+     * role-name compare (TIGER-511). Fails CLOSED: no identity, no registered `Zend_Acl`, an unknown
+     * role or an ungoverned resource all answer false.
+     *
+     * @param  string $resource  the capability resource, e.g. 'Tiger_Analytics_ExcludeFromTracking'
+     * @param  string $privilege the named privilege
+     * @return bool
+     */
+    public static function identityIsAllowed($resource, $privilege)
+    {
+        try {
+            if (!Zend_Auth::getInstance()->hasIdentity() || !Zend_Registry::isRegistered('Zend_Acl')) {
+                return false;
+            }
+            $identity = Zend_Auth::getInstance()->getIdentity();
+            $role     = is_object($identity) ? (string) ($identity->role ?? '') : '';
+            $acl      = Zend_Registry::get('Zend_Acl');
+            if ($role === '' || !$acl->has((string) $resource) || !$acl->hasRole($role)) {
+                return false;
+            }
+            return (bool) $acl->isAllowed($role, (string) $resource, (string) $privilege);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
      * EXPLAIN an authorization decision — the debuggability pillar (ACL.md §7): the answer to "why am
      * I locked out?" Returns the decision PLUS the reasoning — the role's inheritance chain and the
      * deciding rule (explicit allow/deny, possibly inherited) or **deny-by-default**. Read-only; it
