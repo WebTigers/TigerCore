@@ -12,6 +12,12 @@ $this->i18n([
     'confirmDel'    => 'system.sites.js.confirm_delete',
     'added'         => 'system.sites.js.added',
     'netErr'        => 'system.sites.js.net_error',
+    'covMain'       => 'system.seats.main',
+    'covCovered'    => 'system.seats.covered',
+    'covUncovered'  => 'system.seats.uncovered',
+    'covLapsed'     => 'system.seats.lapsed',
+    'covAdd'        => 'system.seats.add_seat',
+    'seatsSummary'  => 'system.seats.summary',
 ]);
 $t = fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
 ?>
@@ -20,9 +26,22 @@ $t = fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
         <h1 class="h3 mb-1"><i class="fa-solid fa-globe me-2"></i><?= $t('system.sites.title') ?></h1>
         <p class="text-body-secondary mb-0"><?= $t('system.sites.subtitle') ?></p>
     </div>
+<?php if (!empty($this->seatsOn)): ?>
+    <div class="text-nowrap">
+        <button type="button" id="system-sites-seats" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-key me-2"></i><?= $t('system.seats.check') ?>
+        </button>
+    </div>
+<?php endif; ?>
 </div>
 
 <div id="system-sites-feedback"></div>
+
+<?php if (!empty($this->seatsOn) && !empty($this->seatCoverage['total'])): ?>
+<p class="text-body-secondary small">
+    <i class="fa-solid fa-key me-1"></i><span id="system-sites-seat-summary"><?= $this->escape(sprintf($t('system.seats.summary'), (int) $this->seatCoverage['covered'], (int) $this->seatCoverage['total'])) ?></span>
+</p>
+<?php endif; ?>
 
 <?php if ($this->orgCount < 2): ?>
 <div class="alert alert-info"><i class="fa-solid fa-circle-info me-2"></i><?= $t('system.sites.need_orgs') ?></div>
@@ -61,6 +80,7 @@ $t = fn($k) => Zend_Registry::get('Zend_Translate')->translate($k);
                                 <th><?= $t('system.sites.col.org') ?></th>
                                 <th><?= $t('system.sites.col.status') ?></th>
                                 <th><?= $t('system.sites.col.created') ?></th>
+                                <th data-orderable="false"><?= $t('system.seats.col') ?></th>
                                 <th class="text-end" data-orderable="false"><?= $t('system.sites.col.actions') ?></th>
                             </tr>
                         </thead>

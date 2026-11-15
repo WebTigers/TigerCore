@@ -162,7 +162,8 @@ The whole client half is core, free, and **vendor-neutral** — it works against
 | `Tiger_Module_Pricing` | interpret a manifest's `pricing` (model + authority + vendor) |
 | `Tiger_Crypto_Signature` | Ed25519 keypair / sign / verify / `verifyFile` / `fingerprint` |
 | `Tiger_License_Checker` | hold the install's license keys, **verify** against a module's declared authority (cached, signed), **`gate()`** auto-update, `remember()` a bought license. Persists in the lazy `option` tier (`Tiger_License_Store`). |
-| `Tiger_License_Authority` (client) | the client for an authority's `/download` endpoint — get a signed download descriptor `{url, signature, sha256, version}` |
+| `Tiger_License_Authority` (client) | the client for an authority's `/download` endpoint — get a signed download descriptor `{url, signature, sha256, version}` — and its `/claim` endpoint (a signed per-domain seat, §6b) |
+| `Tiger_License_Seats` | per-domain seats for a multi-domain install: claim/store/verify one seat per served apex on the main key's license, and report coverage (§6b). The "add a seat" link is `tiger.pass.manage_url`, else the authority's origin + `/license` |
 | `Tiger_Module_Longform` | resolve a listing's long-form "plugin page" copy — inline `readme` (a paid module's repo is private, so its marketplace serves the review copy) or a public repo's `tiger_md` URL — and render it through a **safe-mode** markdown parser. The ONE renderer behind both the Module Manager's "View more" and a marketplace's own listing page. |
 | `Tiger_Module_Installer::installFromAuthority` | fetch the signed download → **verify the signature before extract** → install → `remember()` the license |
 | `Tiger_Update_Checker` + `System_Service_Updates` | annotate a licensed module's update with its license state, and **refuse applying an update** to a definitively lapsed one |
@@ -212,6 +213,30 @@ same buy → license → signed-download → install. **A single module is a mar
 
 ---
 
+### 6b. Multi-domain installs — one payer, one seat per domain
+One Tiger install can serve many sites (`site_domain`: host → org). A license key is bound to **one site** —
+its apex (`www.` is the same site; a subdomain is its own site unless the license includes subdomains) — so an
+install serving several domains needs **one seat per domain**. The rule is **single payer**: the install's main
+(activation) domain holds the key that pays, and every other domain's seat is a key on that **same license**.
+The authority can always link a seat back to the one payer; the install never buys seats on its own.
+
+How the client does it (`Tiger_License_Seats`):
+
+- **Storage.** The main TigerPASS key stays where it always was (`tiger.license.__tigerpass__`, pinned to its
+  activation domain). Each tenant seat is one more record in the same option-tier store, under
+  `tiger.license.__tigerpass__@<apex>` — the ordinary Checker record shape (key, authority, vendor, public_key,
+  domain, + the cached verdict). An install holding only the old single record = only its main domain covered.
+- **Claim.** For every active mapped domain with no seat (deduped by apex, the main domain skipped), the client
+  posts the main key to the authority's `/claim` (§7) and stores the key it gets back. It runs after a domain is
+  added in System › Sites, daily (`system.license_seats`), and on demand (**Check seats**). Idempotent; never
+  throws into its caller. A refusal (`no_seats`) or an untrusted reply stores nothing — the domain stays
+  uncovered until the buyer adds a seat on the seller's dashboard.
+- **Verify.** Each seat is verified **for its own domain** on the Checker's normal cached cadence.
+- **Nag, never disable.** Coverage is information: a column on System › Sites, "N of M domains covered" on the
+  Module Manager's TigerPASS tab, and a header notice for an admin working on an uncovered domain. The **update
+  gate stays on the main key alone** — a domain with no seat, or a lapsed seat, never blocks an update, and the
+  public site never sees any of it.
+
 ## 7. Running an authority (the operator's contract)
 
 Core defines the *protocol*, not the authority. **Any vendor can run one** — co-located with their own
@@ -219,8 +244,15 @@ checkout so payment stays first-party. An authority is any endpoint that speaks:
 
 - **`POST {api_base}/verify`** ← `{key, domain, product}` → `{payload, signature}` where `payload` is the
   JSON `{valid, ttl, latest_version}` and `signature` is Ed25519 over `payload` with the vendor's secret
-  (public half in `TigerVendor`). Bind the key to its domain on first use; enforce it after (subdomains free);
-  re-check the payment by id.
+  (public half in `TigerVendor`). Bind the key to its domain on first use; enforce it after (apex + `www` are
+  one site; a subdomain is the license's policy call); re-check the payment by id.
+- **`POST {api_base}/claim`** ← `{key, domain, product?}` → `{payload, signature}` where `payload` is the JSON
+  `{ok, key?, domain, reason?, seats, in_use}` (signed like verify). `key` is the install's **main**, already
+  active key: decide it exactly as verify does (active, not expired, paid), then — **on that license only** —
+  return the key already bound to `domain`'s apex (idempotent), else bind a spare unbound key to it, else refuse
+  `no_seats`. Never mint keys or change seats/billing; a seat is bought on the buyer's dashboard. This is what
+  lets a multi-domain install hold one seat per domain under one payer (§6b). An authority without it can answer
+  `501` — the client treats that as "unknown" and the domain simply shows as not covered.
 - **`POST {api_base}/download`** ← `{key, domain, product}` → `{url, signature, sha256, version}` — verify the
   license, then mint a **short-lived signed** release URL (capture the storage host's 302 with the repo token,
   don't proxy the bytes) and return the **publish-time** artifact signature. `402` when not entitled.

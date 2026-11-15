@@ -433,4 +433,17 @@ return [
     'system.nav.updates' => 'अपडेट',
     'system.nav.acl' => 'ACL सिम्युलेटर',
     'system.nav.logs' => 'लॉग',
+    // प्रति-डोमेन TigerPASS सीटें (TIGER-505)
+    'system.seats.col'       => 'TigerPASS',
+    'system.seats.main'      => 'मुख्य डोमेन',
+    'system.seats.covered'   => 'कवर है',
+    'system.seats.uncovered' => 'कवर नहीं है',
+    'system.seats.lapsed'    => 'सीट समाप्त',
+    'system.seats.add_seat'  => 'सीट जोड़ें',
+    'system.seats.check'     => 'सीटें जाँचें',
+    'system.seats.checked'   => 'सीटें जाँच ली गईं।',
+    'system.seats.no_pass'   => 'इस इंस्टॉल में कोई TigerPASS कुंजी नहीं है। पहले मॉड्यूल › नया जोड़ें में TigerPASS सक्रिय करें।',
+    'system.seats.summary'   => '%2$s में से %1$s डोमेन TigerPASS से कवर हैं।',
+    'system.seats.manage'    => 'डोमेन प्रबंधित करें',
+    'system.seats.notice'    => 'इस डोमेन की कोई TigerPASS सीट नहीं है। एक जोड़ने के लिए साइट्स खोलें।',
 ];

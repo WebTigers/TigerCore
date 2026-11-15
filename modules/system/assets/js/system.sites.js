@@ -26,6 +26,19 @@
                 return '<span class="badge text-bg-' + (BADGE[t] || 'secondary') + '">' + esc(t) + '</span>';
             } },
             { data: 'created' },
+            // Per-domain TigerPASS seat coverage (TIGER-505). Informational: nothing is ever disabled.
+            { data: 'coverage', orderable: false, searchable: false, render: function (t, type, row) {
+                if (type !== 'display') { return t; }
+                if (t === 'main')    { return '<span class="badge text-bg-primary">' + esc(Tiger.t('covMain')) + '</span>'; }
+                if (t === 'covered') { return '<span class="badge text-bg-success">' + esc(Tiger.t('covCovered')) + '</span>'; }
+                if (t === 'uncovered' || t === 'lapsed') {
+                    var label = t === 'lapsed' ? Tiger.t('covLapsed') : Tiger.t('covUncovered');
+                    var link  = (row.manage_url && /^https?:\/\//i.test(row.manage_url))
+                        ? ' <a href="' + esc(row.manage_url) + '" target="_blank" rel="noopener">' + esc(Tiger.t('covAdd')) + '</a>' : '';
+                    return '<span class="badge text-bg-warning">' + esc(label) + '</span>' + link;
+                }
+                return '<span class="text-body-secondary">—</span>';
+            } },
             { data: null, orderable: false, searchable: false, className: 'text-end text-nowrap', render: function (t, type, row) {
                 if (!row.can_delete) { return '<span class="text-body-secondary">—</span>'; }
                 return '<button type="button" class="btn btn-sm btn-outline-danger" data-del="' + esc(row.site_domain_id) +
@@ -60,6 +73,26 @@
                     });
                 }
                 (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
+            }).catch(function () { TigerDOM.notify(fb, Tiger.t('netErr'), { type: 'error' }); });
+        });
+    }
+
+    // "Check seats" — claim a TigerPASS seat for every served domain that lacks one (TIGER-505).
+    var seatsBtn = document.getElementById('system-sites-seats');
+    if (seatsBtn) {
+        seatsBtn.addEventListener('click', function () {
+            var form = document.getElementById('system-sites-form');
+            var csrf = form ? form.querySelector('[name="_csrf"]') : null;
+            var body = new URLSearchParams({ module: 'system', service: 'sites', method: 'checkSeats', _csrf: csrf ? csrf.value : '' });
+            TigerButton.run(this, function () {
+                return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
+                    .then(function (r) { return r.json().catch(function () { return {}; }); });
+            }).then(function (res) {
+                (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
+                var cov = res && res.data && res.data.coverage;
+                var sum = document.getElementById('system-sites-seat-summary');
+                if (sum && cov && cov.total) { sum.textContent = Tiger.t('seatsSummary', cov.covered, cov.total); }
+                table.ajax.reload(null, false);
             }).catch(function () { TigerDOM.notify(fb, Tiger.t('netErr'), { type: 'error' }); });
         });
     }

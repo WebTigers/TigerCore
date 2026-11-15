@@ -6,6 +6,23 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.57.0] — 2026-11-15
+
+### Added
+- **Per-domain TigerPASS seats for a multi-domain install (TIGER-505).** One Tiger serving several sites
+  needs one seat per apex domain (subdomains are their own site unless the license includes them), and every
+  seat comes from the main domain's license — the main domain is the single payer. `Tiger_License_Seats`
+  claims a seat with the main key for each active `site_domain` that lacks one (after a domain is added in
+  System › Sites, from a daily `system.license_seats` job, and from a **Check seats** button), stores each as
+  one more option-tier license record (`tiger.license.__tigerpass__@<apex>`), and verifies it for its own
+  domain on the Checker's cached cadence. `Tiger_License_Authority::claim()` is the signed client call.
+- **Coverage, never a lockout.** System › Sites shows a TigerPASS column ("Covered" / "Not covered — add a
+  seat"), the Module Manager's TigerPASS tab shows "N of M domains covered", and an admin working on an
+  uncovered domain sees a key notice in the header. Public visitors see nothing; the update gate stays on the
+  main key alone, so a missing or lapsed seat never blocks an update or disables anything.
+- `Tiger_Admin_Header` items take an optional `visible` callable (a notice that only renders on some requests).
+- `Tiger_Model_SiteDomain::activeHosts()`.
+
 ## [1.54.5] — 2026-11-14
 
 ### Fixed

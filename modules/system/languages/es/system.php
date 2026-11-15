@@ -433,4 +433,17 @@ return [
     'system.nav.updates' => 'Actualizaciones',
     'system.nav.acl' => 'Simulador de ACL',
     'system.nav.logs' => 'Registros',
+    // Licencias TigerPASS por dominio (TIGER-505)
+    'system.seats.col'       => 'TigerPASS',
+    'system.seats.main'      => 'Dominio principal',
+    'system.seats.covered'   => 'Cubierto',
+    'system.seats.uncovered' => 'Sin cobertura',
+    'system.seats.lapsed'    => 'Licencia vencida',
+    'system.seats.add_seat'  => 'añadir una licencia',
+    'system.seats.check'     => 'Comprobar licencias',
+    'system.seats.checked'   => 'Licencias comprobadas.',
+    'system.seats.no_pass'   => 'Esta instalación no tiene clave TigerPASS. Activa TigerPASS primero en Módulos › Añadir nuevo.',
+    'system.seats.summary'   => '%1$s de %2$s dominios cubiertos por TigerPASS.',
+    'system.seats.manage'    => 'Gestionar dominios',
+    'system.seats.notice'    => 'Este dominio no tiene licencia TigerPASS. Abre Sitios para añadir una.',
 ];

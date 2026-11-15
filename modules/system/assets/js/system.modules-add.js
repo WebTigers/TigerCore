@@ -537,10 +537,24 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ---- TigerPASS tab: status + the "Disable TigerPASS nag alert" switch ----
-    function renderPassTab(pass, nag){
+    function renderPassTab(pass, nag, seats){
         var toggle = document.getElementById('pass-nag-toggle');
         var status = document.getElementById('pass-tab-status');
+        var seatEl = document.getElementById('pass-tab-seats');
         if (toggle && nag){ toggle.checked = !!nag.disabled; }
+        // Multi-domain installs: "N of M domains covered" (TIGER-505) — shown only when there IS more than one domain.
+        if (seatEl && seats !== undefined){   // a search payload carries no seats — leave the line as passInfo drew it
+            if (seats && seats.enabled && seats.total > 1){
+                seatEl.textContent = Tiger.t('seatsSummary', seats.covered, seats.total) + ' ';
+                var a = document.createElement('a');
+                a.href = '/system/sites';
+                a.textContent = Tiger.t('seatsManage');
+                seatEl.appendChild(a);
+                seatEl.hidden = false;
+            } else {
+                seatEl.hidden = true;
+            }
+        }
         if (status){
             status.innerHTML = (pass && pass.has)
                 ? '<div class="alert alert-success d-flex align-items-center gap-2 mb-0"><i class="fa-solid fa-circle-check"></i><div>TigerPASS is <strong>active</strong> on this install — every premium module and theme is unlocked.</div></div>'
@@ -551,7 +565,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (passTabBtn){
         passTabBtn.addEventListener('shown.bs.tab', function(){
             // Fetch fresh status even when the registry (and its search) is unreachable.
-            api('passInfo', {}).then(function(res){ if (res.result===1){ renderPassTab(res.data.pass, res.data.nag); } });
+            api('passInfo', {}).then(function(res){ if (res.result===1){ renderPassTab(res.data.pass, res.data.nag, res.data.seats); } });
         });
     }
     var passNagToggle = document.getElementById('pass-nag-toggle');

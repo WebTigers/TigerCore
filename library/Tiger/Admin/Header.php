@@ -36,6 +36,10 @@
  * strings, so the core theme never imports a module class. `endpoint` is required for a fly-out; the rest
  * are optional. An item with no `flyout` renders exactly as before.
  *
+ * `visible` (optional) is a bool or a callable deciding whether the item renders at all on this request —
+ * for a NOTICE rather than a permanent action (e.g. "this domain has no license seat", shown only on that
+ * domain's admin). Resolved after the ACL filter, fail-soft (a throw hides the item); see isVisible().
+ *
  * `badge` is a CALLABLE rather than a number because the header renders on every admin page: the
  * count must be computed at render, for the current user, and only if the item survived the ACL
  * filter — a callable defers all three. It must be cheap (an indexed count, a cached read); never a
@@ -62,7 +66,7 @@ class Tiger_Admin_Header
         if (empty($item['key']) || empty($item['label']) || empty($item['href'])) {
             return;
         }
-        self::$_items[$item['key']] = $item + ['icon' => 'fa-circle', 'resource' => null, 'order' => 100, 'badge' => null, 'flyout' => null];
+        self::$_items[$item['key']] = $item + ['icon' => 'fa-circle', 'resource' => null, 'order' => 100, 'badge' => null, 'flyout' => null, 'visible' => null];
     }
 
     /**
@@ -87,8 +91,28 @@ class Tiger_Admin_Header
                 'order'    => $p['order'],
                 'badge'    => $p['badge'] ?? null,
                 'flyout'   => $p['flyout'] ?? null,
+                'visible'  => $p['visible'] ?? null,
             ];
         }, $items);
+    }
+
+    /**
+     * Should an item render on THIS request? An item with no `visible` always does; a `visible` callable
+     * decides per render (a notice that only applies to some hosts or some state), fail-soft — one that
+     * throws hides the item rather than breaking the header. Like `badge`, it must be cheap: no network.
+     *
+     * @param  array $item an entry from items()
+     * @return bool
+     */
+    public static function isVisible(array $item)
+    {
+        $v = $item['visible'] ?? null;
+        if ($v === null) { return true; }
+        try {
+            return (bool) (is_callable($v) ? $v() : $v);
+        } catch (Throwable $e) {
+            return false;
+        }
     }
 
     /**
