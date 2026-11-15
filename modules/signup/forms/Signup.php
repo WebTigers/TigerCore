@@ -74,6 +74,12 @@ class Signup_Form_Signup extends Tiger_Form
             'setup_org' => $this->_setupOrg,
             'org_id'    => $this->_setupOrg ? '' : (string) Tiger_Model_Org::siteOrgId(),
         ];
+        // A setup-org form pins the default, so it can skip the write when the session isn't writable
+        // (nothing bound already means "a new org"). A join form must pin its org — let that write fail
+        // loudly rather than silently turn a store's customer signup into a new-org signup.
+        if ($this->_setupOrg && !Zend_Session::isWritable()) {
+            return $mode;
+        }
         $ns = new Zend_Session_Namespace(self::MODE_NAMESPACE);
         $ns->mode = $mode;
         return $mode;

@@ -41,11 +41,16 @@ final class SignupJoinOrgTest extends IntegrationTestCase
         parent::setUp();
         $this->_priorUnitTest = Zend_Session::$_unitTestEnabled;
         Zend_Session::$_unitTestEnabled = true;   // array-backed session under CLI
+        // An earlier test in the suite may have write-closed the session, and start() won't reopen one
+        // that already started. A request always has a writable session, so mirror that directly —
+        // and restore the previous flag in tearDown.
+        $this->_priorWritable = $this->_writable();
+        $this->_writable(true);
+        (new Zend_Session_Namespace(Signup_Form_Signup::MODE_NAMESPACE))->unsetAll();
         $this->_priorConfig = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
         Zend_Registry::set('Zend_Config', new Zend_Config([
             'tiger' => ['password' => ['min_length' => 8, 'require_complexity' => 0, 'history' => 0, 'max_age_days' => 0]],
         ]));
-        (new Zend_Session_Namespace(Signup_Form_Signup::MODE_NAMESPACE))->unsetAll();
     }
 
     protected function tearDown(): void
@@ -68,7 +73,18 @@ final class SignupJoinOrgTest extends IntegrationTestCase
         Zend_Registry::set('tiger.auth.stateless', false);
         Zend_Registry::set('Zend_Config', $this->_priorConfig ?? new Zend_Config([]));
         Zend_Session::$_unitTestEnabled = $this->_priorUnitTest;
+        $this->_writable($this->_priorWritable);
         parent::tearDown();
+    }
+
+    private bool $_priorWritable = false;
+
+    /** Read (no arg) or set Zend_Session's writable flag (a protected static on Zend_Session_Abstract). */
+    private function _writable(?bool $set = null): bool
+    {
+        $p = new \ReflectionProperty(\Zend_Session_Abstract::class, '_writable');
+        if ($set !== null) { $p->setValue(null, $set); }
+        return (bool) $p->getValue();
     }
 
     /** End the base txn (create() opens its own) and commit a store org to sign up into. */
