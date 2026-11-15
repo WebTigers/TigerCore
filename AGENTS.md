@@ -555,7 +555,11 @@ is **ONE primitive for this, and it never compares a role string**:
   privilege = the target's role; `_mayManageUser` checks every membership the target holds). An admin
   that can set a superadmin's password IS a superadmin (TIGER-511).
 - **Outside a service** (a plugin, a view helper) use `Tiger_Acl_Acl::identityIsAllowed($resource,
-  $privilege)` — never a list of role names.
+  $privilege)` — never a list of role names. For a role you were HANDED rather than the signed-in one
+  (the post-login landing, the session writer) use `Tiger_Acl_Acl::roleIsAllowed($role, $resource,
+  $privilege)`; both fail closed, so where "can't ask" needs a different safe default (the session TTL
+  falls to the SHORTER tier) check `Tiger_Acl_Acl::isAvailable()` first. A guard test fails the build on
+  a role-name list anywhere in `library/`, `core/` or `modules/` (TIGER-511).
 
 The four rules that keep the F5 class from recurring — follow them in every new service + `acl.ini`:
 

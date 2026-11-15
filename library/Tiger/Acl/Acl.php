@@ -79,12 +79,40 @@ class Tiger_Acl_Acl extends Zend_Acl
     public static function identityIsAllowed($resource, $privilege)
     {
         try {
-            if (!Zend_Auth::getInstance()->hasIdentity() || !Zend_Registry::isRegistered('Zend_Acl')) {
+            if (!Zend_Auth::getInstance()->hasIdentity()) {
                 return false;
             }
             $identity = Zend_Auth::getInstance()->getIdentity();
             $role     = is_object($identity) ? (string) ($identity->role ?? '') : '';
-            $acl      = Zend_Registry::get('Zend_Acl');
+            return self::roleIsAllowed($role, $resource, $privilege);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Does `$role` hold `$privilege` on `$resource`, per the registered ACL?
+     *
+     * The non-service twin of `Tiger_Service_Service::_roleIsAllowed()` — for code that must answer the
+     * question about a role it was HANDED (an identity that is not, or not yet, the signed-in one: the
+     * post-login landing, the session writer) rather than the current Zend_Auth identity (TIGER-511).
+     * Fails CLOSED: no registered `Zend_Acl`, an empty or unknown role, or an ungoverned resource all
+     * answer false — so a caller that needs a SAFE default when the ACL is not built yet must decide that
+     * default itself (see Tiger_Session_SaveHandler_DbTable::_lifetimeForRole()).
+     *
+     * @param  string $role      the role to ask about
+     * @param  string $resource  the capability resource, e.g. 'Tiger_Admin_Home'
+     * @param  string $privilege the named privilege
+     * @return bool
+     */
+    public static function roleIsAllowed($role, $resource, $privilege)
+    {
+        try {
+            if (!Zend_Registry::isRegistered('Zend_Acl')) {
+                return false;
+            }
+            $role = (string) $role;
+            $acl  = Zend_Registry::get('Zend_Acl');
             if ($role === '' || !$acl->has((string) $resource) || !$acl->hasRole($role)) {
                 return false;
             }
@@ -92,6 +120,20 @@ class Tiger_Acl_Acl extends Zend_Acl
         } catch (Throwable $e) {
             return false;
         }
+    }
+
+    /**
+     * Is the ACL built and registered for this request?
+     *
+     * `roleIsAllowed()` answers false both for "denied" and for "no ACL yet". A caller whose safe default
+     * differs between the two (the session writer picks the SHORTER TTL when it cannot ask) uses this to
+     * tell them apart.
+     *
+     * @return bool
+     */
+    public static function isAvailable()
+    {
+        return Zend_Registry::isRegistered('Zend_Acl') && Zend_Registry::get('Zend_Acl') instanceof Zend_Acl;
     }
 
     /**

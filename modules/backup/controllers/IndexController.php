@@ -5,13 +5,26 @@
  * Backup_IndexController — the Backup admin screen (/backup). Thin: assembles the history + settings +
  * schedule state for the initial render; mutations (run/restore/delete/settings) go through
  * Backup_Service_Backup over /api. Two non-JSON actions live here: `download` streams an archive and
- * `upload` receives an uploaded archive to restore. Admin+. See ADMIN.md.
+ * `upload` receives an uploaded archive to restore. The screen is admin+; download, restore and including
+ * secrets are superadmin (the `Tiger_Backup_Data` capability — TIGER-511), enforced inside the actions and
+ * mirrored into server-computed flags so the screen hides what the role can't do. See ADMIN.md.
  */
 class Backup_IndexController extends Tiger_Controller_Admin_Action
 {
     public function init()
     {
         parent::init();
+    }
+
+    /**
+     * Does the signed-in identity hold `$privilege` on the backup-contents capability?
+     *
+     * @param  string $privilege download | restore | include_secrets
+     * @return bool
+     */
+    protected function _may($privilege)
+    {
+        return Tiger_Acl_Acl::identityIsAllowed(Backup_Service_Backup::RESOURCE_DATA, (string) $privilege);
     }
 
     public function indexAction()
@@ -38,14 +51,19 @@ class Backup_IndexController extends Tiger_Controller_Admin_Action
         $this->view->settings    = $this->_settings();
         $this->view->schedule    = $sched;
         $this->view->cronCommand = class_exists('Schedule_Service_Schedule') ? Schedule_Service_Schedule::cronCommand() : '';
+        // What this role may do with an archive's CONTENTS — the view hides the controls it can't use.
+        $this->view->canDownload       = $this->_may('download');
+        $this->view->canRestore        = $this->_may('restore');
+        $this->view->canIncludeSecrets = $this->_may('include_secrets');
     }
 
-    /** Stream a stored backup archive to the browser (admin-gated by ACL). */
+    /** Stream a stored backup archive to the browser (superadmin: `Tiger_Backup_Data` / `download`). */
     public function downloadAction()
     {
         $this->_helper->layout()->disableLayout();
         $this->_helper->viewRenderer->setNoRender(true);
         $response = $this->getResponse();
+        if (!$this->_may('download')) { $response->setHttpResponseCode(403); return; }
 
         $row = (new Tiger_Model_Backup())->findById((string) $this->getParam('id', ''));
         if (!$row || $row['outcome'] !== 'ok') { $response->setHttpResponseCode(404); return; }
@@ -70,13 +88,18 @@ class Backup_IndexController extends Tiger_Controller_Admin_Action
         exit;
     }
 
-    /** Receive an uploaded archive and restore from it (returns JSON). */
+    /** Receive an uploaded archive and restore from it (returns JSON; superadmin: `Tiger_Backup_Data` / `restore`). */
     public function uploadAction()
     {
         $this->_helper->layout()->disableLayout();
         $this->_helper->viewRenderer->setNoRender(true);
         $response = $this->getResponse();
         $response->setHeader('Content-Type', 'application/json', true);
+        if (!$this->_may('restore')) {
+            $response->setHttpResponseCode(403);
+            $response->setBody($this->_jsonBody(0, 'core.api.error.not_allowed'));
+            return;
+        }
 
         if (($this->getParam('confirm', '')) !== 'RESTORE') { $response->setBody($this->_jsonBody(0, 'backup.restore.confirm')); return; }
         $file = $_FILES['archive'] ?? null;

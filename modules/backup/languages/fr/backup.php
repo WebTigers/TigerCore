@@ -5,6 +5,7 @@ return [
     // Service / API messages
     'backup.done'             => 'Sauvegarde terminée.',
     'backup.failed'           => 'La sauvegarde a échoué. Consultez les journaux pour plus de détails.',
+    'backup.secrets.not_allowed' => 'Seul un superadministrateur peut inclure des secrets dans une sauvegarde.',
     'backup.deleted'          => 'Sauvegarde supprimée.',
     'backup.restore.done'     => 'Restauration terminée.',
     'backup.restore.failed'   => 'La restauration a échoué. Votre sauvegarde de sécurité pré-restauration est disponible.',

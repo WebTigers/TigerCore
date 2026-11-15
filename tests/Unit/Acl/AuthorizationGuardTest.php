@@ -58,8 +58,40 @@ final class AuthorizationGuardTest extends UnitTestCase
             '/->\s*inheritsRole\s*\(/',
             '/(===|!==|==|!=)\s*[\'"](' . $roles . ')[\'"]/',
             '/[\'"](' . $roles . ')[\'"]\s*(===|!==|==|!=)/',
-            // A role LIST membership test — `in_array($role, ['manager', 'admin', …])` (TIGER-511).
-            '/in_array\s*\(\s*\$\w*role\w*\s*,\s*\[[^\]]*[\'"](' . $roles . ')[\'"]/i',
+        ];
+        foreach ($patterns as $re) {
+            if (preg_match_all($re, $code, $m)) {
+                $hits = array_merge($hits, $m[0]);
+            }
+        }
+        return array_merge($hits, self::roleListOffences($php));
+    }
+
+    /**
+     * The role-LIST smells (TIGER-511), as applied to code-only source. Narrower than offences() — no
+     * single `=== 'user'` compare, because outside a service 'user'/'guest' are also chat-message roles
+     * and auth-state words — so it is safe to run over the whole library:
+     *   - an `in_array(<anything>, [... 'admin' ...])` membership test, whatever the first argument looks
+     *     like — `$role`, or the inline `(string) ($identity->role ?? '')` shape that slipped past the
+     *     original `\$\w*role\w*` pattern;
+     *   - an array literal made ONLY of role names (two or more) — the `const ADMIN_HOME_ROLES = [...]` /
+     *     `private static $_privileged = [...]` shape, which is a role compare the moment anything
+     *     `in_array()`s against it, however far away that happens.
+     *
+     * @param  string $php PHP source
+     * @return string[]    matched snippets
+     */
+    private static function roleListOffences(string $php): array
+    {
+        $code  = self::codeOnly($php);
+        $roles = implode('|', self::ROLES);
+        $role  = '[\'"](?:' . $roles . ')[\'"]';
+        $hits  = [];
+        $patterns = [
+            // in_array(<expr without a statement break>, [ … 'admin' … ]
+            '/in_array\s*\([^;]*?,\s*\[[^\]]*' . $role . '/i',
+            // [ 'admin', 'superadmin', … ] — every element a role name
+            '/\[\s*' . $role . '\s*(?:,\s*' . $role . '\s*)+,?\s*\]/',
         ];
         foreach ($patterns as $re) {
             if (preg_match_all($re, $code, $m)) {
@@ -91,6 +123,52 @@ final class AuthorizationGuardTest extends UnitTestCase
             . "Use \$this->_isAllowed(\$privilege) / \$this->_roleIsAllowed(\$role, \$privilege):\n"
             . json_encode($offenders, JSON_PRETTY_PRINT)
         );
+    }
+
+    #[Test]
+    public function no_framework_code_gates_on_a_list_of_role_names(): void
+    {
+        // The whole framework — library/, core/ and every module file (controllers, views, Bootstraps
+        // included), not just /api services: a role list in a session writer or a login redirect is the
+        // same defect as one in a service (TIGER-511). Outside a service the narrower list-only detector
+        // runs, so a chat message's 'user' role or a guest check never trips it.
+        $offenders = [];
+        foreach (['library', 'core', 'modules'] as $dir) {
+            $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(self::repo() . '/' . $dir, \FilesystemIterator::SKIP_DOTS));
+            foreach ($it as $file) {
+                $path = (string) $file;
+                if (substr($path, -4) !== '.php' && substr($path, -6) !== '.phtml') { continue; }
+                if (strpos($path, '/vendor/') !== false || strpos($path, '/languages/') !== false) { continue; }
+                $hits = self::roleListOffences(file_get_contents($path));
+                if ($hits) {
+                    $offenders[str_replace(self::repo() . '/', '', $path)] = array_values(array_unique($hits));
+                }
+            }
+        }
+        $this->assertSame(
+            [],
+            $offenders,
+            "A list of role names is deciding access (TIGER-511). Name the capability as an ACL resource in "
+            . "acl.ini and ask Tiger_Acl_Acl::roleIsAllowed()/identityIsAllowed() (or _isAllowed() in a service):\n"
+            . json_encode($offenders, JSON_PRETTY_PRINT)
+        );
+    }
+
+    #[Test]
+    public function the_role_list_detector_catches_every_shape_and_spares_data(): void
+    {
+        // Mutation guard for the list detector: the exact shapes TIGER-511 removed must be caught...
+        $this->assertNotEmpty(self::roleListOffences("<?php class A { const ADMIN_HOME_ROLES = ['admin', 'superadmin', 'developer']; }"), 'a role-list constant');
+        $this->assertNotEmpty(self::roleListOffences("<?php class S { private static \$_privileged = ['admin', 'superadmin']; }"), 'a role-list property');
+        $this->assertNotEmpty(self::roleListOffences("<?php \$ok = in_array((string) (\$identity->role ?? ''), ['manager', 'admin'], true);"), 'the inline cast shape');
+        $this->assertNotEmpty(self::roleListOffences("<?php \$ok = in_array(\$x->role, ['admin'], true);"), 'a single-element list in in_array');
+        $this->assertNotEmpty(self::roleListOffences("<?php if (in_array(\$r, [\n 'superadmin',\n 'developer',\n])) {}"), 'a multi-line list');
+        // ...while a role assigned as DATA, a single role literal, a mixed list and a comment do NOT.
+        $this->assertEmpty(self::roleListOffences("<?php \$u->insert(['role' => 'admin']);"));
+        $this->assertEmpty(self::roleListOffences("<?php \$m = ['role' => 'user', 'content' => \$t];"));
+        $this->assertEmpty(self::roleListOffences("<?php \$x = ['admin', 'orders', 'reports'];"), 'not every element is a role');
+        $this->assertEmpty(self::roleListOffences("<?php // never write ['admin', 'superadmin'] here\n\$x = 1;"));
+        $this->assertEmpty(self::roleListOffences("<?php \$ok = in_array(\$k, ['draft', 'published'], true);"));
     }
 
     #[Test]

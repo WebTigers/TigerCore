@@ -48,6 +48,9 @@ final class AuthorizationPluginTest extends IntegrationTestCase
         $this->priorUnitTestMode = Zend_Session::$_unitTestEnabled;
         Zend_Session::$_unitTestEnabled = true;
         $_SESSION = [];
+        // homeFor() asks the ACL (Tiger_Admin_Home capability, TIGER-511) — register the shipped policy
+        // rather than depend on whatever an earlier test left in the registry.
+        \Zend_Registry::set('Zend_Acl', new \Tiger_Acl_Acl());
     }
 
     protected function tearDown(): void

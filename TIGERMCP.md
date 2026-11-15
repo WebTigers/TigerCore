@@ -335,7 +335,11 @@ OAuth client for remote servers that require it, and per-tool (not per-connectio
    or a write on a read-only token (`Tiger_Mcp_Token::denyReason`), metered, and audited via `Tiger_Log`. An
    **org-scoped token dispatches AS THE ORG** (user_id=null → system actor) through a new
    `Tiger_Ajax_ServiceFactory($request, $identity)` override. The target service's own ACL still gates every
-   call — the token scope is a tighter fence on top.
+   call — the token scope is a tighter fence on top. **Every request re-checks the owner** (TIGER-511): the
+   owner must still hold an ACTIVE membership in the token's org (removed/suspended → 403), the role comes
+   from THAT membership (or the token's profile role), and a role holding `Tiger_Tenancy_AllOrgs` is refused
+   — an app-wide role can't be org-scoped, so minting one is refused too. An admin's org token therefore
+   needs a narrower role PROFILE.
 5. **Outbound Connections — ✅ BUILT (§9).** `Tiger_Agent_Mcp_Client` + `Tiger_Agent_Mcp` (encrypted-token
    registry + cached namespaced tools), the `mcp` Forge action (approval- + role-gated), the system-prompt
    advertisement, and the `/agent/mcp` admin screen (`Agent_Service_Mcp`).

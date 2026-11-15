@@ -70,14 +70,29 @@ class Mcp_Service_Settings extends Tiger_Service_Service
             return;
         }
 
+        // An org-scoped token acts AS ONE ORG. If the role it would act as holds the "reach every org"
+        // capability, it isn't org-scoped at all — refuse rather than mint a contradiction (TIGER-511).
+        // The server re-checks this every request (the member may be promoted later), see
+        // Mcp_ServerController::_orgIdentity().
+        $orgScoped = $this->_flag($params, 'org_scoped');
+        $orgId     = (string) ($identity->org_id ?? '');
+        if ($orgScoped) {
+            $actsAs = $scope['role'] !== '' ? (string) $scope['role'] : $role;
+            if ($orgId === '') { $this->_error('mcp.token.error.org_scoped_no_org', ['field' => 'org_scoped']); return; }
+            if ($this->_roleIsAllowed($actsAs, 'read', self::RESOURCE_ALL_ORGS)) {
+                $this->_error('mcp.token.error.org_scoped_app_wide', ['field' => 'org_scoped']);
+                return;
+            }
+        }
+
         try {
             $r = (new Tiger_Model_UserCredential())->createToken($userId);
             Tiger_Mcp_Token::saveConfig($r['credential_id'], [
                 'modules'    => $scope['modules'],
                 'read_only'  => $scope['read_only'],
-                'org_scoped' => $this->_flag($params, 'org_scoped'),
+                'org_scoped' => $orgScoped,
                 'role'       => $scope['role'],   // '' = act as the owner's live role; else the profile role
-                'org_id'     => (string) ($identity->org_id ?? ''),
+                'org_id'     => $orgId,
                 'resources'  => $scope['resources'],
                 'profile'    => $scope['role'] !== '',   // a role profile → dispatch AS that role
             ]);

@@ -5,6 +5,7 @@ return [
     // Service / API messages
     'backup.done'             => 'Backup complete.',
     'backup.failed'           => 'The backup failed. Check the logs for details.',
+    'backup.secrets.not_allowed' => 'Only a superadmin can include secrets in a backup.',
     'backup.deleted'          => 'Backup deleted.',
     'backup.restore.done'     => 'Restore complete.',
     'backup.restore.failed'   => 'The restore failed. Your pre-restore safety backup is available.',

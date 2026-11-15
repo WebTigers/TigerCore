@@ -27,6 +27,13 @@
     function checkedComponents() {
         return Array.prototype.slice.call(document.querySelectorAll('#backup-components input:checked')).map(function (i) { return i.value; });
     }
+    // The secrets switch and the restore controls are rendered only for a role that may use them
+    // (server-computed, TIGER-511). Absent switch → the request carries no include_secrets at all, so
+    // the server leaves the stored setting alone instead of reading a hidden "off".
+    var secretsEl = document.getElementById('backup-secrets');
+    function setSecrets(body) {
+        if (secretsEl) { body.set('include_secrets', secretsEl.checked ? 1 : 0); }
+    }
 
     // Back up now
     document.getElementById('backup-run').addEventListener('click', function () {
@@ -35,7 +42,7 @@
         var body = new URLSearchParams();
         body.set('module', 'backup'); body.set('service', 'backup'); body.set('method', 'run');
         body.set('disk', document.getElementById('backup-disk').value);
-        body.set('include_secrets', document.getElementById('backup-secrets').checked ? 1 : 0);
+        setSecrets(body);
         comps.forEach(function (c) { body.append('components[]', c); });
         TigerButton.run(this, function () {
             return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body }).then(function (r) { return r.json().catch(function () { return {}; }); });
@@ -51,12 +58,30 @@
         }
     });
 
-    // Restore (history) — open the confirm modal
+    // Save schedule settings (components + destination come from the Create card)
+    document.getElementById('backup-save-settings').addEventListener('click', function () {
+        var comps = checkedComponents();
+        var body = new URLSearchParams();
+        body.set('module', 'backup'); body.set('service', 'backup'); body.set('method', 'saveSettings');
+        body.set('disk', document.getElementById('backup-disk').value);
+        setSecrets(body);
+        body.set('retention_max', document.getElementById('set-retention').value || '0');
+        body.set('notify_enabled', document.getElementById('set-notify').checked ? 1 : 0);
+        body.set('notify_email', document.getElementById('set-email').value || '');
+        comps.forEach(function (c) { body.append('components[]', c); });
+        TigerButton.run(this, function () {
+            return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body }).then(function (r) { return r.json().catch(function () { return {}; }); });
+        }).then(function (res) { notify(res); });
+    });
+
+    // Restore — only wired when the role may restore (the modal is rendered only then).
     var modalEl = document.getElementById('restore-modal');
+    if (!modalEl) { return; }
     var modal = new bootstrap.Modal(modalEl);
     var confirmInput = document.getElementById('restore-confirm');
     var pending = null;   // { kind:'history', id } | { kind:'upload' }
 
+    // Restore (history) — open the confirm modal
     document.addEventListener('click', function (e) {
         var r = e.target.closest('[data-restore]');
         if (r) {
@@ -91,21 +116,5 @@
                 return fetch('/backup/index/upload', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd }).then(function (r) { return r.json().catch(function () { return {}; }); });
             }).then(function (res) { modal.hide(); notify(res); if (res && res.result === 1) { setTimeout(function () { location.reload(); }, 1500); } });
         }
-    });
-
-    // Save schedule settings (components + destination come from the Create card)
-    document.getElementById('backup-save-settings').addEventListener('click', function () {
-        var comps = checkedComponents();
-        var body = new URLSearchParams();
-        body.set('module', 'backup'); body.set('service', 'backup'); body.set('method', 'saveSettings');
-        body.set('disk', document.getElementById('backup-disk').value);
-        body.set('include_secrets', document.getElementById('backup-secrets').checked ? 1 : 0);
-        body.set('retention_max', document.getElementById('set-retention').value || '0');
-        body.set('notify_enabled', document.getElementById('set-notify').checked ? 1 : 0);
-        body.set('notify_email', document.getElementById('set-email').value || '');
-        comps.forEach(function (c) { body.append('components[]', c); });
-        TigerButton.run(this, function () {
-            return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body }).then(function (r) { return r.json().catch(function () { return {}; }); });
-        }).then(function (res) { notify(res); });
     });
 })();

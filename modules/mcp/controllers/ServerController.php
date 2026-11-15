@@ -97,7 +97,15 @@ class Mcp_ServerController extends Zend_Controller_Action
         // Bearer/session identity stands. The ROLE used for tools/list AND the dispatch is this
         // effective one — so discovery == authorization even for a role-scoped token.
         $effIdentity = ($config !== null) ? $this->_effectiveIdentity($identity, $config) : null;
-        $role = ($effIdentity && !empty($effIdentity->role)) ? (string) $effIdentity->role
+        if ($effIdentity === false) {
+            // An org-scoped token whose owner is no longer an active member of its org, or whose role is
+            // app-wide (TIGER-511). Refused outright — never a silent fall back to the owner's own identity.
+            Tiger_Log::warn('mcp.org_scoped.refused', ['token' => $prefix]);
+            $resp->setHttpResponseCode(403);
+            $this->_emit(['jsonrpc' => '2.0', 'id' => $msg['id'] ?? null, 'error' => ['code' => -32003, 'message' => 'Forbidden: this org-scoped token no longer has an active, org-bound membership in its organization']]);
+            return;
+        }
+        $role =($effIdentity && !empty($effIdentity->role)) ? (string) $effIdentity->role
               : (($identity && !empty($identity->role)) ? (string) $identity->role : 'guest');
 
         $out = Tiger_Mcp_Server::handle($msg, $role, function ($module, $service, $method, $args) use ($config, $prefix, $effIdentity, $role) {
@@ -343,9 +351,11 @@ class Mcp_ServerController extends Zend_Controller_Action
     }
 
     /**
-     * The effective dispatch identity for a scoped token, or null to keep the Bearer/session identity
-     * and the user's own role (TIGER-470):
-     *   - org-scoped        → acts AS THE ORG (no bound user_id → system actor), role from the token;
+     * The effective dispatch identity for a scoped token, null to keep the Bearer/session identity
+     * and the user's own role (TIGER-470), or FALSE to refuse the request (TIGER-511):
+     *   - org-scoped        → acts AS THE ORG (no bound user_id → system actor), role from the owner's
+     *                         ACTIVE membership in the token's org (or the profile role); false when that
+     *                         membership is gone or the role is app-wide — see _orgIdentity();
      *   - role-scoped (user) → the bound user (actor stamps intact) but acting AS the token's role;
      *   - neither           → null (a plain module token runs as its owner, unchanged).
      * A token's non-inherited role is only ever set by a mint-authorized profile (Tiger_Mcp_Scope),
@@ -369,14 +379,46 @@ class Mcp_ServerController extends Zend_Controller_Action
         return null;
     }
 
-    /** An org-acting identity for an org-scoped token — acts AS THE ORG (no bound user_id → system actor). */
+    /**
+     * An org-acting identity for an org-scoped token — acts AS THE ORG (no bound user_id → system actor) —
+     * or FALSE when the token must be refused this request (TIGER-511).
+     *
+     * Re-checked on EVERY request, because a token outlives the membership that minted it:
+     *  - the token's owner must still hold an ACTIVE membership in the TOKEN'S org (removed, suspended or
+     *    invited → refused). The role comes from THAT membership, never the owner's first membership in
+     *    some other org — the Bearer identity's role is resolved from whichever org sorts first;
+     *  - a role PROFILE token keeps its (mint-authorized, least-privilege) profile role, but still only
+     *    while the membership is active;
+     *  - the resulting role must NOT hold `Tiger_Tenancy_AllOrgs`: an "org-scoped" token whose role
+     *    reaches every org is a contradiction (an admin role makes `_orgScope()` return null — no org
+     *    predicate at all). Mint refuses it too; this catches a member promoted AFTER minting.
+     *
+     * @param  object|null $identity the Bearer identity (the token's owner)
+     * @param  array       $config   the token's MCP policy
+     * @return object|false
+     */
     protected function _orgIdentity($identity, array $config)
     {
+        $userId = (string) ($identity->user_id ?? '');
+        $orgId  = (string) ($config['org_id'] ?? '');
+        if ($userId === '' || $orgId === '') {
+            return false;   // no owner, or a token minted with no org → nothing to scope to
+        }
+        $membership = (new Tiger_Model_OrgUser())->activeMembership($orgId, $userId);
+        if (!$membership) {
+            return false;   // the owner left (or was suspended in) the token's org → the token dies with it
+        }
+        $role = (string) ($config['role'] ?? '') !== '' ? (string) $config['role'] : (string) $membership->role;
+        if ($role === '' || !Tiger_Acl_Acl::isAvailable()
+            || Tiger_Acl_Acl::roleIsAllowed($role, Tiger_Service_Service::RESOURCE_ALL_ORGS, 'read')) {
+            return false;   // app-wide role (or no ACL to ask) → not an org-scoped identity; fail closed
+        }
+        $org = (new Tiger_Model_Org())->findById($orgId);
         return (object) [
             'user_id'   => null,
-            'org_id'    => $config['org_id'] !== '' ? $config['org_id'] : ($identity->org_id ?? null),
-            'org_name'  => $identity->org_name ?? null,
-            'role'      => $config['role'] !== '' ? $config['role'] : ($identity->role ?? 'guest'),
+            'org_id'    => $orgId,
+            'org_name'  => $org ? ($org->name ?? null) : null,
+            'role'      => $role,
             'mcp_token' => true,
         ];
     }

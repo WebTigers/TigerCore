@@ -16,9 +16,6 @@
  */
 class AuthController extends Tiger_Controller_Action
 {
-    /** Roles that land on the admin back office after sign-in. */
-    const ADMIN_ROLES = ['admin', 'superadmin', 'developer'];
-
     /**
      * GET  /auth/login            -> the themed sign-in card (auth layout).
      * GET  /auth/login/out/1      -> …with a "signed out" notice.

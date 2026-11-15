@@ -5,6 +5,7 @@ return [
     // Service / API messages
     'backup.done'             => 'Copia de seguridad completada.',
     'backup.failed'           => 'La copia de seguridad falló. Revisa los registros para más detalles.',
+    'backup.secrets.not_allowed' => 'Solo un superadministrador puede incluir secretos en una copia de seguridad.',
     'backup.deleted'          => 'Copia de seguridad eliminada.',
     'backup.restore.done'     => 'Restauración completada.',
     'backup.restore.failed'   => 'La restauración falló. Tu copia de seguridad previa está disponible.',

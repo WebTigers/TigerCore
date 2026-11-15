@@ -5,6 +5,7 @@ return [
     // Service / API messages
     'backup.done'             => 'Sicherung abgeschlossen.',
     'backup.failed'           => 'Die Sicherung ist fehlgeschlagen. Prüfen Sie die Protokolle für Details.',
+    'backup.secrets.not_allowed' => 'Nur ein Superadmin kann Geheimnisse in eine Sicherung aufnehmen.',
     'backup.deleted'          => 'Sicherung gelöscht.',
     'backup.restore.done'     => 'Wiederherstellung abgeschlossen.',
     'backup.restore.failed'   => 'Die Wiederherstellung ist fehlgeschlagen. Ihre Sicherheitssicherung von vor der Wiederherstellung ist verfügbar.',

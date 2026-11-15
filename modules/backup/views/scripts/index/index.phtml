@@ -10,6 +10,11 @@ $backups   = $this->backups ?? [];
 $disks     = $this->disks ?? [['name' => 'local', 'label' => 'Local (this server)']];
 $allComps  = $this->components ?? ['database', 'media', 'modules', 'platform'];
 $settings  = $this->settings ?? [];
+// Server-computed (Tiger_Backup_Data capability, TIGER-511): hide what this role can't do. The actions
+// and the /api enforce it regardless — this only keeps the screen honest.
+$canDownload       = !empty($this->canDownload);
+$canRestore        = !empty($this->canRestore);
+$canIncludeSecrets = !empty($this->canIncludeSecrets);
 
 // Localized strings this page's JS references — delivered via the carrier + tiger.i18n.js, not inline.
 $this->i18n([
@@ -48,7 +53,7 @@ $outcomeBadge = [
 <div class="row g-4">
 
     <!-- Create ----------------------------------------------------------------->
-    <div class="col-12 col-xl-6">
+    <div class="col-12<?= $canRestore ? ' col-xl-6' : '' ?>">
         <div class="card h-100">
             <div class="card-header fw-semibold"><i class="fa-solid fa-box-archive me-2"></i><?= $this->t('backup.card.create') ?></div>
             <div class="card-body">
@@ -75,6 +80,7 @@ $outcomeBadge = [
                             <div class="form-text"><?= $this->t('backup.create.destination_help') ?></div>
                         <?php endif; ?>
                     </div>
+                    <?php if ($canIncludeSecrets): ?>
                     <div class="col-sm-5">
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" role="switch" id="backup-secrets"<?= !empty($settings['include_secrets']) ? ' checked' : '' ?>>
@@ -82,12 +88,14 @@ $outcomeBadge = [
                             <div class="form-text"><?= $this->t('backup.create.secrets_help') ?></div>
                         </div>
                     </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Restore from a file ---------------------------------------------------->
+    <!-- Restore from a file (superadmin) ---------------------------------------->
+    <?php if ($canRestore): ?>
     <div class="col-12 col-xl-6">
         <div class="card h-100 border-warning-subtle">
             <div class="card-header fw-semibold"><i class="fa-solid fa-rotate-left me-2"></i><?= $this->t('backup.card.restore_file') ?></div>
@@ -100,6 +108,7 @@ $outcomeBadge = [
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
     <!-- History ---------------------------------------------------------------->
     <div class="col-12">
@@ -133,8 +142,10 @@ $outcomeBadge = [
                                     <td class="text-nowrap small" title="<?= $e($b['created_at']) ?>"><?= $e(date('M j, Y g:i a', strtotime((string) $b['created_at']))) ?><br><span class="text-body-secondary"><?= $e(ucfirst((string) $b['source'])) ?></span></td>
                                     <td class="small"><?= $e($b['disk']) ?></td>
                                     <td class="text-end text-nowrap">
-                                        <?php if ($ok): ?>
+                                        <?php if ($ok && $canDownload): ?>
                                             <a class="btn btn-sm btn-outline-secondary" href="/backup/index/download/id/<?= $e($b['backup_id']) ?>" title="<?= $this->escape($this->t('backup.action.download_title')) ?>"><i class="fa-solid fa-download"></i></a>
+                                        <?php endif; ?>
+                                        <?php if ($ok && $canRestore): ?>
                                             <button type="button" class="btn btn-sm btn-outline-warning" data-restore="<?= $e($b['backup_id']) ?>" data-name="<?= $e($b['filename']) ?>" title="<?= $this->escape($this->t('backup.action.restore_title')) ?>"><i class="fa-solid fa-rotate-left"></i></button>
                                         <?php endif; ?>
                                         <button type="button" class="btn btn-sm btn-outline-danger" data-delete="<?= $e($b['backup_id']) ?>" data-name="<?= $e($b['filename']) ?>" title="<?= $this->escape($this->t('backup.action.delete_title')) ?>"><i class="fa-solid fa-trash"></i></button>
@@ -196,6 +207,7 @@ $outcomeBadge = [
     </div>
 </div>
 
+<?php if ($canRestore): ?>
 <!-- Restore confirm modal -->
 <div class="modal fade" id="restore-modal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -216,5 +228,6 @@ $outcomeBadge = [
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <?php $this->pageScript('/_modules/backup/js/backup.index-index.js', ['defer' => true]); ?>

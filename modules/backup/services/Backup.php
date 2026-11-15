@@ -6,13 +6,46 @@
  *
  * `run` creates a manual backup now; `remove` deletes one (bytes + catalog row); `restore` restores
  * from a cataloged backup (guarded by a typed confirmation); `saveSettings` writes the tiger.backup.*
- * config tier (components/disk/retention/notify) that scheduled backups use. Admin+. Download and
- * upload-restore are controller actions (file streams, not JSON) — see Backup_IndexController.
+ * config tier (components/disk/retention/notify) that scheduled backups use. Download and upload-restore
+ * are controller actions (file streams, not JSON) — see Backup_IndexController.
+ *
+ * Authorization (TIGER-511, modules/backup/configs/acl.ini): run/remove/saveSettings are admin; `restore`
+ * and INCLUDING SECRETS (`Tiger_Backup_Data` / `include_secrets`) are superadmin — an archive holds every
+ * org's data, and a restore replaces the install's.
  *
  * @api
  */
 class Backup_Service_Backup extends Tiger_Service_Service
 {
+    /**
+     * The capability over a backup's CONTENTS (superadmin in the shipped ACL): privileges `download`,
+     * `restore` and `include_secrets`. Shared with Backup_IndexController, which gates its two stream
+     * actions on it and computes the screen's show/hide flags from it.
+     */
+    const RESOURCE_DATA = 'Tiger_Backup_Data';
+
+    /**
+     * May the caller put the install's secrets into an archive? (Protected: not an /api method.)
+     *
+     * @return bool
+     */
+    protected function _mayIncludeSecrets(): bool
+    {
+        return $this->_isAllowed('include_secrets', self::RESOURCE_DATA);
+    }
+
+    /**
+     * Did the request ask for secrets? (A truthy checkbox value; absent/''/'0'/'false' = no.)
+     *
+     * @param  array $params
+     * @return bool
+     */
+    protected function _wantsSecrets(array $params): bool
+    {
+        $v = $params['include_secrets'] ?? '';
+        return !empty($v) && $v !== '0' && $v !== 'false';
+    }
+
     /**
      * Create a manual backup now.
      *
@@ -27,12 +60,19 @@ class Backup_Service_Backup extends Tiger_Service_Service
         if (!$components) { $this->_error('backup.bad_component', ['field' => 'components']); return; }
         $disk = $this->_disk($params['disk'] ?? 'local');
         if ($disk === null) { $this->_error('backup.bad_disk', ['field' => 'disk']); return; }
+        // Asking for secrets without the capability is REFUSED, never quietly downgraded to "no secrets"
+        // — the caller should learn the archive they asked for is not the one they would get.
+        $secrets = $this->_wantsSecrets($params);
+        if ($secrets && !$this->_mayIncludeSecrets()) {
+            $this->_error('backup.secrets.not_allowed', ['field' => 'include_secrets']);
+            return;
+        }
 
         @set_time_limit(0);
         $res = Tiger_Backup::create($components, [
             'disk'            => $disk,
             'source'          => 'manual',
-            'include_secrets' => !empty($params['include_secrets']),
+            'include_secrets' => $secrets,
         ]);
 
         if (($res['status'] ?? '') === 'ok') {
@@ -108,6 +148,14 @@ class Backup_Service_Backup extends Tiger_Service_Service
         $components = $this->_components($params);
         $disk = $this->_disk($params['disk'] ?? 'local');
         if ($disk === null) { $this->_error('backup.bad_disk', ['field' => 'disk']); return; }
+        // The scheduled backup's secrets switch belongs to whoever holds the capability. Without it, asking
+        // to turn secrets ON is refused, and the stored value is left exactly as a superadmin set it (an
+        // admin saving retention/notify must not silently flip it either way).
+        $maySecrets = $this->_mayIncludeSecrets();
+        if (!$maySecrets && $this->_wantsSecrets($params)) {
+            $this->_error('backup.secrets.not_allowed', ['field' => 'include_secrets']);
+            return;
+        }
         $email = trim((string) ($params['notify_email'] ?? ''));
         if ($email !== '') {
             foreach (array_map('trim', explode(',', $email)) as $addr) {
@@ -119,7 +167,9 @@ class Backup_Service_Backup extends Tiger_Service_Service
         $g   = Tiger_Model_Config::SCOPE_GLOBAL;
         $cfg->set($g, '', 'tiger.backup.components', implode(',', $components ?: [Tiger_Backup::DATABASE]));
         $cfg->set($g, '', 'tiger.backup.disk', $disk);
-        $cfg->set($g, '', 'tiger.backup.include_secrets', !empty($params['include_secrets']) ? '1' : '0');
+        if ($maySecrets) {
+            $cfg->set($g, '', 'tiger.backup.include_secrets', $this->_wantsSecrets($params) ? '1' : '0');
+        }
         $cfg->set($g, '', 'tiger.backup.retention.max', (string) max(0, (int) ($params['retention_max'] ?? 7)));
         $cfg->set($g, '', 'tiger.backup.notify.enabled', !empty($params['notify_enabled']) ? '1' : '0');
         $cfg->set($g, '', 'tiger.backup.notify.email', $email);

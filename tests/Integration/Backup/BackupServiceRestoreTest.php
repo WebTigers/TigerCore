@@ -46,7 +46,7 @@ final class BackupServiceRestoreTest extends IntegrationTestCase
     #[Test]
     public function restoring_a_cataloged_backup_whose_file_is_missing_fails_cleanly(): void
     {
-        $this->loginAs('admin');
+        $this->loginAs('superadmin');   // restore is superadmin (TIGER-511)
         $id = $this->ghostBackup();
 
         $res = $this->dispatch(['action' => 'restore', 'backup_id' => $id, 'confirm' => 'RESTORE']);
@@ -64,7 +64,7 @@ final class BackupServiceRestoreTest extends IntegrationTestCase
     public function restore_still_requires_the_typed_confirmation_even_for_a_valid_row(): void
     {
         // The guard arm alongside the execution arm: a real `ok` row but the wrong confirmation word.
-        $this->loginAs('admin');
+        $this->loginAs('superadmin');
         $id = $this->ghostBackup();
 
         $res = $this->dispatch(['action' => 'restore', 'backup_id' => $id, 'confirm' => 'yes']);
