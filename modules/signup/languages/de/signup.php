@@ -8,6 +8,7 @@ return [
     // Service / API messages
     'signup.disabled'        => 'Die öffentliche Registrierung ist derzeit deaktiviert.',
     'signup.error.recaptcha' => 'Wir konnten nicht bestätigen, dass Sie ein Mensch sind — bitte versuchen Sie es erneut.',
+    'signup.error.org' => 'Diese Registrierungsseite ist gerade nicht verfügbar. Bitte versuche es später erneut.',
     'signup.check_email'     => 'Konto erstellt — prüfen Sie Ihre E-Mails zur Verifizierung und melden Sie sich dann an.',
     'signup.verified'        => 'Ihre E-Mail ist verifiziert und Ihr Konto ist aktiv.',
     'signup.invalid_link'    => 'Dieser Verifizierungslink ist ungültig oder abgelaufen.',

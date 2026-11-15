@@ -8,6 +8,7 @@ return [
     // Service / API messages
     'signup.disabled'        => 'O cadastro público está desativado no momento.',
     'signup.error.recaptcha' => 'Não foi possível verificar que você é humano; tente novamente.',
+    'signup.error.org' => 'Esta página de cadastro não está disponível no momento. Tente novamente mais tarde.',
     'signup.check_email'     => 'Conta criada: verifique seu e-mail para confirmá-la e depois faça login.',
     'signup.verified'        => 'Seu e-mail foi verificado e sua conta está ativa.',
     'signup.invalid_link'    => 'Este link de verificação é inválido ou expirou.',

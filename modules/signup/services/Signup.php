@@ -39,7 +39,17 @@ class Signup_Service_Signup extends Tiger_Service_Service
         // (modules/signup/configs/acl.ini allows guest on Signup_Service_Signup).
         // But if an admin has disabled public signup, refuse — the flag must not be cosmetic.
         if (self::isPublicDisabled()) { $this->_error('signup.disabled'); return; }
-        $form = new Signup_Form_Signup();
+        // The form's mode comes from the server-side session the rendering form bound it to, never from
+        // the request (TIGER-505): setup_org = a new org for the new user; otherwise join the site org the
+        // form was shown on. Nothing bound → the original behaviour (a new org).
+        $mode = Signup_Form_Signup::boundMode();
+        $joinOrgId = '';
+        if (!$mode['setup_org']) {
+            $join = (new Tiger_Model_Org())->findById($mode['org_id']);
+            if (!$join || (string) ($join->status ?? '') !== 'active') { $this->_error('signup.error.org'); return; }
+            $joinOrgId = (string) $join->org_id;
+        }
+        $form = new Signup_Form_Signup(['setupOrg' => $mode['setup_org']]);
         if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         // Bot gate on this PUBLIC, account-creating endpoint — the same core reCAPTCHA validator the auth
         // flow uses (Tiger_Validate_Recaptcha). A no-op when reCAPTCHA is disabled (the validator passes),
@@ -50,8 +60,10 @@ class Signup_Service_Signup extends Tiger_Service_Service
         $v = $form->getValues();
 
         try {
-            $ids = $this->_transaction(function () use ($v) {
-                $orgId = (new Tiger_Model_Org())->insert([
+            $ids = $this->_transaction(function () use ($v, $joinOrgId) {
+                // Join mode: the new user becomes a member of the existing site org (no org is created and
+                // nothing is written to it beyond the membership). Setup mode: a new org named by `company`.
+                $orgId = $joinOrgId !== '' ? $joinOrgId : (new Tiger_Model_Org())->insert([
                     'name' => $v['company'],
                     'slug' => $this->_uniqueSlug(Tiger_Install::slugify($v['company'])),
                 ]);
@@ -69,14 +81,18 @@ class Signup_Service_Signup extends Tiger_Service_Service
                     'line1'  => $v['street'], 'city' => $v['city'], 'region' => $v['region'],
                     'postal' => $v['postal'], 'country' => $v['country'],
                 ]);
-                (new Tiger_Model_OrgAddress())->insert(['org_id' => $orgId, 'address_id' => $addressId, 'label' => 'primary', 'is_primary' => 1]);
+                if ($joinOrgId === '') {   // the org's own HQ address only for an org this signup created
+                    (new Tiger_Model_OrgAddress())->insert(['org_id' => $orgId, 'address_id' => $addressId, 'label' => 'primary', 'is_primary' => 1]);
+                }
                 (new Tiger_Model_UserAddress())->insert(['user_id' => $userId, 'address_id' => $addressId, 'label' => 'primary', 'is_primary' => 1]);
 
                 // Contact (phone) — linked to both as well.
                 $contactId = (new Tiger_Model_Contact())->insert([
                     'kind' => 'phone', 'type' => $v['phone_type'], 'value' => $v['phone'],
                 ]);
-                (new Tiger_Model_OrgContact())->insert(['org_id' => $orgId, 'contact_id' => $contactId, 'is_primary' => 1]);
+                if ($joinOrgId === '') {
+                    (new Tiger_Model_OrgContact())->insert(['org_id' => $orgId, 'contact_id' => $contactId, 'is_primary' => 1]);
+                }
                 (new Tiger_Model_UserContact())->insert(['user_id' => $userId, 'contact_id' => $contactId, 'is_primary' => 1]);
 
                 // The verification challenge is part of the account's unit of work — issue it INSIDE

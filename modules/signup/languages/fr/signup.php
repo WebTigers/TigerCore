@@ -8,6 +8,7 @@ return [
     // Service / API messages
     'signup.disabled'        => 'L’inscription publique est actuellement désactivée.',
     'signup.error.recaptcha' => 'Impossible de vérifier que vous êtes humain — veuillez réessayer.',
+    'signup.error.org' => "Cette page d'inscription n'est pas disponible pour le moment. Veuillez réessayer plus tard.",
     'signup.check_email'     => 'Compte créé — consultez votre e-mail pour le vérifier, puis connectez-vous.',
     'signup.verified'        => 'Votre e-mail est vérifié et votre compte est actif.',
     'signup.invalid_link'    => 'Ce lien de vérification est invalide ou a expiré.',

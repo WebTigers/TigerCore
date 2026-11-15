@@ -19,9 +19,87 @@
  */
 class Signup_Form_Signup extends Tiger_Form
 {
+    /** Session namespace holding the mode of the form this visitor was last shown. */
+    const MODE_NAMESPACE = 'Signup_Form_Signup_mode';
+
+    /**
+     * Whether a submit of THIS form sets up a new org for the new user (true, the default) or adds
+     * the new user to the org of the site the form is served on (false). Set in code by whoever builds
+     * the form — `new Signup_Form_Signup(['setupOrg' => false])` — never from the request.
+     *
+     * @var bool
+     */
+    protected $_setupOrg = true;
+
     private static $_phoneTypes = [
         'mobile' => 'Mobile', 'work' => 'Work', 'home' => 'Home', 'main' => 'Main', 'fax' => 'Fax',
     ];
+
+    /**
+     * Choose the form's signup mode (Zend_Form calls this for the `setupOrg` constructor option,
+     * before the elements are built).
+     *
+     * @param  bool $on true = the new user gets a new org; false = the new user joins this site's org
+     * @return self
+     */
+    public function setSetupOrg($on): self
+    {
+        $this->_setupOrg = (bool) $on;
+        return $this;
+    }
+
+    /**
+     * Whether a submit of this form sets up a new org.
+     *
+     * @return bool
+     */
+    public function setupOrg(): bool
+    {
+        return $this->_setupOrg;
+    }
+
+    /**
+     * Record this form's mode for the visitor it is being shown to, so the submit can't change it.
+     *
+     * Called by the controller that renders the form. The mode lives in the visitor's server-side
+     * session next to the form's CSRF token, and Signup_Service_Signup::create reads it from there,
+     * never from the posted payload. A join-mode form also records the org it joins: the org of the
+     * site it is shown on, resolved now.
+     *
+     * @return array{setup_org:bool,org_id:string} the recorded mode
+     */
+    public function bind(): array
+    {
+        $mode = [
+            'setup_org' => $this->_setupOrg,
+            'org_id'    => $this->_setupOrg ? '' : (string) Tiger_Model_Org::siteOrgId(),
+        ];
+        $ns = new Zend_Session_Namespace(self::MODE_NAMESPACE);
+        $ns->mode = $mode;
+        return $mode;
+    }
+
+    /**
+     * The mode recorded by the last bind() in this visitor's session. Defaults to setting up a new
+     * org when nothing valid was recorded, which is the behaviour every install had before the mode
+     * existed and can never place anyone into an existing org.
+     *
+     * @return array{setup_org:bool,org_id:string}
+     */
+    public static function boundMode(): array
+    {
+        $mode = null;
+        try {
+            $ns   = new Zend_Session_Namespace(self::MODE_NAMESPACE);
+            $mode = $ns->mode ?? null;
+        } catch (Throwable $e) {
+            $mode = null;
+        }
+        if (is_array($mode) && ($mode['setup_org'] ?? true) === false && (string) ($mode['org_id'] ?? '') !== '') {
+            return ['setup_org' => false, 'org_id' => (string) $mode['org_id']];
+        }
+        return ['setup_org' => true, 'org_id' => ''];
+    }
 
     protected function elements(): array
     {
@@ -48,7 +126,8 @@ class Signup_Form_Signup extends Tiger_Form
                 'attribs' => array_merge($control, ['id' => 'su-last', 'autocomplete' => 'family-name', 'placeholder' => 'Doe']),
             ]],
             ['text', 'company', [
-                'required' => true, 'filters' => ['StringTrim'],
+                'required' => $this->_setupOrg,   // names the new org; a join-mode signup has none
+                'filters' => ['StringTrim'],
                 'validators' => [['StringLength', true, ['min' => 2, 'max' => 128]]],
                 'attribs' => array_merge($control, ['id' => 'su-company', 'autocomplete' => 'organization', 'placeholder' => 'Acme Widgets, Inc.']),
             ]],

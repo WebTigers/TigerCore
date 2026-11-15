@@ -45,10 +45,12 @@ $this->i18n([
             <?= $el('last_name') ?>
         </div>
     </div>
+    <?php if ($this->form->setupOrg()): ?>
     <div class="mt-3" data-field>
         <label class="form-label" for="su-company"><?= $this->escape($this->t('signup.form.label.company')) ?></label>
         <?= $el('company') ?>
     </div>
+    <?php endif; ?>
 
     <hr class="my-4">
 
