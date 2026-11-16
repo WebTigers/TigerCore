@@ -6,6 +6,20 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.61.2] — 2026-11-16
+
+### Fixed — WCAG 2.2 AA contrast in the Bengal skin (TIGER-516)
+- **Muted text** (`--bs-secondary`, `.text-secondary`) was one colour in both modes: 4.27:1 on the light
+  ground and 3.8:1 on the dark one. Now `#716557` light / `#938473` dark, ≥ 4.6:1 on every ground.
+- **Orange as text** (links, `.text-primary`, `.link-primary`) was 3.95–4.22:1 on the cream grounds; light
+  mode now uses `#ac4810` for text while `#c65312` stays the fill colour (white on it is 4.5:1). Bootstrap's
+  hardcoded blue `.link-primary` hover now stays in the brand.
+- **White on the dark-mode orange** (`.btn-primary` where a theme fills it with the skin orange, and
+  `.text-bg-primary` badges) was 2.75:1; the label is now the near-black ground (7:1).
+- Inline code `#c0491a` → `#b14318` (4.36 → ≥ 4.65:1).
+- The `/cms` comparison table: an empty header cell is now a `<td>`, and the scrolling wrapper is a
+  focusable, named region so a keyboard can scroll it on a phone.
+
 ## [1.61.1] — 2026-11-16
 
 ### Fixed
