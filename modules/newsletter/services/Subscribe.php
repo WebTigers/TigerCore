@@ -39,6 +39,8 @@ class Newsletter_Service_Subscribe extends Tiger_Service_Service
      * endpoint can never be used to enumerate who is on the list.
      *
      * @param  array $params `email`, `name`, `source`, `_hp` (honeypot), `_t` (render timestamp)
+     * @apiRequest Newsletter_Form_Subscribe
+     * @apiParam string source Where the signup came from (letters, digits, _ . -); default form.
      * @return void
      */
     public function subscribe(array $params): void
@@ -113,6 +115,7 @@ class Newsletter_Service_Subscribe extends Tiger_Service_Service
      * Confirm a pending subscription by its token — this is where consent is recorded.
      *
      * @param  array $params `token`
+     * @apiParam string token required The confirmation token from the email link.
      * @return void
      */
     public function confirm(array $params): void
@@ -138,6 +141,7 @@ class Newsletter_Service_Subscribe extends Tiger_Service_Service
      * Unsubscribe by token — one click, no confirmation needed (opting out must always be easy).
      *
      * @param  array $params `token`
+     * @apiParam string token required The subscriber token from the email link.
      * @return void
      */
     public function unsubscribe(array $params): void
@@ -161,6 +165,8 @@ class Newsletter_Service_Subscribe extends Tiger_Service_Service
      * The subscriber grid (DataTables server-side). Admin only.
      *
      * @param  array $params the DataTables request + an optional `status` filter
+     * @apiRequest datatable
+     * @apiParam string(pending|confirmed|unsubscribed) status Only subscribers in this status; empty for all.
      * @return void
      */
     public function datatable(array $params): void

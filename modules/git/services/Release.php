@@ -22,6 +22,8 @@ class Git_Service_Release extends Git_Service_Base
      * Create an annotated semver tag on the connected repo (owner-only). Returns {tag, sha}.
      *
      * @param  array $params module_key, version
+     * @apiParam string module_key required The module (its slug).
+     * @apiParam string version required Semver version to tag, e.g. 1.2.0.
      */
     public function tag(array $params): void
     {
@@ -105,6 +107,8 @@ class Git_Service_Release extends Git_Service_Base
      * Approve or reject a submitted release (the QA reviewer — admin). Moves it to approved|rejected.
      *
      * @param  array $params module_release_id, decision (approve|reject)
+     * @apiParam string module_release_id required The release to decide.
+     * @apiParam string(approve|reject) decision required The QA decision.
      */
     public function decide(array $params): void
     {
@@ -135,6 +139,7 @@ class Git_Service_Release extends Git_Service_Base
      * Every release for a module, newest first (any status).
      *
      * @param  array $params module_key
+     * @apiParam string module_key required The module (its slug).
      */
     public function list(array $params): void
     {

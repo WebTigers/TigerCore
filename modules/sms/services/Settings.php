@@ -14,6 +14,8 @@ class Sms_Service_Settings extends Tiger_Service_Service
      * Save the SMS settings: the sender identity, the provider, and the provider's own fields.
      *
      * @param  array $params {brand, provider, <adapter field keys…>}
+     * @apiParam string provider The SMS provider (e.g. twilio, vonage, plivo, telnyx, sns); empty switches SMS off. Also send that provider's own fields; a blank secret keeps the stored one.
+     * @apiParam string brand The sender identity shown to recipients.
      * @return void
      */
     public function save(array $params): void
@@ -63,6 +65,8 @@ class Sms_Service_Settings extends Tiger_Service_Service
      * Send a test message through the configured provider.
      *
      * @param  array $params {to, message?}
+     * @apiParam string to required The phone number to send the test to.
+     * @apiParam string message The text to send; default a branded test message.
      * @return void
      */
     public function test(array $params): void

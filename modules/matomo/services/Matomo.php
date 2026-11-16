@@ -17,6 +17,9 @@ class Matomo_Service_Matomo extends Tiger_Service_Service
      * Save the Matomo settings.
      *
      * @param  array $params the posted form values (+ enabled / exclude_signed_in switches)
+     * @apiRequest Matomo_Form_Settings
+     * @apiParam boolean enabled Turn Matomo tracking on.
+     * @apiParam boolean exclude_signed_in Do not track signed-in staff.
      * @return void
      */
     public function save(array $params): void

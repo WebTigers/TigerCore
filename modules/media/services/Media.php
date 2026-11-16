@@ -18,6 +18,7 @@ class Media_Service_Media extends Tiger_Service_Service
      * Receive one uploaded file: validate -> store -> record. Returns the media row.
      *
      * @param  array $params the upload message ($_FILES carries the file; may set `visibility`)
+     * @apiParam string(public|private) visibility Who may fetch the file; default public. The file itself is a multipart `file` part (optional `thumbnail` part), not a parameter.
      * @return void
      */
     public function upload(array $params): void
@@ -122,6 +123,9 @@ class Media_Service_Media extends Tiger_Service_Service
      * DataTables source for the Library grid (thumbnails + metadata).
      *
      * @param  array $params the DataTables request (draw/start/length/search/order) plus a `kind` filter
+     * @apiRequest datatable
+     * @apiParam string(image|document|pdf|video|audio|archive|other) kind Only media of this kind.
+     * @apiParam string sources Comma list of `uploads` and/or module slugs to include; `none` for nothing; empty for everything.
      * @return void
      */
     public function datatable(array $params): void
@@ -193,6 +197,8 @@ class Media_Service_Media extends Tiger_Service_Service
      * already copied by this org return the existing row instead of a duplicate.
      *
      * @param  array $params must carry `media_id` = a static entry id (`static:<slug>:<relpath>`)
+     * @apiParam string media_id required A static entry id (`static:<slug>:<relpath>`).
+     * @apiParam string ref Alias for media_id.
      * @return void
      */
     public function copyToLibrary(array $params): void
@@ -302,6 +308,12 @@ class Media_Service_Media extends Tiger_Service_Service
      * Edit editorial fields (title / caption / alt / visibility).
      *
      * @param  array $params must carry `media_id`; optional `title`/`caption`/`alt_text`/`visibility`
+     * @apiParam string media_id required The media item to edit.
+     * @apiParam string title Title.
+     * @apiParam string caption Caption.
+     * @apiParam string alt_text Alt text for images.
+     * @apiParam string description Description.
+     * @apiParam string(public|private) visibility Who may fetch the file.
      * @return void
      */
     public function update(array $params): void
@@ -334,6 +346,7 @@ class Media_Service_Media extends Tiger_Service_Service
      * Soft-delete the row AND remove the stored bytes (+ variants).
      *
      * @param  array $params must carry `media_id`
+     * @apiParam string media_id required The media item to delete.
      * @return void
      */
     public function delete(array $params): void

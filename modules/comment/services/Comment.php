@@ -29,6 +29,9 @@ class Comment_Service_Comment extends Tiger_Service_Service
      * existence of content the caller isn't allowed to see.
      *
      * @param  array $params `subject_type`, `subject_id`
+     * @apiParam string subject_type The registered subject type, e.g. page or blog.post (or send `subject`).
+     * @apiParam string subject_id The subject's id.
+     * @apiParam string subject Shorthand `type:id`, used when subject_type is empty.
      * @return void
      */
     public function list(array $params): void
@@ -88,6 +91,11 @@ class Comment_Service_Comment extends Tiger_Service_Service
      *
      * @param  array $params `subject_type`, `subject_id`, `body`, `rating`, `parent_id`, `author_name`,
      *                       `author_email`, `_hp` (honeypot), `_t` (render timestamp)
+     * @apiRequest Comment_Form_Comment
+     * @apiParam string subject_type The registered subject type, e.g. page or blog.post (or send `subject`).
+     * @apiParam string subject_id The subject's id.
+     * @apiParam string subject Shorthand `type:id`, used when subject_type is empty.
+     * @apiParam string parent_id The comment this replies to; empty for top level.
      * @return void
      */
     public function post(array $params): void
@@ -200,6 +208,7 @@ class Comment_Service_Comment extends Tiger_Service_Service
      * bounded 1-5 and there is nothing to moderate about it.
      *
      * @param  array $params `comment_id`, `body`, `rating`
+     * @apiRequest Comment_Form_Edit
      * @return void
      */
     public function edit(array $params): void
@@ -255,6 +264,8 @@ class Comment_Service_Comment extends Tiger_Service_Service
      * Set a comment's moderation status. Admin only.
      *
      * @param  array $params `comment_id`, `status`
+     * @apiRequest Comment_Form_Moderate
+     * @apiParam string(pending|approved|spam|rejected) status required The new moderation status.
      * @return void
      */
     public function moderate(array $params): void
@@ -288,6 +299,7 @@ class Comment_Service_Comment extends Tiger_Service_Service
      * Soft-delete a comment — its author (inside the window) or an admin.
      *
      * @param  array $params `comment_id`
+     * @apiRequest Comment_Form_Delete
      * @return void
      */
     public function delete(array $params): void
@@ -321,6 +333,8 @@ class Comment_Service_Comment extends Tiger_Service_Service
      * The moderation grid (DataTables server-side). Admin only.
      *
      * @param  array $params the DataTables request + an optional `status` filter
+     * @apiRequest datatable
+     * @apiParam string(pending|approved|spam|rejected) status Only comments in this status; default pending.
      * @return void
      */
     public function datatable(array $params): void

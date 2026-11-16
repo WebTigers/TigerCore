@@ -44,6 +44,7 @@ class Seo_Service_Social extends Tiger_Service_Service
      * pages are still riding the defaults.
      *
      * @param  array $params the /api message (no arguments are read)
+     * @apiRequest none
      * @return void
      */
     public function pages(array $params): void

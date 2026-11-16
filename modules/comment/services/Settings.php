@@ -14,6 +14,7 @@ class Comment_Service_Settings extends Tiger_Service_Service
      * Save the module settings.
      *
      * @param  array $params `spam_agent` (0|1)
+     * @apiRequest Comment_Form_Settings
      * @return void
      */
     public function save(array $params): void

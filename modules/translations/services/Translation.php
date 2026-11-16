@@ -48,6 +48,9 @@ class Translations_Service_Translation extends Tiger_Service_Service
      * string and the effective value for a chosen target locale, plus whether it's overridden.
      *
      * @param  array $params DataTables params + `locale` (target) + optional `filter` (all|missing|overridden)
+     * @apiRequest datatable
+     * @apiParam string locale The target locale to compare against the default, e.g. es.
+     * @apiParam string(all|missing|overridden) filter Only missing or only overridden keys; default all.
      * @return void
      */
     public function datatable(array $params): void
@@ -123,6 +126,7 @@ class Translations_Service_Translation extends Tiger_Service_Service
      * hits that orient the translator.
      *
      * @param  array $params `key`
+     * @apiParam string key required The translation key, e.g. core.api.error.general.
      * @return void
      */
     public function entry(array $params): void
@@ -170,6 +174,8 @@ class Translations_Service_Translation extends Tiger_Service_Service
      * override tier lean — only genuine divergences are stored.
      *
      * @param  array $params `key` + `values[<locale>]`
+     * @apiParam string key required The translation key, e.g. core.api.error.general.
+     * @apiParam object values Map of locale => translated text.
      * @return void
      */
     public function save(array $params): void
@@ -215,6 +221,8 @@ class Translations_Service_Translation extends Tiger_Service_Service
      * `locale` is omitted) — drops the DB override(s).
      *
      * @param  array $params `key` + optional `locale`
+     * @apiParam string key required The translation key, e.g. core.api.error.general.
+     * @apiParam string locale Revert only this locale; omit for every locale.
      * @return void
      */
     public function revert(array $params): void
@@ -251,6 +259,8 @@ class Translations_Service_Translation extends Tiger_Service_Service
      * (BYO key; TigerAgent). The client fills the field — it's a draft, saved only on Save.
      *
      * @param  array $params `source`, `locale`, optional `key`
+     * @apiParam string source required The English source text.
+     * @apiParam string locale required The target locale, e.g. es.
      * @return void
      */
     public function translate(array $params): void
@@ -282,6 +292,7 @@ class Translations_Service_Translation extends Tiger_Service_Service
      * so a re-open is free; the grep hits are always returned live.
      *
      * @param  array $params `key`
+     * @apiParam string key required The translation key, e.g. core.api.error.general.
      * @return void
      */
     public function context(array $params): void
