@@ -361,6 +361,27 @@ public function create(array $params): void
 Never emit business errors as bare strings or raw exceptions — use `_error`/`_formErrors`
 with a translation key. Never put business logic in a controller; controllers are thin.
 
+**Declare what every `/api` method takes, in its docblock.** It becomes the method's OpenAPI request body
+and its MCP tool `inputSchema` — an undeclared method shows an agent a blank object and leaves it guessing:
+
+```php
+/**
+ * Save a page.
+ *
+ * @apiRequest Cms_Form_Page                              // a write: the form it validates with
+ * @apiParam string page_id Empty to create a new page.   // + anything the form doesn't cover
+ */
+/** @apiRequest datatable                                 // a grid source (draw/start/length/search/order)
+ *  @apiParam string(draft|published) status Only rows in this status. */
+/** @apiRequest none */                                  // takes nothing
+/** @apiParam string page_id required The page to delete. */   // form-less: one line per parameter
+```
+
+`<type>` is `string|integer|number|boolean|array|object`, or an enum `string(a|b|c)`; `required` after the
+name marks it required. Core's `OperationsDeclareInputTest` fails the build on an undeclared method, and a
+module's suite asserts `(new Tiger_OpenApi_Generator())->untyped($classes) === []` for its own services.
+For a module to be reachable over a scoped MCP token at all, it also ships `configs/mcp-scope.ini` (TIGERMCP.md §4).
+
 **Declaring the ACL is part of writing the call, not an afterthought.** `/api` is deny-by-default:
 the dispatcher checks `isAllowed($role, <ServiceClass>, <method>)` — **the resource is the service
 class, the privilege is the method name**. A service with no allow rule is refused outright, so

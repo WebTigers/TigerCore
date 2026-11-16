@@ -21,6 +21,7 @@ class System_Service_Dashboard extends Tiger_Service_Service
      * ignored (layout is convenience state, never worth an error). Only known widget ids are stored.
      *
      * @param  array $params expects `layout` — a JSON string {"order":[id,…],"collapsed":{id:true}}
+     * @apiParam string layout The layout as a JSON string: {"order":[widget ids],"collapsed":{id:true}}.
      * @return void
      */
     public function saveLayout(array $params): void
@@ -66,6 +67,7 @@ class System_Service_Dashboard extends Tiger_Service_Service
      * Options" style). Fail-soft; only known widget ids are stored. An empty list means "show all".
      *
      * @param  array $params expects `hidden` — a JSON array ["id",…] of hidden widget ids
+     * @apiParam string hidden The hidden widget ids as a JSON array string; empty shows all.
      * @return void
      */
     public function saveWidgetPrefs(array $params): void
@@ -103,6 +105,7 @@ class System_Service_Dashboard extends Tiger_Service_Service
      * a widget you're permitted to see.
      *
      * @param  array $params expects `id` — the widget id
+     * @apiParam string id required The widget to render.
      * @return void
      */
     public function widgetBody(array $params): void

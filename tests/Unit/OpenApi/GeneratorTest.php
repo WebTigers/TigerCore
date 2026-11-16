@@ -52,6 +52,50 @@ namespace {
         }
     }
 
+    if (!class_exists('Openapifix_Service_Declared')) {
+        /** A fixture service exercising the form-less declarations: none, datatable + a filter, @apiParam
+         *  alone, a form plus an extra @apiParam, and one with nothing declared (reported by untyped()). */
+        class Openapifix_Service_Declared extends \Tiger_Service_Service
+        {
+            /**
+             * Ping.
+             *
+             * @apiRequest none
+             */
+            public function ping(array $params) {}
+
+            /**
+             * The grid.
+             *
+             * @apiRequest datatable
+             * @apiParam string(draft|published) status Only rows in this status.
+             */
+            public function datatable(array $params) {}
+
+            /**
+             * Delete one.
+             *
+             * @param  array $params the payload
+             * @apiParam string widget_id required The widget to delete.
+             * @apiParam boolean purge
+             * @apiParam array ids
+             * @return void
+             */
+            public function delete(array $params) {}
+
+            /**
+             * Save one.
+             *
+             * @apiRequest Openapifix_Form_Widget
+             * @apiParam string widget_id Empty to create.
+             */
+            public function save(array $params) {}
+
+            /** Nothing declared. */
+            public function mystery(array $params) {}
+        }
+    }
+
     // Elements whose lowercased class names contain the tokens _elementSchema keys on.
     if (!class_exists('Openapifix_El_Emailish'))  { class Openapifix_El_Emailish  extends \Zend_Form_Element_Text {} }
     if (!class_exists('Openapifix_El_Numberish')) { class Openapifix_El_Numberish extends \Zend_Form_Element_Text {} }
@@ -80,6 +124,48 @@ namespace Tiger\Tests\Unit\OpenApi {
         {
             parent::setUp();
             $this->gen = new Tiger_OpenApi_Generator();
+        }
+
+        #[Test]
+        public function form_less_operations_declare_their_input_and_mcp_sees_it(): void
+        {
+            $s = $this->gen->schemasByOp(['Openapifix_Service_Declared']);
+
+            // none → an empty, typed object (the client knows to send nothing).
+            $this->assertSame([], (array) $s['openapifix/declared/ping']['properties']);
+            $this->assertArrayNotHasKey('additionalProperties', $s['openapifix/declared/ping']);
+
+            // datatable → the DataTables request + the grid's own filter, with its enum.
+            $dt = $s['openapifix/declared/datatable']['properties'];
+            foreach (['draw', 'start', 'length', 'search', 'order', 'status'] as $k) { $this->assertArrayHasKey($k, $dt); }
+            $this->assertSame(['draft', 'published'], $dt['status']['enum']);
+
+            // @apiParam alone → typed properties, `required` honoured, description carried; other tags ignored.
+            $del = $s['openapifix/declared/delete'];
+            $this->assertSame(['widget_id', 'purge', 'ids'], array_keys($del['properties']));
+            $this->assertSame(['widget_id'], $del['required']);
+            $this->assertSame('boolean', $del['properties']['purge']['type']);
+            $this->assertSame('array', $del['properties']['ids']['type']);
+            $this->assertSame('The widget to delete.', $del['properties']['widget_id']['description']);
+
+            // a form plus an @apiParam → both, the form's required kept.
+            $save = $s['openapifix/declared/save'];
+            $this->assertArrayHasKey('title', $save['properties']);
+            $this->assertArrayHasKey('widget_id', $save['properties']);
+            $this->assertContains('title', $save['required']);
+
+            // nothing declared → the generic body, and untyped() names it (and only it).
+            $this->assertTrue($s['openapifix/declared/mystery']['additionalProperties']);
+            $this->assertSame(['openapifix/declared/mystery'], $this->gen->untyped(['Openapifix_Service_Declared']));
+        }
+
+        #[Test]
+        public function an_api_param_line_that_is_not_well_formed_is_ignored(): void
+        {
+            $this->assertNull(Tiger_OpenApi_Generator::parseApiParam('@apiParam'));
+            $this->assertNull(Tiger_OpenApi_Generator::parseApiParam('@apiParam widget string'));      // type first
+            $this->assertNull(Tiger_OpenApi_Generator::parseApiParam('@apiParam float x'));            // not a JSON type
+            $this->assertSame('x', Tiger_OpenApi_Generator::parseApiParam('@apiParam integer $x')['name']); // $ tolerated
         }
 
         #[Test]

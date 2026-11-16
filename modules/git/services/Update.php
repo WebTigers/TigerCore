@@ -24,6 +24,7 @@ class Git_Service_Update extends Git_Service_Base
      * Which connected modules have a newer approved release. One module (module_key) or the whole org.
      *
      * @param  array $params module_key?
+     * @apiParam string module_key Only check this module; omit for every connected module.
      */
     public function check(array $params): void
     {
@@ -68,6 +69,8 @@ class Git_Service_Update extends Git_Service_Base
      * the latest approved release; a specific `version` must also be approved. Records the rollback anchor.
      *
      * @param  array $params module_key, version?
+     * @apiParam string module_key required The module (its slug).
+     * @apiParam string version An approved release version; omit for the newest approved.
      */
     public function apply(array $params): void
     {
@@ -121,6 +124,9 @@ class Git_Service_Update extends Git_Service_Base
      * Set a module's update policy: auto | notify | pinned (+ an optional pinned_version).
      *
      * @param  array $params module_key, channel, pinned_version?
+     * @apiParam string module_key required The module (its slug).
+     * @apiParam string(auto|notify|pinned) channel required The update policy.
+     * @apiParam string pinned_version The version to pin to (channel=pinned).
      */
     public function setPolicy(array $params): void
     {
@@ -151,6 +157,7 @@ class Git_Service_Update extends Git_Service_Base
      * version it fled so auto-update does not immediately reapply it.
      *
      * @param  array $params module_key
+     * @apiParam string module_key required The module (its slug).
      */
     public function rollback(array $params): void
     {

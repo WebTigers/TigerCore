@@ -41,6 +41,7 @@ class Agent_Service_Agents extends Tiger_Service_Service
      * a `connected` flag (a key is stored) instead.
      *
      * @param  array $params
+     * @apiRequest none
      * @return void
      */
     public function list(array $params): void
@@ -61,6 +62,9 @@ class Agent_Service_Agents extends Tiger_Service_Service
      * the first agent created becomes it automatically, and setting `is_default` moves it.
      *
      * @param  array $params agent_id, name, persona, provider, model, api_key, enabled, is_default
+     * @apiRequest Agent_Form_Agent
+     * @apiParam boolean enabled Whether the agent is enabled.
+     * @apiParam boolean is_default Make this the org's default agent.
      * @return void
      */
     public function save(array $params): void
@@ -134,6 +138,7 @@ class Agent_Service_Agents extends Tiger_Service_Service
      * allowed — the org then resolves its own legacy config keys, if any, else has no agent.
      *
      * @param  array $params agent_id
+     * @apiParam string agent_id required The agent to delete.
      * @return void
      */
     public function delete(array $params): void

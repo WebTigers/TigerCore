@@ -21,6 +21,8 @@ class System_Service_Nav extends Tiger_Service_Service
      *
      * @param  array $params `group` (the parent key: 'root' or a submenu key) + `keys` (JSON array of
      *                        item keys in their new order)
+     * @apiParam string group The nav group to reorder: root or a submenu key.
+     * @apiParam string keys The group's item keys in their new order, as a JSON array string.
      * @return void
      */
     public function sort(array $params): void

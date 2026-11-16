@@ -17,6 +17,7 @@ class Profile_Service_Org extends Tiger_Service_Service
      * Update the current org's name + slug.
      *
      * @param  array $params name, slug
+     * @apiRequest Profile_Form_OrgProfile
      * @return void
      */
     public function save(array $params): void

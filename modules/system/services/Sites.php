@@ -22,6 +22,7 @@ class System_Service_Sites extends Tiger_Service_Service
      * DataTables server-side source: host + the org it serves.
      *
      * @param  array $params the DataTables request (draw/start/length/search/order)
+     * @apiRequest datatable
      * @return void
      */
     public function datatable(array $params): void
@@ -115,6 +116,7 @@ class System_Service_Sites extends Tiger_Service_Service
      * refuses (no spare seat) simply stays uncovered.
      *
      * @param  array $params the request payload carrying `_csrf` (the Sites screen's token)
+     * @apiRequest none
      * @return void
      */
     public function checkSeats(array $params): void
@@ -139,6 +141,7 @@ class System_Service_Sites extends Tiger_Service_Service
      * Remove a host → org mapping (soft-delete); the site falls back to single-site resolution.
      *
      * @param  array $params the request payload carrying site_domain_id
+     * @apiParam string site_domain_id required The host mapping to remove.
      * @return void
      */
     public function delete(array $params): void

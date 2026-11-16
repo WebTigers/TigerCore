@@ -17,6 +17,7 @@ class Profile_Service_Contact extends Profile_Service_Base
      * Create or update one of the current user's contacts (edit when user_contact_id is present).
      *
      * @param  array $params type, value, is_primary, user_contact_id (blank = create)
+     * @apiRequest Profile_Form_Contact
      * @return void
      */
     public function save(array $params): void
@@ -77,6 +78,7 @@ class Profile_Service_Contact extends Profile_Service_Base
      * Delete one of the current user's contacts (unlink + soft-delete the channel).
      *
      * @param  array $params user_contact_id
+     * @apiParam string link_id required The contact link (user_contact_id) to delete.
      * @return void
      */
     public function delete(array $params): void

@@ -6,6 +6,30 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.62.0] — 2026-11-16
+
+### Added — every `/api` operation tells a client what it takes
+- **Form-less methods can declare their input.** Beside `@apiRequest <FormClass>`, a method's docblock may say
+  `@apiRequest datatable` (the DataTables request), `@apiRequest none`, or one
+  `@apiParam <type> <name> [required] [description]` line per parameter (`<type>` a JSON type or an enum
+  `string(a|b)`), on its own or on top of a form. It becomes the MCP tool's `inputSchema` and the OpenAPI
+  request body. Before, 55 of the 61 tools an MCP client listed on a real install were a blank object.
+- **Every core operation now declares its input**, and `OperationsDeclareInputTest` fails the build on one that
+  doesn't. `Tiger_OpenApi_Generator::untyped()` reports undeclared operations so a module's suite can make the
+  same check.
+
+### Fixed — a token scoped to a module saw none of its tools
+- MCP filtered a token's modules **after** the in-app agent's 160-operation prompt cap, and the catalog walks
+  modules alphabetically, so a module past the cutoff (search, shop, …) listed nothing even on a token scoped
+  to it. `Tiger_Agent_Tools::catalog()` takes the module scope and an optional cap; MCP applies the scope first
+  and lists without a cap. The in-app agent's prompt stays capped.
+
+### Docs
+- TIGERMCP.md §3 described a Bearer as required on every `/mcp` request. With no Bearer the request is a guest
+  (or the same-origin session), exactly as at `/api`; an invalid Bearer is a 401. The doc now says so.
+- AGENTS.md "Services" and WEBSERVICES.md §9 document the declaration; TIGERMCP.md §4 covers it, the uncapped
+  scoped catalog, and `configs/mcp-scope.ini` as how a module joins the token scope picker.
+
 ## [1.61.5] — 2026-11-16
 
 ### Fixed — saving a page or article over `/api` or MCP without every field

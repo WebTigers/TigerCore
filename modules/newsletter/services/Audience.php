@@ -20,14 +20,26 @@ class Newsletter_Service_Audience extends Tiger_Service_Service
     /** The one segment this module offers: every confirmed subscriber. */
     const SEGMENT = 'newsletter:confirmed';
 
-    /** /api (admin): the newsletter segments an email tool / export can target. */
+    /**
+     * /api (admin): the newsletter segments an email tool / export can target.
+     *
+     * @param  array $params the request payload
+     * @apiRequest none
+     * @return void
+     */
     public function segments(array $params): void
     {
         if (!$this->_isAllowed('segments')) { $this->_error('core.api.error.not_allowed'); return; }
         $this->_success(['segments' => self::listSegments((string) ($this->_org_id ?? ''))]);
     }
 
-    /** /api (admin): resolve a segment to its contacts. @param array $params segment */
+    /**
+     * /api (admin): resolve a segment to its contacts.
+     *
+     * @param  array $params segment
+     * @apiParam string segment required The segment key, from segments().
+     * @return void
+     */
     public function members(array $params): void
     {
         if (!$this->_isAllowed('members')) { $this->_error('core.api.error.not_allowed'); return; }

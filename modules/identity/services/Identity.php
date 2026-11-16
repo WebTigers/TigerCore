@@ -39,6 +39,10 @@ class Identity_Service_Identity extends Tiger_Service_Service
      * Save the site identity: validate, then persist every field to the config store.
      *
      * @param  array $params the posted form values (+ logo_media_id / favicon_media_id / og_image_media_id)
+     * @apiRequest Identity_Form_Identity
+     * @apiParam string logo_media_id Media id of the site logo; empty clears it.
+     * @apiParam string favicon_media_id Media id of the favicon; empty clears it.
+     * @apiParam string og_image_media_id Media id of the default social-card image; empty clears it.
      * @return void
      */
     public function save(array $params): void

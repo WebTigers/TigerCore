@@ -20,6 +20,8 @@ class Agent_Service_Settings extends Tiger_Service_Service
      * Save the agent settings.
      *
      * @param  array $params enabled, provider, model, api_key (blank = keep current)
+     * @apiRequest Agent_Form_Settings
+     * @apiParam boolean enabled Turn the agent on or off for this org.
      * @return void
      */
     public function save(array $params): void
@@ -77,6 +79,7 @@ class Agent_Service_Settings extends Tiger_Service_Service
      * (TIGER-511), never install-wide.
      *
      * @param  array $params mode_max
+     * @apiParam string(ask|auto|yolo) mode_max The highest auto-mode a user may pick (anything else saves as auto).
      * @return void
      */
     public function mode(array $params): void
@@ -106,6 +109,8 @@ class Agent_Service_Settings extends Tiger_Service_Service
      * fallback. So the selector reflects what the account can actually use, with or without a key.
      *
      * @param  array $params provider (optional), api_key (optional, unsaved key to list live with)
+     * @apiParam string provider The provider to list models for (e.g. anthropic, openai). Defaults to anthropic.
+     * @apiParam string api_key An unsaved key to list models live with. Blank uses the stored key.
      * @return void
      */
     public function models(array $params): void

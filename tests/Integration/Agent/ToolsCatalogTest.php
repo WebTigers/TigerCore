@@ -39,6 +39,24 @@ final class ToolsCatalogTest extends IntegrationTestCase
     }
 
     #[Test]
+    public function aModuleScopeIsAppliedBeforeTheCapSoLateModulesAreNotDropped(): void
+    {
+        // An MCP token scoped to `search` listed NO search tools: the module filter ran after the agent's
+        // 160-op prompt cap, and the alphabetical walk stopped before reaching it (2026-11-16).
+        $this->loginAs('developer');
+        $all    = Tiger_Agent_Tools::catalog('developer', null, null);
+        $capped = Tiger_Agent_Tools::catalog('developer');
+        $this->assertGreaterThan(Tiger_Agent_Tools::MAX_OPERATIONS, $this->flatCount($all), 'the uncapped surface exceeds the cap');
+        $this->assertLessThanOrEqual(Tiger_Agent_Tools::MAX_OPERATIONS, $this->flatCount($capped), 'the prompt catalog stays capped');
+
+        $last = array_key_last($all);   // a module sorting past the cutoff
+        $this->assertArrayNotHasKey($last, $capped, 'the fixture really needs a module the cap cuts off');
+        $scoped = Tiger_Agent_Tools::catalog('developer', [$last]);
+        $this->assertSame([$last], array_keys($scoped), 'a scoped catalog returns exactly that module, cap or not');
+        $this->assertNotEmpty($scoped[$last]);
+    }
+
+    #[Test]
     public function aGuestSeesAtMostWhatADeveloperSees(): void
     {
         $this->loginAs('developer');

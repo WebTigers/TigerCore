@@ -23,6 +23,21 @@ class System_Service_Settings extends Tiger_Service_Service
      * Validate the settings form and write session + auto-logout values to the config table.
      *
      * @param  array $params the settings form payload
+     * @apiRequest System_Form_Settings
+     * @apiParam object mail_field An API mail provider's credential fields, keyed by provider then field; a blank secret keeps the stored one.
+     * @apiParam string location_ip_provider The IP-geolocation provider key; sending it saves the Location tab.
+     * @apiParam string location_address_provider The address autocomplete/geocode provider key.
+     * @apiParam integer location_cache_ttl How long location lookups are cached, in seconds.
+     * @apiParam object location_adapter Each location adapter's settings, keyed by adapter then field; a blank secret keeps the stored one.
+     * @apiParam string(off|auto|always) consent_mode When the cookie-consent banner shows; sending it saves the Cookies tab.
+     * @apiParam string consent_message The consent banner text.
+     * @apiParam string consent_accept_label The banner's accept button label.
+     * @apiParam string consent_reject_label The banner's reject button label.
+     * @apiParam string consent_policy_url The privacy-policy link on the banner.
+     * @apiParam string consent_ccpa_notice The CCPA notice text.
+     * @apiParam boolean consent_honor_gpc Treat a Global Privacy Control signal as a reject.
+     * @apiParam boolean signup_settings Present when the Signup tab is being saved.
+     * @apiParam boolean signup_disabled Turn public signup off (read only when signup_settings is sent).
      * @return void
      */
     public function save(array $params): void
@@ -128,6 +143,9 @@ class System_Service_Settings extends Tiger_Service_Service
      * caller's own IP. Returns the lookup result as data (ok + country/city/label, or an error message).
      *
      * @param  array $params ip?, provider, config[field]
+     * @apiParam string ip The IP address to look up; empty uses the caller's own.
+     * @apiParam string provider The location provider to test.
+     * @apiParam object config The provider's field values to test with (unsaved), keyed by field.
      * @return void
      */
     public function locationTest(array $params): void
@@ -144,21 +162,6 @@ class System_Service_Settings extends Tiger_Service_Service
         $this->_success(Tiger_Location::test($ip, $provider, $config));
     }
 
-    /**
-     * Live send test for the Email SMTP tab's "Send test" button — the answer to "is my mail
-     * actually configured?", which is otherwise unanswerable: the password-reset flow deliberately
-     * reveals nothing (no account enumeration), so a broken MTA looks identical to a working one.
-     *
-     * Like `locationTest`, it uses the form's CURRENT values, so a just-typed host/port/password is
-     * testable WITHOUT saving — a wrong setting never has to overwrite a working one to be tried. A
-     * blank password falls back to the stored secret (blank = keep, same rule as save).
-     *
-     * The transport's error text is returned verbatim: on a connection test the message ("Could not
-     * open socket", an auth rejection, a TLS failure) IS the diagnostic, and this action is admin-only.
-     *
-     * @param  array $params to, mail_transport, mail_smtp_{host,port,ssl,auth,username,password}, mail_from_{email,name}
-     * @return void
-     */
     /**
      * Would this test send the SAVED SMTP password somewhere other than where it was saved?
      *
@@ -183,6 +186,32 @@ class System_Service_Settings extends Tiger_Service_Service
         return false;
     }
 
+    /**
+     * Live send test for the Email SMTP tab's "Send test" button — the answer to "is my mail
+     * actually configured?", which is otherwise unanswerable: the password-reset flow deliberately
+     * reveals nothing (no account enumeration), so a broken MTA looks identical to a working one.
+     *
+     * Like `locationTest`, it uses the form's CURRENT values, so a just-typed host/port/password is
+     * testable WITHOUT saving — a wrong setting never has to overwrite a working one to be tried. A
+     * blank password falls back to the stored secret (blank = keep, same rule as save).
+     *
+     * The transport's error text is returned verbatim: on a connection test the message ("Could not
+     * open socket", an auth rejection, a TLS failure) IS the diagnostic, and this action is admin-only.
+     *
+     * @param  array $params to, mail_provider, mail_field, mail_smtp_{host,port,ssl,auth,username,password}, mail_from_{email,name}
+     * @apiParam string to required The address to send the test message to.
+     * @apiParam string mail_provider The mail provider to test (an API provider, sendmail, or an SMTP preset).
+     * @apiParam object mail_field An API provider's credential fields, keyed by provider then field; a blank one uses the stored value.
+     * @apiParam string mail_smtp_host The SMTP host.
+     * @apiParam string mail_smtp_port The SMTP port.
+     * @apiParam string mail_smtp_ssl The SMTP encryption setting.
+     * @apiParam string mail_smtp_auth The SMTP auth method.
+     * @apiParam string mail_smtp_username The SMTP username.
+     * @apiParam string mail_smtp_password The SMTP password; blank reuses the stored one only for the same host, port and username.
+     * @apiParam string mail_from_email The sender address.
+     * @apiParam string mail_from_name The sender name.
+     * @return void
+     */
     public function mailTest(array $params): void
     {
         if (!$this->_isAllowed('mailTest')) { $this->_error('core.api.error.not_allowed'); return; }

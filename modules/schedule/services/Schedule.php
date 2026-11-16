@@ -17,6 +17,7 @@ class Schedule_Service_Schedule extends Tiger_Service_Service
      * Every registered job with its effective schedule + state, plus the cron-setup status.
      *
      * @param  array $params (unused)
+     * @apiRequest none
      * @return void
      */
     public function jobs(array $params): void
@@ -61,6 +62,12 @@ class Schedule_Service_Schedule extends Tiger_Service_Service
      * Set (or clear) the schedule + enabled flag for one job — the reusable "schedule this" call.
      *
      * @param  array $params key, every, at, dow, dom, enabled
+     * @apiParam string key required The job key.
+     * @apiParam string(every_minute|every_5_min|every_15_min|hourly|daily|weekly|monthly) every How often it runs; omit to keep.
+     * @apiParam string at Time of day, HH:MM (24h); omit to keep.
+     * @apiParam integer dow Day of week 0-6 (weekly jobs).
+     * @apiParam integer dom Day of month (monthly jobs).
+     * @apiParam boolean enabled Turn the job on or off; omit to keep.
      * @return void
      */
     public function setSchedule(array $params): void
@@ -92,6 +99,7 @@ class Schedule_Service_Schedule extends Tiger_Service_Service
      * Run a job immediately (ignores its schedule).
      *
      * @param  array $params key
+     * @apiParam string key required The job key.
      * @return void
      */
     public function runNow(array $params): void

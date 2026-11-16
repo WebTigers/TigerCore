@@ -15,6 +15,8 @@ class Analytics_Service_Reports extends Tiger_Service_Service
      * The GA4 traffic summary for the requested window (default 28 days).
      *
      * @param  array $params optional `days` (1..365) and `fresh` (bypass cache)
+     * @apiParam integer days The report window in days (1..365, default 28).
+     * @apiParam boolean fresh Bypass the cache and fetch live.
      * @return void
      */
     public function summary(array $params): void
@@ -51,6 +53,8 @@ class Analytics_Service_Reports extends Tiger_Service_Service
      * | `auth` | `error`) and `data.provider`, so the UI can say exactly what to do.
      *
      * @param  array $params optional `days` (1..365, default 28) and `fresh` (bypass cache)
+     * @apiParam integer days The report window in days (1..365, default 28).
+     * @apiParam boolean fresh Bypass the cache and fetch live.
      * @return void
      */
     public function report(array $params): void
@@ -80,6 +84,7 @@ class Analytics_Service_Reports extends Tiger_Service_Service
      * org instead; the message comes back translated. Without it: GA, exactly as before.
      *
      * @param  array $params optional `provider`
+     * @apiParam string provider A Tiger_Analytics provider key to test (e.g. matomo); omit to test Google Analytics.
      * @return void
      */
     public function test(array $params): void

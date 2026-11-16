@@ -33,6 +33,7 @@ class Email_Service_Template extends Tiger_Service_Service
      * The list of registered email events (DataTables) — each annotated with its override state.
      *
      * @param  array $params the DataTables request
+     * @apiRequest datatable
      * @return void
      */
     public function datatable(array $params): void
@@ -88,6 +89,7 @@ class Email_Service_Template extends Tiger_Service_Service
      * The registry def (label/description/vars) + the stored override (or empty) for a key.
      *
      * @param  array $params {key}
+     * @apiParam string key required The registered template key.
      * @return void
      */
     public function get(array $params): void
@@ -117,6 +119,7 @@ class Email_Service_Template extends Tiger_Service_Service
      * Save (upsert) an authored override.
      *
      * @param  array $params {template_key, subject, body, scope?}
+     * @apiRequest Email_Form_Template
      * @return void
      */
     public function save(array $params): void
@@ -147,6 +150,7 @@ class Email_Service_Template extends Tiger_Service_Service
      * Remove an override so the code-shipped file default renders again.
      *
      * @param  array $params {key}
+     * @apiParam string key required The registered template key.
      * @return void
      */
     public function reset(array $params): void
@@ -171,6 +175,9 @@ class Email_Service_Template extends Tiger_Service_Service
      * Render a preview of the current draft (subject + body) with sample variable values.
      *
      * @param  array $params {key, subject, body}
+     * @apiParam string key required The registered template key.
+     * @apiParam string subject The draft subject to render.
+     * @apiParam string body The draft HTML body to render.
      * @return void
      */
     public function preview(array $params): void

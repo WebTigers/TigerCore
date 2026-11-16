@@ -50,6 +50,9 @@ class Backup_Service_Backup extends Tiger_Service_Service
      * Create a manual backup now.
      *
      * @param  array $params components[], disk, include_secrets
+     * @apiParam array components required What to back up: any of database, media, modules, platform (an array or a comma list).
+     * @apiParam string disk The destination disk name (default local).
+     * @apiParam boolean include_secrets Put the install's secrets in the archive (needs the include_secrets capability).
      * @return void
      */
     public function run(array $params): void
@@ -89,6 +92,7 @@ class Backup_Service_Backup extends Tiger_Service_Service
      * Delete a backup (archive bytes + catalog row).
      *
      * @param  array $params backup_id
+     * @apiParam string backup_id required The backup to delete.
      * @return void
      */
     public function remove(array $params): void
@@ -104,6 +108,9 @@ class Backup_Service_Backup extends Tiger_Service_Service
      * Restore from a cataloged backup. Destructive — requires confirm === 'RESTORE'.
      *
      * @param  array $params backup_id, confirm, components[] (optional subset)
+     * @apiParam string backup_id required The backup to restore from.
+     * @apiParam string(RESTORE) confirm required Must be the literal RESTORE.
+     * @apiParam array components Restore only these (database, media, modules, platform); empty restores all.
      * @return void
      */
     public function restore(array $params): void
@@ -139,6 +146,12 @@ class Backup_Service_Backup extends Tiger_Service_Service
      * Save the scheduled-backup settings (config tier — live, no deploy).
      *
      * @param  array $params components[], disk, include_secrets, retention_max, notify_enabled, notify_email
+     * @apiParam array components What the scheduled backup includes: any of database, media, modules, platform (default database).
+     * @apiParam string disk The destination disk name (default local).
+     * @apiParam boolean include_secrets Include the install's secrets (needs the include_secrets capability).
+     * @apiParam integer retention_max How many scheduled backups to keep (default 7).
+     * @apiParam boolean notify_enabled Email a notice after each scheduled backup.
+     * @apiParam string notify_email Notice recipients, comma-separated.
      * @return void
      */
     public function saveSettings(array $params): void

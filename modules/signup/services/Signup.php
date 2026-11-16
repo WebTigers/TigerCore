@@ -37,6 +37,7 @@ class Signup_Service_Signup extends Tiger_Service_Service
      * Validate and create the tenant graph (org/user/membership/address/contact), then email a verification link.
      *
      * @param  array $params the signup form payload
+     * @apiRequest Signup_Form_Signup
      * @return void
      */
     public function create(array $params): void
@@ -130,6 +131,7 @@ class Signup_Service_Signup extends Tiger_Service_Service
      *
      * @param  string $challengeId the auth_challenge id from the emailed link
      * @param  string $code        the single-use verification token
+     * @apiRequest none
      * @return array               ['ok'=>bool] and, on success, 'user_id'
      */
     public function verifyEmail($challengeId, $code): array
