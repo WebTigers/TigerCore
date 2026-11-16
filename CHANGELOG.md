@@ -6,6 +6,15 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.61.3] — 2026-11-16
+
+### Fixed — the WebTigers marketplace source pointed at a moved address
+- `Tiger_Module_Registry::DEFAULT_MARKETPLACE` is now `https://marketplace.webtigers.com/marketplace/feed`.
+  The marketplace moved to its own host, and the old `https://webtigers.com/marketplace/feed` answers a
+  301 to that host's HTML home page — which the registry read as an empty catalog, so the paid
+  (TigerPASS) shelf vanished from every install still on the default. An install that set
+  `tiger.modules.marketplace` explicitly is unaffected.
+
 ## [1.61.2] — 2026-11-16
 
 ### Fixed — WCAG 2.2 AA contrast in the Bengal skin (TIGER-516)

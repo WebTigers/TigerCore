@@ -39,8 +39,12 @@ class Tiger_Module_Registry
      * `tiger.modules.marketplace` like the Directory's is by `tiger.modules.registry`, and setting
      * that to '' disables the source. An install that would rather use somebody else's marketplace —
      * or none — changes one config row; nothing here privileges this URL beyond being the default.
+     *
+     * The WebTigers marketplace lives on its own host. The old `webtigers.com/marketplace/feed` address
+     * now answers a 301 to that host's HTML home page, which the registry reads as an empty catalog — so
+     * the whole paid shelf disappeared from every install still on the old default.
      */
-    const DEFAULT_MARKETPLACE = 'https://webtigers.com/marketplace/feed';
+    const DEFAULT_MARKETPLACE = 'https://marketplace.webtigers.com/marketplace/feed';
     const CACHE_TTL         = 10800;   // 3h — a few refreshes a day, per the discovery model
     const CACHE_FILE        = 'registry-index.json';   // the Directory source's cache (legacy-stable name)
 
