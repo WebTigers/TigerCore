@@ -6,6 +6,16 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.62.1] — 2026-11-16
+
+### Fixed — a licensed (TigerPASS) module was never offered an update
+- The updater found a module's newest version by reading its GitHub tags. A licensed module's repo is
+  private, so a buyer's install can't read it, and a module installed through the authority has no repository
+  on its row at all — so it was skipped, and the Updates screen never listed it. It now takes the newest version
+  from the authority's signed verify verdict (`latest_version`), which the authority fills with the newest
+  signed release (TigerLicense 1.2.0). Applying the update already went through the authority. An authority that
+  reports no version falls back to the GitHub check, as before.
+
 ## [1.62.0] — 2026-11-16
 
 ### Added — every `/api` operation tells a client what it takes

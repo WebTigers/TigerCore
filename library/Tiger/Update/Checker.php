@@ -173,6 +173,28 @@ class Tiger_Update_Checker
                 continue;
             }
 
+            // A LICENSED module's newest version comes from its authority, in the signed verify verdict
+            // (`latest_version`). Its repo is private, so a buyer's install can't read the newest tag from
+            // GitHub, and one installed through the authority has no repository on its row at all — the
+            // GitHub path below skipped it, so a TigerPASS module was never offered an update. The apply step
+            // already updates it through the authority (System_Service_Updates::_applyOne). An authority that
+            // doesn't report a version falls through to the GitHub check, as before.
+            $manifest = Tiger_Module_Discovery::manifestFor($slug);
+            if ($installed !== '' && $manifest && Tiger_Module_Pricing::isLicensed($manifest)) {
+                $latest = self::_cached('lic-' . $slug, $refresh, static function () use ($slug) {
+                    return (string) (Tiger_License_Checker::verify($slug)['latest_version'] ?? '');
+                });
+                if ($latest !== '') {
+                    $desc = self::_descriptor(
+                        'module', (string) ($row->name ?: $slug), $slug, $installed, self::_stripV($latest),
+                        'installer', (string) ($row->repository ?? ''), null
+                    );
+                    $desc['license'] = Tiger_License_Checker::status($slug);
+                    $out[] = $desc;
+                    continue;
+                }
+            }
+
             $repo      = (string) ($row->repository ?? '');
             $parsed    = $repo !== '' ? Tiger_Module_Github::parseRepo($repo) : null;
             if ($installed === '' || !$parsed) {
