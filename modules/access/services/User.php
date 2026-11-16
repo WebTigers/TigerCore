@@ -20,6 +20,8 @@ class Access_Service_User extends Tiger_Service_Service
      * DataTables server-side source: user identity + a membership summary.
      *
      * @param  array $params the DataTables request (draw/start/length/search/order) + status filter
+     * @apiRequest datatable
+     * @apiParam string(active|suspended) status Only users in this status.
      * @return void
      */
     public function datatable(array $params): void
@@ -134,6 +136,7 @@ class Access_Service_User extends Tiger_Service_Service
      * Soft-delete a user (never yourself).
      *
      * @param  array $params the request payload carrying user_id
+     * @apiParam string user_id required The user to delete.
      * @return void
      */
     public function delete(array $params): void

@@ -18,6 +18,8 @@ class Ally_Service_Scan extends Tiger_Service_Service
      * Inspect pasted HTML (param `html`) or a rendered CMS page (param `page_id`).
      *
      * @param  array $params html | page_id
+     * @apiParam string html Raw HTML to inspect (ignored when page_id is given).
+     * @apiParam string page_id A CMS page to render and inspect instead of pasted HTML.
      * @return void
      */
     public function scan(array $params): void
@@ -59,6 +61,7 @@ class Ally_Service_Scan extends Tiger_Service_Service
      * a `file` write (or a Scout read) accepts.
      *
      * @param  array $params module
+     * @apiRequest none
      * @return void
      */
     public function scanModule(array $params): void
@@ -102,6 +105,7 @@ class Ally_Service_Scan extends Tiger_Service_Service
      * The scannable CMS pages (type=page), for the picker + scanAll.
      *
      * @param  array $params (unused)
+     * @apiRequest none
      * @return void
      */
     public function pages(array $params): void
@@ -114,6 +118,7 @@ class Ally_Service_Scan extends Tiger_Service_Service
      * Scan every CMS page and return a per-page roll-up (pass/fail + error/warning counts).
      *
      * @param  array $params (unused)
+     * @apiRequest none
      * @return void
      */
     public function scanAll(array $params): void

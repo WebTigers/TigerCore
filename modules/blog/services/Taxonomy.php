@@ -17,6 +17,8 @@ class Blog_Service_Taxonomy extends Tiger_Service_Service
      * List the terms in a vocabulary ({id, name, slug}) for a Select2-style picker.
      *
      * @param  array $params the request payload (`vocabulary`, `locale`)
+     * @apiParam string(category|tag) vocabulary Which vocabulary to list (anything else lists tags).
+     * @apiParam string locale The language of the terms (default en).
      * @return void
      */
     public function listTerms(array $params): void

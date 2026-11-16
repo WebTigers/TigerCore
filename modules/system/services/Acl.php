@@ -14,6 +14,9 @@ class System_Service_Acl extends Tiger_Service_Service
      * Explain an authorization decision for an arbitrary (role, resource, privilege).
      *
      * @param  array $params {role, resource, privilege}
+     * @apiParam string role The role to test; empty means none.
+     * @apiParam string resource The ACL resource (e.g. a service class); empty means any.
+     * @apiParam string privilege The privilege (e.g. a method name); empty means any.
      * @return void
      */
     public function simulate(array $params): void
@@ -33,6 +36,7 @@ class System_Service_Acl extends Tiger_Service_Service
      * The roles + resources the ACL knows about (for the Simulator's pickers).
      *
      * @param  array $params (none)
+     * @apiRequest none
      * @return void
      */
     public function catalog(array $params): void

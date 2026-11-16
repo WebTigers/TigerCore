@@ -24,6 +24,8 @@ class Access_Service_Org extends Tiger_Service_Service
      * DataTables server-side source: org + parent name + member count.
      *
      * @param  array $params the DataTables request (draw/start/length/search/order) + status filter
+     * @apiRequest datatable
+     * @apiParam string(active|suspended) status Only orgs in this status.
      * @return void
      */
     public function datatable(array $params): void
@@ -110,6 +112,7 @@ class Access_Service_Org extends Tiger_Service_Service
      * Soft-delete an org (never the one you're acting in).
      *
      * @param  array $params the request payload carrying org_id
+     * @apiParam string org_id required The org to delete.
      * @return void
      */
     public function delete(array $params): void

@@ -30,6 +30,9 @@ class System_Service_Logs extends Tiger_Service_Service
      * Tail + filter the application log. Read-class, so the agent auto-runs it.
      *
      * @param  array $params level (min severity, e.g. WARN), q (free text), limit (default 200, max 1000)
+     * @apiParam string(DEBUG|INFO|NOTICE|WARN|WARNING|ERR|ERROR|CRIT|CRITICAL|ALERT|EMERG) level Only entries at this severity or above.
+     * @apiParam string q Free text the entry must contain.
+     * @apiParam integer limit The most entries to return (default 200, max 1000).
      * @return void
      */
     public function search(array $params): void
