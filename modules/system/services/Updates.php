@@ -16,6 +16,7 @@ class System_Service_Updates extends Tiger_Service_Service
      * Re-check what has an update (optionally forcing a fresh remote check).
      *
      * @param  array $params {refresh?: bool}
+     * @apiParam boolean refresh Skip the cache and check the sources now.
      * @return void
      */
     public function check(array $params): void
@@ -28,6 +29,7 @@ class System_Service_Updates extends Tiger_Service_Service
      * Apply the selected updates. `items` is a list of slugs (`tiger-core` for the platform).
      *
      * @param  array $params {items: string[]|string}
+     * @apiParam array items required The slugs to update (tiger-core for the platform); an array or a comma list.
      * @return void
      */
     public function apply(array $params): void
@@ -132,6 +134,7 @@ class System_Service_Updates extends Tiger_Service_Service
      * already small (one short entry per update step).
      *
      * @param  array $params the DataTables request (draw/start/length/search/order)
+     * @apiRequest datatable
      * @return void
      */
     public function datatable(array $params): void
@@ -182,6 +185,7 @@ class System_Service_Updates extends Tiger_Service_Service
      * READ_VERB so a read-only token can reach it. The admin grid uses `datatable()`.
      *
      * @param  array $params {limit?}
+     * @apiParam integer limit How many recent runs to return (default 20).
      * @return void
      */
     public function history(array $params): void

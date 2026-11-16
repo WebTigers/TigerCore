@@ -15,6 +15,13 @@ class Analytics_Service_Analytics extends Tiger_Service_Service
      * Save the analytics settings.
      *
      * @param  array $params the posted form values (+ enabled / exclude_signed_in switches)
+     * @apiRequest Analytics_Form_Settings
+     * @apiParam boolean enabled Turn the analytics tracking tag on.
+     * @apiParam boolean exclude_signed_in Skip tracking for signed-in visitors.
+     * @apiParam string(broker|byo) oauth_mode How reporting connects to Google (anything else saves as broker).
+     * @apiParam string oauth_client_id The Google OAuth client id (bring-your-own mode).
+     * @apiParam string oauth_client_secret The Google OAuth client secret; blank keeps the current one.
+     * @apiParam string property_id The GA4 property id reports are read from.
      * @return void
      */
     public function save(array $params): void
@@ -64,6 +71,7 @@ class Analytics_Service_Analytics extends Tiger_Service_Service
      * settings are never touched, and tracking tags are unaffected (each has its own enabled flag).
      *
      * @param  array $params `provider` + the screen's `_csrf`
+     * @apiRequest Analytics_Form_Provider
      * @return void
      */
     public function saveProvider(array $params): void

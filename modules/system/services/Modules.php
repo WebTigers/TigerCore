@@ -81,6 +81,8 @@ class System_Service_Modules extends Tiger_Service_Service
      * the filter pills stay accurate after an activate / delete without a page reload.
      *
      * @param  array $params the DataTables request (+ an optional `type` pill filter)
+     * @apiRequest datatable
+     * @apiParam string type Only modules of this type (e.g. module, theme, code).
      * @return void
      */
     public function datatable(array $params): void
@@ -218,6 +220,9 @@ class System_Service_Modules extends Tiger_Service_Service
      * Activate a module (by `slug`), publishing its assets.
      *
      * @param  array $params the /api payload (expects `slug`)
+     * @apiParam string slug required The module to activate.
+     * @apiParam string(1) confirm Send 1 to also deactivate any active module it conflicts with.
+     * @apiParam string(1) make_default For a theme: send 1 to make it the site's default theme.
      * @return void
      */
     public function activate(array $params): void   { $this->_toggle($params, true); }
@@ -226,6 +231,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * Deactivate a module (by `slug`), unpublishing its assets.
      *
      * @param  array $params the /api payload (expects `slug`)
+     * @apiParam string slug required The module to deactivate.
      * @return void
      */
     public function deactivate(array $params): void { $this->_toggle($params, false); }
@@ -237,6 +243,8 @@ class System_Service_Modules extends Tiger_Service_Service
      * any module regardless of its update channel (GitHub, provider, …) — it only records the opt-in.
      *
      * @param  array $params the /api payload (expects `slug`, `on`)
+     * @apiParam string slug required The module to set.
+     * @apiParam boolean on Turn auto-update on (true) or off (false).
      * @return void
      */
     public function autoUpdate(array $params): void
@@ -261,6 +269,8 @@ class System_Service_Modules extends Tiger_Service_Service
      * module's `<vendor>/<name>`; and a dependency gate — refused while another ACTIVE module requires it.
      *
      * @param  array $params the /api payload (expects `slug` + `confirm`)
+     * @apiParam string slug required The module to delete (must be deactivated first).
+     * @apiParam string confirm required The module's vendor/name, typed to confirm.
      * @return void
      */
     public function delete(array $params): void
@@ -436,6 +446,9 @@ class System_Service_Modules extends Tiger_Service_Service
      * install's TigerPASS `pass` state so PASS listings show "Get TigerPASS" vs a plain "Install".
      *
      * @param  array $params the /api payload (expects `q`; optional `sort`, `refresh`)
+     * @apiParam string q Search text; empty lists everything.
+     * @apiParam string(featured|title|latest) sort Result order (default featured).
+     * @apiParam boolean refresh Bypass the directory cache.
      * @return void
      */
     public function search(array $params): void
@@ -463,6 +476,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * registry search — so the tab works even when the registry is unreachable).
      *
      * @param  array $params the /api payload (no fields)
+     * @apiRequest none
      * @return void
      */
     public function passInfo(array $params): void
@@ -479,6 +493,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * no reset logic. A brand-new subscription hides it anyway (see _passNagState).
      *
      * @param  array $params the /api payload (no fields)
+     * @apiRequest none
      * @return void
      */
     public function snoozePassNag(array $params): void
@@ -496,6 +511,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * switch. A per-user preference in the `option` tier, so one admin's choice never blinds another.
      *
      * @param  array $params the /api payload (expects `disabled` = 1|0)
+     * @apiParam boolean disabled Hide the TigerPASS banner (1) or show it again (0).
      * @return void
      */
     public function setPassNag(array $params): void
@@ -521,6 +537,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * removed vs. only disabled.
      *
      * @param  array $params the /api payload (no fields)
+     * @apiRequest none
      * @return void
      */
     public function sources(array $params): void
@@ -535,6 +552,10 @@ class System_Service_Modules extends Tiger_Service_Service
      * admin owns it. The source just has to return `{modules, taxonomy}` — everything else is automatic.
      *
      * @param  array $params the /api payload (expects `label`, `url`; optional `kind`, `priority`)
+     * @apiParam string label required The source's display name.
+     * @apiParam string url required The index URL (http or https).
+     * @apiParam string(git-index|live-api) kind The source type (default live-api).
+     * @apiParam integer priority Lower wins a slug collision (default 5).
      * @return void
      */
     public function connectSource(array $params): void
@@ -577,6 +598,9 @@ class System_Service_Modules extends Tiger_Service_Service
      * override that wins over what shipped/registered). Only the fields present are changed.
      *
      * @param  array $params the /api payload (expects `id`; optional `enabled`, `priority`)
+     * @apiParam string id required The source to change.
+     * @apiParam boolean enabled Enable or disable the source; omit to leave it.
+     * @apiParam integer priority The new priority; omit to leave it.
      * @return void
      */
     public function updateSource(array $params): void
@@ -606,6 +630,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * source can't be removed here — disable it instead (or deactivate the owning module).
      *
      * @param  array $params the /api payload (expects `id`)
+     * @apiParam string id required The connected source to remove.
      * @return void
      */
     public function removeSource(array $params): void
@@ -666,6 +691,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * endpoint only accepts the resulting key.
      *
      * @param  array $params the /api payload (expects `key`)
+     * @apiParam string key required The TigerPASS license key (a UUID).
      * @return void
      */
     public function activatePass(array $params): void
@@ -708,6 +734,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * itself is cancelled on webtigers.com — this only forgets the key locally).
      *
      * @param  array $params the /api payload (no fields)
+     * @apiRequest none
      * @return void
      */
     public function deactivatePass(array $params): void
@@ -830,6 +857,10 @@ class System_Service_Modules extends Tiger_Service_Service
      * such a module worked from the CLI (straight to installFromUrl) and failed in the UI.
      *
      * @param  array $params the /api payload (expects `url`, optional `ref`)
+     * @apiParam string url The module's GitHub repo URL (required unless slug + a marketplace source are given).
+     * @apiParam string ref The tag or branch to preview; empty uses the latest release.
+     * @apiParam string slug A marketplace listing's slug (with source, previews the marketplace's copy).
+     * @apiParam string source The marketplace source id the slug comes from.
      * @return void
      */
     public function inspect(array $params): void
@@ -960,6 +991,9 @@ class System_Service_Modules extends Tiger_Service_Service
      * Install (or update, with force) a module from a public GitHub URL.
      *
      * @param  array $params the /api payload (expects `url`, optional `ref`, `force`)
+     * @apiParam string url required The module's public GitHub repo URL.
+     * @apiParam string ref The tag or branch to install; empty uses the latest release.
+     * @apiParam boolean force Update in place when the module is already installed.
      * @return void
      */
     public function install(array $params): void
@@ -985,6 +1019,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * validate → place → migrate → publish → record path as a URL install (source=upload).
      *
      * @param  array $params the /api payload (optional `force` to update in place)
+     * @apiParam boolean force Update in place when the module is already installed (the .zip itself rides as the multipart file `archive`).
      * @return void
      */
     public function upload(array $params): void
@@ -1020,6 +1055,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * This does NOT pin — that's the deliberate second click (pinVendor).
      *
      * @param  array $params the /api payload (expects `vendor` = "owner/repo")
+     * @apiParam string vendor required The vendor's TigerVendor repo, as owner/repo.
      * @return void
      */
     public function connectVendor(array $params): void
@@ -1039,6 +1075,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * a prior pin (the re-consent path after a reviewed key change).
      *
      * @param  array $params the /api payload (expects `vendor` = "owner/repo")
+     * @apiParam string vendor required The vendor's TigerVendor repo to trust, as owner/repo.
      * @return void
      */
     public function pinVendor(array $params): void
@@ -1063,6 +1100,12 @@ class System_Service_Modules extends Tiger_Service_Service
      * per-vendor paid path (distinct from the TigerPASS subscription in activatePass).
      *
      * @param  array $params the /api payload (expects `vendor`, `product`|`slug`, `key` — optional for a TigerPASS module when the install has TigerPASS activated; optional `repository`, `force`)
+     * @apiParam string vendor required The vendor (owner/repo); it must be connected and pinned first.
+     * @apiParam string product The product slug to install (required unless slug is given).
+     * @apiParam string slug An alias for product.
+     * @apiParam string key The license key; optional for a TigerPASS module when TigerPASS is active.
+     * @apiParam string repository The release repository, when the authority needs it.
+     * @apiParam boolean force Update in place when the module is already installed.
      * @return void
      */
     public function installLicensed(array $params): void

@@ -18,6 +18,8 @@ class Blog_Service_Post extends Tiger_Service_Service
      * DataTables source for the article list (type=article), rows as structured data.
      *
      * @param  array $params the DataTables request (draw/start/length/search/order) + status filter
+     * @apiRequest datatable
+     * @apiParam string(draft|published|archived) status Only articles in this status.
      * @return void
      */
     public function datatable(array $params): void
@@ -164,6 +166,7 @@ class Blog_Service_Post extends Tiger_Service_Service
      * Soft-delete an article (recoverable).
      *
      * @param  array $params the request payload carrying post_id
+     * @apiParam string post_id required The article to delete.
      * @return void
      */
     public function delete(array $params): void
@@ -184,6 +187,8 @@ class Blog_Service_Post extends Tiger_Service_Service
      * Restore an article to a prior version (current content snapshotted first).
      *
      * @param  array $params the request payload carrying post_id + version
+     * @apiParam string post_id required The article to restore.
+     * @apiParam integer version required The version number to restore (1 or higher).
      * @return void
      */
     public function restore(array $params): void
