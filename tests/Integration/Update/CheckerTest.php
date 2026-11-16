@@ -7,6 +7,8 @@ namespace Tiger\Tests\Integration\Update;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tiger\Tests\Support\IntegrationTestCase;
+use Tiger_Crypto_Signature;
+use Tiger_License_Checker;
 use Tiger_Model_Module;
 use Tiger_Update_Checker;
 use Tiger_Update_Provider;
@@ -34,6 +36,7 @@ final class CheckerTest extends IntegrationTestCase
         foreach ($this->wrote as $f) { @unlink($f); }
         @rmdir(APPLICATION_PATH . '/modules');
         Tiger_Update_Provider::_reset();
+        Tiger_License_Checker::_reset();
         parent::tearDown();
     }
 
@@ -83,6 +86,41 @@ final class CheckerTest extends IntegrationTestCase
         $this->assertArrayHasKey('license', $byslug['w4upd'], 'a licensed module carries its license verdict');
 
         $this->assertArrayNotHasKey('w4local', $byslug, 'a module with no repository is skipped');
+    }
+
+    #[Test]
+    public function aLicensedModuleTakesItsLatestVersionFromTheAuthority(): void
+    {
+        // A TigerPASS module installed through the authority has NO repository on its row, and its repo is
+        // private anyway — the GitHub path skipped it, so no buyer install was ever offered an update
+        // (2026-11-16). Its newest version comes from the authority's signed verify verdict instead.
+        $mod = new Tiger_Model_Module();
+        $mod->install('w4lic', ['name' => 'W4 Lic', 'version' => '1.4.0', 'source' => Tiger_Model_Module::SOURCE_URL]);
+        $this->plantModule('w4lic', [
+            'name' => 'W4 Lic', 'version' => '1.4.0',
+            'pricing' => ['model' => 'licensed', 'authority' => 'https://store.example/authority', 'vendor' => 'acme/TigerVendor'],
+        ]);
+        $keys = Tiger_Crypto_Signature::generateKeypair();
+        Tiger_License_Checker::remember('w4lic', [
+            'key' => 'KEY-1', 'authority' => 'https://store.example/authority',
+            'vendor' => 'acme/TigerVendor', 'public_key' => $keys['public_key'], 'domain' => 'site.example',
+        ]);
+        $asked = [];
+        Tiger_License_Checker::setTransport(static function ($authority, $payload) use ($keys, &$asked) {
+            $asked[] = $payload['product'] ?? null;
+            $json = json_encode(['valid' => true, 'ttl' => 3600, 'latest_version' => '1.5.0']);
+            return ['payload' => $json, 'signature' => Tiger_Crypto_Signature::sign($json, $keys['secret_key'])];
+        });
+
+        $byslug = [];
+        foreach (Tiger_Update_Checker::modules(true) as $r) { $byslug[$r['slug']] = $r; }
+
+        $this->assertSame(['w4lic'], $asked, 'the authority was asked about this product');
+        $this->assertArrayHasKey('w4lic', $byslug, 'a repo-less licensed module lists');
+        $this->assertSame('1.5.0', $byslug['w4lic']['latest']);
+        $this->assertTrue($byslug['w4lic']['update'], '1.4.0 < 1.5.0 → an update is offered');
+        $this->assertSame('installer', $byslug['w4lic']['method'], 'applied by _applyOne, which routes a licensed module through its authority');
+        $this->assertArrayHasKey('license', $byslug['w4lic']);
     }
 
     #[Test]
