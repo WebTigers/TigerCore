@@ -52,7 +52,7 @@ if ($passCheckout === '') { $passCheckout = 'https://webtigers.com/checkout/tige
     <div class="tab-pane fade show active" id="tab-browse" role="tabpanel" aria-labelledby="tab-browse-btn">
         <div class="card">
             <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
-                <span><i class="fa-solid fa-store me-2"></i><?= $this->t('system.add.browse_directory') ?></span>
+                <h2 class="h6 mb-0 fw-semibold"><i class="fa-solid fa-store me-2" aria-hidden="true"></i><?= $this->t('system.add.browse_directory') ?></h2>
                 <span class="small fw-normal <?= $registryHasData ? 'text-success' : 'text-body-secondary' ?>"><?= $registryHasData ? $this->t('system.add.community_registry') : $this->t('system.add.registry_unavailable') ?></span>
             </div>
             <div class="card-body">
@@ -95,7 +95,7 @@ if ($passCheckout === '') { $passCheckout = 'https://webtigers.com/checkout/tige
     <!-- Install from a GitHub URL -->
     <div class="tab-pane fade" id="tab-url" role="tabpanel" aria-labelledby="tab-url-btn">
         <div class="card">
-            <div class="card-header fw-semibold"><i class="fa-brands fa-github me-2"></i><?= $this->t('system.add.url_header') ?></div>
+            <div class="card-header"><h2 class="h6 mb-0 fw-semibold"><i class="fa-brands fa-github me-2" aria-hidden="true"></i><?= $this->t('system.add.url_header') ?></h2></div>
             <div class="card-body">
                 <p class="text-body-secondary small"><?= $this->t('system.add.url_help') ?></p>
                 <div class="row g-2 align-items-end">
@@ -118,7 +118,7 @@ if ($passCheckout === '') { $passCheckout = 'https://webtigers.com/checkout/tige
     <!-- Upload a .zip -->
     <div class="tab-pane fade" id="tab-upload" role="tabpanel" aria-labelledby="tab-upload-btn">
         <div class="card">
-            <div class="card-header fw-semibold"><i class="fa-solid fa-upload me-2"></i><?= $this->t('system.add.upload_header') ?></div>
+            <div class="card-header"><h2 class="h6 mb-0 fw-semibold"><i class="fa-solid fa-upload me-2" aria-hidden="true"></i><?= $this->t('system.add.upload_header') ?></h2></div>
             <div class="card-body">
                 <p class="text-body-secondary small"><?= $this->t('system.add.upload_help') ?></p>
                 <div id="mod-dropzone" class="mod-dropzone text-center p-4 mb-3" role="button" tabindex="0" aria-label="<?= $this->escape($this->t('system.add.dropzone_aria')) ?>">
@@ -140,14 +140,14 @@ if ($passCheckout === '') { $passCheckout = 'https://webtigers.com/checkout/tige
     <!-- Marketplaces — connect + manage catalog sources -->
     <div class="tab-pane fade" id="tab-sources" role="tabpanel" aria-labelledby="tab-sources-btn">
         <div class="card mb-3">
-            <div class="card-header fw-semibold"><i class="fa-solid fa-store me-2"></i><?= $this->t('system.add.markets_header') ?></div>
+            <div class="card-header"><h2 class="h6 mb-0 fw-semibold"><i class="fa-solid fa-store me-2" aria-hidden="true"></i><?= $this->t('system.add.markets_header') ?></h2></div>
             <div class="card-body">
                 <p class="text-body-secondary small mb-3"><?= $this->t('system.add.markets_help') ?></p>
                 <div id="src-list" class="table-responsive"></div>
             </div>
         </div>
         <div class="card">
-            <div class="card-header fw-semibold"><i class="fa-solid fa-plug me-2"></i><?= $this->t('system.add.connect_market') ?></div>
+            <div class="card-header"><h2 class="h6 mb-0 fw-semibold"><i class="fa-solid fa-plug me-2" aria-hidden="true"></i><?= $this->t('system.add.connect_market') ?></h2></div>
             <div class="card-body">
                 <div id="src-connect-feedback"></div>
                 <div class="row g-2 align-items-end">
@@ -178,7 +178,7 @@ if ($passCheckout === '') { $passCheckout = 'https://webtigers.com/checkout/tige
     <!-- TigerPASS — status + preferences -->
     <div class="tab-pane fade" id="tab-pass" role="tabpanel" aria-labelledby="tab-pass-btn">
         <div class="card">
-            <div class="card-header fw-semibold"><i class="fa-solid fa-paw me-2"></i><?= $this->t('system.add.pass_header') ?></div>
+            <div class="card-header"><h2 class="h6 mb-0 fw-semibold"><i class="fa-solid fa-paw me-2" aria-hidden="true"></i><?= $this->t('system.add.pass_header') ?></h2></div>
             <div class="card-body">
                 <div id="pass-tab-status" class="mb-3"></div>
                 <p id="pass-tab-seats" class="small text-body-secondary mb-3" hidden></p>
