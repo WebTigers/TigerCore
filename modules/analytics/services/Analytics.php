@@ -59,6 +59,38 @@ class Analytics_Service_Analytics extends Tiger_Service_Service
     }
 
     /**
+     * Choose the org's analytics REPORTING provider (`provider` = a Tiger_Analytics provider key, or ''
+     * for automatic). Writes only `tiger.analytics.provider` at the caller's org — the other provider's
+     * settings are never touched, and tracking tags are unaffected (each has its own enabled flag).
+     *
+     * @param  array $params `provider` + the screen's `_csrf`
+     * @return void
+     */
+    public function saveProvider(array $params): void
+    {
+        if (!$this->_isAllowed('saveProvider')) {
+            $this->_error('core.api.error.not_allowed');
+            return;
+        }
+        $form = new Analytics_Form_Provider();
+        if (!$form->isValid($params)) {
+            $this->_formErrors($form);
+            return;
+        }
+        $provider = (string) $form->getValue('provider');
+        [, $orgId] = $this->_scope();
+        try {
+            if (!Tiger_Analytics::saveProvider($provider, $orgId)) {
+                $this->_error('analytics.provider.invalid');
+                return;
+            }
+            $this->_success(Tiger_Analytics::overview((string) $orgId), 'analytics.provider.saved');
+        } catch (Throwable $e) {
+            $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
+        }
+    }
+
+    /**
      * The config scope for analytics writes: the caller's org (TIGER-511). Global only on an install
      * with no org at all.
      *

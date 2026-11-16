@@ -38,4 +38,13 @@ return [
     // Client-side
     'matomo.net_error'                 => 'नेटवर्क त्रुटि — कृपया पुनः प्रयास करें।',
     'matomo.fix_fields'                => 'कृपया हाइलाइट किए गए फ़ील्ड ठीक करें।',
+
+    // रिपोर्टिंग API टोकन (1.61) — केवल लिखने योग्य
+    'matomo.token'                     => 'API टोकन (token_auth)',
+    'matomo.token_help'                => 'Matomo में Administration → Personal → Security → Auth tokens के अंतर्गत एक बनाएँ। उसे इस साइट की देखने की अनुमति चाहिए। यह एन्क्रिप्ट करके रखा जाता है और फिर कभी नहीं दिखाया जाता; सहेजा हुआ रखने के लिए खाली छोड़ें।',
+    'matomo.token_placeholder'         => 'अपना Matomo API टोकन पेस्ट करें',
+    'matomo.token_keep'                => '•••••• सहेजा गया (रखने के लिए खाली छोड़ें)',
+    'matomo.token_saved'               => 'टोकन सहेजा गया',
+    'matomo.card.tag'                  => 'ट्रैकिंग टैग',
+    'matomo.error.no_crypto'           => 'API टोकन सहेजने से पहले एक एन्क्रिप्शन कुंजी कॉन्फ़िगर होनी चाहिए।',
 ];

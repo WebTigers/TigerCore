@@ -2,14 +2,23 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
- * Analytics dashboard — in-app GA4 reports. Thin shell (per client/server): the data arrives over
- * /api (Analytics_Service_Reports::summary) and Chart.js (vendored in the admin layout) draws it.
- * Semantic Bootstrap only; the chart reads --bs-* tokens so it tracks the theme + skin.
+ * Analytics dashboard — in-app traffic reports from the org's chosen provider (Tiger_Analytics: Google
+ * Analytics or Matomo). Thin shell (per client/server): the NORMALIZED report arrives over /api
+ * (Analytics_Service_Reports::report) and Chart.js (vendored in the admin layout) draws it. Semantic
+ * Bootstrap only; the chart reads --bs-* tokens so it tracks the theme + skin.
  *
- * Empty/unavailable-data is a first-class state, not an error: the client renders a full ZEROED
- * scaffold (0 tiles, a flat chart over the window, "No data yet" tables) and shows a calm INFO
- * note — a fresh GA4 property with no traffic should look intentional, never a red failure.
+ * With no provider: "Choose an analytics provider" + a link to the setup screen. Empty/unavailable data
+ * is a first-class state, not an error: the client renders a full ZEROED scaffold (0 tiles, a flat chart
+ * over the window, "No data yet" tables) and shows a calm INFO note.
  */
+$this->i18n([
+    'visitors'     => 'analytics.widget.series_visitors',
+    'pageviews'    => 'analytics.widget.series_pageviews',
+    'noData'       => 'analytics.dashboard.no_data',
+    'noDataRow'    => 'analytics.dashboard.no_data_row',
+    'unavailable'  => 'analytics.dashboard.unavailable',
+    'fix'          => 'analytics.widget.fix',
+]);
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
@@ -22,28 +31,28 @@
 <?php if (empty($this->connected)): ?>
 <div class="card border-0 shadow-sm">
     <div class="card-body text-center py-5">
-        <i class="fa-solid fa-chart-line fs-1 text-body-secondary mb-3 d-block"></i>
+        <i class="fa-solid fa-chart-line fs-1 text-body-secondary mb-3 d-block" aria-hidden="true"></i>
         <h2 class="h5"><?= $this->t('analytics.dashboard.not_connected_title') ?></h2>
         <p class="text-body-secondary"><?= $this->t('analytics.dashboard.not_connected_body') ?></p>
         <a href="/analytics/admin" class="btn btn-primary"><i class="fa-solid fa-gear me-2"></i><?= $this->t('analytics.dashboard.go_settings') ?></a>
     </div>
 </div>
 <?php else: ?>
-<div id="ga-feedback"></div>
+<div id="ga-feedback" data-fix-url="/analytics/admin?provider=<?= $this->escape($this->provider) ?>"></div>
 
 <div class="row g-3 mb-4">
     <?php
     $cards = [
-        ['ga-users',     $this->t('analytics.metric.active_users'), 'fa-users'],
-        ['ga-sessions',  $this->t('analytics.metric.sessions'),     'fa-arrow-pointer'],
-        ['ga-views',     $this->t('analytics.metric.page_views'),   'fa-file-lines'],
+        ['ga-users',     $this->t('analytics.metric.visitors'),   'fa-users'],
+        ['ga-sessions',  $this->t('analytics.metric.visits'),     'fa-arrow-pointer'],
+        ['ga-views',     $this->t('analytics.metric.page_views'), 'fa-file-lines'],
     ];
     foreach ($cards as $c): ?>
     <div class="col-md-4">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex align-items-center gap-2 text-body-secondary small mb-1">
-                    <i class="fa-solid <?= $c[2] ?> text-primary"></i><?= $this->escape($c[1]) ?>
+                    <i class="fa-solid <?= $c[2] ?> text-primary" aria-hidden="true"></i><?= $this->escape($c[1]) ?>
                 </div>
                 <div class="display-6 fw-bold" id="<?= $c[0] ?>"><span class="placeholder col-4"></span></div>
             </div>
@@ -55,7 +64,7 @@
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-header fw-semibold bg-transparent"><i class="fa-solid fa-chart-area me-2"></i><?= $this->t('analytics.card.traffic') ?></div>
     <div class="card-body">
-        <div style="height:300px;"><canvas id="ga-chart"></canvas></div>
+        <div class="ratio ratio-21x9"><canvas id="ga-chart" role="img" aria-label="<?= $this->escape($this->t('analytics.card.traffic')) ?>"></canvas></div>
     </div>
 </div>
 
@@ -68,7 +77,7 @@
     </div>
     <div class="col-lg-6">
         <div class="card border-0 shadow-sm h-100">
-            <div class="card-header fw-semibold bg-transparent"><i class="fa-solid fa-diagram-project me-2"></i><?= $this->t('analytics.card.top_channels') ?></div>
+            <div class="card-header fw-semibold bg-transparent"><i class="fa-solid fa-diagram-project me-2"></i><?= $this->t('analytics.card.top_referrers') ?></div>
             <div class="table-responsive"><table class="table table-sm mb-0 align-middle"><tbody id="ga-sources"></tbody></table></div>
         </div>
     </div>

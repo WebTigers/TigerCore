@@ -25,6 +25,8 @@
  * Config (tiger.analytics.*): oauth.mode, connect.base_url (broker), oauth.client_id,
  * oauth.client_secret_enc (byo), property_id, oauth.refresh_token_enc. All written and read at the
  * caller's ORG (TIGER-511), falling back to the install-wide value; `connect.base_url` is ini-only.
+ * The two credentials (`refresh_token_enc`, `client_secret_enc`) are org-level only (1.61): only the
+ * install's own org may read the install-wide tier. forOrg() answers for a named org (Tiger_Analytics).
  *
  * @api
  */
@@ -58,6 +60,47 @@ class Tiger_Google_Analytics
      * without a real network round-trip. Always null in production.
      */
     private static $_transport = null;
+
+    /**
+     * @var string|null the org every read/write answers for while inside forOrg(); null = the caller's
+     * current org (Tiger_Model_Config::currentOrgId), the pre-1.61 behaviour.
+     */
+    private static $_org = null;
+
+    // =====================================================================================
+    //  Org scope
+    // =====================================================================================
+
+    /**
+     * Run $fn with every Tiger_Google_Analytics read and write answering for ONE named org instead of
+     * the signed-in caller's — the seam the provider-agnostic reporting registry (Tiger_Analytics) uses
+     * so an adapter call is org-explicit. The per-request access-token memo and the reconnect flag are
+     * isolated for the duration and restored afterwards, so one org's token is never reused for another.
+     *
+     * @api
+     * @since 1.61.0
+     * @param  string   $orgId the org to answer for
+     * @param  callable $fn    the work, called with no arguments
+     * @return mixed whatever $fn returns
+     */
+    public static function forOrg($orgId, callable $fn)
+    {
+        $prev = [self::$_org, self::$_access, self::$_reconnect];
+        self::$_org       = (string) $orgId;
+        self::$_access    = null;
+        self::$_reconnect = false;
+        try {
+            return $fn();
+        } finally {
+            [self::$_org, self::$_access, self::$_reconnect] = $prev;
+        }
+    }
+
+    /** The org reads + writes answer for: the forOrg() org, else the caller's current org. */
+    private static function _orgId()
+    {
+        return self::$_org !== null ? self::$_org : (string) Tiger_Model_Config::currentOrgId();
+    }
 
     // =====================================================================================
     //  Connection state + config
@@ -157,7 +200,7 @@ class Tiger_Google_Analytics
     /** Store (or clear, with '') the encrypted refresh token at the caller's org (TIGER-511). */
     private static function _storeRefreshToken($enc)
     {
-        [$scope, $sid] = Tiger_Model_Config::settingScope();
+        [$scope, $sid] = Tiger_Model_Config::settingScope(self::$_org);
         (new Tiger_Model_Config())->set($scope, $sid, 'tiger.analytics.oauth.refresh_token_enc', (string) $enc);
     }
 
@@ -644,10 +687,25 @@ class Tiger_Google_Analytics
         return self::_decryptConfig('analytics.oauth.refresh_token_enc');
     }
 
-    /** Decrypt a `_enc` config value via Tiger_Crypto, or '' if unset/undecryptable. */
+    /**
+     * Decrypt a `_enc` config value via Tiger_Crypto, or '' if unset/undecryptable.
+     *
+     * A credential (the refresh token, a BYO client secret) is ORG-LEVEL ONLY (1.61, the 1.60 rule for
+     * keys): the org's own row, and — for the install's own org only — the install-wide tier. Another
+     * org never inherits the install's Google grant, so it can neither report on the install's property
+     * nor revoke its grant from Disconnect.
+     */
     private static function _decryptConfig($dotKey)
     {
-        $enc = (string) self::_config($dotKey, '');
+        $org = self::_orgId();
+        $key = 'tiger.' . $dotKey;
+        if ($org === '') {
+            $enc = Tiger_Model_Org::installOrgId() === '' ? (string) Tiger_Model_Config::orgValue('', $key, '') : '';
+        } else {
+            $enc = Tiger_Model_Org::isInstallOrg($org)
+                ? (string) Tiger_Model_Config::orgValue($org, $key, '')
+                : (string) Tiger_Model_Config::orgOwnValue($org, $key, '');
+        }
         if ($enc === '' || !class_exists('Tiger_Crypto') || !Tiger_Crypto::isConfigured()) {
             return '';
         }
@@ -669,6 +727,6 @@ class Tiger_Google_Analytics
      */
     private static function _config($dotKey, $default = '')
     {
-        return (string) Tiger_Model_Config::currentValue('tiger.' . $dotKey, $default);
+        return (string) Tiger_Model_Config::orgValue(self::_orgId(), 'tiger.' . $dotKey, $default);
     }
 }

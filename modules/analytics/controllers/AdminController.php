@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
- * Analytics_AdminController — the Google Analytics settings screen. Thin per ADMIN.md: renders the
- * form pre-filled from the live config; saving is an /api call (Analytics_Service_Analytics). Its own
- * ACL resource (admin+), so access is grantable independently.
+ * Analytics_AdminController — the analytics setup screen. Step 1 chooses the reporting provider
+ * (Tiger_Analytics: Google Analytics or Matomo); step 2 is that provider's setup — GA's form + OAuth
+ * connect, or the matomo module's own form. Thin per ADMIN.md: renders forms pre-filled from the live
+ * config; every save is an /api call (Analytics_Service_Analytics, Matomo_Service_Matomo). Its own ACL
+ * resource (admin+), so access is grantable independently.
  */
 class Analytics_AdminController extends Tiger_Controller_Admin_Action
 {
@@ -52,6 +54,32 @@ class Analytics_AdminController extends Tiger_Controller_Admin_Action
             'redirect_uri' => $this->_redirectUri(),
         ];
         $this->view->flash = $this->_takeFlash();
+
+        // Step 1 — the reporting provider (Tiger_Analytics, org-scoped). `overview` carries no secret.
+        // `?provider=` only chooses which setup panel opens (deep link from /matomo/admin); it saves nothing.
+        $orgId    = (string) Tiger_Model_Config::currentOrgId();
+        $overview = Tiger_Analytics::overview($orgId);
+        $want     = strtolower((string) $this->getRequest()->getParam('provider', ''));
+        $this->view->analytics = $overview;
+        $this->view->panel     = isset($overview['providers'][$want]) ? $want : $overview['provider'];
+
+        // The Matomo panel renders the matomo module's OWN form (one setup, one service) — only when
+        // that module is active. The token is write-only: the screen gets `hasToken`, never the value.
+        $this->view->matomo = null;
+        if (class_exists('Matomo_Form_Settings')) {
+            $mForm = new Matomo_Form_Settings();
+            $mForm->populate([
+                'matomo_url'                    => (string) Tiger_Model_Config::currentValue('tiger.matomo.url', ''),
+                'matomo_site_id'                => (string) Tiger_Model_Config::currentValue('tiger.matomo.site_id', ''),
+                'matomo_affiliate_dimension_id' => (string) Tiger_Model_Config::currentValue('tiger.matomo.affiliate.dimension_id', '1'),
+            ]);
+            $this->view->matomo = [
+                'form'            => $mForm,
+                'enabled'         => $b('tiger.matomo.enabled', false),
+                'excludeSignedIn' => $b('tiger.matomo.exclude_signed_in', true),
+                'hasToken'        => (new Tiger_Analytics_Adapter_Matomo())->hasToken($orgId),
+            ];
+        }
     }
 
     /**
@@ -162,7 +190,9 @@ class Analytics_AdminController extends Tiger_Controller_Admin_Action
     public function dashboardAction()
     {
         $this->view->title     = 'Analytics — Dashboard';
-        $this->view->connected = Tiger_Google_Analytics::isConnected();
+        // Provider-agnostic since 1.61: "connected" = the org has an effective reporting provider.
+        $this->view->provider  = Tiger_Analytics::provider((string) Tiger_Model_Config::currentOrgId());
+        $this->view->connected = $this->view->provider !== '';
         $this->view->useChart  = true;   // the admin layout ships Chart.js only when a page declares a chart
     }
 

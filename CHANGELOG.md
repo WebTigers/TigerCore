@@ -6,6 +6,45 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.61.0] — 2026-11-16
+
+### Added — choose your analytics provider (Google Analytics or Matomo)
+The Analytics screen and the dashboard's Traffic widget assumed Google Analytics. An org now chooses the
+provider it reports from, and sets that one up.
+- **`Tiger_Analytics`** — a provider-agnostic reporting registry (the `Tiger_Location` name → adapter
+  pattern). Adapters implement `Tiger_Analytics_Adapter_Interface` — `isConfigured($orgId)`,
+  `report($orgId, $period)`, `test($orgId)` — and never throw. `report()` returns ONE normalized shape for
+  every provider: `totals {visits, visitors, pageviews, bounce_rate, avg_time}` (null when a provider
+  does not report a metric), a daily `series [{date, visitors, pageviews}]`, `top_pages [{label, hits}]`,
+  `top_referrers [{label, visits}]`, or `{error, code}`. Register more with `Tiger_Analytics::register()`.
+- **`ga` adapter** wraps the existing GA4 reporting (`Tiger_Google_Analytics` — same calls, same cache,
+  same reconnect signal); `Tiger_Google_Analytics::forOrg($orgId, $fn)` runs it for a named org.
+- **`matomo` adapter** reads Matomo's Reporting API: one `API.getBulkRequest` POST to `<url>/index.php`
+  with `token_auth` in the POST body (never the URL), 5-second timeout. New org-scoped, encrypted
+  **`tiger.matomo.token_auth_enc`**, org-level only.
+- **`tiger.analytics.provider`** (org-scoped): `''` | `ga` | `matomo`. Unset resolves automatically — an
+  org with GA connected stays on GA, else Matomo with a token, else none — so existing installs keep
+  working with no clicks. Switching never deletes the other provider's settings. Tracking TAGS are
+  unchanged and independent: each module's tag keeps its own enabled flag.
+- **Admin flow** (`/analytics/admin`): step 1 "Choose your analytics provider" (a card per provider, the
+  current one marked); step 2 that provider's setup — GA's existing form + Connect, or Matomo's URL, site
+  ID, write-only API token, tracking-tag switch and **Test connection**. Matomo is set up in ONE place:
+  the panel renders the matomo module's own form (a shared partial) and posts to its own service;
+  `/matomo/admin` redirects there. `Analytics_Service_Analytics::saveProvider`,
+  `Analytics_Service_Reports::report`, and `Reports::test` with `provider=` — all admin ACL, CSRF-checked
+  (the provider choice shares the screen's analytics token).
+- **The Traffic widget** (`analytics.traffic`, same id — dashboards keep their layout) and the analytics
+  dashboard render from the chosen provider; with none they say "Choose an analytics provider" and link
+  to the setup screen; a provider error shows its message with a link to fix it. The widget's script is
+  now an asset (`analytics.widget.js`) — no inline `<script>`/`style`. `Analytics_Widget_Traffic`
+  (`Analytics_Widget_Ga` remains as a deprecated alias).
+
+### Changed — analytics credentials are org-level only
+- The GA refresh token and BYO client secret (`tiger.analytics.oauth.refresh_token_enc`,
+  `.client_secret_enc`) follow the 1.60 rule for keys: only the install's own org may read the
+  install-wide tier. Another org no longer inherits the install's Google grant (it could report on the
+  install's property, and Disconnect could revoke it). A single-tenant install is unaffected.
+
 ## [1.60.0] — 2026-11-16
 
 ### Changed — AI keys are org-level only; translations per org; git is install-level (TIGER-511)

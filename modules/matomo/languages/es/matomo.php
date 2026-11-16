@@ -38,4 +38,13 @@ return [
     // Client-side
     'matomo.net_error'                 => 'Error de red — por favor, inténtalo de nuevo.',
     'matomo.fix_fields'                => 'Por favor, corrige los campos resaltados.',
+
+    // Token de la API de informes (1.61) — solo escritura
+    'matomo.token'                     => 'Token de API (token_auth)',
+    'matomo.token_help'                => 'Créalo en Matomo en Administración → Personal → Seguridad → Tokens de autenticación. Necesita acceso de lectura a este sitio. Se guarda cifrado y no se vuelve a mostrar; déjalo en blanco para conservar el guardado.',
+    'matomo.token_placeholder'         => 'Pega tu token de API de Matomo',
+    'matomo.token_keep'                => '•••••• guardado (déjalo en blanco para conservarlo)',
+    'matomo.token_saved'               => 'Token guardado',
+    'matomo.card.tag'                  => 'Etiqueta de seguimiento',
+    'matomo.error.no_crypto'           => 'Hay que configurar una clave de cifrado antes de poder guardar un token de API.',
 ];

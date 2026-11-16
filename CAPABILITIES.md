@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**254 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**259 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -330,6 +330,11 @@
 
 ### Other (unmapped — add to $CAPS)
 
+- **Tiger_Analytics** `@api` — the provider-agnostic analytics REPORTING registry.  ·  `library/Tiger/Analytics.php`
+- **Tiger_Analytics_Adapter_Abstract** `@api` — base for analytics reporting adapters.  ·  `library/Tiger/Analytics/Adapter/Abstract.php`
+- **Tiger_Analytics_Adapter_Ga** `@api` — Google Analytics 4 reporting behind the provider-agnostic registry.  ·  `library/Tiger/Analytics/Adapter/Ga.php`
+- **Tiger_Analytics_Adapter_Interface** `@api` — the contract every analytics REPORTING provider implements.  ·  `library/Tiger/Analytics/Adapter/Interface.php`
+- **Tiger_Analytics_Adapter_Matomo** `@api` — self-hosted Matomo reporting behind the provider-agnostic registry.  ·  `library/Tiger/Analytics/Adapter/Matomo.php`
 - **Tiger_Comment** `@api` — the subject registry and policy gate for comments, ratings and reviews.  ·  `library/Tiger/Comment.php`
 - **Tiger_Comment_Spam** `@api` — the spam-check registry, and the first checker: the in-platform AI agent.  ·  `library/Tiger/Comment/Spam.php`
 - **Tiger_Git** `@api` — the facade + shared constants for the platform's one git/GitHub layer (TIGER-334).  ·  `library/Tiger/Git.php`

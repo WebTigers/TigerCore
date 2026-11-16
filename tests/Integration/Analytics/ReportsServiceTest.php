@@ -149,8 +149,11 @@ final class ReportsServiceTest extends IntegrationTestCase
         $key = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';   // 32 zero bytes, base64
         Zend_Registry::set('Zend_Config', new Zend_Config(['tiger' => ['crypto' => ['key' => $key]]], true));
         $enc = Tiger_Crypto::encrypt('fake-refresh-token');
+        // The token sits in the install-wide (ini) tier, so the caller's org must be the INSTALL org to
+        // read it — a credential is org-level only for every other org (1.61).
         Zend_Registry::set('Zend_Config', new Zend_Config(['tiger' => [
             'crypto'    => ['key' => $key],
+            'site'      => ['org_id' => 'org-test'],
             'analytics' => [
                 'property_id' => self::PROPERTY_ID,
                 'oauth'       => ['mode' => 'broker', 'refresh_token_enc' => $enc],

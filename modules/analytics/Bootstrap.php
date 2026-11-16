@@ -6,7 +6,9 @@
  *
  * First-party Google Analytics (GA4) integration — the WordPress-parity "paste your tracking ID"
  * feature, done the Tiger way: config-backed (no deploy), consent-aware, and provider-extensible via
- * the Tiger_Tracking registry. This module owns only GA; the GDPR cookie banner is a separate feature
+ * the Tiger_Tracking registry. It is also the analytics HUB (1.61): the setup screen where an org
+ * chooses its reporting provider (Tiger_Analytics — GA or Matomo), and the provider-agnostic Traffic
+ * widget + dashboard. This module owns the GA tag; the GDPR cookie banner is a separate feature
  * (Settings → Security → Cookies) that gates every registered tracker through Tiger_Consent.
  *
  * Extending Zend_Application_Module_Bootstrap gives the module its resource autoloader, so
@@ -39,8 +41,10 @@ class Analytics_Bootstrap extends Zend_Application_Module_Bootstrap
     }
 
     /**
-     * Register the "Traffic" dashboard widget (GA reports). Also teaches the module autoloader the
-     * `widgets/` resource type so Analytics_Widget_* resolves. ACL-gated + activation-gated for free.
+     * Register the "Traffic" dashboard widget — provider-agnostic since 1.61 (it renders from the org's
+     * Tiger_Analytics reporting provider). The id `analytics.traffic` is unchanged, so saved dashboard
+     * layouts keep their place. Also teaches the module autoloader the `widgets/` resource type so
+     * Analytics_Widget_* resolves. ACL-gated + activation-gated for free.
      */
     protected function _initAnalyticsWidget()
     {
@@ -53,7 +57,7 @@ class Analytics_Bootstrap extends Zend_Application_Module_Bootstrap
                 'module'   => 'analytics',
                 'title'    => 'analytics.widget.traffic',
                 'icon'     => 'fa-chart-line',
-                'widget'   => 'Analytics_Widget_Ga',
+                'widget'   => 'Analytics_Widget_Traffic',
                 'resource' => 'Analytics_AdminController',
                 'width'    => 2,
                 'order'    => 30,
