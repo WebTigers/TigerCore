@@ -19,6 +19,11 @@ class Agent_Service_Agent extends Tiger_Service_Service
      * Run a turn: send a message and get the agent's response + any proposed actions.
      *
      * @param  array $params conversation_id (optional), message, context (JSON, optional)
+     * @apiRequest Agent_Form_Send
+     * @apiParam string conversation_id The conversation to continue. Empty to start a new one.
+     * @apiParam object context The page context: path and editable targets (an object or its JSON string).
+     * @apiParam string(ask|auto|yolo) mode How far the agent may act without approval (clamped to the site maximum).
+     * @apiParam string attachment_ids Comma-separated ids of files uploaded with uploadFile to attach to this turn.
      * @return void
      */
     public function send(array $params): void
@@ -68,6 +73,7 @@ class Agent_Service_Agent extends Tiger_Service_Service
      * is bound to the conversation + message on send. Owner-scoped: the caller owns what they upload.
      *
      * @param  array $params (the file arrives in $_FILES['file'], not $params)
+     * @apiRequest none
      * @return void
      */
     public function uploadFile(array $params): void
@@ -141,6 +147,11 @@ class Agent_Service_Agent extends Tiger_Service_Service
      * ledger entries through the Forge, re-checking the ACL, and rewrites the run ledger.
      *
      * @param  array $params run_id, and `indexes` (array of ledger positions) or `all`
+     * @apiRequest Agent_Form_Approve
+     * @apiParam array indexes The ledger positions to approve (an array, a JSON array, or a comma list).
+     * @apiParam boolean all Approve every proposed action in the run.
+     * @apiParam string(ask|auto|yolo) mode The mode for the follow-up turn (clamped to the site maximum).
+     * @apiParam object context The page context for the follow-up turn.
      * @return void
      */
     public function approve(array $params): void
@@ -209,6 +220,7 @@ class Agent_Service_Agent extends Tiger_Service_Service
      * The current user's recent conversations (for the aside's thread switcher).
      *
      * @param  array $params unused
+     * @apiRequest none
      * @return void
      */
     public function conversations(array $params): void
@@ -230,6 +242,7 @@ class Agent_Service_Agent extends Tiger_Service_Service
      * The transcript of one conversation (owner-scoped), for the aside to render on load.
      *
      * @param  array $params conversation_id
+     * @apiParam string conversation_id required The conversation to load.
      * @return void
      */
     public function history(array $params): void
@@ -384,6 +397,10 @@ class Agent_Service_Agent extends Tiger_Service_Service
      * model so it can continue (e.g. read → rewrite).
      *
      * @param  array $params conversation_id, results (JSON), context, mode
+     * @apiRequest Agent_Form_Resume
+     * @apiParam array results The DOM results: [{target, ok, content?, kind?, error?}] (an array or its JSON string).
+     * @apiParam object context The page context: path and editable targets.
+     * @apiParam string(ask|auto|yolo) mode How far the agent may act without approval (clamped to the site maximum).
      * @return void
      */
     public function resume(array $params): void

@@ -25,6 +25,9 @@ class Cms_Service_Page extends Tiger_Service_Service
      * action buttons — authorization stays server-side. See AGENTS.md (client/server).
      *
      * @param  array $params the DataTables request payload (search/sort/paginate + toolbar filters)
+     * @apiRequest datatable
+     * @apiParam string(draft|published|archived) status Only rows in this status.
+     * @apiParam string(page|layout|partial|block) type Only rows of this type.
      * @return void
      */
     public function datatable(array $params): void
@@ -79,6 +82,7 @@ class Cms_Service_Page extends Tiger_Service_Service
      * slice in PHP. Each row carries `can_edit` so the client renders ACL-correct controls.
      *
      * @param  array $params the DataTables request payload
+     * @apiRequest datatable
      * @return void
      */
     public function themeTemplates(array $params): void
@@ -168,6 +172,9 @@ class Cms_Service_Page extends Tiger_Service_Service
      * can later offer "revert to theme default" + non-destructive theme updates (AUTHORING.md §4).
      *
      * @param  array $params `slug` (the theme content slug/key) + optional `kind` (page|layout|partial)
+     * @apiParam string slug required The theme template's slug (a page) or key (a layout/partial).
+     * @apiParam string(page|layout|partial) kind What kind of template to fork. Defaults to page.
+     * @apiParam string theme The theme key; only the active theme is accepted. Empty means the active theme.
      * @return void
      */
     public function forkTheme(array $params): void
@@ -260,6 +267,8 @@ class Cms_Service_Page extends Tiger_Service_Service
      *
      * @param  array $params the editor form payload
      * @apiRequest Cms_Form_Page
+     * @apiParam string page_id Empty to create a new page.
+     * @apiParam object fields Custom field values keyed by field name (only fields declared for the page type are kept).
      * @return void
      */
     public function save(array $params): void
@@ -380,6 +389,10 @@ class Cms_Service_Page extends Tiger_Service_Service
      * this touches the design only, on an existing row.
      *
      * @param  array $params the builder payload (`page_id`, `html`, `css`, `project`)
+     * @apiParam string page_id required The page whose design is saved.
+     * @apiParam string html The rendered builder markup (script tags are stripped).
+     * @apiParam string css The builder's CSS, stored as a style block ahead of the markup.
+     * @apiParam string layout_key For a partial, the layout it previews against. Empty clears it; omit to leave it.
      * @return void
      */
     public function saveDesign(array $params): void
@@ -449,6 +462,9 @@ class Cms_Service_Page extends Tiger_Service_Service
      * resolved at render time. Returns the new block for a live palette add.
      *
      * @param  array $params `name`, `html`, and optional `css`
+     * @apiParam string name required The block's name in the palette.
+     * @apiParam string html required The block's markup (script tags are stripped).
+     * @apiParam string css The block's scoped CSS.
      * @return void
      */
     public function saveBlock(array $params): void
@@ -504,6 +520,7 @@ class Cms_Service_Page extends Tiger_Service_Service
      * Soft-delete a page (recoverable — the row is flagged, not dropped).
      *
      * @param  array $params the request payload (`page_id`)
+     * @apiParam string page_id required The page to delete.
      * @return void
      */
     public function delete(array $params): void
@@ -524,6 +541,8 @@ class Cms_Service_Page extends Tiger_Service_Service
      * Restore a page to a prior version (current content is snapshotted first).
      *
      * @param  array $params the request payload (`page_id`, `version`)
+     * @apiParam string page_id required The page to restore.
+     * @apiParam integer version required The version number to restore (1 or higher).
      * @return void
      */
     public function restore(array $params): void

@@ -19,6 +19,7 @@ class Profile_Service_Security extends Tiger_Service_Service
      * Set the current user's password (new + confirm; no current-password step — see the class note).
      *
      * @param  array $params new_password, confirm_password
+     * @apiRequest Profile_Form_Password
      * @return void
      */
     public function changePassword(array $params): void

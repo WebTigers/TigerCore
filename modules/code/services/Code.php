@@ -36,6 +36,8 @@ class Code_Service_Code extends Tiger_Service_Service
      * DataTables source for the code list.
      *
      * @param  array $params the DataTables request (draw/start/length/search/order) plus filters
+     * @apiRequest datatable
+     * @apiParam string(php|phtml|js|css|html) language Only snippets in this language.
      * @return void
      */
     public function datatable(array $params): void
@@ -128,6 +130,7 @@ class Code_Service_Code extends Tiger_Service_Service
      * is never copied into the DB — it's read live from the installed module file.
      *
      * @param  array $params must carry `code_id` in the `module:<key>` form
+     * @apiParam string code_id required The module snippet, as module:<key>.
      * @return void
      */
     public function moduleSource(array $params): void
@@ -154,6 +157,8 @@ class Code_Service_Code extends Tiger_Service_Service
      * Create or update a snippet (insert when code_id is empty). Lints PHP before storing.
      *
      * @param  array $params the posted snippet form values
+     * @apiRequest Code_Form_Code
+     * @apiParam string code_id The snippet to update. Empty to create.
      * @return void
      */
     public function save(array $params): void
@@ -230,6 +235,7 @@ class Code_Service_Code extends Tiger_Service_Service
      * Activate a snippet (lints first).
      *
      * @param  array $params must carry `code_id`
+     * @apiParam string code_id required The snippet to activate: a local code_id, or module:<key> for a module snippet.
      * @return void
      */
     public function activate(array $params): void { $this->_toggle($params, true); }
@@ -238,6 +244,7 @@ class Code_Service_Code extends Tiger_Service_Service
      * Deactivate a snippet.
      *
      * @param  array $params must carry `code_id`
+     * @apiParam string code_id required The snippet to deactivate: a local code_id, or module:<key> for a module snippet.
      * @return void
      */
     public function deactivate(array $params): void { $this->_toggle($params, false); }
@@ -313,6 +320,7 @@ class Code_Service_Code extends Tiger_Service_Service
      * Soft-delete a snippet (recoverable).
      *
      * @param  array $params must carry `code_id`
+     * @apiParam string code_id required The snippet to delete.
      * @return void
      */
     public function delete(array $params): void
@@ -333,6 +341,8 @@ class Code_Service_Code extends Tiger_Service_Service
      * Restore a prior version (does not auto-reactivate).
      *
      * @param  array $params must carry `code_id` and `version`
+     * @apiParam string code_id required The snippet to restore.
+     * @apiParam integer version required The version number to restore (1 or higher).
      * @return void
      */
     public function restore(array $params): void

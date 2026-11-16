@@ -13,7 +13,13 @@
  */
 class Agent_Service_Mcp extends Tiger_Service_Service
 {
-    /** The configured connections (token replaced by a has_token flag). */
+    /**
+     * The configured connections (token replaced by a has_token flag).
+     *
+     * @param  array $params the request payload
+     * @apiRequest none
+     * @return void
+     */
     public function connections(array $params): void
     {
         if (!$this->_isAllowed('connections')) { $this->_error('core.api.error.not_allowed'); return; }
@@ -26,7 +32,17 @@ class Agent_Service_Mcp extends Tiger_Service_Service
         return (string) ($this->_org_id ?? '');
     }
 
-    /** Create or update a connection (a blank token keeps the existing one). */
+    /**
+     * Create or update a connection (a blank token keeps the existing one).
+     *
+     * @param  array $params the request payload
+     * @apiParam string id The connection to update. Empty to create.
+     * @apiParam string label required A display name for the connection.
+     * @apiParam string url required The remote MCP server URL (http or https).
+     * @apiParam string token The Bearer token for the server. Blank keeps the stored one.
+     * @apiParam boolean enabled Whether the agent may use this connection's tools.
+     * @return void
+     */
     public function save(array $params): void
     {
         if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
@@ -52,7 +68,13 @@ class Agent_Service_Mcp extends Tiger_Service_Service
         }
     }
 
-    /** Remove a connection. */
+    /**
+     * Remove a connection.
+     *
+     * @param  array $params the request payload
+     * @apiParam string id The connection to remove.
+     * @return void
+     */
     public function remove(array $params): void
     {
         if (!$this->_isAllowed('remove')) { $this->_error('core.api.error.not_allowed'); return; }
@@ -60,7 +82,13 @@ class Agent_Service_Mcp extends Tiger_Service_Service
         $this->_success(['connections' => Tiger_Agent_Mcp::forAdmin($this->_org())], 'agent.mcp.removed');
     }
 
-    /** Test a connection — list its tools live. */
+    /**
+     * Test a connection — list its tools live.
+     *
+     * @param  array $params the request payload
+     * @apiParam string id required The connection to test.
+     * @return void
+     */
     public function test(array $params): void
     {
         if (!$this->_isAllowed('test')) { $this->_error('core.api.error.not_allowed'); return; }

@@ -17,6 +17,7 @@ class Profile_Service_OrgAddress extends Profile_Service_Base
      * Create or update one of the current org's addresses (edit when link_id is present).
      *
      * @param  array $params type, country, line1, line2, city, region, postal, latitude, longitude, is_primary, link_id
+     * @apiRequest Profile_Form_Address
      * @return void
      */
     public function save(array $params): void
@@ -77,6 +78,7 @@ class Profile_Service_OrgAddress extends Profile_Service_Base
      * Delete one of the current org's addresses (unlink + soft-delete the location).
      *
      * @param  array $params link_id
+     * @apiParam string link_id required The org address link (org_address_id) to delete.
      * @return void
      */
     public function delete(array $params): void

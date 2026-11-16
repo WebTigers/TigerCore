@@ -17,6 +17,7 @@ class Profile_Service_Address extends Profile_Service_Base
      * Create or update one of the current user's addresses (edit when user_address_id is present).
      *
      * @param  array $params type, country, line1, line2, city, region, postal, is_primary, user_address_id
+     * @apiRequest Profile_Form_Address
      * @return void
      */
     public function save(array $params): void
@@ -76,6 +77,7 @@ class Profile_Service_Address extends Profile_Service_Base
      * Delete one of the current user's addresses (unlink + soft-delete the location).
      *
      * @param  array $params user_address_id
+     * @apiParam string link_id required The address link (user_address_id) to delete.
      * @return void
      */
     public function delete(array $params): void

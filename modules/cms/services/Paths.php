@@ -27,6 +27,8 @@ class Cms_Service_Paths extends Tiger_Service_Service
      * Search the discoverable valid paths for the combobox.
      *
      * @param  array $params `q` (substring filter), `advanced` (include every theme page)
+     * @apiParam string q A substring to filter the paths by. Empty lists them all.
+     * @apiParam boolean advanced Include every theme page, not just each theme's home.
      * @return void
      */
     public function search(array $params): void

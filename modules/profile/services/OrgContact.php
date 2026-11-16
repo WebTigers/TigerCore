@@ -17,6 +17,7 @@ class Profile_Service_OrgContact extends Profile_Service_Base
      * Create or update one of the current org's contacts (edit when link_id is present).
      *
      * @param  array $params type, value, is_primary, phone_country, link_id (blank = create)
+     * @apiRequest Profile_Form_Contact
      * @return void
      */
     public function save(array $params): void
@@ -75,6 +76,7 @@ class Profile_Service_OrgContact extends Profile_Service_Base
      * Delete one of the current org's contacts (unlink + soft-delete the channel).
      *
      * @param  array $params link_id
+     * @apiParam string link_id required The org contact link (org_contact_id) to delete.
      * @return void
      */
     public function delete(array $params): void

@@ -143,6 +143,7 @@ class Profile_Service_Sms extends Profile_Service_Base
      * Current SMS state for the signed-in user (drives the card render + every refresh).
      *
      * @param  array $params unused
+     * @apiRequest none
      * @return void
      */
     public function status(array $params): void
@@ -156,6 +157,8 @@ class Profile_Service_Sms extends Profile_Service_Base
      * Step 1 — send a verification code to a number the user is enrolling (requires the consent tick).
      *
      * @param  array $params phone, consent (1), _csrf
+     * @apiParam string phone required The phone number to enroll (normalized to E.164).
+     * @apiParam boolean consent required The user's opt-in to receive texts. Refused without it.
      * @return void
      */
     public function requestCode(array $params): void
@@ -212,6 +215,8 @@ class Profile_Service_Sms extends Profile_Service_Base
      * Step 2 — confirm the texted code: mark the number verified + record consent (double opt-in done).
      *
      * @param  array $params phone, code, _csrf
+     * @apiParam string phone required The phone number the code was sent to.
+     * @apiParam string code required The verification code from the text.
      * @return void
      */
     public function verifyCode(array $params): void
@@ -273,6 +278,7 @@ class Profile_Service_Sms extends Profile_Service_Base
      * Remove the user's verified/pending number and soft-delete their consent record.
      *
      * @param  array $params _csrf
+     * @apiRequest none
      * @return void
      */
     public function remove(array $params): void
