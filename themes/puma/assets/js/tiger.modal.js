@@ -31,6 +31,11 @@
     if (typeof window.bootstrap === 'undefined' || !window.bootstrap.Modal) { return; }
 
     var el = null, modal = null, resolver = null, mode = 'confirm', hasCheckbox = false;
+    // A dialog opened while the previous one is still animating closed (e.g. a .then() chaining a second
+    // confirm) must wait: Bootstrap ignores show() mid-hide, and the old dialog's hidden.bs.modal would settle
+    // the NEW promise as a cancel before it was ever seen. `hiding` tracks that window; `queued` holds the
+    // dialog to open once it ends.
+    var hiding = false, queued = null;
 
     function q(sel) { return el.querySelector('[data-tm="' + sel + '"]'); }
 
@@ -78,9 +83,13 @@
         q('input').addEventListener('keydown', function (e) {
             if (e.key === 'Enter') { e.preventDefault(); q('confirm').click(); }
         });
-        // Any dismissal that isn't a confirm (Cancel, ✕, Esc, backdrop) resolves the cancel value.
+        el.addEventListener('hide.bs.modal', function () { hiding = true; });
+        // Any dismissal that isn't a confirm (Cancel, ✕, Esc, backdrop) resolves the cancel value — for THIS
+        // dialog only; then a dialog that was opened during the hide is shown.
         el.addEventListener('hidden.bs.modal', function () {
             settle(mode === 'prompt' ? null : (mode === 'alert' ? undefined : (hasCheckbox ? { confirmed: false, checked: false } : false)));
+            hiding = false;
+            if (queued) { var next = queued; queued = null; next(); }
         });
         el.addEventListener('shown.bs.modal', function () {
             if (mode === 'prompt') { var i = q('input'); i.focus(); i.select(); }
@@ -90,6 +99,10 @@
 
     function open(opts, kind) {
         build();
+        if (hiding) {
+            // The previous dialog is still closing: open this one when it's gone (see `hiding` above).
+            return new Promise(function (resolve) { queued = function () { open(opts, kind).then(resolve); }; });
+        }
         settle(kind === 'prompt' ? null : (kind === 'alert' ? undefined : false));   // cancel any dialog still open
         mode = kind;
 

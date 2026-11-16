@@ -41,7 +41,10 @@ class Tiger_Module_Compat
         $r       = self::_norm($running);
 
         $c      = (isset($manifest['compat']['tiger']) && is_array($manifest['compat']['tiger'])) ? $manifest['compat']['tiger'] : [];
-        $minRaw = isset($c['min']) ? (string) $c['min'] : (string) ($manifest['requires']['tiger'] ?? '');
+        // `requires` may arrive as an object: a caller building a JSON payload uses `new stdClass()` for an
+        // empty one (so it serializes as {} not []), and array-indexing an object throws even under `??`.
+        $requires = (array) ($manifest['requires'] ?? []);
+        $minRaw = isset($c['min']) ? (string) $c['min'] : (string) ($requires['tiger'] ?? '');
         $maxRaw = isset($c['max']) ? (string) $c['max'] : '';
         $min    = self::_norm($minRaw);
         $max    = self::_norm($maxRaw);

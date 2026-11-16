@@ -97,6 +97,8 @@ jobs:
         run: node tests/js/tiger.i18n.test.js
       - name: TigerButton busy state
         run: node tests/js/tiger.button.test.js
+      - name: TigerModal chained dialogs
+        run: node tests/js/tiger.modal.test.js
 
   # Needs a database — one PHP version is enough; the schema, not the interpreter, is under test.
   integration:

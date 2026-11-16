@@ -6,6 +6,33 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.61.4] — 2026-11-16
+
+### Fixed — Add Module cards: real headings, named buttons, aligned layout
+- **Headings in order.** Card titles were `<h6>` straight under the page `<h1>` (used for bold, not structure),
+  and the section titles ("Browse the directory", "Marketplaces", …) weren't headings at all. Now page `h1`
+  → section `h2` → card `h3`, styled exactly as before (`.h6`).
+- **The card heading is just the name.** The type / price / sponsored badges sat inside it, so it read
+  "TigerSSL Apps free"; they now sit beside it.
+- **Buttons say which module.** Every card's "View more" / "Get TigerPASS" carries an accessible name with the
+  module ("View more about TigerSSL"), instead of sixteen identical labels in a screen reader's list.
+- **Cards line up.** A card with no logo, or a logo that fails to load, keeps a neutral tile in its place, so
+  its text no longer jumps to the left edge.
+- Each card carries `data-slug`, a stable handle for tests and agents that doesn't depend on markup.
+
+### Fixed — installing modules from the Add Module screen
+- **TigerPASS modules installed through the wrong path.** For a module the install's TigerPASS covers,
+  "View more → Install" called the plain repo-URL installer with an empty repo and failed with "That doesn't
+  look like a GitHub repository URL." It now installs through the license authority (`installLicensed`, the
+  signed path), using the install's activated TigerPASS key server-side; the key never reaches the browser.
+- **A second confirmation never appeared.** `TigerModal` reuses one dialog, and a confirm opened from
+  another confirm's answer arrived while the first was still closing: Bootstrap ignored it, and the first
+  dialog's close answered the second as "cancel." Any two-step confirm (install → trust this vendor) stopped
+  silently after step one. The second dialog now waits for the first to close. New `tests/js/tiger.modal.test.js`.
+- **"View more" failed on a theme with no `requires`.** The detail view builds such a theme's manifest with
+  an empty object for `requires`, and the compatibility check indexed it as an array, which throws. Every
+  Directory theme without a `requires` block (Grey Mist) showed "Something went wrong." It's read either way now.
+
 ## [1.61.3] — 2026-11-16
 
 ### Fixed — the WebTigers marketplace source pointed at a moved address

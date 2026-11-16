@@ -109,11 +109,42 @@ document.addEventListener('DOMContentLoaded', function () {
             if (buyBtn){ buyBtn.addEventListener('click', function(){ startBuy(buyVendor, buyProduct, buyCheckout, m.name); }); }
             var haveKey = document.getElementById('mod-havekey');
             if (haveKey){ haveKey.addEventListener('click', function(){ pasteKey(buyVendor, buyProduct, m.name); }); }
+        } else if (avail === 'pass' && passHas){
+            // A PASS module this install is entitled to. It is LICENSED, so it installs through the license
+            // authority (installLicensed → signed download → verify → install), never the plain repo-URL path —
+            // its repo is private, and the URL installer refuses an unsigned licensed artifact anyway. No key is
+            // sent: the server resolves the install's activated TigerPASS key in-process.
+            var passVendor = (x.pricing && x.pricing.vendor) || '';
+            foot.innerHTML = '<button type="button" class="btn btn-primary" id="mod-do"><i class="fa-solid fa-download me-1"></i>Install</button>';
+            var passBtn = document.getElementById('mod-do');
+            if (passBtn){ passBtn.addEventListener('click', function(){ installViaPass(passVendor, m.slug, m.name); }); }
         } else {
             foot.innerHTML = '<button type="button" class="btn btn-primary" id="mod-do"><i class="fa-solid fa-download me-1"></i>Install</button>';
             var doBtn = document.getElementById('mod-do');
             if (doBtn){ doBtn.addEventListener('click', function(){ doInstall(d.repo, d.ref, false); }); }
         }
+    }
+
+    // Install a PASS module under the install's TigerPASS: consent → vendor trust (once) → installLicensed.
+    function installViaPass(vendor, product, name){
+        var b = document.getElementById('mod-do');
+        TigerModal.confirm({
+            title: Tiger.t('confirmInstallTitle'),
+            body: Tiger.t('confirmInstallBody'),
+            confirmLabel: Tiger.t('confirmInstallOk'),
+            variant: 'primary'
+        }).then(function(ok){
+            if (!ok){ return; }
+            return ensureVendor(vendor, name).then(function(trusted){
+                if (!trusted){ return; }
+                return TigerButton.run(b, function(){
+                    return api('installLicensed', { vendor: vendor, product: product });
+                }).then(function(res){
+                    if (res.result===1){ window.location=res.redirect||'/system/modules'; return; }
+                    modal.hide(); fb.innerHTML=''; (res.messages||[]).forEach(function(mm){ TigerDOM.notify(fb, mm.message, { type: mm.class, replace: false }); }); window.scrollTo({top:0,behavior:'smooth'});
+                });
+            });
+        }).catch(function(){});
     }
 
     function doInstall(repo, ref, isUpdate){
@@ -395,16 +426,26 @@ document.addEventListener('DOMContentLoaded', function () {
         // Actions. EVERY card keeps "View more" (the review-before-install / read-the-TIGER.md path).
         // A PASS module you don't own ALSO gets the subscription CTA, after it — read about it first,
         // then subscribe. (A PASS module you already own just needs View more → Install.)
-        var viewMore = '<button type="button" class="btn btn-sm btn-outline-primary" data-i="'+i+'">View more</button>';
-        var getPass  = '<button type="button" class="btn btn-sm btn-warning" data-getpass="'+i+'"><i class="fa-solid fa-paw me-1"></i>Get TigerPASS</button>';
+        // Every card has the same two buttons, so each carries the module's name in its accessible label —
+        // otherwise a screen reader's button list is sixteen identical "View more"s (WCAG 2.4.6).
+        var name = m.module||m.slug;
+        var viewMore = '<button type="button" class="btn btn-sm btn-outline-primary" data-i="'+i+'" aria-label="View more about '+esc(name)+'">View more</button>';
+        var getPass  = '<button type="button" class="btn btn-sm btn-warning" data-getpass="'+i+'" aria-label="Get TigerPASS for '+esc(name)+'"><i class="fa-solid fa-paw me-1" aria-hidden="true"></i>Get TigerPASS</button>';
         var action = '<div class="d-flex gap-2 flex-wrap">'+ viewMore + ((avail==='pass' && !passHas) ? getPass : '') +'</div>';
 
-        return '<div class="mod-grid-item" data-type="'+esc(type)+'" data-category="'+esc(catList(m).join(' '))+'" data-avail="'+esc(avail)+'"><div class="mod-grid-item-content card'+(m.sponsored?' border-warning-subtle':'')+'">'+
+        // The card title is a real heading at the right level (page h1 → section h2 → card h3), styled like the
+        // old bold line. It holds ONLY the name: the badges sit beside it, so the heading reads "TigerSSL", not
+        // "TigerSSL Apps free". data-slug gives tests and agents a stable handle that doesn't depend on markup.
+        return '<div class="mod-grid-item" data-slug="'+esc(m.slug||'')+'" data-type="'+esc(type)+'" data-category="'+esc(catList(m).join(' '))+'" data-avail="'+esc(avail)+'"><div class="mod-grid-item-content card'+(m.sponsored?' border-warning-subtle':'')+'">'+
             hero +
             '<div class="card-body d-flex gap-3">'+
-              (m.logo?'<img src="'+esc(m.logo)+'" alt="" class="mod-card-logo" onerror="'+imgErr+'">':'')+
+              // A card with no logo (or one that fails to load) keeps a neutral tile in the logo's place, so every
+              // card's text starts at the same indent instead of some jumping to the left edge.
+              (m.logo
+                ? '<img src="'+esc(m.logo)+'" alt="" class="mod-card-logo" onerror="this.removeAttribute(\'onerror\');this.removeAttribute(\'src\');this.classList.add(\'mod-card-logo-none\')">'
+                : '<span class="mod-card-logo mod-card-logo-none" aria-hidden="true"><i class="fa-solid fa-puzzle-piece"></i></span>')+
               '<div class="flex-grow-1">'+
-                '<h6 class="mb-0">'+esc(m.module||m.slug)+typeBadge+' '+availBadgeHTML(avail)+spon+'</h6>'+
+                '<div class="d-flex flex-wrap align-items-center gap-1"><h3 class="h6 mb-0 mod-card-title">'+esc(name)+'</h3>'+typeBadge+' '+availBadgeHTML(avail)+spon+'</div>'+
                 '<div class="small text-body-secondary mb-1">'+esc(m.vendor||'')+'</div>'+
                 '<p class="small text-body-secondary mb-2">'+esc(m.description||'')+'</p>'+
                 action+
