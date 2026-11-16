@@ -281,7 +281,10 @@ the **Forms you already wrote**:
 The Form is the killshot: you validate against a declarative element schema, so the
 request body is *already written*. An `email` element → `string`/`format:email`; a
 `NotEmpty` validator → `required`. A method points at its form (an `@apiRequest
-<FormClass>` docblock tag); form-less methods get a generic body + the docblock note.
+<FormClass>` docblock tag). A form-less method declares its input instead — `@apiRequest datatable`
+(a grid source), `@apiRequest none`, or one `@apiParam <type> <name> [required] [description]` line per
+parameter, which can also add to a form's fields. Every operation declares one (AGENTS.md "Services");
+an undeclared method would get a generic body that tells a client nothing.
 
 ### Discovery respects the ACL
 

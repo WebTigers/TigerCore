@@ -84,10 +84,9 @@ class Tiger_Mcp_Server
     {
         $schemas = self::_inputSchemas();   // module/service/method → JSON Schema (from the method's Form)
         $tools   = [];
-        foreach (Tiger_Agent_Tools::catalog($role) as $module => $ops) {
-            if ($allowedModules !== null && !in_array((string) $module, $allowedModules, true)) {
-                continue;   // outside the token's scope
-            }
+        // Scope first, no cap: a client lists tools, it doesn't carry them in a prompt. (Filtering after the
+        // agent's 160-op prompt cap hid every module that sorts past it from a token scoped to that module.)
+        foreach (Tiger_Agent_Tools::catalog($role, $allowedModules, null) as $module => $ops) {
             foreach ($ops as $op) {
                 $key = $module . '/' . $op['service'] . '/' . $op['method'];
                 $tools[] = [

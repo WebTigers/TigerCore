@@ -102,9 +102,21 @@ request, the server returns a single JSON-RPC response. No server-initiated mess
 tool-calling subset, so **SSE and session resumption are deferred** (the endpoint MAY add an `Mcp-Session-Id`
 + SSE later for notifications/streaming, without changing the tool contract).
 
-**Auth:** `Authorization: Bearer tgr_…` on every `/mcp` request — the exact header `ServiceFactory` already
-understands. (OAuth 2.1, which the MCP HTTP-auth spec prefers for *direct* remote clients, is deferred — the
-stdio bridge holds the token and presents the Bearer, so v1 needs no OAuth dance. See §7.)
+**Auth — three cases, resolved the way `/api` resolves them** (`Mcp_ServerController`):
+
+| Request carries | Identity | Surface |
+|---|---|---|
+| `Authorization: Bearer tgr_…` that verifies | the token's identity | that role's surface, clipped to the token's scope (§4) |
+| a Bearer that does **not** verify | none — **401**, `WWW-Authenticate: Bearer` | never a silent fallback to guest |
+| **no** Bearer | the same-origin session, else **guest** | the full surface of that role; a session from another origin is refused (403) |
+
+So `/mcp` with no token is not an error: it is a guest, exactly like `POST /api` with no session, and it
+lists the guest-allowed operations (signup, a public catalog, comment posting where enabled). It reaches
+nothing a browser can't already reach at `/api` — MCP is a transport, not a capability (§0) — and the
+endpoint as a whole stays off until `tiger.mcp.enabled` (404 otherwise). The Bearer is the exact header
+`ServiceFactory` already understands. (OAuth 2.1, which the MCP HTTP-auth spec prefers for *direct* remote
+clients, is deferred — the stdio bridge holds the token and presents the Bearer, so v1 needs no OAuth
+dance. See §7.)
 
 ---
 
@@ -117,8 +129,23 @@ serialized into MCP tool objects:
   `[a-zA-Z]`, so `explode('__', $name, 3)` recovers the target unambiguously even when a method name itself
   contains underscores). Within MCP's `[A-Za-z0-9_-]` name charset.
 - **`description`** = the method's docblock summary (already in the catalog).
-- **`inputSchema`** = the method's `Tiger_Form` → JSON Schema via the `Tiger_OpenApi_Generator` mapper
-  (field names, types, `required` from validators). A form-less method gets a permissive object schema.
+- **`inputSchema`** = what the method's docblock declares, via `Tiger_OpenApi_Generator`:
+  - `@apiRequest <FormClass>` → the form's elements (field names, types, `required`, `enum` from `InArray`);
+  - `@apiRequest datatable` → the DataTables request (`draw`/`start`/`length`/`search`/`order`);
+  - `@apiRequest none` → an empty object (the method takes nothing);
+  - `@apiParam <type> <name> [required] [description]` → one parameter, alone or added to any of the above.
+    `<type>` is a JSON type, or an enum written `string(draft|published)`.
+
+  Every operation declares one — `OperationsDeclareInputTest` fails core's build on an undeclared method, and
+  each module's suite carries the same check against `Tiger_OpenApi_Generator::untyped()`. An undeclared
+  method would get a blank permissive object, which tells a client nothing about what to send.
+- **No cap, scope first.** MCP calls `catalog($role, $tokenModules, null)`: the token's module scope is
+  applied before anything else and nothing is capped (the 160-op cap is for the in-app agent's prompt). An
+  earlier build filtered after the cap, so modules that sort late (search, shop, …) vanished from a token
+  scoped to them.
+- **A module joins the scope picker by shipping `configs/mcp-scope.ini`** (or `Tiger_Mcp_Scope::register()`).
+  The base set covers core's modules only; every sellable module ships its own, so a token can be widened to
+  it. Without one, a module's tools are unreachable over a scoped token whatever its role allows.
 
 **Scoped to the token — a curated starter set by default (decided).** A fresh MCP token exposes a **curated
 starter set** of tools, not the whole role surface: the mainstream business verbs — **content** (CMS
@@ -319,9 +346,9 @@ OAuth client for remote servers that require it, and per-tool (not per-connectio
 2. **Tool `inputSchema` — ✅ BUILT.** `Tiger_OpenApi_Generator::schemasByOp()` exposes the Form→JSON-Schema
    mapping keyed by `module/service/method`; `Tiger_Mcp_Server::_toolsList` reflects it into each tool's
    `inputSchema` (fault-tolerant — a permissive object if reflection fails). A method types its arguments by
-   declaring `@apiRequest <FormClass>`; the curated create/edit tools now carry it (`Cms_Form_Page`,
-   `Blog_Form_Post`, `Access_Form_User`, `Access_Form_Org`). **Follow-on:** backfill `@apiRequest` across the
-   rest of the writable services (benefits `/api/openapi` too — same mechanism).
+   declaring `@apiRequest <FormClass>` — or, for a form-less method, `@apiRequest datatable|none` and
+   `@apiParam` lines (§4). **Every core operation now declares its input** (1.62.0), guarded by
+   `OperationsDeclareInputTest`; the same benefits `/api/openapi`, which uses the same mechanism.
 3. **The stdio bridge + Connect screen — ✅ BUILT.** `bin/mcp-bridge.php` (zero-Node PHP stdio↔HTTP relay:
    env `TIGER_MCP_URL`/`TIGER_MCP_TOKEN`, guards the stdout channel, JSON-RPC errors on transport failure) +
    `Mcp_AdminController` `/mcp/admin` (the Connect screen: enable toggle via `Mcp_Service_Settings`, mint/

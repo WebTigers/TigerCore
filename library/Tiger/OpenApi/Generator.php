@@ -184,21 +184,105 @@ class Tiger_OpenApi_Generator
 
     // ========================================================================= request schema
 
-    /** Request body schema — from the method's `@apiRequest <FormClass>`, else a generic object. */
+    /**
+     * Request body schema, from the method's docblock:
+     *
+     *   @apiRequest <FormClass>   the form's elements (the usual case for a write)
+     *   @apiRequest datatable     the DataTables request (draw/start/length/search/order) — a grid source
+     *   @apiRequest none          the method takes no parameters
+     *   @apiParam <type> <name> [required] [description]
+     *                             one parameter; adds to (or overrides) whatever @apiRequest declared.
+     *                             <type> is string|integer|number|boolean|array|object, or an enum
+     *                             written `string(draft|published)`.
+     *
+     * With none of these the body is a generic object — which tells an MCP client nothing about what to
+     * send, so every operation should declare one (`typed()` reports the ones that don't).
+     */
     protected function _requestSchema(array $doc)
     {
-        $formClass = $doc['apiRequest'];
-        if ($formClass !== '' && class_exists($formClass)) {
+        $req    = (string) $doc['apiRequest'];
+        $params = (array) ($doc['apiParams'] ?? []);
+        $schema = null;
+
+        if ($req === 'none') {
+            $schema = ['type' => 'object', 'properties' => new stdClass()];
+        } elseif ($req === 'datatable') {
+            $schema = self::datatableSchema();
+        } elseif ($req !== '' && class_exists($req)) {
             try {
-                $form = new $formClass();
+                $form = new $req();
                 if (method_exists($form, 'getElements')) {
-                    return $this->_formSchema($form);
+                    $schema = $this->_formSchema($form);
                 }
             } catch (Throwable $e) {
-                // fall through to the generic body
+                // fall through
             }
         }
-        return ['type' => 'object', 'additionalProperties' => true, 'description' => 'Service parameters.'];
+
+        if ($params) {
+            if ($schema === null) { $schema = ['type' => 'object', 'properties' => []]; }
+            $props = is_array($schema['properties'] ?? null) ? $schema['properties'] : [];
+            $required = (array) ($schema['required'] ?? []);
+            foreach ($params as $p) {
+                $props[$p['name']] = $p['schema'];
+                if ($p['required']) { $required[] = $p['name']; }
+            }
+            $schema['properties'] = $props;
+            if ($required) { $schema['required'] = array_values(array_unique($required)); }
+        }
+
+        return $schema ?? ['type' => 'object', 'additionalProperties' => true, 'description' => 'Service parameters.'];
+    }
+
+    /**
+     * The DataTables server-side request every `datatable` operation reads (see `_dtParams()`), as a JSON
+     * Schema. A grid's own filters are declared beside it with `@apiParam`.
+     *
+     * @return array the schema
+     */
+    public static function datatableSchema()
+    {
+        return [
+            'type'       => 'object',
+            'properties' => [
+                'draw'   => ['type' => 'integer', 'description' => 'Request counter, echoed back.'],
+                'start'  => ['type' => 'integer', 'description' => 'Row offset (0-based).'],
+                'length' => ['type' => 'integer', 'description' => 'Rows to return (capped; -1 = the cap).'],
+                'search' => ['description' => 'Free-text filter: a string, or {value: string}.'],
+                'order'  => [
+                    'type'        => 'array',
+                    'description' => 'Sort: [{column: <index>, dir: asc|desc}].',
+                    'items'       => ['type' => 'object', 'properties' => [
+                        'column' => ['type' => 'integer'],
+                        'dir'    => ['type' => 'string', 'enum' => ['asc', 'desc']],
+                    ]],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * The operations whose input is NOT declared (no `@apiRequest` and no `@apiParam`) — what an MCP client
+     * would see as an untyped tool. Empty means every operation tells a caller what to send. A module's test
+     * suite asserts this is empty for its own services.
+     *
+     * @param  array $serviceClasses service class names
+     * @return string[] `<module>/<service>/<method>` keys
+     */
+    public function untyped(array $serviceClasses)
+    {
+        $out = [];
+        foreach ($serviceClasses as $class) {
+            if (!$this->_isService($class)) { continue; }
+            [$module, $service] = $this->_moduleService($class);
+            foreach ($this->_operations($class) as $method) {
+                $doc = $this->_docblock($method);
+                if ((string) $doc['apiRequest'] === '' && empty($doc['apiParams'])) {
+                    $out[] = $module . '/' . $service . '/' . $method->getName();
+                }
+            }
+        }
+        return $out;
     }
 
     /** A Zend/Tiger form's declared elements → an OpenAPI object schema. */
@@ -309,9 +393,36 @@ class Tiger_OpenApi_Generator
             $desc[] = $lines[$i];
         }
         $apiRequest = '';
+        $apiParams  = [];
         for (; $i < $n; $i++) {
-            if (preg_match('/^@apiRequest\s+(\S+)/', trim($lines[$i]), $m)) { $apiRequest = $m[1]; }
+            $line = trim($lines[$i]);
+            if (preg_match('/^@apiRequest\s+(\S+)/', $line, $m)) { $apiRequest = $m[1]; continue; }
+            if (($p = self::parseApiParam($line)) !== null) { $apiParams[] = $p; }
         }
-        return ['summary' => implode(' ', $sum), 'description' => trim(implode("\n", $desc)), 'apiRequest' => $apiRequest];
+        return ['summary' => implode(' ', $sum), 'description' => trim(implode("\n", $desc)),
+                'apiRequest' => $apiRequest, 'apiParams' => $apiParams];
+    }
+
+    /**
+     * Parse one `@apiParam <type> <name> [required] [description]` docblock line.
+     *
+     * @param  string $line a trimmed docblock line
+     * @return array|null {name, required, schema}, or null when the line is not a valid @apiParam
+     */
+    public static function parseApiParam($line)
+    {
+        if (!preg_match('/^@apiParam\s+([a-z]+)(?:\(([^)]*)\))?\s+\$?([A-Za-z_][\w\[\]]*)(\s+required\b)?\s*(.*)$/', (string) $line, $m)) {
+            return null;
+        }
+        $type = $m[1];
+        if (!in_array($type, ['string', 'integer', 'number', 'boolean', 'array', 'object'], true)) { return null; }
+        $schema = ['type' => $type];
+        if ($m[2] !== '') {
+            $schema['enum'] = array_values(array_filter(array_map('trim', explode('|', $m[2])), 'strlen'));
+        }
+        if ($type === 'array')  { $schema['items'] = new stdClass(); }
+        $desc = trim($m[5]);
+        if ($desc !== '') { $schema['description'] = $desc; }
+        return ['name' => $m[3], 'required' => $m[4] !== '', 'schema' => $schema];
     }
 }

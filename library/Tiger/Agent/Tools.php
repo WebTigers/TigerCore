@@ -22,10 +22,16 @@ class Tiger_Agent_Tools
      * The role-filtered catalog of callable operations, grouped by module:
      * `['cms' => [['service'=>'page','method'=>'save','summary'=>'…'], …], …]`.
      *
-     * @param  string $role the acting role
+     * The cap keeps the in-app agent's prompt small. MCP lists tools rather than putting them in a prompt,
+     * so it passes no cap — and its token's module scope, which must be applied BEFORE any cap: filtering
+     * afterwards dropped every module that sorts past the cutoff (search, shop, …) from a token scoped to it.
+     *
+     * @param  string        $role    the acting role
+     * @param  string[]|null $modules only these modules (null = all)
+     * @param  int|null      $limit   the most operations to return (null = no cap)
      * @return array
      */
-    public static function catalog($role)
+    public static function catalog($role, ?array $modules = null, $limit = self::MAX_OPERATIONS)
     {
         $acl = Zend_Registry::isRegistered('Zend_Acl') ? Zend_Registry::get('Zend_Acl') : null;
         if (!$acl) {
@@ -39,7 +45,7 @@ class Tiger_Agent_Tools
         $catalog = [];
         $count   = 0;
         foreach ((array) ($doc['paths'] ?? []) as $path => $ops) {
-            if ($count >= self::MAX_OPERATIONS) {
+            if ($limit !== null && $count >= $limit) {
                 break;
             }
             // /api/{module}/{service}/{method}
@@ -48,6 +54,9 @@ class Tiger_Agent_Tools
                 continue;
             }
             [, $module, $service, $method] = $parts;
+            if ($modules !== null && !in_array($module, $modules, true)) {
+                continue;
+            }
 
             // The agent never calls its OWN plumbing (send/resume/approve/…) — exclude it so the
             // model can't recurse into itself or get confused by its own service surface.
