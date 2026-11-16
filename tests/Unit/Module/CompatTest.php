@@ -64,6 +64,17 @@ final class CompatTest extends UnitTestCase
     }
 
     #[Test]
+    public function requiresAsAnObjectIsReadNotFatal(): void
+    {
+        // The Module Manager's inspect builds a theme's manifest with `requires => new stdClass()` (so the JSON
+        // is {} not []). Indexing that as an array threw, so "View more" failed for every theme with no
+        // `requires` (Grey Mist, 2026-11-16). An empty object = no minimum; a populated one is still honoured.
+        $this->assertTrue(Tiger_Module_Compat::check(['requires' => new \stdClass()], '1.0.0')['ok']);
+        $v = Tiger_Module_Compat::check(['requires' => (object) ['tiger' => '2.0.0']], '1.0.0');
+        $this->assertSame(Tiger_Module_Compat::BELOW_MIN, $v['status']);
+    }
+
+    #[Test]
     public function betaOrdersBeforeItsRelease(): void
     {
         // 0.40.0-beta < 0.40.0 — a module tested up to the beta is "untested" on the stable release.

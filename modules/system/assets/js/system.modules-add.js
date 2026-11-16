@@ -109,11 +109,42 @@ document.addEventListener('DOMContentLoaded', function () {
             if (buyBtn){ buyBtn.addEventListener('click', function(){ startBuy(buyVendor, buyProduct, buyCheckout, m.name); }); }
             var haveKey = document.getElementById('mod-havekey');
             if (haveKey){ haveKey.addEventListener('click', function(){ pasteKey(buyVendor, buyProduct, m.name); }); }
+        } else if (avail === 'pass' && passHas){
+            // A PASS module this install is entitled to. It is LICENSED, so it installs through the license
+            // authority (installLicensed → signed download → verify → install), never the plain repo-URL path —
+            // its repo is private, and the URL installer refuses an unsigned licensed artifact anyway. No key is
+            // sent: the server resolves the install's activated TigerPASS key in-process.
+            var passVendor = (x.pricing && x.pricing.vendor) || '';
+            foot.innerHTML = '<button type="button" class="btn btn-primary" id="mod-do"><i class="fa-solid fa-download me-1"></i>Install</button>';
+            var passBtn = document.getElementById('mod-do');
+            if (passBtn){ passBtn.addEventListener('click', function(){ installViaPass(passVendor, m.slug, m.name); }); }
         } else {
             foot.innerHTML = '<button type="button" class="btn btn-primary" id="mod-do"><i class="fa-solid fa-download me-1"></i>Install</button>';
             var doBtn = document.getElementById('mod-do');
             if (doBtn){ doBtn.addEventListener('click', function(){ doInstall(d.repo, d.ref, false); }); }
         }
+    }
+
+    // Install a PASS module under the install's TigerPASS: consent → vendor trust (once) → installLicensed.
+    function installViaPass(vendor, product, name){
+        var b = document.getElementById('mod-do');
+        TigerModal.confirm({
+            title: Tiger.t('confirmInstallTitle'),
+            body: Tiger.t('confirmInstallBody'),
+            confirmLabel: Tiger.t('confirmInstallOk'),
+            variant: 'primary'
+        }).then(function(ok){
+            if (!ok){ return; }
+            return ensureVendor(vendor, name).then(function(trusted){
+                if (!trusted){ return; }
+                return TigerButton.run(b, function(){
+                    return api('installLicensed', { vendor: vendor, product: product });
+                }).then(function(res){
+                    if (res.result===1){ window.location=res.redirect||'/system/modules'; return; }
+                    modal.hide(); fb.innerHTML=''; (res.messages||[]).forEach(function(mm){ TigerDOM.notify(fb, mm.message, { type: mm.class, replace: false }); }); window.scrollTo({top:0,behavior:'smooth'});
+                });
+            });
+        }).catch(function(){});
     }
 
     function doInstall(repo, ref, isUpdate){
