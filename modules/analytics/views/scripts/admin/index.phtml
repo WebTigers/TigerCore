@@ -2,34 +2,49 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
- * Analytics settings — Google Analytics (GA4). Two tabs in one form: the tracking Tag (public-site
- * measurement) and Reports (the in-app dashboard connection). ViewHelper-only form (the view owns
- * markup); saving is an /api call to Analytics_Service_Analytics. The Connect button auto-saves the
- * form first and only then hands off to the OAuth flow — no separate "Save, then Connect" step.
- * Semantic Bootstrap only — no bespoke CSS (keeps it reskinnable), per ADMIN.md.
+ * Analytics setup — two steps on one screen.
+ *
+ *  1. "Choose your analytics provider" — a card per Tiger_Analytics provider (Google Analytics, Matomo),
+ *     the org's current one marked. Choosing one saves `tiger.analytics.provider` over /api
+ *     (Analytics_Service_Analytics::saveProvider) and opens that provider's setup below. Switching never
+ *     deletes the other provider's settings.
+ *  2. That provider's setup panel:
+ *     - Google Analytics — the GA4 form, two tabs: the tracking Tag (public-site measurement) and Reports
+ *       (the in-app dashboard connection). The Connect button auto-saves the form first and only then
+ *       hands off to the OAuth flow — no separate "Save, then Connect" step.
+ *     - Matomo — the matomo module's OWN form (shared partial `admin/_matomo-fields.phtml`, posted to
+ *       Matomo_Service_Matomo::save — the one place Matomo is set up), with a Test connection button.
+ *
+ * Every form is ViewHelper-only (the view owns markup); saving is an /api call. The provider choice
+ * rides the GA form's CSRF token (both analytics forms share one salt). Semantic Bootstrap only — no
+ * bespoke CSS (keeps it reskinnable), per ADMIN.md; behavior in analytics.admin-index.js.
  */
 $form = $this->form;
 $el   = function ($name) use ($form) { return $form->getElement($name); };
 $mode = ($this->ga['mode'] === 'byo') ? 'byo' : 'broker';
+$an        = is_array($this->analytics) ? $this->analytics : ['chosen' => '', 'provider' => '', 'providers' => []];
+$panel     = (string) $this->panel;
+$current   = (string) $an['provider'];
+$providerMeta = [
+    'ga'     => ['icon' => 'fa-brands fa-google', 'desc' => 'analytics.provider.ga.desc'],
+    'matomo' => ['icon' => 'fa-solid fa-chart-simple', 'desc' => 'analytics.provider.matomo.desc'],
+];
 // Localized strings this page's JS references — delivered via the carrier, not an inline script.
 $this->i18n([
     'fixFields'           => 'analytics.fix_fields',
     'networkError'        => 'analytics.net_error',
     'saved'               => 'analytics.saved',
     'connectNeedProperty' => 'analytics.connect_need_property',
+    'providerSaved'       => 'analytics.provider.saved',
+    'testFailed'          => 'analytics.matomo.test_failed',
 ]);
 ?>
-<div class="d-flex align-items-center justify-content-between mb-4">
-    <div>
-        <h1 class="h3 mb-1"><?= $this->t('analytics.title') ?></h1>
-        <p class="text-body-secondary mb-0"><?= $this->t('analytics.subtitle') ?></p>
-    </div>
-    <div class="text-nowrap">
-        <button type="button" id="analytics-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->t('analytics.save') ?></button>
-    </div>
+<div class="mb-4">
+    <h1 class="h3 mb-1"><?= $this->t('analytics.title') ?></h1>
+    <p class="text-body-secondary mb-0"><?= $this->t('analytics.subtitle') ?></p>
 </div>
 
-<div id="analytics-feedback"></div>
+<div id="analytics-feedback" aria-live="polite"></div>
 
 <?php if (!empty($this->flash)): ?>
 <div class="alert alert-<?= $this->flash['type'] === 'success' ? 'success' : ($this->flash['type'] === 'error' ? 'danger' : 'info') ?> d-flex align-items-center" role="alert">
@@ -38,6 +53,53 @@ $this->i18n([
 </div>
 <?php endif; ?>
 
+<section class="mb-4" aria-labelledby="analytics-provider-heading">
+    <h2 class="h5 mb-1" id="analytics-provider-heading"><span class="badge rounded-pill text-bg-primary me-2">1</span><?= $this->t('analytics.provider.heading') ?></h2>
+    <p class="text-body-secondary small mb-3"><?= $this->t('analytics.provider.intro') ?></p>
+    <form id="analytics-provider-form" onsubmit="return false;" novalidate>
+        <div class="row g-3" role="radiogroup" aria-labelledby="analytics-provider-heading">
+            <?php foreach ($an['providers'] as $name => $p):
+                $meta  = $providerMeta[$name] ?? ['icon' => 'fa-solid fa-chart-line', 'desc' => ''];
+                $isCur = ($name === $current);
+                $id    = 'analytics-provider-' . $this->escape($name);
+            ?>
+            <div class="col-md-6">
+                <div class="card h-100 position-relative<?= $isCur ? ' border-primary' : '' ?>" data-provider-card="<?= $this->escape($name) ?>">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start justify-content-between gap-2">
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="radio" name="provider" id="<?= $id ?>" value="<?= $this->escape($name) ?>"<?= $isCur ? ' checked' : '' ?>>
+                                <label class="form-check-label stretched-link fw-semibold" for="<?= $id ?>"><i class="<?= $meta['icon'] ?> me-2 text-primary" aria-hidden="true"></i><?= $this->escape($p['label']) ?></label>
+                            </div>
+                            <span class="badge text-bg-primary<?= $isCur ? '' : ' d-none' ?>" data-provider-current><?= $this->t('analytics.provider.current') ?></span>
+                        </div>
+                        <?php if ($meta['desc'] !== ''): ?><p class="small text-body-secondary mt-2 mb-2"><?= $this->t($meta['desc']) ?></p><?php endif; ?>
+                        <p class="small mb-0">
+                            <?php if (!empty($p['configured'])): ?>
+                                <i class="fa-solid fa-circle-check text-success me-1" aria-hidden="true"></i><?= $this->t('analytics.provider.ready') ?>
+                            <?php else: ?>
+                                <i class="fa-regular fa-circle text-body-secondary me-1" aria-hidden="true"></i><span class="text-body-secondary"><?= $this->t('analytics.provider.not_ready') ?></span>
+                            <?php endif; ?>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php if ($an['chosen'] === '' && $current !== ''): ?>
+            <p class="small text-body-secondary mt-2 mb-0" id="analytics-provider-detected"><i class="fa-solid fa-wand-magic-sparkles me-1" aria-hidden="true"></i><?= $this->t('analytics.provider.detected') ?></p>
+        <?php endif; ?>
+    </form>
+</section>
+
+<h2 class="h5 mb-3"><span class="badge rounded-pill text-bg-primary me-2">2</span><span id="analytics-setup-heading"><?= $this->t($panel === 'matomo' ? 'analytics.setup.heading_matomo' : ($panel === 'ga' ? 'analytics.setup.heading_ga' : 'analytics.setup.heading')) ?></span></h2>
+
+<p class="text-body-secondary<?= $panel === '' ? '' : ' d-none' ?>" id="analytics-panel-none"><i class="fa-solid fa-arrow-up me-2" aria-hidden="true"></i><?= $this->t('analytics.provider.none_chosen') ?></p>
+
+<div id="analytics-panel-ga" data-provider-panel="ga" data-heading="<?= $this->escape($this->t('analytics.setup.heading_ga')) ?>"<?= $panel === 'ga' ? '' : ' class="d-none"' ?>>
+<div class="d-flex justify-content-end mb-3">
+    <button type="button" id="analytics-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->t('analytics.save') ?></button>
+</div>
 <form id="analytics-form" onsubmit="return false;" novalidate>
     <?= $el('_csrf') ?>
 
@@ -243,5 +305,33 @@ $this->i18n([
         </div>
     </div>
 </form>
+</div>
+
+<div id="analytics-panel-matomo" data-provider-panel="matomo" data-heading="<?= $this->escape($this->t('analytics.setup.heading_matomo')) ?>"<?= $panel === 'matomo' ? '' : ' class="d-none"' ?>>
+<?php if (is_array($this->matomo)): ?>
+    <form id="matomo-form" onsubmit="return false;" novalidate>
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <?= $this->partial('admin/_matomo-fields.phtml', 'matomo', $this->matomo) ?>
+            </div>
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h3 class="h6 fw-semibold"><i class="fa-solid fa-plug-circle-check me-2 text-primary" aria-hidden="true"></i><?= $this->t('analytics.matomo.test') ?></h3>
+                        <p class="small text-body-secondary"><?= $this->t('analytics.matomo.test_hint') ?></p>
+                        <div class="d-grid gap-2">
+                            <button type="button" id="matomo-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->t('analytics.matomo.save') ?></button>
+                            <button type="button" id="matomo-test" class="btn btn-outline-primary"><i class="fa-solid fa-plug-circle-check me-2"></i><?= $this->t('analytics.matomo.test') ?></button>
+                        </div>
+                        <div id="matomo-feedback" class="mt-3" aria-live="polite"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+<?php else: ?>
+    <div class="alert alert-info mb-0" role="status"><i class="fa-solid fa-circle-info me-2" aria-hidden="true"></i><?= $this->t('analytics.matomo.inactive') ?></div>
+<?php endif; ?>
+</div>
 
 <?php $this->pageScript('/_modules/analytics/js/analytics.admin-index.js', ['defer' => true]); ?>

@@ -1,0 +1,80 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/**
+ * Matomo setup fields — the ONE markup for Matomo_Form_Settings, rendered as a partial by both the
+ * Analytics screen's Matomo provider panel and (when analytics is inactive) /matomo/admin, so the two
+ * can never disagree. Expects: form (Matomo_Form_Settings), enabled, excludeSignedIn, hasToken.
+ *
+ * The token is WRITE-ONLY: the field is always empty; a "token saved" badge says one is held, and a
+ * blank save keeps it. Semantic Bootstrap only — no bespoke CSS, per ADMIN.md.
+ */
+$form = $this->form;
+$el   = function ($name) use ($form) { return $form->getElement($name); };
+// Its own DOM id: on the Analytics screen this token sits beside the analytics form's `_csrf`.
+if ($el('_csrf')) {
+    $el('_csrf')->setAttrib('id', 'matomo-csrf');
+}
+$tokenEl = $el('matomo_token_auth');
+if ($tokenEl) {
+    $tokenEl->setAttrib('placeholder', $this->hasToken ? $this->t('matomo.token_keep') : $this->t('matomo.token_placeholder'));
+    $tokenEl->setAttrib('aria-describedby', 'matomo-token-help');
+}
+?>
+<?= $el('_csrf') ?>
+
+<div class="card mb-4">
+    <div class="card-header fw-semibold"><i class="fa-solid fa-chart-simple me-2"></i><?= $this->t('matomo.card.connection') ?></div>
+    <div class="card-body">
+        <div class="mb-3">
+            <label class="form-label" for="matomo_url"><?= $this->t('matomo.url') ?></label>
+            <?= $el('matomo_url') ?>
+            <div class="form-text"><?= $this->t('matomo.url_help') ?></div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="matomo_site_id"><?= $this->t('matomo.site_id') ?></label>
+            <?= $el('matomo_site_id') ?>
+            <div class="form-text"><?= $this->t('matomo.site_id_help') ?></div>
+        </div>
+        <?php if ($tokenEl): ?>
+        <div class="mb-0">
+            <label class="form-label d-flex align-items-center gap-2" for="matomo_token_auth">
+                <?= $this->t('matomo.token') ?>
+                <span class="badge text-bg-success<?= $this->hasToken ? '' : ' d-none' ?>" id="matomo-token-saved"><i class="fa-solid fa-key me-1"></i><?= $this->t('matomo.token_saved') ?></span>
+            </label>
+            <?= $tokenEl ?>
+            <div class="form-text" id="matomo-token-help"><?= $this->t('matomo.token_help') ?></div>
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header fw-semibold"><i class="fa-solid fa-tag me-2"></i><?= $this->t('matomo.card.tag') ?></div>
+    <div class="card-body">
+        <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" role="switch" id="matomo-enabled" name="enabled" value="1"<?= $this->enabled ? ' checked' : '' ?>>
+            <label class="form-check-label" for="matomo-enabled"><?= $this->t('matomo.enable') ?></label>
+        </div>
+        <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" role="switch" id="matomo-exclude-staff" name="exclude_signed_in" value="1"<?= $this->excludeSignedIn ? ' checked' : '' ?>>
+            <label class="form-check-label" for="matomo-exclude-staff"><?= $this->t('matomo.exclude_staff') ?></label>
+        </div>
+        <div class="form-text mb-2"><?= $this->t('matomo.exclude_staff_help') ?></div>
+        <p class="small text-body-secondary mb-0"><i class="fa-solid fa-circle-info me-2"></i><?= $this->t('matomo.privacy_note') ?></p>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header fw-semibold"><i class="fa-solid fa-people-arrows me-2"></i><?= $this->t('matomo.card.affiliate') ?></div>
+    <div class="card-body">
+        <p class="text-body-secondary"><?= $this->t('matomo.affiliate_help') ?></p>
+        <div class="row">
+            <div class="col-sm-6 col-md-4">
+                <label class="form-label" for="matomo_affiliate_dimension_id"><?= $this->t('matomo.affiliate_dimension') ?></label>
+                <?= $el('matomo_affiliate_dimension_id') ?>
+            </div>
+        </div>
+        <div class="form-text"><?= $this->t('matomo.affiliate_dimension_help') ?></div>
+    </div>
+</div>

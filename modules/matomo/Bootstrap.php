@@ -48,7 +48,11 @@ class Matomo_Bootstrap extends Zend_Application_Module_Bootstrap
         ]);
     }
 
-    /** List Matomo under the admin Settings tree (ACL-gated to Matomo_AdminController). */
+    /**
+     * List Matomo under the admin Settings tree (ACL-gated to Matomo_AdminController). /matomo/admin
+     * redirects to the ONE Matomo setup screen — the Analytics screen's Matomo provider panel (1.61) —
+     * and renders its own copy of the same form only when analytics is inactive.
+     */
     protected function _initAdminSettings()
     {
         if (!class_exists('Tiger_Admin_Settings')) {

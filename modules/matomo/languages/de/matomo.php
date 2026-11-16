@@ -38,4 +38,13 @@ return [
     // Client-side
     'matomo.net_error'                 => 'Netzwerkfehler — bitte versuche es erneut.',
     'matomo.fix_fields'                => 'Bitte korrigiere die hervorgehobenen Felder.',
+
+    // Token für die Reporting-API (1.61) — nur schreibbar
+    'matomo.token'                     => 'API-Token (token_auth)',
+    'matomo.token_help'                => 'Erstelle eines in Matomo unter Administration → Persönlich → Sicherheit → Auth-Tokens. Es braucht Lesezugriff auf diese Website. Wird verschlüsselt gespeichert und nie wieder angezeigt; leer lassen, um das gespeicherte zu behalten.',
+    'matomo.token_placeholder'         => 'Matomo-API-Token einfügen',
+    'matomo.token_keep'                => '•••••• gespeichert (leer lassen zum Behalten)',
+    'matomo.token_saved'               => 'Token gespeichert',
+    'matomo.card.tag'                  => 'Tracking-Tag',
+    'matomo.error.no_crypto'           => 'Bevor ein API-Token gespeichert werden kann, muss ein Verschlüsselungsschlüssel eingerichtet sein.',
 ];

@@ -38,4 +38,13 @@ return [
     // Client-side
     'matomo.net_error'                 => 'Network error — please try again.',
     'matomo.fix_fields'                => 'Please fix the highlighted fields.',
+
+    // Reporting API token (1.61) — write-only
+    'matomo.token'                     => 'API token (token_auth)',
+    'matomo.token_help'                => 'Create one in Matomo under Administration → Personal → Security → Auth tokens. It needs view access to this site. Stored encrypted and never shown again; leave blank to keep the saved one.',
+    'matomo.token_placeholder'         => 'Paste your Matomo API token',
+    'matomo.token_keep'                => '•••••• saved (leave blank to keep)',
+    'matomo.token_saved'               => 'Token saved',
+    'matomo.card.tag'                  => 'Tracking tag',
+    'matomo.error.no_crypto'           => 'An encryption key must be configured before an API token can be stored.',
 ];

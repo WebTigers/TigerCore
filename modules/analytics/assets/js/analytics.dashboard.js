@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
- * Analytics dashboard — fetches the GA4 summary from /api (Analytics_Service_Reports::summary) and
- * paints the tiles, top-pages/channels tables, and the Chart.js traffic line. Loaded with `defer`
+ * Analytics dashboard — fetches the org's NORMALIZED traffic report from /api
+ * (Analytics_Service_Reports::report — Google Analytics, Matomo, or any Tiger_Analytics provider) and
+ * paints the tiles, top-pages/referrers tables, and the Chart.js traffic line. Loaded with `defer`
  * from the dashboard view, so it runs after the DOM is parsed AND after the admin layout's
- * parser-blocking Chart.js has executed (no load-order race). Only included when GA is connected.
+ * parser-blocking Chart.js has executed (no load-order race). Only included when a provider is set.
+ * Strings arrive through the $this->i18n() carrier (Tiger.t).
  */
 (function () {
     var css = getComputedStyle(document.documentElement);
@@ -24,46 +26,47 @@
         var m = c.match(/(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
         return m ? 'rgba(' + m[1] + ',' + m[2] + ',' + m[3] + ',' + a + ')' : c;
     }
-    function num(n) { return Math.round(n || 0).toLocaleString(); }
+    function num(n) { return (n == null) ? '—' : Math.round(n).toLocaleString(); }
     function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
 
-    function rows(el, data) {
-        if (!data || !data.length) { el.innerHTML = '<tr><td class="text-body-secondary small py-3">No data yet.</td></tr>'; return; }
+    // rows: [{label, <valueKey>}] → a two-column table body.
+    function rows(el, data, valueKey) {
+        if (!data || !data.length) { el.innerHTML = '<tr><td class="text-body-secondary small py-3">' + esc(Tiger.t('noDataRow')) + '</td></tr>'; return; }
         el.innerHTML = data.map(function (r) {
-            return '<tr><td class="text-truncate" style="max-width:1px;">' + esc(r.label) + '</td>'
-                 + '<td class="text-end fw-semibold">' + num(r.value) + '</td></tr>';
+            return '<tr><td class="text-truncate">' + esc(r.label) + '</td>'
+                 + '<td class="text-end fw-semibold">' + num(r[valueKey]) + '</td></tr>';
         }).join('');
     }
 
-    // A zeroed summary so the whole dashboard renders (0 tiles, a flat chart over the window, empty
-    // tables) instead of gray boxes when there's no data yet or the API is momentarily unavailable.
+    // A zeroed report so the whole dashboard renders (0 tiles, a flat chart over the window, empty
+    // tables) instead of gray boxes when there's no data yet or the provider is momentarily unavailable.
     function zeroSeries(days) {
         var out = [], d = new Date();
         d.setDate(d.getDate() - (days - 1));
         for (var i = 0; i < days; i++) {
             var mm = ('0' + (d.getMonth() + 1)).slice(-2), dd = ('0' + d.getDate()).slice(-2);
-            out.push({ date: d.getFullYear() + '-' + mm + '-' + dd, users: 0, views: 0 });
+            out.push({ date: d.getFullYear() + '-' + mm + '-' + dd, visitors: 0, pageviews: 0 });
             d.setDate(d.getDate() + 1);
         }
         return out;
     }
-    function zeroSummary() { return { totals: [0, 0, 0], series: zeroSeries(28), top_pages: [], top_sources: [] }; }
-    function hasData(s) {
-        var t = s.totals || [];
-        return !!((t[0] || t[1] || t[2]) || (s.top_pages && s.top_pages.length)
-            || (s.series || []).some(function (p) { return p.users || p.views; }));
+    function zeroReport() { return { totals: { visitors: 0, visits: 0, pageviews: 0 }, series: zeroSeries(28), top_pages: [], top_referrers: [] }; }
+    function hasData(r) {
+        var t = r.totals || {};
+        return !!((t.visitors || t.visits || t.pageviews) || (r.top_pages && r.top_pages.length)
+            || (r.series || []).some(function (p) { return p.visitors || p.pageviews; }));
     }
 
     var chart = null;
-    function render(s) {
-        var t = s.totals || [];
-        document.getElementById('ga-users').textContent    = num(t[0]);
-        document.getElementById('ga-sessions').textContent = num(t[1]);
-        document.getElementById('ga-views').textContent    = num(t[2]);
-        rows(document.getElementById('ga-pages'),   s.top_pages);
-        rows(document.getElementById('ga-sources'), s.top_sources);
+    function render(r) {
+        var t = r.totals || {};
+        document.getElementById('ga-users').textContent    = num(t.visitors);
+        document.getElementById('ga-sessions').textContent = num(t.visits);
+        document.getElementById('ga-views').textContent    = num(t.pageviews);
+        rows(document.getElementById('ga-pages'),   r.top_pages, 'hits');
+        rows(document.getElementById('ga-sources'), r.top_referrers, 'visits');
 
-        var series = s.series || [];
+        var series = r.series || [];
         if (chart) { chart.destroy(); chart = null; }
         if (typeof Chart === 'undefined') { return; }   // Chart.js not loaded — tiles + tables still rendered
         chart = new Chart(document.getElementById('ga-chart'), {
@@ -72,9 +75,9 @@
                 labels: series.map(function (p) { return (p.date || '').slice(5); }),
                 datasets: [
                     // `order` is the z-index: Chart.js draws lowest-order LAST, so order:0 = on top.
-                    { label: 'Users', order: 0, data: series.map(function (p) { return p.users; }),
+                    { label: Tiger.t('visitors'), order: 0, data: series.map(function (p) { return p.visitors; }),
                       borderColor: primary, backgroundColor: rgba(primary, 0.3), fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
-                    { label: 'Page views', order: 1, data: series.map(function (p) { return p.views; }),
+                    { label: Tiger.t('pageviews'), order: 1, data: series.map(function (p) { return p.pageviews; }),
                       borderColor: muted, backgroundColor: rgba(muted, 0.15), fill: true, tension: 0.3, pointRadius: 0, borderWidth: 1.5 }
                 ]
             },
@@ -117,39 +120,27 @@
         });
     }
 
-    function note(msg, type) { TigerDOM.notify(document.getElementById('ga-feedback'), msg, { type: type || 'info' }); }
+    var box = document.getElementById('ga-feedback');
+    function note(msg, type) { TigerDOM.notify(box, msg, { type: type || 'info' }); }
+    function fixLink() { return ' <a href="' + esc(box.getAttribute('data-fix-url') || '/analytics/admin') + '" class="alert-link">' + esc(Tiger.t('fix')) + '</a>'; }
 
-    // The server localizes each response message; surface its text (falling back to a generic line).
-    function serverMessage(res, fallback) {
-        var m = res && res.messages && res.messages[0] && res.messages[0].message;
-        return m ? esc(m) : fallback;
-    }
-
-    var fd = new URLSearchParams({ module: 'analytics', service: 'reports', method: 'summary', days: '28' });
+    var fd = new URLSearchParams({ module: 'analytics', service: 'reports', method: 'report', days: '28' });
     fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
         .then(function (r) { return r.json().catch(function () { return {}; }); })
         .then(function (res) {
-            if (res && res.result === 1 && res.data && res.data.summary) {
-                render(res.data.summary);
-                if (!hasData(res.data.summary)) {
-                    note('No traffic recorded in the last 28 days yet — new data usually appears within a day of connecting.');
-                }
+            if (res && res.result === 1 && res.data && res.data.report) {
+                render(res.data.report);
+                if (!hasData(res.data.report)) { note(esc(Tiger.t('noData'))); }
                 return;
             }
-            // The connection expired or was revoked (Google/broker 401 reconnect_required): don't bury it
-            // in the generic "no data" line — say so and link straight to the reconnect button (TIGER-115).
-            if (res && res.data && res.data.code === 'reconnect_required') {
-                render(zeroSummary());
-                note(serverMessage(res, 'Reconnect Google Analytics to resume reporting.')
-                    + ' <a href="/analytics/admin" class="alert-link">Reconnect</a>', 'alert');
-                return;
-            }
-            // Couldn't load — still render the zero scaffold, and explain calmly (with the usual cause).
-            render(zeroSummary());
-            note('No Analytics data to show yet. If you just connected, it can take up to a day — otherwise make sure the Google Analytics Data API is enabled for your Google project.');
+            // The provider answered with a problem the admin can fix (grant expired, token refused,
+            // server unreachable, setup incomplete): say what the server said, and link to the fix.
+            render(zeroReport());
+            var m = res && res.messages && res.messages[0] && res.messages[0].message;
+            note(esc(m || Tiger.t('unavailable')) + fixLink(), 'alert');
         })
         .catch(function () {
-            render(zeroSummary());
-            note('Couldn’t reach Analytics just now — showing zeros. Please try again shortly.');
+            render(zeroReport());
+            note(esc(Tiger.t('unavailable')));
         });
 })();

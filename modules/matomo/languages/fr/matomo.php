@@ -38,4 +38,13 @@ return [
     // Client-side
     'matomo.net_error'                 => 'Erreur réseau — veuillez réessayer.',
     'matomo.fix_fields'                => 'Veuillez corriger les champs en surbrillance.',
+
+    // Jeton de l’API de rapports (1.61) — en écriture seule
+    'matomo.token'                     => 'Jeton d’API (token_auth)',
+    'matomo.token_help'                => 'Créez-en un dans Matomo sous Administration → Personnel → Sécurité → Jetons d’authentification. Il doit avoir un accès en lecture à ce site. Stocké chiffré et jamais réaffiché ; laissez vide pour conserver celui enregistré.',
+    'matomo.token_placeholder'         => 'Collez votre jeton d’API Matomo',
+    'matomo.token_keep'                => '•••••• enregistré (laissez vide pour le conserver)',
+    'matomo.token_saved'               => 'Jeton enregistré',
+    'matomo.card.tag'                  => 'Balise de suivi',
+    'matomo.error.no_crypto'           => 'Une clé de chiffrement doit être configurée avant de pouvoir enregistrer un jeton d’API.',
 ];

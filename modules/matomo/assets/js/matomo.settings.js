@@ -36,6 +36,11 @@
                 }).then(function (r) { return r.json().catch(function () { return {}; }); });
             }).then(function (res) {
                 if (res && res.result === 1) {
+                    // The token is write-only: clear the field, show the "token saved" badge instead.
+                    var tok = form.querySelector('[name="matomo_token_auth"]');
+                    if (tok) { tok.value = ''; }
+                    var badge = document.getElementById('matomo-token-saved');
+                    if (badge && res.data && res.data.has_token) { badge.classList.remove('d-none'); }
                     TigerDOM.notify(fb, (res.messages && res.messages[0] && res.messages[0].message) || 'Saved.', { type: 'success' });
                     return;
                 }

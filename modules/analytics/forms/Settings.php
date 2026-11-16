@@ -27,4 +27,14 @@ class Analytics_Form_Settings extends Tiger_Form
             ]],
         ];
     }
+
+    /**
+     * The salt every analytics settings form shares (Analytics_Form_Provider rides this same token).
+     *
+     * @return string
+     */
+    protected function csrfSalt(): string
+    {
+        return 'Analytics';
+    }
 }

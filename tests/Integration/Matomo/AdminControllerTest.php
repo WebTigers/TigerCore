@@ -10,23 +10,21 @@ use PHPUnit\Framework\Attributes\Test;
 use Tiger\Tests\Support\ModuleControllerTestCase;
 
 /**
- * Matomo_AdminController — the Matomo settings screen. index prefills the settings form + the two
- * switch states from the live config. With nothing configured, the form is present, enabled is false,
- * and exclude-signed-in defaults on.
+ * Matomo_AdminController — since 1.61 Matomo is set up in ONE place, the Analytics screen's Matomo
+ * provider panel (which renders this module's own form and posts to its own service). With the
+ * analytics module present, /matomo/admin redirects there. (Its fallback render — the same shared
+ * partial, only when analytics is inactive — is not reachable here, where every bundled module loads.)
  */
 #[CoversClass(Matomo_AdminController::class)]
 final class AdminControllerTest extends ModuleControllerTestCase
 {
     #[Test]
-    public function index_prefills_the_settings_form_and_switch_state(): void
+    public function index_redirects_to_the_one_matomo_setup_screen(): void
     {
         $this->loginAs('admin');
         $this->dispatchAction(Matomo_AdminController::class, 'index', [], 'GET');
 
-        $view = $this->controller()->view;
-        $this->assertStringContainsString('Matomo', (string) $view->title);
-        $this->assertInstanceOf(\Matomo_Form_Settings::class, $view->form);
-        $this->assertFalse($view->enabled, 'unconfigured → disabled');
-        $this->assertTrue($view->excludeSignedIn, 'exclude signed-in staff defaults on');
+        $this->assertSame(Matomo_AdminController::SETUP_URL, $this->redirectLocation());
+        $this->assertStringContainsString('/analytics/admin?provider=matomo', Matomo_AdminController::SETUP_URL);
     }
 }

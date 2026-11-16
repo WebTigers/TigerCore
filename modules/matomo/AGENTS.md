@@ -19,23 +19,41 @@ module-specific layer; match the surrounding style.
 
 Matomo is a **separate GPLv3 application** (its own install at e.g. `analytics.webtigers.com`, its own
 PHP pool + DB). This BSD-3 module is **never** vendored into it and never embeds its code — it only
-speaks Matomo's client-side tracking API (`_paq`) and (future) its HTTP Reporting API. Keep that wall.
+speaks Matomo's client-side tracking API (`_paq`) and its HTTP Reporting API (via the core adapter
+`Tiger_Analytics_Adapter_Matomo`). Keep that wall.
+
+## Setup lives on the Analytics screen (1.61)
+
+Matomo is set up in **one place**: the Analytics screen's Matomo provider panel
+(`/analytics/admin?provider=matomo`), where an org also picks Matomo as its reporting provider
+(`Tiger_Analytics`). That panel renders THIS module's form via the shared partial
+`views/scripts/admin/_matomo-fields.phtml` and posts to THIS module's `Matomo_Service_Matomo::save`.
+`/matomo/admin` redirects there; it renders its own copy of the same partial only when the analytics
+module is inactive. Never add a second Matomo form.
+
+- **Reporting** is `Tiger_Analytics_Adapter_Matomo` (core library): one `API.getBulkRequest` POST to
+  `<url>/index.php`, `token_auth` in the POST BODY (never the URL), 5 s timeout, normalized output.
+- **The API token** (`tiger.matomo.token_auth_enc`) is write-only + encrypted (Tiger_Crypto; refused
+  with no crypto key) + **org-level only** — the org's own row (the install org may also read the install
+  tier). Blank on save keeps it; `save` returns `has_token`, never the value.
 
 ## Where things live (no models of its own)
 
 - `Bootstrap.php` — registers the tag plugin (stackIndex 92), declares `matomo` to `Tiger_Tracking`,
   and lists the screen under the admin **Settings** tree (`Tiger_Admin_Settings`).
 - `plugins/Tag.php` — **`Matomo_Plugin_Tag`**, the `_paq` emitter (the whole runtime).
-- `controllers/AdminController.php` — `/matomo/admin` (settings), admin-only.
-- `services/Matomo.php` — `Matomo_Service_Matomo::save` (writes the config tier). `forms/Settings.php`.
-- `views/scripts/admin/index.phtml` + `assets/js/matomo.settings.js` (the save wiring).
+- `controllers/AdminController.php` — `/matomo/admin` → redirects to the Analytics screen's Matomo panel.
+- `services/Matomo.php` — `Matomo_Service_Matomo::save` (writes the config tier + the encrypted token).
+  `forms/Settings.php`.
+- `views/scripts/admin/_matomo-fields.phtml` (the ONE field markup, shared with the Analytics screen),
+  `views/scripts/admin/index.phtml` (fallback screen) + `assets/js/matomo.settings.js` (its save wiring).
 - **No `models/`** — settings live in `Tiger_Model_Config` (the live-override tier).
 
 ## Config keys (all `tiger.matomo.*`, per org — TIGER-511)
 
 - `enabled` (bool) · `url` (the Matomo base URL, trailing-slashed) · `site_id` (idsite, int) ·
   `exclude_signed_in` (bool, default on) · `affiliate.dimension_id` (the visit-scoped custom-dimension
-  **index**, default 1).
+  **index**, default 1) · `token_auth_enc` (the Reporting API token, encrypted, org-level only).
 
 ## The affiliate cookie contract (TIGER-306 ↔ TIGER-303)
 
