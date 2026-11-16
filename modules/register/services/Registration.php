@@ -27,7 +27,13 @@ class Register_Service_Registration extends Tiger_Service_Service
     /** Override the registry transport (tests). @param callable|null $t @return void */
     public static function setTransport(?callable $t): void { self::$_transport = $t; }
 
-    /** The current registration progress. @param array $params @return void */
+    /**
+     * The current registration progress.
+     *
+     * @param  array $params the request payload
+     * @apiRequest none
+     * @return void
+     */
     public function status(array $params): void
     {
         if (!$this->_isAllowed('status')) { $this->_error('core.api.error.not_allowed'); return; }
@@ -39,6 +45,7 @@ class Register_Service_Registration extends Tiger_Service_Service
      * email a verification link, and try to self-verify the domain immediately.
      *
      * @param  array $params `email`
+     * @apiRequest Register_Form_Register
      * @return void
      */
     public function register(array $params): void
@@ -76,7 +83,13 @@ class Register_Service_Registration extends Tiger_Service_Service
         $this->_success(['state' => Register_Service_Status::state()], 'register.registered');
     }
 
-    /** (Re)confirm domain control via the registry. @param array $params @return void */
+    /**
+     * (Re)confirm domain control via the registry.
+     *
+     * @param  array $params the request payload
+     * @apiRequest none
+     * @return void
+     */
     public function verifyDomain(array $params): void
     {
         if (!$this->_isAllowed('verifyDomain')) { $this->_error('core.api.error.not_allowed'); return; }
@@ -86,7 +99,13 @@ class Register_Service_Registration extends Tiger_Service_Service
         $this->_success(['state' => Register_Service_Status::state()], $verified ? 'register.domain_verified' : 'register.domain_pending');
     }
 
-    /** Resend the admin email verification link. @param array $params @return void */
+    /**
+     * Resend the admin email verification link.
+     *
+     * @param  array $params the request payload
+     * @apiRequest none
+     * @return void
+     */
     public function resendEmail(array $params): void
     {
         if (!$this->_isAllowed('resendEmail')) { $this->_error('core.api.error.not_allowed'); return; }

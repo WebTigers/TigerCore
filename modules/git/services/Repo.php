@@ -111,6 +111,7 @@ class Git_Service_Repo extends Git_Service_Base
      * `status_available=false` on one that does not yet (the API — the reconciler is later work).
      *
      * @param  array $params module_key
+     * @apiParam string module_key required The module (its slug).
      */
     public function status(array $params): void
     {
@@ -140,6 +141,7 @@ class Git_Service_Repo extends Git_Service_Base
      * + status. The "Re-check environment" action behind the connection screen.
      *
      * @param  array $params module_key
+     * @apiParam string module_key required The module (its slug).
      */
     public function recheck(array $params): void
     {
@@ -175,6 +177,7 @@ class Git_Service_Repo extends Git_Service_Base
      * Every connection in the caller's org (the connections list).
      *
      * @param  array $params (none)
+     * @apiRequest none
      */
     public function list(array $params): void
     {
@@ -187,6 +190,8 @@ class Git_Service_Repo extends Git_Service_Base
      * The recent audit trail for a module (who did what to the repo).
      *
      * @param  array $params module_key, limit?
+     * @apiParam string module_key required The module (its slug).
+     * @apiParam integer limit Max entries, 1-200 (default 50).
      */
     public function log(array $params): void
     {
@@ -216,6 +221,7 @@ class Git_Service_Repo extends Git_Service_Base
      * reconnect) and revoke its credential.
      *
      * @param  array $params module_key
+     * @apiParam string module_key required The module (its slug).
      */
     public function disconnect(array $params): void
     {

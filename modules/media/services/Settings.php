@@ -39,6 +39,7 @@ class Media_Service_Settings extends Tiger_Service_Service
      * Validate the settings form and persist the obfuscation flags (per visibility, org-scoped).
      *
      * @param  array $params the posted settings form values
+     * @apiRequest Media_Form_Settings
      * @return void
      */
     public function save(array $params): void
@@ -67,6 +68,8 @@ class Media_Service_Settings extends Tiger_Service_Service
      * resumable — a re-run continues where a prior run left off. Install-wide; admin-gated.
      *
      * @param  array $params expects `to` (target disk) + optional `move` ('1' to delete originals)
+     * @apiParam string to required The target storage disk name, e.g. local or cloud.
+     * @apiParam string(1|0) move 1 to delete each original after a verified copy.
      * @return void
      */
     public function migrateDisk(array $params): void
@@ -101,6 +104,19 @@ class Media_Service_Settings extends Tiger_Service_Service
      * blank entirely to use the server's IAM instance role. Install-wide; admin-gated.
      *
      * @param  array $params expects `adapter` (none|s3|gcs|azure), that adapter's fields, and `default_disk`
+     * @apiParam string(none|s3|gcs|azure) adapter required The storage adapter.
+     * @apiParam string bucket Bucket (s3, gcs).
+     * @apiParam string region Region (s3).
+     * @apiParam string key Access key (s3) or account key (azure); blank keeps the stored one.
+     * @apiParam string secret Secret key (s3); blank keeps the stored one.
+     * @apiParam string endpoint Custom endpoint (s3, azure).
+     * @apiParam string use_path_style Path-style addressing (s3).
+     * @apiParam string project_id Project id (gcs).
+     * @apiParam string key_file Service-account key file (gcs).
+     * @apiParam string account Storage account (azure).
+     * @apiParam string container Container (azure).
+     * @apiParam string cdn Public CDN host public URLs are served from.
+     * @apiParam string(local|cloud) default_disk Where new uploads go; default local.
      * @return void
      */
     public function saveStorage(array $params): void
@@ -153,6 +169,18 @@ class Media_Service_Settings extends Tiger_Service_Service
      * secret field so an admin editing an existing disk needn't re-type it. Admin-gated; nothing persists.
      *
      * @param  array $params expects `adapter` + that adapter's fields (same shape as saveStorage)
+     * @apiParam string(s3|gcs|azure) adapter required The storage adapter to test.
+     * @apiParam string bucket Bucket (s3, gcs).
+     * @apiParam string region Region (s3).
+     * @apiParam string key Access key (s3) or account key (azure); blank keeps the stored one.
+     * @apiParam string secret Secret key (s3); blank keeps the stored one.
+     * @apiParam string endpoint Custom endpoint (s3, azure).
+     * @apiParam string use_path_style Path-style addressing (s3).
+     * @apiParam string project_id Project id (gcs).
+     * @apiParam string key_file Service-account key file (gcs).
+     * @apiParam string account Storage account (azure).
+     * @apiParam string container Container (azure).
+     * @apiParam string cdn Public CDN host public URLs are served from.
      * @return void
      */
     public function testConnection(array $params): void

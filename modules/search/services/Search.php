@@ -17,6 +17,10 @@ class Search_Service_Search extends Tiger_Service_Service
      * Run a query across all registered search providers.
      *
      * @param  array $params q (the query), limit (per provider), only[] (restrict to provider keys)
+     * @apiParam string q The search query (`term` is accepted as an alias); empty returns no results.
+     * @apiParam string term Alias for q.
+     * @apiParam integer limit Max results per provider; default 6.
+     * @apiParam array only Restrict to these provider keys.
      * @return void
      */
     public function query(array $params): void

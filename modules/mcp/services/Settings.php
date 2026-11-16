@@ -15,6 +15,7 @@ class Mcp_Service_Settings extends Tiger_Service_Service
      * Enable or disable the MCP server (`tiger.mcp.enabled`).
      *
      * @param  array $params {enabled: bool-ish}
+     * @apiParam boolean enabled required Turn the /mcp endpoint on (true) or off (false).
      * @return void
      */
     public function save(array $params): void
@@ -36,6 +37,7 @@ class Mcp_Service_Settings extends Tiger_Service_Service
      * hardcoded JS list.
      *
      * @param  array $params unused
+     * @apiRequest none
      * @return void
      */
     public function scopes(array $params): void
@@ -53,6 +55,9 @@ class Mcp_Service_Settings extends Tiger_Service_Service
      * default set (the old footgun). The plaintext is shown once.
      *
      * @param  array $params {scopes: string[]|csv of offer keys, read_only?: bool, org_scoped?: bool}
+     * @apiParam array scopes required Scope-offer keys from scopes() (a comma list is also accepted); an empty set is refused.
+     * @apiParam boolean read_only Mint a read-only token.
+     * @apiParam boolean org_scoped The token acts as the caller's current org, not the caller.
      * @return void
      */
     public function mintToken(array $params): void
@@ -102,7 +107,13 @@ class Mcp_Service_Settings extends Tiger_Service_Service
         }
     }
 
-    /** List the caller's MCP tokens with their scope (prefix + timestamps + modules/read_only/org_scoped). */
+    /**
+     * List the caller's MCP tokens with their scope (prefix + timestamps + modules/read_only/org_scoped).
+     *
+     * @param  array $params the request payload
+     * @apiRequest none
+     * @return void
+     */
     public function tokens(array $params): void
     {
         if (!$this->_isAllowed('tokens')) { $this->_error('core.api.error.not_allowed'); return; }
@@ -122,7 +133,13 @@ class Mcp_Service_Settings extends Tiger_Service_Service
         $this->_success(['tokens' => $rows]);
     }
 
-    /** Revoke one of the caller's tokens + drop its MCP policy. */
+    /**
+     * Revoke one of the caller's tokens + drop its MCP policy.
+     *
+     * @param  array $params the request payload
+     * @apiParam string credential_id required The token to revoke (one of the caller's own).
+     * @return void
+     */
     public function revokeToken(array $params): void
     {
         if (!$this->_isAllowed('revokeToken')) { $this->_error('core.api.error.not_allowed'); return; }

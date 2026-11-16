@@ -33,6 +33,8 @@ class Message_Service_Message extends Tiger_Service_Service
      * The inbox (default), the archive (`view=archived`) or what I sent (`view=sent`).
      *
      * @param  array $params view?, page?
+     * @apiParam string(inbox|archived|sent) view Which box to list; default inbox.
+     * @apiParam integer page Page number, from 1.
      */
     public function list(array $params): void
     {
@@ -60,6 +62,10 @@ class Message_Service_Message extends Tiger_Service_Service
      * list-row shape (title, preview, id, read/archived, timestamp), plus the unread count so the panel
      * and the bell agree. Scoped to the signed-in user by the model finder; a guest is refused by
      * _signedIn() and by the service's own ACL rule (allow `user`), never reaching another user's rows.
+     *
+     * @param  array $params the request payload
+     * @apiRequest none
+     * @return void
      */
     public function recent(array $params): void
     {
@@ -71,7 +77,13 @@ class Message_Service_Message extends Tiger_Service_Service
         ]);
     }
 
-    /** The unread count alone — what the header bell polls. */
+    /**
+     * The unread count alone — what the header bell polls.
+     *
+     * @param  array $params the request payload
+     * @apiRequest none
+     * @return void
+     */
     public function unreadCount(array $params): void
     {
         if (!$this->_signedIn()) { return; }
@@ -86,6 +98,10 @@ class Message_Service_Message extends Tiger_Service_Service
      * One message. Opening it marks the caller's copy read.
      *
      * Only a recipient or the sender may read it — being in the same org is not enough.
+     *
+     * @param  array $params the request payload
+     * @apiParam string message_id required The message to open.
+     * @return void
      */
     public function get(array $params): void
     {
@@ -117,6 +133,9 @@ class Message_Service_Message extends Tiger_Service_Service
      * Send a message to one or more members of my org.
      *
      * @param  array $params recipients (array of user_id), subject, body, parent_id?
+     * @apiRequest Message_Form_Compose
+     * @apiParam array recipients required User ids of org members to send to.
+     * @apiParam string parent_id The message this replies to.
      */
     public function send(array $params): void
     {
@@ -156,7 +175,13 @@ class Message_Service_Message extends Tiger_Service_Service
         }
     }
 
-    /** Members of my org matching a term — the compose screen's recipient picker. */
+    /**
+     * Members of my org matching a term — the compose screen's recipient picker.
+     *
+     * @param  array $params the request payload
+     * @apiParam string q Search term matched against org members.
+     * @return void
+     */
     public function recipients(array $params): void
     {
         if (!$this->_signedIn()) { return; }
@@ -167,12 +192,46 @@ class Message_Service_Message extends Tiger_Service_Service
 
     /* ---- my copy ------------------------------------------------------------------------- */
 
+    /**
+     * Mark my copy of a message read.
+     *
+     * @param  array $params the request payload
+     * @apiParam string message_id required The message.
+     * @return void
+     */
     public function markRead(array $params): void   { $this->_stamp($params, 'read_at', gmdate('Y-m-d H:i:s'), 'message.marked_read'); }
+    /**
+     * Mark my copy of a message unread.
+     *
+     * @param  array $params the request payload
+     * @apiParam string message_id required The message.
+     * @return void
+     */
     public function markUnread(array $params): void { $this->_stamp($params, 'read_at', null, 'message.marked_unread'); }
+    /**
+     * Archive my copy of a message.
+     *
+     * @param  array $params the request payload
+     * @apiParam string message_id required The message.
+     * @return void
+     */
     public function archive(array $params): void    { $this->_stamp($params, 'archived_at', gmdate('Y-m-d H:i:s'), 'message.archived'); }
+    /**
+     * Move my copy of a message back to the inbox.
+     *
+     * @param  array $params the request payload
+     * @apiParam string message_id required The message.
+     * @return void
+     */
     public function unarchive(array $params): void  { $this->_stamp($params, 'archived_at', null, 'message.unarchived'); }
 
-    /** Delete MY copy. The message and everyone else's copies are untouched. */
+    /**
+     * Delete MY copy. The message and everyone else's copies are untouched.
+     *
+     * @param  array $params the request payload
+     * @apiParam string message_id required The message whose copy to delete.
+     * @return void
+     */
     public function delete(array $params): void
     {
         if (!$this->_signedIn()) { return; }
@@ -185,7 +244,13 @@ class Message_Service_Message extends Tiger_Service_Service
 
     /* ---- blocking ------------------------------------------------------------------------ */
 
-    /** Stop receiving from a member. Not an admin or higher, and not yourself. */
+    /**
+     * Stop receiving from a member. Not an admin or higher, and not yourself.
+     *
+     * @param  array $params the request payload
+     * @apiParam string user_id required The member to block.
+     * @return void
+     */
     public function block(array $params): void
     {
         if (!$this->_signedIn()) { return; }
@@ -209,6 +274,13 @@ class Message_Service_Message extends Tiger_Service_Service
         $this->_success([], 'message.blocked');
     }
 
+    /**
+     * Stop blocking a member.
+     *
+     * @param  array $params the request payload
+     * @apiParam string user_id required The member to unblock.
+     * @return void
+     */
     public function unblock(array $params): void
     {
         if (!$this->_signedIn()) { return; }
@@ -218,6 +290,13 @@ class Message_Service_Message extends Tiger_Service_Service
         $this->_success([], 'message.unblocked');
     }
 
+    /**
+     * The members I have blocked.
+     *
+     * @param  array $params the request payload
+     * @apiRequest none
+     * @return void
+     */
     public function blocked(array $params): void
     {
         if (!$this->_signedIn()) { return; }
