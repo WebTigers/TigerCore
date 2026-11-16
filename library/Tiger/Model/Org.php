@@ -55,11 +55,20 @@ class Tiger_Model_Org extends Tiger_Model_Table
      * NOT cached and NOT overridden by a request host, so the bootstrap can call it while it is still
      * folding the config (before `Zend_Config` is registered) without pinning a stale per-request value.
      *
-     * @param  string $configured the configured `tiger.site.org_id` ('' when unset)
+     * Called with no argument it reads the configured value itself — from the install-wide tiers only
+     * (the global `config` row, else the ini), never an org's own tier — so `installOrgId()` is always
+     * the install's main org.
+     *
+     * @param  string|null $configured the configured `tiger.site.org_id` ('' when unset); null = read it
      * @return string the org id, or '' if no org exists yet (a pre-install install)
      */
-    public static function installOrgId($configured = '')
+    public static function installOrgId($configured = null)
     {
+        if ($configured === null) {
+            $configured = class_exists('Tiger_Model_Config')
+                ? (string) Tiger_Model_Config::orgValue('', 'tiger.site.org_id', '')
+                : '';
+        }
         $configured = (string) $configured;
         if ($configured !== '') {
             return $configured;
@@ -71,6 +80,21 @@ class Tiger_Model_Org extends Tiger_Model_Table
         } catch (Throwable $e) {
             return '';
         }
+    }
+
+    /**
+     * Is this org the install's own (main) org? The test for install-level features that only the main
+     * org may drive (TigerGit, TIGER-511). '' is never the install org.
+     *
+     * @api
+     * @since 1.60.0
+     * @param  string|null $orgId the org to test
+     * @return bool
+     */
+    public static function isInstallOrg($orgId)
+    {
+        $orgId = (string) $orgId;
+        return $orgId !== '' && $orgId === self::installOrgId();
     }
 
     /**

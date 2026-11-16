@@ -85,6 +85,8 @@ final class AgentServiceTest extends IntegrationTestCase
                 'agent'  => ['enabled' => '1', 'api_key_enc' => $enc, 'mode_max' => 'auto'],
             ],
         ], true));
+        // Install-wide agent keys serve only the install's own org (TIGER-511) — a single-tenant install.
+        $this->asInstallOrg('org-test');
     }
 
     /** Dispatch the real service and hand back the response object. */

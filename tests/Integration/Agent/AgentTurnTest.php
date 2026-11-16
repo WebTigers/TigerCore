@@ -50,6 +50,8 @@ final class AgentTurnTest extends IntegrationTestCase
             'crypto' => ['key' => self::CRYPTO_KEY],
             'agent'  => ['enabled' => '1', 'api_key_enc' => $enc, 'mode_max' => 'yolo'],
         ]], true));
+        // Install-wide agent keys serve only the install's own org (TIGER-511) — a single-tenant install.
+        $this->asInstallOrg('org-test');
     }
 
     protected function tearDown(): void
@@ -223,7 +225,7 @@ final class AgentTurnTest extends IntegrationTestCase
 
         $this->assertSame(1, (int) $res->result, json_encode($res->messages));
         $this->assertContains('proposed', array_column($res->data['actions'], 'status'), 'the mcp action routed into the turn and gated for approval');
-        @unlink(APPLICATION_ROOT . '/var/cache/agent-mcp/tools.json');
+        @unlink(APPLICATION_ROOT . '/var/cache/agent-mcp/tools-' . md5('org-test') . '.json');   // per-org cache
     }
 }
 

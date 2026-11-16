@@ -36,6 +36,7 @@ final class ReleaseServiceTest extends IntegrationTestCase
         parent::setUp();
         $this->applyGitSchema();
         $this->seedCrypto();
+        $this->asInstallOrg(self::ORG);   // git is install-level (TIGER-511)
 
         $this->seedIdentityRows('u-super', self::ORG, 'superadmin');
         $this->seedIdentityRows('u-admin', self::ORG, 'admin');

@@ -25,7 +25,8 @@ class Comment_Service_Settings extends Tiger_Service_Service
 
         $wanted = !empty($params['spam_agent']);
 
-        if ($wanted && !Tiger_Comment_Spam::agentAvailable()) {
+        // The org the switch is saved for must have its OWN agent (TIGER-511: no install-key fallback).
+        if ($wanted && !Tiger_Comment_Spam::agentAvailable(Tiger_Model_Config::currentOrgId())) {
             // Refuse rather than store an aspiration — see the class docblock.
             $this->_error('comment.admin.no_agent');
             return;

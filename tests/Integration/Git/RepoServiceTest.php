@@ -37,6 +37,7 @@ final class RepoServiceTest extends IntegrationTestCase
         parent::setUp();
         $this->applyGitSchema();
         $this->seedCrypto();
+        $this->asInstallOrg(self::ORG);   // git is install-level (TIGER-511)
 
         $this->seedIdentityRows('u-admin', self::ORG, 'admin');
         $this->seedIdentityRows('u-user',  self::ORG, 'user');

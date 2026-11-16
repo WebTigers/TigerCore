@@ -115,6 +115,7 @@ final class AgentsServiceTest extends IntegrationTestCase
             'crypto' => ['key' => self::CRYPTO_KEY],
             'agent'  => ['enabled' => '1', 'provider' => 'anthropic', 'model' => 'claude-legacy'],
         ]], true));
+        $this->asInstallOrg('org-test');   // install-wide keys are the install org's only (TIGER-511)
 
         $a = $this->call('save', ['name' => 'Only', 'provider' => 'openai', 'model' => 'gpt-4.1'])->data['agent'];
         $this->call('delete', ['agent_id' => $a['agent_id']]);

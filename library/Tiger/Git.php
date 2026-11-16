@@ -56,6 +56,22 @@ class Tiger_Git
     const ALLOWED_HOSTS = ['github.com', 'api.github.com', 'raw.githubusercontent.com', 'codeload.github.com'];
 
     /**
+     * May an org use git at all? Git is INSTALL-LEVEL (TIGER-511): it versions and updates the code of
+     * this install, so only the install's own (main) org may drive it — connections, pins and releases are
+     * the install's. Every Git_Service_* method and the admin screen check this on top of the role ACL, and
+     * the sidebar item is `install_only` (Tiger_Admin_Nav). A multi-tenant install's other orgs never see it.
+     *
+     * @api
+     * @since 1.60.0
+     * @param  string $orgId the caller's org
+     * @return bool
+     */
+    public static function orgMayUse($orgId)
+    {
+        return Tiger_Model_Org::isInstallOrg($orgId);
+    }
+
+    /**
      * Is a string a valid semantic version (optionally `v`-prefixed, optional pre-release/build)?
      * Tag creation and the manifest version are both validated against this.
      *

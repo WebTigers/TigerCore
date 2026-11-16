@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**253 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**254 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -151,6 +151,7 @@
 
 - **Tiger_I18n_Catalog** `@api` — read the SHIPPED translation files as key => value maps.  ·  `library/Tiger/I18n/Catalog.php`
 - **Tiger_I18n_Country** `@api` — the country list, localized + biased-sorted.  ·  `library/Tiger/I18n/Country.php`
+- **Tiger_I18n_Overrides** `@api` — the DB override tier of i18n, folded per ORG (TIGER-511).  ·  `library/Tiger/I18n/Overrides.php`
 - **Tiger_I18n_Timezone** `@api` — the IANA timezone list, enriched for a searchable picker.  ·  `library/Tiger/I18n/Timezone.php`
 - **Tiger_Model_Config** `@api` — Config — the runtime config override layer (see migration 0009).  ·  `library/Tiger/Model/Config.php`
 - **Tiger_Model_Option** `@api` — Option — the LAZY, on-demand scoped key/value store (see migration 0031).  ·  `library/Tiger/Model/Option.php`

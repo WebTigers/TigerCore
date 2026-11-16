@@ -5,7 +5,8 @@
  *
  * Translations — the per-locale string grid: rows come from /api
  * (Translations_Service_Translation::datatable), the editor writes an override into the
- * translation table, and Revert drops it so the shipped file string renders again.
+ * translation table AT THE CALLER'S ORG, and Revert drops it so the inherited value (the install-wide
+ * override, else the shipped file string) renders again (TIGER-511).
  *
  * Registered by the view with $this->pageScript(); the view owns the markup, this owns the
  * behavior. Localized strings arrive through the $this->i18n() carrier (Tiger.t).
@@ -42,6 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
             } },
             { data: null, orderable: false, searchable: false, className: 'text-center', render: function (t, type, row) {
                 if (row.overridden) { return '<span class="badge text-bg-primary">' + esc(Tiger.t('badgeOverridden')) + '</span>'; }
+                if (row.inherited)  { return '<span class="badge text-bg-secondary">' + esc(Tiger.t('badgeInherited')) + '</span>'; }
                 if (row.missing)    { return '<span class="badge text-bg-warning">' + esc('!') + '</span>'; }
                 return '<span class="text-body-secondary">—</span>';
             } },
@@ -86,7 +88,8 @@ document.addEventListener('DOMContentLoaded', function () {
             wrap.className = 'mb-3';
             var badge = loc.is_default
                 ? '<span class="badge text-bg-secondary ms-2">' + esc(Tiger.t('badgeDefault')) + '</span>'
-                : (loc.overridden ? '<span class="badge text-bg-primary ms-2">' + esc(Tiger.t('badgeOverridden')) + '</span>' : '');
+                : (loc.overridden ? '<span class="badge text-bg-primary ms-2">' + esc(Tiger.t('badgeOverridden')) + '</span>'
+                    : (loc.inherited !== loc.file ? '<span class="badge text-bg-secondary ms-2">' + esc(Tiger.t('badgeInherited')) + '</span>' : ''));
             var btn = loc.is_default ? '' :
                 '<button type="button" class="btn btn-outline-secondary" data-tr-translate="' + esc(loc.code) + '"' + (d.ai ? '' : ' disabled title="Connect an AI provider in AI Agent settings"') + '>'
                 + '<i class="fa-solid fa-language me-1"></i>' + esc(Tiger.t('translate')) + '</button>';

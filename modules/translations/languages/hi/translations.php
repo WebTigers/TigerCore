@@ -31,6 +31,8 @@ return [
     'translations.translating'      => 'अनुवाद हो रहा है…',
     'translations.badge_default'    => 'स्रोत',
     'translations.badge_overridden' => 'ओवरराइड की गई',
+    'translations.badge_inherited'  => 'विरासत में मिली',
+    'translations.org_note'         => 'बदलाव केवल आपके संगठन पर लागू होते हैं। पूरे इंस्टॉल के लिए तय किया गया मान तब तक "विरासत में मिली" के रूप में दिखता है जब तक आप उसे ओवरराइड नहीं करते।',
     'translations.uses_file'        => 'शिप किया गया डिफ़ॉल्ट उपयोग करता है',
     'translations.revert_all'       => 'डिफ़ॉल्ट पर लौटाएँ',
     'translations.cancel'           => 'रद्द करें',

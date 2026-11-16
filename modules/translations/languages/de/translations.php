@@ -31,6 +31,8 @@ return [
     'translations.translating'      => 'Wird übersetzt…',
     'translations.badge_default'    => 'Quelle',
     'translations.badge_overridden' => 'Überschrieben',
+    'translations.badge_inherited'  => 'Geerbt',
+    'translations.org_note'         => 'Änderungen gelten nur für Ihre Organisation. Ein für die gesamte Installation festgelegter Wert wird als „Geerbt“ angezeigt, bis Sie ihn überschreiben.',
     'translations.uses_file'        => 'Verwendet den mitgelieferten Standard',
     'translations.revert_all'       => 'Auf Standardwerte zurücksetzen',
     'translations.cancel'           => 'Abbrechen',

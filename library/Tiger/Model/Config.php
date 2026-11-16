@@ -96,6 +96,25 @@ class Tiger_Model_Config extends Tiger_Model_Table
     }
 
     /**
+     * Read ONE org's own row for a setting — no global row, no ini, no other org. For a value that must
+     * never be inherited from the install (an org's AI key, TIGER-511): absent means "this org has none".
+     *
+     * @api
+     * @since 1.60.0
+     * @param  string $orgId   the org whose own row to read ('' always answers $default)
+     * @param  string $key     the dot-notation config key
+     * @param  mixed  $default returned when the org has no row for the key
+     * @return mixed the stored string value, or $default
+     */
+    public static function orgOwnValue($orgId, $key, $default = null)
+    {
+        $orgId = (string) $orgId;
+        if ($orgId === '') { return $default; }
+        $org = self::_tier(self::SCOPE_ORG, $orgId);
+        return array_key_exists((string) $key, $org) ? $org[(string) $key] : $default;
+    }
+
+    /**
      * Resolve a SITE-FACING setting — what the public site being served shows every visitor: the site
      * org's row (Tiger_Model_Org::siteOrgId) → global → ini → `$default`. Use this on public paths and
      * per-request plugins (the analytics tag, the favicon, the reCAPTCHA widget, head tags): a visitor

@@ -82,6 +82,7 @@ final class AdminControllerTest extends ControllerTestCase
         Zend_Registry::set('Zend_Config', new Zend_Config([
             'tiger' => ['agent' => ['provider' => 'openai', 'model' => 'gpt-4o']],
         ], true));
+        $this->asInstallOrg('org-test');   // install-wide keys are the install org's only (TIGER-511)
         $this->loginAs('admin');
         $this->dispatchAction(Agent_AdminController::class, 'index', [], 'GET');
 

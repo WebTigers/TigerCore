@@ -12,6 +12,12 @@
  * labels through the translator (a label is a key OR literal), so overriding a key here re-labels
  * everything that emits it, next request.
  *
+ * Per org (TIGER-511): the screen shows and edits the CALLER's org tier. Under it sits the install-wide
+ * (global) tier, shown as the INHERITED value — what the org gets until it sets its own — and under that
+ * the file. Saving the inherited value (or a blank) drops the org's override; Revert drops it too. One
+ * org's wording never reaches another org. The request translator folds the same tiers
+ * (Tiger_I18n_Overrides).
+ *
  * Two optional AI conveniences reuse the in-app agent's provider (TigerAgent, BYO key): `translate`
  * (draft a locale value from the source string) and `context` (explain where/how a key is used, to
  * orient the translator). Both degrade cleanly when no provider is connected — the screen still works
@@ -55,18 +61,21 @@ class Translations_Service_Translation extends Tiger_Service_Service
 
         $source    = Tiger_I18n_Catalog::keys($default);                 // key => source string (canonical set)
         $fileVals  = ($locale === $default) ? $source : Tiger_I18n_Catalog::map($locale);
-        $overrides = $this->_overrides($locale);
+        $overrides = $this->_overrides($locale);                         // the caller's org tier
+        $inherited = $this->_inherited($locale);                         // the install-wide tier underneath
 
-        // Build the working rows.
+        // Build the working rows: org override → inherited install-wide value → file.
         $rows = [];
         foreach ($source as $key => $src) {
             $hasOverride = array_key_exists($key, $overrides);
-            $value       = $hasOverride ? $overrides[$key] : ($fileVals[$key] ?? '');
+            $isInherited = !$hasOverride && array_key_exists($key, $inherited);
+            $value       = $hasOverride ? $overrides[$key] : ($isInherited ? $inherited[$key] : ($fileVals[$key] ?? ''));
             $rows[] = [
                 'key'        => $key,
                 'source'     => $src,
                 'value'      => $value,
                 'overridden' => $hasOverride,
+                'inherited'  => $isInherited,
                 'missing'    => (trim((string) $value) === ''),
             ];
         }
@@ -129,13 +138,16 @@ class Translations_Service_Translation extends Tiger_Service_Service
         $locales = [];
         foreach ($this->_supported() as $code) {
             $file      = Tiger_I18n_Catalog::map($code)[$key] ?? '';
+            $global    = $this->_inherited($code)[$key] ?? null;
             $override  = $this->_overrides($code)[$key] ?? null;
+            $base      = $global !== null ? $global : $file;   // what this org inherits without an override
             $locales[] = [
                 'code'       => $code,
                 'name'       => $this->_localeName($code),
                 'is_default' => ($code === $default),
                 'file'       => $file,
-                'value'      => $override !== null ? $override : $file,
+                'inherited'  => $base,
+                'value'      => $override !== null ? $override : $base,
                 'overridden' => ($override !== null),
             ];
         }
@@ -167,20 +179,27 @@ class Translations_Service_Translation extends Tiger_Service_Service
         $key    = trim((string) ($params['key'] ?? ''));
         $values = (array) ($params['values'] ?? []);
         if ($key === '') { $this->_error('translations.error.no_key'); return; }
+        $org = $this->_org();
+        if ($org === '') { $this->_error('core.api.error.not_allowed'); return; }
 
         $supported = $this->_supported();
         $model     = new Tiger_Model_Translation();
+        // What the org inherits per locale (the install-wide row, else the file) — saving that exact value
+        // (or a blank) drops the org's override rather than pinning a copy of it.
+        $inherited = [];
+        foreach ($supported as $code) {
+            $inherited[$code] = $this->_inherited($code)[$key] ?? (Tiger_I18n_Catalog::map($code)[$key] ?? '');
+        }
 
         try {
-            $this->_transaction(function () use ($key, $values, $supported, $model) {
+            $this->_transaction(function () use ($key, $values, $supported, $model, $org, $inherited) {
                 foreach ($supported as $code) {
                     if (!array_key_exists($code, $values)) { continue; }
                     $value = trim((string) $values[$code]);
-                    $file  = Tiger_I18n_Catalog::map($code)[$key] ?? '';
-                    if ($value === '' || $value === $file) {
-                        $model->forget($code, Tiger_Model_Translation::SCOPE_GLOBAL, '', $key);   // revert to file
+                    if ($value === '' || $value === $inherited[$code]) {
+                        $model->forget($code, Tiger_Model_Translation::SCOPE_ORG, $org, $key);   // inherit again
                     } else {
-                        $model->set($code, Tiger_Model_Translation::SCOPE_GLOBAL, '', $key, $value);
+                        $model->set($code, Tiger_Model_Translation::SCOPE_ORG, $org, $key, $value);
                     }
                 }
                 return true;
@@ -205,14 +224,17 @@ class Translations_Service_Translation extends Tiger_Service_Service
         $key = trim((string) ($params['key'] ?? ''));
         if ($key === '') { $this->_error('translations.error.no_key'); return; }
 
+        $org = $this->_org();
+        if ($org === '') { $this->_error('core.api.error.not_allowed'); return; }
+
         $one     = (string) ($params['locale'] ?? '');
         $locales = ($one !== '' && in_array($one, $this->_supported(), true)) ? [$one] : $this->_supported();
         $model   = new Tiger_Model_Translation();
 
         try {
-            $this->_transaction(function () use ($key, $locales, $model) {
+            $this->_transaction(function () use ($key, $locales, $model, $org) {
                 foreach ($locales as $code) {
-                    $model->forget($code, Tiger_Model_Translation::SCOPE_GLOBAL, '', $key);
+                    $model->forget($code, Tiger_Model_Translation::SCOPE_ORG, $org, $key);   // the caller's org only
                 }
                 return true;
             });
@@ -313,8 +335,25 @@ class Translations_Service_Translation extends Tiger_Service_Service
         }
     }
 
-    /** Current DB overrides for a locale (global scope) as key => value. */
+    /** The caller's org — the tier this screen shows and edits ('' = none: nothing to edit). */
+    protected function _org()
+    {
+        return (string) ($this->_org_id ?? '');
+    }
+
+    /** The caller's org's OWN overrides for a locale as key => value ([] with no org). */
     protected function _overrides($locale)
+    {
+        if ($this->_org() === '') { return []; }
+        try {
+            return (new Tiger_Model_Translation())->getForLocale($locale, Tiger_Model_Translation::SCOPE_ORG, $this->_org());
+        } catch (Throwable $e) {
+            return [];
+        }
+    }
+
+    /** The install-wide (global) overrides for a locale — what an org inherits where it set none. */
+    protected function _inherited($locale)
     {
         try {
             return (new Tiger_Model_Translation())->getForLocale($locale, Tiger_Model_Translation::SCOPE_GLOBAL);

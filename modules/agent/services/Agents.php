@@ -17,10 +17,23 @@
  */
 class Agent_Service_Agents extends Tiger_Service_Service
 {
-    /** The org scope for the current caller ('' = platform/global). */
+    /**
+     * The caller's org — the only scope this service reads or writes (TIGER-511: AI keys are org-level
+     * only). '' (a caller with no org) is refused by every method: there is no platform agent any more.
+     */
     private function _scope(): string
     {
         return (string) ($this->_org_id ?? '');
+    }
+
+    /** The caller has an org to act in, or an error + false. */
+    private function _hasOrg(): bool
+    {
+        if ($this->_scope() === '') {
+            $this->_error('core.api.error.not_allowed');
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -33,6 +46,7 @@ class Agent_Service_Agents extends Tiger_Service_Service
     public function list(array $params): void
     {
         if (!$this->_isAllowed('list')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_hasOrg()) { return; }
 
         $agents = [];
         foreach ((new Tiger_Model_Agent())->allForOrg($this->_scope()) as $row) {
@@ -52,6 +66,7 @@ class Agent_Service_Agents extends Tiger_Service_Service
     public function save(array $params): void
     {
         if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_hasOrg()) { return; }
 
         $form = new Agent_Form_Agent();
         if (!$form->isValid($params)) { $this->_formErrors($form); return; }
@@ -116,7 +131,7 @@ class Agent_Service_Agents extends Tiger_Service_Service
     /**
      * Soft-delete an agent. If the deleted one was the default and others remain, the oldest
      * surviving agent is promoted so the org never loses its default. Deleting the last agent is
-     * allowed — the registry falls back to the legacy config until one is created again.
+     * allowed — the org then resolves its own legacy config keys, if any, else has no agent.
      *
      * @param  array $params agent_id
      * @return void
@@ -124,6 +139,7 @@ class Agent_Service_Agents extends Tiger_Service_Service
     public function delete(array $params): void
     {
         if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_hasOrg()) { return; }
 
         $scope   = $this->_scope();
         $model   = new Tiger_Model_Agent();

@@ -47,10 +47,19 @@ abstract class Git_Service_Base extends Tiger_Service_Service
         return Tiger_Module_Installer::installFromTarball($tarPath, $provenance, $opts);
     }
 
-    /** Signed in with an org, or an error + false. (The ACL already gated the method at dispatch.) */
+    /**
+     * Signed in with an org — and that org is the INSTALL's own org — or an error + false. Git is
+     * install-level (TIGER-511): it versions and updates the code of THIS install, which is the main
+     * org's, so an admin of any other org is refused every method (Tiger_Git::orgMayUse). The ACL already
+     * gated the method by role at dispatch; this is the org half of the rule.
+     */
     protected function _signedIn(): bool
     {
         if ((string) $this->_user_id === '' || (string) $this->_org_id === '') {
+            $this->_error('core.api.error.not_allowed');
+            return false;
+        }
+        if (!Tiger_Git::orgMayUse((string) $this->_org_id)) {
             $this->_error('core.api.error.not_allowed');
             return false;
         }
