@@ -98,17 +98,18 @@ $features = [
     <div class="container">
         <div class="text-center mb-5">
             <span class="badge rounded-pill text-bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">Head to head</span>
-            <h2 class="fw-bold">WordPress vs. Tiger</h2>
+            <h2 class="fw-bold" id="cms-compare-heading">WordPress vs. Tiger</h2>
             <p class="text-secondary mx-auto mb-0" style="max-width:640px;">
                 Same job — running your website — done two very different ways. One rents you every
                 capability as a plugin; the other ships them in the box.
             </p>
         </div>
-        <div class="table-responsive">
+        <?php /* A focusable, named region so a keyboard user can scroll the table sideways on a phone (WCAG 2.1.1). */ ?>
+        <div class="table-responsive" tabindex="0" role="region" aria-labelledby="cms-compare-heading">
             <table class="table align-middle mb-0">
                 <thead>
                     <tr class="border-bottom">
-                        <th scope="col" class="w-25"></th>
+                        <td class="w-25"></td>
                         <th scope="col" class="text-secondary fw-semibold">
                             <i class="fa-brands fa-wordpress me-2"></i>WordPress
                         </th>
