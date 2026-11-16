@@ -282,6 +282,28 @@ class Tiger_Analytics_Adapter_Matomo extends Tiger_Analytics_Adapter_Abstract
     }
 
     /**
+     * The curl options for one Matomo API POST. The client names itself, like every other core outbound
+     * call (Tiger_Update, Tiger_Vendor): edge WAFs commonly refuse a request with no User-Agent — the AWS
+     * managed Common Rule Set's NoUserAgent_HEADER rule blocked these calls in front of a real Matomo.
+     *
+     * @param  array $fields the POST fields
+     * @return array the curl option map
+     */
+    public static function curlOptions(array $fields): array
+    {
+        return [
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => http_build_query($fields),
+            CURLOPT_HTTPHEADER     => ['Content-Type: application/x-www-form-urlencoded', 'Accept: application/json'],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_USERAGENT      => 'Tiger_Analytics/' . Tiger_Version::VERSION,
+            CURLOPT_TIMEOUT        => self::TIMEOUT,
+            CURLOPT_CONNECTTIMEOUT => self::TIMEOUT,
+            CURLOPT_FOLLOWLOCATION => false,   // a redirect would re-send the body somewhere else
+        ];
+    }
+
+    /**
      * The low-level POST (curl), or the test seam. Returns [httpCode, body]; [0, false] on transport
      * failure. The token travels in the form body only.
      *
@@ -298,15 +320,7 @@ class Tiger_Analytics_Adapter_Matomo extends Tiger_Analytics_Adapter_Abstract
             return [0, false];
         }
         $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => http_build_query($fields),
-            CURLOPT_HTTPHEADER     => ['Content-Type: application/x-www-form-urlencoded', 'Accept: application/json'],
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => self::TIMEOUT,
-            CURLOPT_CONNECTTIMEOUT => self::TIMEOUT,
-            CURLOPT_FOLLOWLOCATION => false,   // a redirect would re-send the body somewhere else
-        ]);
+        curl_setopt_array($ch, static::curlOptions($fields));
         $body = curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         return [$code, $body];

@@ -6,6 +6,14 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.61.1] — 2026-11-16
+
+### Fixed
+- **Matomo reporting was refused by edge WAFs.** The Matomo adapter's API requests sent no `User-Agent`,
+  and the AWS managed Common Rule Set (`NoUserAgent_HEADER`) answers those with 403 — so a Matomo behind
+  such a WAF looked like a bad token. The adapter now names itself (`Tiger_Analytics/<version>`), like
+  core's other outbound clients; its curl options are exposed as `Tiger_Analytics_Adapter_Matomo::curlOptions()`.
+
 ## [1.61.0] — 2026-11-16
 
 ### Added — choose your analytics provider (Google Analytics or Matomo)
