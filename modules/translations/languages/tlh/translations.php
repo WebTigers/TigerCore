@@ -32,6 +32,8 @@ return [
     'translations.translating'      => 'Translating…',
     'translations.badge_default'    => 'Source',
     'translations.badge_overridden' => 'Overridden',
+    'translations.badge_inherited'  => 'Inherited',
+    'translations.org_note'         => 'Changes apply to your organization only. A value set for the whole install shows as Inherited until you override it.',
     'translations.uses_file'        => 'Uses shipped default',
     'translations.revert_all'       => 'Revert to defaults',
     'translations.cancel'           => 'Cancel',

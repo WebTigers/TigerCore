@@ -22,6 +22,7 @@
  *       'resource' => 'Docs_AdminController',      // ACL resource — the item hides if denied
  *       'order'    => 90,                          // sort weight among registered items (lower first)
  *       'badge'    => fn () => $pendingCount,      // optional: int or callable → count pill (Tiger_Admin_Badge)
+ *       'install_only' => true,                    // optional: show ONLY to the install's own org (since 1.60.0)
  *   ]);
  *
  * A parent (toggle) shows the SUM of its visible children's badges, so a count is never hidden
@@ -76,6 +77,11 @@ class Tiger_Admin_Nav
     {
         self::discover();
         $items = array_values(self::$_items);
+        // An `install_only` item (an install-level feature, e.g. TigerGit) shows only to the install's own
+        // org — the role ACL can't express "which org", so this is the org half of the gate (TIGER-511).
+        $items = array_values(array_filter($items, static function ($p) {
+            return empty($p['install_only']) || self::_callerIsInstallOrg();
+        }));
         usort($items, static function ($a, $b) {
             return [$a['order'], $a['label']] <=> [$b['order'], $b['label']];
         });
@@ -97,6 +103,16 @@ class Tiger_Admin_Nav
             }
             return $out;
         }, $items);
+    }
+
+    /** Is the signed-in caller's org the install's own org? (Fail closed: no org / no DB → false.) */
+    protected static function _callerIsInstallOrg()
+    {
+        try {
+            return class_exists('Tiger_Model_Org') && Tiger_Model_Org::isInstallOrg((string) Tiger_Model_Table::org());
+        } catch (Throwable $e) {
+            return false;
+        }
     }
 
     /**

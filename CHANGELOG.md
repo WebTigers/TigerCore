@@ -6,6 +6,60 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.60.0] — 2026-11-16
+
+### Changed — AI keys are org-level only; translations per org; git is install-level (TIGER-511)
+Most installs are single-tenant, but modules must be safe multi-tenant. Three surfaces still reached
+across orgs.
+- **AI agent keys belong to ONE org, with no fallback.** An org resolves only its own agent — its default
+  registry row, else its own `tiger.agent.*` config rows. It no longer falls back to a platform agent
+  (`agent.org_id = ''`) or to the install-wide `tiger.agent.*` config, so an org that never connected an AI
+  account no longer silently spends the install's key: it has no agent, and AI features degrade as they
+  already did with none configured. The install's own org may still read the install-wide tier (the
+  global row, else the ini) — those settings are its own. `Tiger_Model_Agent::defaultForOrg()` drops the
+  `''` fallback; `Tiger_Agent::default()/get()/all()/apiKey()` answer for the signed-in org only (none
+  with no org).
+- **Agent settings write at the caller's org.** `Agent_Service_Settings::save()/mode()` write at
+  `Tiger_Model_Config::settingScope($org)` (the auto-mode ceiling is per org too, inheriting the
+  install-wide value); `Agent_Service_Agents` and `Agent_Service_Mcp` refuse a caller with no org instead
+  of writing a platform row.
+- **Outbound MCP connections are org-scoped** (they hold encrypted tokens): `Tiger_Agent_Mcp` reads and
+  writes the org's `option` row (every method takes an optional `$orgId`, default the signed-in org), and
+  the tool-list cache is per org.
+- **The AI comment-spam checker uses the SITE org's own agent** (`Tiger_Comment_Spam::agentAvailable($orgId)`);
+  the admin toggle checks the caller's org.
+- **Translation overrides are per org with a global fallback.** The Translations screen shows and edits
+  the caller's org tier, showing the install-wide value as **Inherited**; saving the inherited value or
+  a blank drops the org's override. The request translator folds the global tier, then the SITE org's
+  (the host's tenant, else the install org) — public strings are the site's whoever is viewing — and an
+  admin screen re-folds to the caller's org when it differs (a no-op on a single-site install).
+- **TigerGit is install-level.** Every `Git_Service_*` method and the Git admin screen refuse any org but
+  the install's own (the screen is a 404); the sidebar item is `install_only`. Connections and pins stay
+  the install org's.
+
+### Added
+- `Tiger_Agent::forOrg($orgId)` (TIGER-513) — an org's own default agent resolved for a NAMED org
+  (`provider`, `model`, decrypted `api_key`, `enabled`/`connected`/`available`), or null when it has none;
+  no fallback of any kind. For background jobs that loop over orgs and public paths acting for the site's
+  org. Plus `Tiger_Agent::isAvailableForOrg($orgId)`.
+- `Tiger_Model_Config::orgOwnValue($orgId, $key, $default)` — one org's own row only (no global, no ini).
+- `Tiger_Model_Org::isInstallOrg($orgId)`; `installOrgId()` with no argument now reads the configured
+  `tiger.site.org_id` itself (install-wide tiers only).
+- `Tiger_Git::orgMayUse($orgId)`; an `install_only` flag on `Tiger_Admin_Nav` items (register() or
+  `navigation.ini`).
+- `Tiger_I18n_Overrides` — the per-org override fold (`forLocale`, `fold`, `refold`, `requestOrgId`,
+  `adminOrgId`).
+
+### Migration
+- **0068_agent_org_scope** (data, idempotent, never overwrites): platform agents (`org_id = ''`) move to
+  the install org (a moved default is demoted if the install org already has one); global
+  `tiger.agent.{enabled,provider,model,api_key_enc,mode_max}` rows become the install org's rows unless
+  it already has its own, and the global rows are retired; the global outbound-MCP connections option
+  moves the same way. A single-tenant install keeps working unchanged. **Multi-site caveat:** install-wide
+  agent data can't be attributed to the site it served, so it all lands on the install org — every other
+  org must connect its own AI account (an operator re-enters a shared key per org if that is wanted).
+  Global translation overrides are NOT moved — they remain every org's inherited fallback.
+
 ## [1.59.0] — 2026-11-15
 
 ### Changed — per-site settings are org-scoped (TIGER-511)

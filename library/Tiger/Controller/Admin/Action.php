@@ -22,7 +22,9 @@
 abstract class Tiger_Controller_Admin_Action extends Tiger_Controller_Action
 {
     /**
-     * Initialize the controller and set the admin layout for every admin screen.
+     * Initialize the controller and set the admin layout for every admin screen. The admin chrome reads in
+     * the CALLER's org translation tier (the tier the Translations screen edits, TIGER-511): the bootstrap
+     * folded the site org's, so re-fold when they differ — a no-op on a single-site install.
      *
      * @return void
      */
@@ -30,5 +32,6 @@ abstract class Tiger_Controller_Admin_Action extends Tiger_Controller_Action
     {
         parent::init();
         $this->_helper->layout()->setLayout('admin');
+        Tiger_I18n_Overrides::refold(Tiger_I18n_Overrides::adminOrgId());
     }
 }

@@ -4,8 +4,9 @@
 /**
  * Tiger_Model_Agent — the agent registry table gateway (migration 0050, TIGER-151).
  *
- * One row per registered agent, scoped by `org_id` ('' = the platform/global scope). Exactly one
- * agent per scope carries `is_default = 1`; `Tiger_Agent::default()` resolves to it. Domain finders
+ * One row per registered agent, scoped by `org_id`. Exactly one agent per org carries `is_default = 1`;
+ * `Tiger_Agent::forOrg()` / `default()` resolve to it — the org's own, never another's (TIGER-511; a
+ * legacy `org_id = ''` platform row is moved to the install org by migration 0068). Domain finders
  * build on activeSelect() so soft-deleted agents stay hidden.
  *
  * The API key lives in `api_key_enc` (Tiger_Crypto ciphertext); this gateway never encrypts or
@@ -21,31 +22,25 @@ class Tiger_Model_Agent extends Tiger_Model_Table
     protected $_primary = 'agent_id';
 
     /**
-     * The default agent for a scope: the org's own default if it has one, else the global ('')
-     * default, else null. Falling back to the global scope means a tenant that never registered
-     * its own agent still resolves to the platform default (which is what the legacy singleton was).
+     * The org's OWN default agent, or null. There is no fallback (TIGER-511): AI keys are org-level
+     * only, so an org that never registered an agent has none — it never resolves another org's, a
+     * platform (`org_id = ''`) row, or the install org's. '' resolves nothing.
      *
-     * @param  string $orgId the acting org, '' for the platform scope
+     * @param  string $orgId the org
      * @return Zend_Db_Table_Row_Abstract|null
      */
     public function defaultForOrg($orgId)
     {
         $orgId = (string) $orgId;
-        $row = $this->fetchRow(
+        if ($orgId === '') {
+            return null;
+        }
+        return $this->fetchRow(
             $this->activeSelect()
                 ->where('org_id = ?', $orgId)
                 ->where('is_default = ?', 1)
                 ->order('created_at ASC')
         );
-        if ($row === null && $orgId !== '') {
-            $row = $this->fetchRow(
-                $this->activeSelect()
-                    ->where("org_id = ''")
-                    ->where('is_default = ?', 1)
-                    ->order('created_at ASC')
-            );
-        }
-        return $row;
     }
 
     /**

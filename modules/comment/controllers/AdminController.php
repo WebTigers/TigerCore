@@ -28,7 +28,8 @@ class Comment_AdminController extends Tiger_Controller_Admin_Action
 
         // The AI spam control only APPEARS when there is a live agent to run it — an always-visible
         // toggle that silently does nothing is worse than no toggle.
-        $this->view->agentAvailable = Tiger_Comment_Spam::agentAvailable();
+        // The caller's org's OWN agent (TIGER-511: AI keys are org-level only).
+        $this->view->agentAvailable = Tiger_Comment_Spam::agentAvailable(Tiger_Model_Config::currentOrgId());
         // The caller's org switch — the tier Comment_Service_Settings saves (TIGER-511).
         $this->view->spamAgent      = Tiger_Comment_Spam::agentEnabled(Tiger_Model_Config::currentOrgId());
         // The CSRF token every action on this screen posts (moderate + settings share one salt — Comment_Form_Write).

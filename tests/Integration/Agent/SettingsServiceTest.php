@@ -60,11 +60,14 @@ final class SettingsServiceTest extends IntegrationTestCase
         return (new Agent_Service_Settings(['action' => $action] + $params))->getResponse();
     }
 
-    /** Read a single global config value straight from the DB (bypassing the registry cascade). */
+    /**
+     * Read the signed-in org's config value straight from the DB (bypassing the registry cascade). The
+     * settings are written at the caller's org (TIGER-511); loginAs() signs in to `org-test`.
+     */
     private function dbConfig(string $key): ?string
     {
         $v = $this->db->fetchOne(
-            "SELECT config_value FROM config WHERE scope = 'global' AND scope_id = '' AND config_key = ? AND deleted = 0",
+            "SELECT config_value FROM config WHERE scope = 'org' AND scope_id = 'org-test' AND config_key = ? AND deleted = 0",
             [$key]
         );
         return $v === false ? null : (string) $v;

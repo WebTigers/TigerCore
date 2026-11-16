@@ -18,10 +18,11 @@ use Zend_Registry;
 /**
  * The agent registry (migration 0050, TIGER-151) and its read-through facade.
  *
- * The load-bearing invariants: an EMPTY registry leaves Tiger_Agent behaving exactly as the legacy
+ * The load-bearing invariants: an EMPTY registry leaves the INSTALL org behaving exactly as the legacy
  * singleton (it reads the `tiger.agent.*` config keys); a Default row overrides that per org; an org
- * with no agent of its own resolves to the global ('') default; setDefault keeps exactly one default
- * per scope; and get()/all() never leak another org's agents.
+ * with no agent of its own resolves NOTHING — never a platform ('') row nor the install config
+ * (TIGER-511); setDefault keeps exactly one default per scope; and get()/all() never leak another
+ * org's agents.
  */
 #[CoversClass(Tiger_Agent::class)]
 #[CoversClass(Tiger_Model_Agent::class)]
@@ -48,14 +49,16 @@ final class AgentRegistryTest extends IntegrationTestCase
     }
 
     #[Test]
-    public function an_empty_registry_falls_back_to_the_legacy_singleton_config(): void
+    public function an_empty_registry_falls_back_to_the_legacy_singleton_config_for_the_install_org(): void
     {
         $this->seedConfig([
             'enabled'  => '1',
             'provider' => 'openai',
             'model'    => 'gpt-4.1',
         ]);
-        Tiger_Model_Table::setOrg(Tiger_Uuid::v7());   // an org that has registered nothing
+        $org = Tiger_Uuid::v7();   // the install's own org, which has registered nothing
+        $this->asInstallOrg($org);
+        Tiger_Model_Table::setOrg($org);
 
         $this->assertTrue(Tiger_Agent::isEnabled(), 'enabled reads through to the legacy flag');
         $this->assertSame('openai', Tiger_Agent::provider());
@@ -98,11 +101,11 @@ final class AgentRegistryTest extends IntegrationTestCase
     }
 
     #[Test]
-    public function an_org_with_no_agent_resolves_to_the_global_default(): void
+    public function an_org_with_no_agent_never_resolves_the_platform_default_or_the_install_config(): void
     {
-        $this->seedConfig(['provider' => 'openai']);   // legacy would say openai
+        $this->seedConfig(['enabled' => '1', 'provider' => 'openai']);   // install-wide legacy config
         $model = new Tiger_Model_Agent();
-        // Global ('') default set by the platform.
+        // A legacy platform ('') default row (migration 0068 moves these to the install org).
         $model->insert([
             'org_id'     => '',
             'name'       => 'Platform',
@@ -112,10 +115,12 @@ final class AgentRegistryTest extends IntegrationTestCase
             'is_default' => 1,
         ]);
 
-        Tiger_Model_Table::setOrg(Tiger_Uuid::v7());   // a tenant with nothing of its own
+        Tiger_Model_Table::setOrg(Tiger_Uuid::v7());   // a tenant with nothing of its own (not the install org)
         Tiger_Agent::reset();
 
-        $this->assertSame('anthropic', Tiger_Agent::provider(), 'falls back to the global default row, not legacy config');
+        $this->assertNull(Tiger_Agent::default()['id'], 'no platform row (TIGER-511: AI keys are org-level only)');
+        $this->assertFalse(Tiger_Agent::isEnabled(), 'no install-wide legacy config either');
+        $this->assertSame('', Tiger_Agent::apiKey());
     }
 
     #[Test]

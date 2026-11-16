@@ -103,7 +103,7 @@ class Tiger_Comment_Spam
      */
     public static function agentEnabled($orgId = null)
     {
-        return self::_switchedOn($orgId) && self::agentAvailable();
+        return self::_switchedOn($orgId) && self::agentAvailable($orgId);
     }
 
     /** Is the AI spam switch stored ON for the org (null = the site org)? */
@@ -116,17 +116,26 @@ class Tiger_Comment_Spam
     }
 
     /**
-     * Is there a live agent to ask?
+     * Is there a live agent to ask — the org's OWN (TIGER-511: AI keys are org-level only)?
      *
-     * Deliberately `isConnected()` (a provider + a usable key), NOT `isAvailable()` — the latter also
-     * asks whether the CURRENT USER may chat, which is meaningless for a background check running on
-     * behalf of an anonymous commenter.
+     * Deliberately `Tiger_Agent::isAvailableForOrg()` (enabled + a usable key), NOT `isAvailable()` — the
+     * latter also asks whether the CURRENT USER may chat, which is meaningless for a background check
+     * running on behalf of an anonymous commenter. The org defaults to the SITE the comment is posted on
+     * (a guest has no org of their own); a site whose org has no agent is simply unchecked — it never
+     * spends the install org's key.
      *
+     * @param  string|null $orgId the org whose agent to use; null = the site being served
      * @return bool
      */
-    public static function agentAvailable()
+    public static function agentAvailable($orgId = null)
     {
-        return class_exists('Tiger_Agent') && Tiger_Agent::isEnabled() && Tiger_Agent::isConnected();
+        return class_exists('Tiger_Agent') && Tiger_Agent::isAvailableForOrg(self::_agentOrg($orgId));
+    }
+
+    /** The org whose agent the checker uses: the given org, else the site org. */
+    protected static function _agentOrg($orgId = null)
+    {
+        return ($orgId === null) ? (string) Tiger_Model_Org::siteOrgId() : (string) $orgId;
     }
 
     /**
@@ -204,9 +213,14 @@ class Tiger_Comment_Spam
      */
     protected static function _ask($system, $prompt)
     {
-        $adapter = Tiger_Agent_Provider_Factory::make(Tiger_Agent::provider());
+        // The SITE org's own agent (Tiger_Agent::forOrg — no fallback); agentEnabled() already proved it usable.
+        $agent = Tiger_Agent::forOrg(self::_agentOrg());
+        if ($agent === null || !$agent['available']) {
+            return '';
+        }
+        $adapter = Tiger_Agent_Provider_Factory::make($agent['provider']);
         $out     = $adapter->complete($system, [['role' => 'user', 'content' => $prompt]],
-                                      Tiger_Agent::model(), Tiger_Agent::apiKey());
+                                      $agent['model'], $agent['api_key']);
         return (string) ($out['text'] ?? '');
     }
 }

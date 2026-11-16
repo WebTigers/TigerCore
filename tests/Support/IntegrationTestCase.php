@@ -181,6 +181,20 @@ abstract class IntegrationTestCase extends TestCase
         }
     }
 
+    /**
+     * Make an org the INSTALL's own org for this test only (TIGER-511) — a global `tiger.site.org_id`
+     * config row, which Tiger_Model_Org::installOrgId() reads and the per-test rollback removes, so no
+     * install org ever leaks into a later test (unlike seeding it into the shared Zend_Config).
+     *
+     * @param  string $orgId the org to treat as the install's main org
+     * @return void
+     */
+    protected function asInstallOrg(string $orgId): void
+    {
+        (new \Tiger_Model_Config())->set(\Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.site.org_id', $orgId);
+        Tiger_Agent::reset();
+    }
+
     /** Shorthand: sign in a synthetic user carrying $role, in the shared test org. */
     protected function loginAs(string $role): object
     {

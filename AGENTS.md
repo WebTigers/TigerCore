@@ -539,6 +539,17 @@ per-request plugin with `Tiger_Model_Config::siteValue()` — the merged `Zend_C
 visitor's org, so a member of org B browsing site A would otherwise get B's value. All three fall back to
 the install-wide (global) row, then the ini — never another org's value.
 
+**AI keys are org-level ONLY — no fallback (TIGER-511).** An org's AI agent (provider, model, BYO key,
+outbound MCP connections) is that org's alone: it never inherits another org's, a platform agent, or the
+install's key. On a signed-in request use the `Tiger_Agent` facade (`apiKey()`, `provider()`, `model()`,
+`isAvailable()` — the signed-in org). Anywhere else — a scheduler job or webhook that loops over orgs, a
+public path acting for the site — name the org: **`Tiger_Agent::forOrg($orgId)`** returns that org's own
+agent with its decrypted key, or `null` when it has none (then the feature degrades, as with no agent
+configured); `Tiger_Agent::isAvailableForOrg($orgId)` for a yes/no. Never read `tiger.agent.*` from the
+merged `Zend_Config` or `Tiger_Model_Agent` rows with `org_id = ''` — both are the install-wide fallback
+this rule forbids. Install-level features (TigerGit) are the opposite case: only the install's own org may
+use them — gate on `Tiger_Model_Org::isInstallOrg($orgId)` and mark the nav item `install_only`.
+
 Module `configs/acl.ini` grants access to that module's controllers/services. Two resource shapes: a **controller** dispatch gates on
 `isAllowed($role, <Controller>, <action>)` (privilege = action); an **`/api` service** gates on
 `isAllowed($role, <ServiceClass>, <method>)` (privilege = method). Declaring the rule is part of

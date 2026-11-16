@@ -313,8 +313,15 @@ Standard-columns tables (ARCHITECTURE §7a), tenant- + user-scoped:
 | `agent_run` | `conversation_id`, `status` (`running`/`awaiting_approval`/`done`/`error`), `cursor`, `pending_tool` (JSON), `error` — the reconnect anchor |
 
 - **Aside width/open** → `option` (scope=user), not a table.
-- **Provider + model + BYO creds** → `config` (per-org; the key in a `_enc` value via `Tiger_Crypto`,
-  decrypted on read — the reCAPTCHA/GA pattern). Never committed.
+- **Provider + model + BYO creds** → the `agent` registry (`Tiger_Model_Agent`, one default per org) or
+  the org's `tiger.agent.*` `config` rows (the key in a `_enc` value via `Tiger_Crypto`, decrypted on
+  read — the reCAPTCHA/GA pattern). Never committed. **Org-level ONLY (TIGER-511):** an org resolves its
+  own agent and nothing else — no platform (`org_id = ''`) agent, no install-wide key; an org with none
+  has no agent. The install's own org may also read the install-wide tier (it is that org's config).
+  `Tiger_Agent::forOrg($orgId)` (TIGER-513) resolves a NAMED org for background jobs and public paths;
+  the facade's `default()/apiKey()` answer for the signed-in org. Outbound MCP connections (§9 of
+  TIGERMCP.md) are org-scoped the same way. Migration 0068 moved pre-existing install-wide agent data to
+  the install org.
 - **Audit** — the `agent_message` + `agent_run` rows *are* the audit trail; `Tiger_Log` gets a
   structured line per tool execution.
 
@@ -367,8 +374,9 @@ public function capabilities(): array;   // ['stream'=>true,'tools'=>true,'visio
 
 ## 9. Creds + cost — BYO, so the feature is free
 
-**Each operator connects their own AI account** (Anthropic / OpenAI / …); WebTigers provides none. The
-org bears its own token cost — **WebTigers never pays an LLM bill, at any install count** (the same
+**Each operator connects their own AI account** (Anthropic / OpenAI / …); WebTigers provides none. On a
+multi-tenant install that means **each org** — an org never spends another org's or the install's key
+(TIGER-511). The org bears its own token cost — **WebTigers never pays an LLM bill, at any install count** (the same
 cost-safe principle as TigerDesign + themes). That makes the *feature* **free**: the value is the agent +
 the tool surface, not resold tokens. A managed option (WebTigers-hosted keys via a TigerConnect-style
 broker, higher budgets, true background runs) is a later **paid** tier — never the default.

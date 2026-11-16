@@ -31,11 +31,13 @@ final class AgentMcpTest extends IntegrationTestCase
         if ($cfg->readOnly()) { $cfg = new \Zend_Config($cfg->toArray(), true); }
         $cfg->merge(new \Zend_Config(['tiger' => ['crypto' => ['key' => base64_encode(str_repeat("\x11", 32))]]], true));
         \Zend_Registry::set('Zend_Config', $cfg);
+        // Connections are org-scoped (TIGER-511): the registry reads/writes the signed-in org's list.
+        \Tiger_Model_Table::setOrg('org-test');
     }
 
     protected function tearDown(): void
     {
-        @unlink(APPLICATION_ROOT . '/var/cache/agent-mcp/tools.json');
+        @unlink(APPLICATION_ROOT . '/var/cache/agent-mcp/tools-' . md5('org-test') . '.json');
         parent::tearDown();
     }
 

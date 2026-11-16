@@ -25,6 +25,22 @@ class Git_AdminController extends Tiger_Controller_Admin_Action
     }
 
     /**
+     * Git is install-level (TIGER-511): only the install's own org may open the screen. Any other org's
+     * admin gets a 404 — the same as the sidebar, which never shows them the item.
+     *
+     * @return void
+     * @throws Zend_Controller_Action_Exception 404 for a caller outside the install org
+     */
+    public function preDispatch()
+    {
+        parent::preDispatch();
+        $identity = Zend_Auth::getInstance()->getIdentity();
+        if (!Tiger_Git::orgMayUse((string) ($identity->org_id ?? ''))) {
+            throw new Zend_Controller_Action_Exception('Page not found', 404);
+        }
+    }
+
+    /**
      * The git dashboard: connect a module, see connections, drive releases + updates. The forms are
      * rendered for their fields + CSRF token; the data (connections, releases, log) arrives over /api.
      *

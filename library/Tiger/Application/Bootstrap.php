@@ -337,7 +337,8 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
      */
     protected function _initTranslate()
     {
-        $this->bootstrap('db');   // for the DB override layer (graceful if none)
+        $this->bootstrap('db');        // for the DB override layer (graceful if none)
+        $this->bootstrap('configs');   // the site org (host → tenant, else tiger.site.org_id) the org tier folds
 
         $tiger     = (array) $this->getOption('tiger');
         $i18n      = (array) ($tiger['i18n'] ?? []);
@@ -358,6 +359,11 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
             'disableNotices' => true,
         ]);
 
+        // The org whose override tier this request folds: the SITE org (the tenant the host maps to, else
+        // the install's own org) — site-facing strings are what the public site shows every visitor. An
+        // admin screen re-folds to the caller's org (Tiger_Controller_Admin_Action). See Tiger_I18n_Overrides.
+        $orgId = Tiger_I18n_Overrides::requestOrgId();
+
         foreach ($supported as $lang) {
             foreach ($this->_languageFiles($lang) as $file) {
                 $data = include $file;   // each file returns [key => string]
@@ -365,15 +371,8 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
                     $translate->addTranslation(['content' => $data, 'locale' => $lang]);
                 }
             }
-            // Live DB overrides on top (global scope). Per-org is reserved for later.
-            try {
-                $overrides = (new Tiger_Model_Translation())->getForLocale($lang, Tiger_Model_Translation::SCOPE_GLOBAL);
-                if ($overrides) {
-                    $translate->addTranslation(['content' => $overrides, 'locale' => $lang]);
-                }
-            } catch (Throwable $e) {
-                // no DB / no `translation` table yet — files only
-            }
+            // Live DB overrides on top: the install-wide (global) tier, then the org's tier (org wins).
+            Tiger_I18n_Overrides::fold($translate, $lang, $orgId);
         }
 
         Zend_Registry::set('Zend_Translate', $translate);

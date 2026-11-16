@@ -16,9 +16,12 @@
  *   - what can THIS user do? (the capability tiers, expressed purely as ACL, never a role
  *     string compare — TIGERAGENT.md §2a)
  *
- * All settings live in the eager `config` tier (`tiger.agent.*`), written by
- * Agent_Service_Settings, so a change is effective next request with no deploy. The API key
- * is stored encrypted (`tiger.agent.api_key_enc`, Tiger_Crypto) and never leaves the server.
+ * AI KEYS ARE ORG-LEVEL ONLY (TIGER-511). Every agent — the registry rows (Tiger_Model_Agent) and the
+ * legacy single-agent keys (`tiger.agent.*`, written at the org by Agent_Service_Settings) — belongs to
+ * one org, and an org resolves only its own: never another org's, never a platform agent, never the
+ * install's key. An org with no agent has none, and AI features degrade. default()/apiKey()/… answer for
+ * the SIGNED-IN org; forOrg() answers for a named org (background jobs, public paths — TIGER-513). The
+ * key is stored encrypted (Tiger_Crypto) and never leaves the server.
  *
  * @api
  */
@@ -59,43 +62,75 @@ class Tiger_Agent
     private static $_memoConfigId = -1;
 
     /**
-     * The DEFAULT agent for the current scope, as a normalized array. Reads through the registry
-     * (Tiger_Model_Agent): the current org's default, else the global default. While the table is
-     * empty — or before the DB is even booted — it falls back to the legacy `tiger.agent.*` config
-     * keys, so an install that has never opened the multi-agent UI behaves exactly as the old
-     * singleton did. The first save in the settings screen writes a real Default row.
+     * The DEFAULT agent for the signed-in org, as a normalized array — the request-scoped answer the
+     * aside, the chat service and the admin screens use. AI keys are ORG-LEVEL ONLY (TIGER-511): this is
+     * the org's own agent (see forOrg) or, when it has none, an empty, disabled, unconnected agent — never
+     * another org's, a platform row, or the install's key. With no signed-in org (a guest, a webhook, a
+     * CLI job) there is no agent here at all: code acting for an org it was not signed in as names the
+     * org with forOrg().
      *
      * @return array{id:?string,name:string,provider:string,model:string,api_key_enc:string,enabled:bool}
      */
     public static function default()
     {
-        $cfgId = Zend_Registry::isRegistered('Zend_Config')
-            ? spl_object_id(Zend_Registry::get('Zend_Config'))
-            : 0;
-        if ($cfgId !== self::$_memoConfigId) {
-            self::$_defaultMemo = [];
-            self::$_memoConfigId = $cfgId;
-        }
+        return self::_resolve(self::currentOrg()) ?? self::_none();
+    }
 
-        $org = self::currentOrg();
-        if (array_key_exists($org, self::$_defaultMemo)) {
-            return self::$_defaultMemo[$org];
-        }
-
-        $agent = null;
-        try {
-            $row = (new Tiger_Model_Agent())->defaultForOrg($org);
-            if ($row) {
-                $agent = self::fromRow($row);
-            }
-        } catch (Throwable $e) {
-            // DB not booted, or the agent table doesn't exist yet — fall through to legacy config.
-        }
+    /**
+     * An org's OWN default agent, resolved for that org explicitly — the seam a background job that loops
+     * over orgs (TigerDesk triage, TIGER-513) or a public-path feature acting for the site's org uses
+     * instead of the signed-in-org facade. No fallback of any kind: not another org, not a platform
+     * (`org_id = ''`) agent, not the install org's key. Resolution, in order:
+     *   1. the org's default row in the agent registry (Tiger_Model_Agent);
+     *   2. else the org's own legacy `tiger.agent.*` config rows (the single-agent settings form) — for the
+     *      INSTALL org only, those may also come from the install-wide config (the global row, else the
+     *      ini), since the install's own settings ARE the install org's;
+     *   3. else null — the org has no agent, and AI features degrade exactly as when none is configured.
+     *
+     * The returned key is DECRYPTED — keep it server-side, never echo it to a browser.
+     *
+     * @api
+     * @since 1.60.0
+     * @param  string $orgId the org to resolve for ('' = none)
+     * @return array{org_id:string,id:?string,name:string,provider:string,model:string,api_key:string,enabled:bool,connected:bool,available:bool}|null
+     *         null when the org has no agent of its own
+     */
+    public static function forOrg($orgId)
+    {
+        $orgId = (string) $orgId;
+        $agent = self::_resolve($orgId);
         if ($agent === null) {
-            $agent = self::fromLegacyConfig();
+            return null;
         }
+        $provider = $agent['provider'] !== '' ? $agent['provider'] : 'anthropic';
+        $model    = $agent['model'] !== '' ? $agent['model'] : Tiger_Agent_Provider_Factory::defaultModel($provider);
+        $key      = self::_decrypt($agent['api_key_enc']);
+        return [
+            'org_id'    => $orgId,
+            'id'        => $agent['id'],
+            'name'      => $agent['name'],
+            'provider'  => $provider,
+            'model'     => $model,
+            'api_key'   => $key,
+            'enabled'   => $agent['enabled'],
+            'connected' => $key !== '',
+            'available' => $agent['enabled'] && $key !== '',
+        ];
+    }
 
-        return self::$_defaultMemo[$org] = $agent;
+    /**
+     * Whether an org has a usable agent of its own (enabled + a readable key). Not a permission check —
+     * whether a USER may chat is userCanChat().
+     *
+     * @api
+     * @since 1.60.0
+     * @param  string $orgId the org
+     * @return bool
+     */
+    public static function isAvailableForOrg($orgId)
+    {
+        $agent = self::forOrg($orgId);
+        return $agent !== null && $agent['available'];
     }
 
     /**
@@ -107,6 +142,9 @@ class Tiger_Agent
      */
     public static function get($agentId)
     {
+        if (self::currentOrg() === '') {
+            return null;   // no org, no agents (a legacy '' row is never reachable)
+        }
         try {
             $row = (new Tiger_Model_Agent())->findForOrg(self::currentOrg(), $agentId);
             return $row ? self::fromRow($row) : null;
@@ -124,6 +162,9 @@ class Tiger_Agent
      */
     public static function all()
     {
+        if (self::currentOrg() === '') {
+            return [];
+        }
         try {
             $out = [];
             foreach ((new Tiger_Model_Agent())->allForOrg(self::currentOrg()) as $row) {
@@ -220,15 +261,7 @@ class Tiger_Agent
      */
     public static function apiKey()
     {
-        $blob = (string) self::default()['api_key_enc'];
-        if ($blob === '') {
-            return '';
-        }
-        try {
-            return Tiger_Crypto::decrypt($blob);
-        } catch (Throwable $e) {
-            return '';
-        }
+        return self::_decrypt((string) self::default()['api_key_enc']);
     }
 
     /**
@@ -257,15 +290,16 @@ class Tiger_Agent
     }
 
     /**
-     * The install-wide auto-mode CEILING (admin governance): the highest mode any user may use.
-     * Defaults to `auto` — routine writes flow, but YOLO (auto-running code/file/module) must be
-     * deliberately switched on for the install.
+     * The signed-in org's auto-mode CEILING (admin governance): the highest mode any of its users may
+     * use. Written at the org (Agent_Service_Settings::mode); an org that never set one inherits the
+     * install-wide value (it is governance, not a secret), else `auto` — routine writes flow, but YOLO
+     * (auto-running code/file/module) must be deliberately switched on.
      *
      * @return string ask | auto | yolo
      */
     public static function modeMax()
     {
-        $m = (string) self::config(self::CFG_MODE_MAX);
+        $m = (string) Tiger_Model_Config::orgValue(self::currentOrg(), self::CFG_MODE_MAX, '');
         return isset(self::MODES[$m]) ? $m : 'auto';
     }
 
@@ -305,25 +339,110 @@ class Tiger_Agent
     }
 
     /**
-     * The default agent synthesized from the legacy singleton config keys — the exact behavior the
-     * facade had before the registry existed, so an empty table changes nothing.
+     * An org's own agent from its legacy single-agent config keys (`tiger.agent.*`), or null when the org
+     * set none. A non-install org reads ONLY its own org rows (Tiger_Model_Config::orgOwnValue) — the
+     * merged Zend_Config is never consulted, because it folds the install-wide tier underneath. The
+     * install org may also read the install-wide tier (global row, else ini): those are its own settings.
      *
-     * @return array{id:null,name:string,provider:string,model:string,api_key_enc:string,enabled:bool}
+     * @param  string $orgId the org
+     * @return array{id:null,name:string,provider:string,model:string,api_key_enc:string,enabled:bool}|null
      */
-    protected static function fromLegacyConfig()
+    protected static function fromLegacyConfig($orgId)
     {
-        return [
+        $install = Tiger_Model_Org::isInstallOrg($orgId);
+        $read = static function ($key) use ($orgId, $install) {
+            $v = $install
+                ? Tiger_Model_Config::orgValue($orgId, $key, '')
+                : Tiger_Model_Config::orgOwnValue($orgId, $key, '');
+            return is_scalar($v) ? (string) $v : '';
+        };
+        $agent = [
             'id'          => null,
             'name'        => 'Default',
-            'provider'    => (string) self::config(self::CFG_PROVIDER),
-            'model'       => (string) self::config(self::CFG_MODEL),
-            'api_key_enc' => (string) self::config(self::CFG_KEY_ENC),
-            'enabled'     => self::config(self::CFG_ENABLED) === '1',
+            'provider'    => $read(self::CFG_PROVIDER),
+            'model'       => $read(self::CFG_MODEL),
+            'api_key_enc' => $read(self::CFG_KEY_ENC),
+            'enabled'     => $read(self::CFG_ENABLED) === '1',
         ];
+        if ($agent['provider'] === '' && $agent['model'] === '' && $agent['api_key_enc'] === '' && !$agent['enabled']) {
+            return null;   // the org configured nothing
+        }
+        return $agent;
     }
 
     /**
-     * The org scope the registry resolves against — the current tenant, or '' for platform/global.
+     * One org's own default agent (raw — the key still encrypted), memoized per request; null when the
+     * org has none. The memo self-invalidates when the registered Zend_Config instance changes (a
+     * settings save rebuilds it; a test seeds a fresh one); reset() clears it explicitly.
+     *
+     * @param  string $orgId the org ('' = none)
+     * @return array{id:?string,name:string,provider:string,model:string,api_key_enc:string,enabled:bool}|null
+     */
+    protected static function _resolve($orgId)
+    {
+        $orgId = (string) $orgId;
+        if ($orgId === '') {
+            return null;   // no org, no agent — never a platform/install fallback
+        }
+
+        $cfgId = Zend_Registry::isRegistered('Zend_Config')
+            ? spl_object_id(Zend_Registry::get('Zend_Config'))
+            : 0;
+        if ($cfgId !== self::$_memoConfigId) {
+            self::$_defaultMemo  = [];
+            self::$_memoConfigId = $cfgId;
+        }
+        if (array_key_exists($orgId, self::$_defaultMemo)) {
+            return self::$_defaultMemo[$orgId];
+        }
+
+        $agent = null;
+        try {
+            $row = (new Tiger_Model_Agent())->defaultForOrg($orgId);
+            if ($row) {
+                $agent = self::fromRow($row);
+            }
+        } catch (Throwable $e) {
+            // DB not booted, or the agent table doesn't exist yet — the org's config keys may still answer.
+        }
+        if ($agent === null) {
+            $agent = self::fromLegacyConfig($orgId);
+        }
+        return self::$_defaultMemo[$orgId] = $agent;
+    }
+
+    /**
+     * The "no agent" shape default() returns for an org with none: disabled, unconnected, keyless.
+     *
+     * @return array{id:null,name:string,provider:string,model:string,api_key_enc:string,enabled:bool}
+     */
+    protected static function _none()
+    {
+        return ['id' => null, 'name' => 'Default', 'provider' => '', 'model' => '', 'api_key_enc' => '', 'enabled' => false];
+    }
+
+    /**
+     * Decrypt a stored key blob, or '' when empty/unreadable (a rotated crypto key, say).
+     *
+     * @param  string $blob the Tiger_Crypto ciphertext
+     * @return string
+     */
+    protected static function _decrypt($blob)
+    {
+        $blob = (string) $blob;
+        if ($blob === '') {
+            return '';
+        }
+        try {
+            return (string) Tiger_Crypto::decrypt($blob);
+        } catch (Throwable $e) {
+            return '';
+        }
+    }
+
+    /**
+     * The signed-in org — the scope the request-scoped facade (default/get/all/apiKey) resolves against,
+     * or '' with none (no agent).
      *
      * @return string
      */
@@ -331,27 +450,6 @@ class Tiger_Agent
     {
         $org = Tiger_Model_Table::org();
         return $org === null ? '' : (string) $org;
-    }
-
-    /**
-     * Read a value from the merged config cascade (Zend_Config in the registry).
-     *
-     * @param  string $dotKey a dot-notation config key
-     * @return string|null
-     */
-    protected static function config($dotKey)
-    {
-        if (!Zend_Registry::isRegistered('Zend_Config')) {
-            return null;
-        }
-        $node = Zend_Registry::get('Zend_Config');
-        foreach (explode('.', $dotKey) as $seg) {
-            if (!($node instanceof Zend_Config) || $node->{$seg} === null) {
-                return null;
-            }
-            $node = $node->{$seg};
-        }
-        return is_scalar($node) ? (string) $node : null;
     }
 
     /**

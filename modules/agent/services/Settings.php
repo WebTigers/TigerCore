@@ -4,8 +4,9 @@
 /**
  * Agent_Service_Settings — the /api service behind the TigerAgent settings screen.
  *
- * Writes the agent config to the eager `config` tier (live-override, no deploy): the on/off
- * switch, the provider + model, and the BYO API key. The key is encrypted with Tiger_Crypto
+ * Writes the agent config to the eager `config` tier (live-override, no deploy) AT THE CALLER'S ORG —
+ * AI keys are org-level only (TIGER-511), so nothing is written install-wide and a caller with no org
+ * is refused: the on/off switch, the provider + model, and the BYO API key. The key is encrypted with Tiger_Crypto
  * (`tiger.agent.api_key_enc`) and NEVER round-trips to the browser — a blank key field on
  * save keeps the stored one (the same masked-secret convention as the analytics OAuth creds).
  * BYO is deliberate: the org connects its own AI account, so WebTigers never pays an LLM bill
@@ -39,11 +40,15 @@ class Agent_Service_Settings extends Tiger_Service_Service
         $modeMax = (string) $form->getValue('mode_max');
         if (!isset(Tiger_Agent::MODES[$modeMax])) { $modeMax = 'auto'; }
 
+        // AI keys are org-level only (TIGER-511): written at the CALLER's org, never install-wide. A caller
+        // with no org has nowhere to put one.
+        $orgId = (string) ($this->_org_id ?? '');
+        if ($orgId === '') { $this->_error('core.api.error.not_allowed'); return; }
+
         try {
-            $this->_transaction(function () use ($params, $provider, $model, $key, $modeMax) {
+            $this->_transaction(function () use ($params, $provider, $model, $key, $modeMax, $orgId) {
                 $cfg = new Tiger_Model_Config();
-                $scope   = Tiger_Model_Config::SCOPE_GLOBAL;
-                $scopeId = '';
+                [$scope, $scopeId] = Tiger_Model_Config::settingScope($orgId);
 
                 $cfg->set($scope, $scopeId, Tiger_Agent::CFG_ENABLED,  !empty($params['enabled']) ? '1' : '0');
                 $cfg->set($scope, $scopeId, Tiger_Agent::CFG_PROVIDER, $provider);
@@ -58,6 +63,7 @@ class Agent_Service_Settings extends Tiger_Service_Service
                     $cfg->set($scope, $scopeId, Tiger_Agent::CFG_KEY_ENC, Tiger_Crypto::encrypt($key));
                 }
             });
+            Tiger_Agent::reset();   // the next read reflects the save
             $this->_success(['connected' => Tiger_Agent::isConnected()], 'agent.settings.saved');
         } catch (Throwable $e) {
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
@@ -65,9 +71,10 @@ class Agent_Service_Settings extends Tiger_Service_Service
     }
 
     /**
-     * Save ONLY the install-wide auto-mode ceiling (governance) — the per-agent provider/model/key
+     * Save ONLY the caller's org's auto-mode ceiling (governance) — the per-agent provider/model/key
      * now live in the registry (Agent_Service_Agents), so this must not touch the legacy config keys
-     * that the registry falls back to while it is empty.
+     * the org's agent is resolved from while its registry is empty. Written at the caller's org
+     * (TIGER-511), never install-wide.
      *
      * @param  array $params mode_max
      * @return void
@@ -76,14 +83,16 @@ class Agent_Service_Settings extends Tiger_Service_Service
     {
         if (!$this->_isAllowed('mode')) { $this->_error('core.api.error.not_allowed'); return; }
 
+        $orgId = (string) ($this->_org_id ?? '');
+        if ($orgId === '') { $this->_error('core.api.error.not_allowed'); return; }
+
         $modeMax = (string) ($params['mode_max'] ?? '');
         if (!isset(Tiger_Agent::MODES[$modeMax])) { $modeMax = 'auto'; }
 
         try {
-            $this->_transaction(function () use ($modeMax) {
-                (new Tiger_Model_Config())->set(
-                    Tiger_Model_Config::SCOPE_GLOBAL, '', Tiger_Agent::CFG_MODE_MAX, $modeMax
-                );
+            $this->_transaction(function () use ($modeMax, $orgId) {
+                [$scope, $scopeId] = Tiger_Model_Config::settingScope($orgId);
+                (new Tiger_Model_Config())->set($scope, $scopeId, Tiger_Agent::CFG_MODE_MAX, $modeMax);
             });
             $this->_success(['mode_max' => $modeMax], 'agent.settings.saved');
         } catch (Throwable $e) {

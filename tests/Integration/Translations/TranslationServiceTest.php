@@ -50,9 +50,15 @@ final class TranslationServiceTest extends IntegrationTestCase
         return json_decode(json_encode($res->data), true) ?: [];
     }
 
+    /** The signed-in admin's org tier (loginAs() signs in to `org-test`) — the tier the screen edits (TIGER-511). */
     private function overrides(string $locale): array
     {
-        return (new Tiger_Model_Translation())->getForLocale($locale, Tiger_Model_Translation::SCOPE_GLOBAL);
+        return (new Tiger_Model_Translation())->getForLocale($locale, Tiger_Model_Translation::SCOPE_ORG, 'org-test');
+    }
+
+    private function seedOverride(string $locale, string $value): void
+    {
+        (new Tiger_Model_Translation())->set($locale, Tiger_Model_Translation::SCOPE_ORG, 'org-test', self::KEY, $value);
     }
 
     // ----- catalog --------------------------------------------------------------------------------
@@ -136,7 +142,7 @@ final class TranslationServiceTest extends IntegrationTestCase
     public function save_drops_the_override_when_the_value_equals_the_shipped_file(): void
     {
         $this->loginAs('admin');
-        (new Tiger_Model_Translation())->set('es', Tiger_Model_Translation::SCOPE_GLOBAL, '', self::KEY, 'stale');
+        $this->seedOverride('es', 'stale');
         $this->assertArrayHasKey(self::KEY, $this->overrides('es'), 'precondition: an override exists');
 
         // Saving the exact shipped string means "use the default" → the row is removed, not stored.
@@ -148,7 +154,7 @@ final class TranslationServiceTest extends IntegrationTestCase
     public function save_drops_the_override_when_blank(): void
     {
         $this->loginAs('admin');
-        (new Tiger_Model_Translation())->set('es', Tiger_Model_Translation::SCOPE_GLOBAL, '', self::KEY, 'stale');
+        $this->seedOverride('es', 'stale');
 
         $this->call('save', ['key' => self::KEY, 'values' => ['es' => '']]);
         $this->assertArrayNotHasKey(self::KEY, $this->overrides('es'), 'a blank value clears the override');
@@ -158,7 +164,7 @@ final class TranslationServiceTest extends IntegrationTestCase
     public function revert_removes_the_override_for_a_locale(): void
     {
         $this->loginAs('admin');
-        (new Tiger_Model_Translation())->set('es', Tiger_Model_Translation::SCOPE_GLOBAL, '', self::KEY, 'x');
+        $this->seedOverride('es', 'x');
 
         $res = $this->call('revert', ['key' => self::KEY, 'locale' => 'es']);
         $this->assertSame(1, (int) $res->result);

@@ -28,6 +28,8 @@ return [
     'translations.translating'      => 'Traduzindo…',
     'translations.badge_default'    => 'Origem',
     'translations.badge_overridden' => 'Substituída',
+    'translations.badge_inherited'  => 'Herdada',
+    'translations.org_note'         => 'As alterações se aplicam apenas à sua organização. Um valor definido para toda a instalação aparece como Herdada até que você o substitua.',
     'translations.uses_file'        => 'Usa o valor padrão',
     'translations.revert_all'       => 'Restaurar padrões',
     'translations.cancel'           => 'Cancelar',

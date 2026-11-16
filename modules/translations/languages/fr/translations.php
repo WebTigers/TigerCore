@@ -31,6 +31,8 @@ return [
     'translations.translating'      => 'Traduction…',
     'translations.badge_default'    => 'Source',
     'translations.badge_overridden' => 'Remplacée',
+    'translations.badge_inherited'  => 'Héritée',
+    'translations.org_note'         => 'Les modifications s’appliquent uniquement à votre organisation. Une valeur définie pour toute l’installation apparaît comme Héritée jusqu’à ce que vous la remplaciez.',
     'translations.uses_file'        => 'Utilise la valeur par défaut fournie',
     'translations.revert_all'       => 'Rétablir les valeurs par défaut',
     'translations.cancel'           => 'Annuler',
