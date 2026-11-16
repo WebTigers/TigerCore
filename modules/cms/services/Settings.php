@@ -19,6 +19,7 @@ class Cms_Service_Settings extends Tiger_Service_Service
      * Validate the Settings form and persist the values to the config table.
      *
      * @param  array $params the posted Settings form values
+     * @apiRequest Cms_Form_Settings
      * @return void
      */
     public function save(array $params): void

@@ -15,6 +15,8 @@ class Agent_Service_Skills extends Tiger_Service_Service
      * Search the supported sources' catalog; flag which results are already installed.
      *
      * @param  array $params `q` (query; '' = all), optional `refresh`
+     * @apiParam string q The search text. Empty lists every skill.
+     * @apiParam boolean refresh Re-scan the sources instead of using the cache.
      * @return void
      */
     public function search(array $params): void
@@ -42,7 +44,13 @@ class Agent_Service_Skills extends Tiger_Service_Service
         }, array_values(Tiger_Skill_Index::sources()))], null);
     }
 
-    /** Installed skills + their active state (drives the "Installed" list). */
+    /**
+     * Installed skills + their active state (drives the "Installed" list).
+     *
+     * @param  array $params the request payload
+     * @apiRequest none
+     * @return void
+     */
     public function installed(array $params): void
     {
         if (!$this->_isAllowed('installed')) { $this->_error('core.api.error.not_allowed'); return; }
@@ -57,6 +65,8 @@ class Agent_Service_Skills extends Tiger_Service_Service
      * origins, no shared DB order).
      *
      * @param  array $params DataTables request (+ optional `refresh`)
+     * @apiRequest datatable
+     * @apiParam boolean refresh Re-scan the sources instead of using the cache.
      * @return void
      */
     public function datatable(array $params): void
@@ -142,6 +152,13 @@ class Agent_Service_Skills extends Tiger_Service_Service
      * Install a skill — from a browse entry (`repo`/`ref`/`path`/`name`/`source`) or a pasted `url`.
      *
      * @param  array $params either a browse entry's fields, or `url`
+     * @apiParam string url A GitHub URL (repo, folder or SKILL.md) to install every skill found at. Replaces the browse fields.
+     * @apiParam string repo The browse entry's repository (owner/name). Required when no url is sent.
+     * @apiParam string ref The browse entry's branch or tag. Defaults to main.
+     * @apiParam string path The skill's folder inside the repository.
+     * @apiParam string name The skill's name.
+     * @apiParam string source The browse source id the entry came from.
+     * @apiParam string sourceLabel The browse source's display label.
      * @return void
      */
     public function install(array $params): void
@@ -173,7 +190,14 @@ class Agent_Service_Skills extends Tiger_Service_Service
         }
     }
 
-    /** Turn an installed skill on/off. */
+    /**
+     * Turn an installed skill on/off.
+     *
+     * @param  array $params the request payload
+     * @apiParam string key required The installed skill's key.
+     * @apiParam boolean active Turn it on (true) or off (false).
+     * @return void
+     */
     public function toggle(array $params): void
     {
         if (!$this->_isAllowed('toggle')) { $this->_error('core.api.error.not_allowed'); return; }
@@ -184,7 +208,13 @@ class Agent_Service_Skills extends Tiger_Service_Service
         $this->_success(['key' => $key, 'active' => $on], $on ? 'agent.skills.enabled' : 'agent.skills.disabled');
     }
 
-    /** Uninstall a skill (files + active set). */
+    /**
+     * Uninstall a skill (files + active set).
+     *
+     * @param  array $params the request payload
+     * @apiParam string key required The installed skill's key.
+     * @return void
+     */
     public function remove(array $params): void
     {
         if (!$this->_isAllowed('remove')) { $this->_error('core.api.error.not_allowed'); return; }
@@ -199,6 +229,10 @@ class Agent_Service_Skills extends Tiger_Service_Service
      * browse entry fetched live (read-before-run is the whole point).
      *
      * @param  array $params either `key` (installed) or `repo`/`ref`/`path` (browse)
+     * @apiParam string key An installed skill's key.
+     * @apiParam string repo A browse entry's repository (owner/name), when no installed key is sent.
+     * @apiParam string ref The browse entry's branch or tag. Defaults to main.
+     * @apiParam string path The skill's folder inside the repository.
      * @return void
      */
     public function source(array $params): void

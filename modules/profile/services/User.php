@@ -24,6 +24,7 @@ class Profile_Service_User extends Tiger_Service_Service
      * Save the current user's basic info.
      *
      * @param  array $params username, locale, timezone (blank clears the optional ones)
+     * @apiRequest Profile_Form_UserProfile
      * @return void
      */
     public function save(array $params): void

@@ -30,6 +30,7 @@ class Profile_Service_OrgLogo extends Tiger_Service_Service
      * Store the cropped logo for the current org and link it via the option tier.
      *
      * @param  array $params (file rides in $_FILES['file'])
+     * @apiRequest none
      * @return void
      */
     public function upload(array $params): void
@@ -101,6 +102,7 @@ class Profile_Service_OrgLogo extends Tiger_Service_Service
      * Clear the current org's logo (unlink the option; the media row is left in place).
      *
      * @param  array $params (unused)
+     * @apiRequest none
      * @return void
      */
     public function remove(array $params): void

@@ -50,6 +50,7 @@ class Cms_Service_Menu extends Tiger_Service_Service
      * Return the DataTables source for the menus list: one row per (org, menu_key) with an item count.
      *
      * @param  array $params the DataTables request payload
+     * @apiRequest datatable
      * @return void
      */
     public function datatable(array $params): void
@@ -154,6 +155,11 @@ class Cms_Service_Menu extends Tiger_Service_Service
      * Create or update one menu item (insert when menu_id is empty).
      *
      * @param  array $params the request payload (item fields + menu_key/org_id/parent_id)
+     * @apiRequest Cms_Form_MenuItem
+     * @apiParam string menu_key required The menu the item belongs to.
+     * @apiParam string menu_id The item to update. Empty to create.
+     * @apiParam string parent_id The parent item for a new item. Empty for top level.
+     * @apiParam string org_id The menu's org scope: empty for global, or the caller's own org.
      * @return void
      */
     public function save(array $params): void
@@ -223,6 +229,9 @@ class Cms_Service_Menu extends Tiger_Service_Service
      * Soft-delete one item and its subtree.
      *
      * @param  array $params the request payload (`menu_id`)
+     * @apiParam string menu_id required The item to delete (its subtree goes with it).
+     * @apiParam string menu_key The menu the item belongs to.
+     * @apiParam string org_id The menu's org scope: empty for global, or the caller's own org.
      * @return void
      */
     public function delete(array $params): void
@@ -251,6 +260,8 @@ class Cms_Service_Menu extends Tiger_Service_Service
      * Soft-delete an entire menu (every item in the org+key scope).
      *
      * @param  array $params the request payload (`menu_key`, `org_id`)
+     * @apiParam string menu_key required The menu to delete.
+     * @apiParam string org_id The menu's org scope: empty for global, or the caller's own org.
      * @return void
      */
     public function deleteMenu(array $params): void
@@ -275,6 +286,9 @@ class Cms_Service_Menu extends Tiger_Service_Service
      * [{menu_id, parent_id, sort_order}, …]. Only items in the given menu are touched.
      *
      * @param  array $params the request payload (`menu_key`, `org_id`, `tree` JSON)
+     * @apiParam string menu_key required The menu being reordered.
+     * @apiParam string tree required A JSON array of {menu_id, parent_id, sort_order}.
+     * @apiParam string org_id The menu's org scope: empty for global, or the caller's own org.
      * @return void
      */
     public function reorder(array $params): void
@@ -313,6 +327,8 @@ class Cms_Service_Menu extends Tiger_Service_Service
      * import just one; omit it to import all the theme declares.
      *
      * @param  array $params the request payload (optional `menu_key`, optional `org_id`)
+     * @apiParam string menu_key Import only this menu. Empty imports every menu the theme declares.
+     * @apiParam string org_id The target org scope: empty for global, or the caller's own org.
      * @return void
      */
     public function importFromTheme(array $params): void
@@ -370,6 +386,8 @@ class Cms_Service_Menu extends Tiger_Service_Service
      * `menus.ini` then renders again (the inverse of forking).
      *
      * @param  array $params the request payload (`menu_key`, `org_id`)
+     * @apiParam string menu_key required The menu to revert to the theme's version.
+     * @apiParam string org_id The menu's org scope: empty for global, or the caller's own org.
      * @return void
      */
     public function revertToTheme(array $params): void
