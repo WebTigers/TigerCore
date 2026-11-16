@@ -202,6 +202,29 @@ final class PageServiceTest extends IntegrationTestCase
     }
 
     #[Test]
+    public function an_api_caller_may_omit_type_format_status_and_locale(): void
+    {
+        // An MCP agent calling cms/page/save without `locale` failed with only "Something went wrong":
+        // ZF1's isValid() hands a missing element null, over the form's declared default, and the null
+        // hit the NOT NULL column (2026-11-16). A new page now takes the declared defaults...
+        $this->loginAs('admin');
+        $this->escapeTxn();
+        $create = $this->call('save', ['title' => 'Agent Page', 'body' => '<p>x</p>']);
+        $this->assertSame(1, (int) $create->result, 'a save with only a title succeeds');
+        $id  = $create->data['page_id'];
+        $row = (new Tiger_Model_Page())->findById($id);
+        $this->assertSame(['page', 'html', 'draft', 'en'], [$row->type, $row->format, $row->status, $row->locale]);
+
+        // ...and an update that omits them keeps the row's values: a published page is not unpublished.
+        $this->call('save', ['page_id' => $id, 'title' => 'Agent Page', 'slug' => 'agent-page', 'type' => 'page', 'format' => 'markdown', 'status' => 'published', 'locale' => 'es']);
+        $update = $this->call('save', ['page_id' => $id, 'title' => 'Agent Page v2', 'slug' => 'agent-page']);
+        $this->assertSame(1, (int) $update->result);
+        $row = (new Tiger_Model_Page())->findById($id);
+        $this->assertSame('Agent Page v2', $row->title);
+        $this->assertSame(['markdown', 'published', 'es'], [$row->format, $row->status, $row->locale], 'an update that omits them keeps the current values');
+    }
+
+    #[Test]
     public function changing_the_slug_leaves_a_301_redirect_behind(): void
     {
         $this->loginAs('admin');

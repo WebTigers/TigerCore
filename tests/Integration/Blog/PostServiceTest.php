@@ -11,8 +11,10 @@ use Blog_Service_Post;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tiger\Tests\Support\IntegrationTestCase;
+use Tiger_Log;
 use Tiger_Model_Page;
 use Tiger_Model_PageVersion;
+use Zend_Config;
 use Zend_Registry;
 
 /**
@@ -221,6 +223,30 @@ final class PostServiceTest extends IntegrationTestCase
     }
 
     #[Test]
+    public function an_api_caller_may_omit_status_and_locale(): void
+    {
+        // An MCP agent calling blog/post/save with only a title saved an article whose locale was ''
+        // (ZF1's isValid() hands a missing element null, over the form's declared default) — a row no
+        // locale-scoped read finds (2026-11-16). A new article now takes the declared defaults...
+        $this->login('blog-admin', 'org-test', 'admin');
+        $create = $this->call('save', ['title' => 'Agent Drafted', 'body' => '<p>x</p>']);
+        $this->assertSame(1, (int) $create->result);
+        $id  = $create->data['page_id'];
+        $row = (new Tiger_Model_Page())->findById($id);
+        $this->assertSame('en', $row->locale, 'an omitted locale takes the form default');
+        $this->assertSame('draft', $row->status, 'an omitted status takes the form default');
+
+        // ...and an update that omits them keeps the row's values: a published article is not unpublished.
+        $this->call('save', ['post_id' => $id, 'title' => 'Agent Drafted', 'slug' => 'agent-drafted', 'status' => 'published', 'locale' => 'es']);
+        $update = $this->call('save', ['post_id' => $id, 'title' => 'Agent Edited', 'slug' => 'agent-drafted']);
+        $this->assertSame(1, (int) $update->result);
+        $row = (new Tiger_Model_Page())->findById($id);
+        $this->assertSame('Agent Edited', $row->title);
+        $this->assertSame('published', $row->status, 'an update that omits status keeps the current one');
+        $this->assertSame('es', $row->locale, 'an update that omits locale keeps the current one');
+    }
+
+    #[Test]
     public function save_turns_a_duplicate_slug_into_a_clean_error(): void
     {
         $this->login('blog-admin', 'org-test', 'admin');
@@ -229,9 +255,25 @@ final class PostServiceTest extends IntegrationTestCase
 
         // A second NEW article with the same slug violates the (org_id, slug, locale) unique key →
         // saveArticle throws → the service catch turns it into result=0, not a fatal.
-        $dup = $this->call('save', ['title' => 'Unique Two', 'slug' => 'dupe-slug', 'status' => 'draft', 'locale' => 'en']);
+        // The caller gets a generic message in production, so the cause must reach the log.
+        $log  = tempnam(sys_get_temp_dir(), 'tiger-log-');
+        $prev = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
+        $cfg  = new Zend_Config($prev ? $prev->toArray() : [], true);
+        $cfg->merge(new Zend_Config(['tiger' => ['log' => ['writer' => 'stream', 'stream' => ['path' => $log]]]]));
+        Zend_Registry::set('Zend_Config', $cfg);
+        Tiger_Log::reset();
+        try {
+            $dup = $this->call('save', ['title' => 'Unique Two', 'slug' => 'dupe-slug', 'status' => 'draft', 'locale' => 'en']);
+        } finally {
+            if ($prev) { Zend_Registry::set('Zend_Config', $prev); }
+            Tiger_Log::reset();
+        }
         $this->assertSame(0, (int) $dup->result, 'a duplicate slug is a clean error');
         $this->assertNotEmpty($dup->messages);
+        $logged = (string) file_get_contents($log);
+        @unlink($log);
+        $this->assertStringContainsString('blog.post.save_failed', $logged, 'the failed save is logged');
+        $this->assertStringContainsString('Duplicate entry', $logged, 'with the real cause');
     }
 
     // ----- delete --------------------------------------------------------------------------------

@@ -6,6 +6,21 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.61.5] — 2026-11-16
+
+### Fixed — saving a page or article over `/api` or MCP without every field
+- **A page save that left out `locale` failed with only "Something went wrong."** The editor always posts
+  `type`, `format`, `status` and `locale`; an agent calling `cms/page/save` over MCP may not. ZF1's
+  `isValid()` hands a missing element `null` (overriding the default the form declares), and the null hit
+  the `NOT NULL` column. `cms/page/save` now fills an omitted field before validating: a new page takes the
+  form's default (`page`, `html`, `draft`, `en`); an update keeps the row's current value, so leaving out
+  `status` never turns a published page back into a draft.
+- **An article saved without `locale` was stored with an empty one** — a row no locale-scoped read finds.
+  `blog/post/save` fills an omitted `status` and `locale` by the same rule.
+- **A failed save now reaches the log.** Production shows the caller a generic message, and both catches
+  logged nothing, so the cause was lost. They now write `cms.page.save_failed` / `blog.post.save_failed`
+  with the error through `Tiger_Log`.
+
 ## [1.61.4] — 2026-11-16
 
 ### Fixed — Add Module cards: real headings, named buttons, aligned layout

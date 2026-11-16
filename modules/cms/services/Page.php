@@ -266,11 +266,11 @@ class Cms_Service_Page extends Tiger_Service_Service
     {
         if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
 
-        $form = new Cms_Form_Page();
+        $form   = new Cms_Form_Page();
+        $pageId = !empty($params['page_id']) ? (string) $params['page_id'] : null;
+        $params = $this->_seedOmitted($params, $form, $pageId);
         if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $v = $form->getValues();
-
-        $pageId = !empty($params['page_id']) ? (string) $params['page_id'] : null;
 
         // Pages route by slug; layouts/partials have none — NULL (not '') keeps the
         // UNIQUE(org_id, slug, locale) index happy for many keyless rows. A page_key
@@ -337,8 +337,38 @@ class Cms_Service_Page extends Tiger_Service_Service
             $id = (new Tiger_Model_Page())->save($data, $pageId);
             $this->_success(['page_id' => $id], 'cms.page.saved', '/cms/page');
         } catch (Throwable $e) {
+            // Production shows the caller a generic message, so the log is the only place the cause survives.
+            Tiger_Log::error('cms.page.save_failed', ['page_id' => $pageId, 'error' => $e->getMessage()]);
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
         }
+    }
+
+    /** The fields an /api caller may leave out: the editor always posts them, so they carry a default. */
+    const SEEDED_FIELDS = ['type', 'format', 'status', 'locale'];
+
+    /**
+     * Fill in the fields an /api or MCP caller left out, before the form sees them.
+     *
+     * The editor always posts type, format, status and locale, but an agent calling `cms/page/save`
+     * may not. ZF1's `isValid()` hands a missing element `null`, which overrides the default the form
+     * declares, so an omitted `locale` reached the NOT NULL column and the save failed with nothing
+     * but "Something went wrong". A NEW page takes the form's declared default; an UPDATE keeps the
+     * row's current value, so leaving out `status` can never quietly turn a published page into a
+     * draft. Only absent keys are filled: a value the caller sent, blank included, is validated as sent.
+     *
+     * @param  array          $params the request payload
+     * @param  Cms_Form_Page  $form   the form whose declared defaults seed a new page
+     * @param  string|null    $pageId the page being updated, or null for a new one
+     * @return array                  the payload with each omitted field filled
+     */
+    protected function _seedOmitted(array $params, $form, $pageId): array
+    {
+        $existing = $pageId ? (new Tiger_Model_Page())->findById($pageId) : null;
+        foreach (self::SEEDED_FIELDS as $field) {
+            if (array_key_exists($field, $params)) { continue; }
+            $params[$field] = $existing ? $existing->{$field} : $form->getElement($field)->getValue();
+        }
+        return $params;
     }
 
     /**

@@ -71,11 +71,12 @@ class Blog_Service_Post extends Tiger_Service_Service
     {
         if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
 
-        $form = new Blog_Form_Post();
+        $form   = new Blog_Form_Post();
+        $postId = !empty($params['post_id']) ? (string) $params['post_id'] : null;
+        $params = $this->_seedOmitted($params, $form, $postId);
         if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $v = $form->getValues();
 
-        $postId = !empty($params['post_id']) ? (string) $params['post_id'] : null;
         $locale = (string) $v['locale'];
         $orgId  = $this->_orgId();
 
@@ -126,8 +127,37 @@ class Blog_Service_Post extends Tiger_Service_Service
 
             $this->_success(['page_id' => $id], 'blog.post.saved', '/blog/post');
         } catch (Throwable $e) {
+            // Production shows the caller a generic message, so the log is the only place the cause survives.
+            Tiger_Log::error('blog.post.save_failed', ['post_id' => $postId, 'error' => $e->getMessage()]);
             $this->_error(APPLICATION_ENV !== 'production' ? $e->getMessage() : 'core.api.error.general');
         }
+    }
+
+    /** The fields an /api caller may leave out: the editor always posts them, so they carry a default. */
+    const SEEDED_FIELDS = ['status', 'locale'];
+
+    /**
+     * Fill in the fields an /api or MCP caller left out, before the form sees them.
+     *
+     * ZF1's `isValid()` hands a missing element `null`, overriding the form's declared default, so an
+     * agent that omitted `locale` saved an article with an empty locale — a row that no locale-scoped
+     * read finds. A NEW article takes the form's declared default; an UPDATE keeps the row's current
+     * value, so leaving out `status` can never quietly unpublish an article. Only absent keys are
+     * filled: a value the caller sent, blank included, is validated as sent.
+     *
+     * @param  array          $params the request payload
+     * @param  Blog_Form_Post $form   the form whose declared defaults seed a new article
+     * @param  string|null    $postId the article being updated, or null for a new one
+     * @return array                  the payload with each omitted field filled
+     */
+    protected function _seedOmitted(array $params, $form, $postId): array
+    {
+        $existing = $postId ? (new Tiger_Model_Page())->findById($postId) : null;
+        foreach (self::SEEDED_FIELDS as $field) {
+            if (array_key_exists($field, $params)) { continue; }
+            $params[$field] = $existing ? $existing->{$field} : $form->getElement($field)->getValue();
+        }
+        return $params;
     }
 
     /**
