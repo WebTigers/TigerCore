@@ -123,6 +123,9 @@ your authority + your Stripe).
 
 ## 5. Trust, integrity, consent (the seller's obligations)
 
+> **Building the module itself?** [MODULE_VENDORS.md](MODULE_VENDORS.md) is the vendor rulebook: a branded table
+> prefix (enforced at install), multi-tenant awareness, and what reviewers check.
+
 Everything a buyer needs to trust you is **provenance + integrity + consent**, all in MARKETPLACE.md:
 signed artifacts (§4), a pinned public key (§3, silent key change = re-consent), a deliberate connect gate,
 and **nag-never-disable** (§5, §8). A conforming **authority contract** is §7. Your obligations as a

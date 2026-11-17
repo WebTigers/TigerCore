@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**261 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**262 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -135,6 +135,7 @@
 - **Tiger_Module_Pricing** `@api` — the manifest `pricing` block, normalized.  ·  `library/Tiger/Module/Pricing.php`
 - **Tiger_Module_Registry** `@api` — the client for the module catalog, now **multi-source**.  ·  `library/Tiger/Module/Registry.php`
 - **Tiger_Module_Source** `@api` — one catalog feed the Module Manager reads.  ·  `library/Tiger/Module/Source.php`
+- **Tiger_Module_TableGuard** `@api` — refuse, BEFORE a module is installed, a package whose migrations would create a database table that collides with one already there (TIGER-444).  ·  `library/Tiger/Module/TableGuard.php`
 - **Tiger_Update_AutoUpdate** `@api` — per-module auto-update opt-in (the WordPress "Enable auto-updates" toggle).  ·  `library/Tiger/Update/AutoUpdate.php`
 - **Tiger_Update_Checker** `@api` — "what has an update?" for the WordPress-simple Updates screen.  ·  `library/Tiger/Update/Checker.php`
 - **Tiger_Update_Composer** `@api` — run `composer update <package>` IN-PROCESS, for hosts where Composer genuinely runs (a binary + proc_open/exec not disabled + a writable vendor/ — see Tiger_Vendor_Environment).  ·  `library/Tiger/Update/Composer.php`
