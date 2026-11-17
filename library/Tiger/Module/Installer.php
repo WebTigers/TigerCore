@@ -269,6 +269,8 @@ class Tiger_Module_Installer
                 'category'   => isset($provenance['category'])
                     ? (is_array($provenance['category']) ? implode(',', $provenance['category']) : (string) $provenance['category'])
                     : (isset($manifest['category']) ? implode(',', (array) $manifest['category']) : null),
+                // An update keeps the admin's on/off choice; a first install (or a reinstall) activates.
+                'keep_active' => $isUpdate,
             ]);
 
             return ['slug' => $slug, 'name' => $manifest['name'] ?? $slug, 'version' => $manifest['version'] ?? null,

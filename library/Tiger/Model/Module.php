@@ -180,6 +180,11 @@ class Tiger_Model_Module extends Tiger_Model_Table
         ];
         $row = $this->bySlug($slug);
         if ($row) {
+            // An UPDATE (`keep_active`, set by the installer when the module was already installed) keeps the
+            // module's on/off state: a newer version — from the Module Manager or an unattended auto-update — must
+            // never switch back on a module the admin deactivated. Found 2026-11-17: an auto-update pass re-activated
+            // a deactivated ComingSoon and walled a whole site. An explicit (re)install still activates.
+            if (!empty($meta['keep_active'])) { unset($data['active'], $data['status']); }
             $this->update($data, $this->getAdapter()->quoteInto('slug = ?', (string) $slug));
             return $row->module_id;
         }

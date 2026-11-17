@@ -125,6 +125,20 @@ final class InstallerLifecycleTest extends IntegrationTestCase
         $this->assertTrue($r2['updated']);
     }
 
+    /** An update never switches back on a module the admin deactivated (an auto-update walled a site, 2026-11-17). */
+    #[Test]
+    public function anUpdateKeepsADeactivatedModuleOff(): void
+    {
+        $this->installFixture('w4keep', ['version' => '1.0.0']);
+        (new Tiger_Model_Module())->setActive('w4keep', false);
+
+        $r = Tiger_Module_Installer::installFromUpload($this->makeModulePackage('w4keep', ['version' => '1.1.0']));
+        $this->assertTrue($r['updated']);
+        $row = (new Tiger_Model_Module())->bySlug('w4keep');
+        $this->assertSame('1.1.0', (string) $row->version, 'the update landed');
+        $this->assertSame(0, (int) $row->active, 'and the module is still off');
+    }
+
     #[Test]
     public function aLicensedModuleInstallsWhenSignedAndIsRefusedWhenUnsigned(): void
     {

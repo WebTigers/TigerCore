@@ -168,6 +168,19 @@ final class ModuleTest extends IntegrationTestCase
     }
 
     #[Test]
+    public function an_update_keeps_a_deactivated_module_off(): void
+    {
+        // keep_active (the installer's update path): a newer version refreshes provenance but never switches a
+        // module the admin turned off back on.
+        $this->module->setActive('forum', false);
+        $this->module->install('forum', ['name' => 'Forum', 'version' => '2.0.0', 'keep_active' => true]);
+        $row = $this->module->bySlug('forum');
+        $this->assertSame(0, (int) $row->active, 'still off after the update');
+        $this->assertSame('2.0.0', $row->version, 'provenance refreshed');
+        $this->assertContains('forum', $this->module->deactivatedSlugs());
+    }
+
+    #[Test]
     public function install_reactivates_and_updates_a_previously_deactivated_module(): void
     {
         // A module the admin had turned off, then (re)installs, must come back ACTIVE — install

@@ -6,6 +6,15 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.68.1] — 2026-11-17
+
+### Fixed — an update switched deactivated modules back on
+- Updating a module (the Module Manager, or the unattended auto-update pass) recorded it with `active = 1`, so a
+  module the admin had deactivated came back on with its next update. Found when an auto-update re-activated a
+  deactivated ComingSoon and walled a whole site. `Tiger_Module_Installer` now marks an update `keep_active`, and
+  `Tiger_Model_Module::install()` keeps the module's on/off state for it. A first install, or an explicit reinstall,
+  still activates.
+
 ## [1.68.0] — 2026-11-17
 
 ### Added — modules can't install colliding database tables (TIGER-444)
