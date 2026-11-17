@@ -64,6 +64,7 @@ class Tiger_Agent_Contract
     const READ_FILE      = 'read.file';         // one file's contents (bounded)
     const READ_GREP      = 'read.grep';         // search files + Code-Area snippets for a string
     const READ_GUIDE     = 'read.guide';        // a module's AGENTS.md (or the platform conventions)
+    const READ_SKILL     = 'read.skill';        // load one ACTIVE installed skill's SKILL.md + files (TIGER-532)
 
     /** Client tools (the DOM) — executed in the BROWSER by tiger.agent.js, not on the server. The
      *  page declares editable TARGETS (`data-agent-target`); the model reads/writes them by name. */
@@ -73,12 +74,12 @@ class Tiger_Agent_Contract
     /** The Forge (write) action types. */
     const WRITE_TYPES = [self::ACTION_API, self::ACTION_CODE, self::ACTION_FILE, self::ACTION_MODULE, self::ACTION_MCP];
     /** The Scout (read) action types. */
-    const READ_TYPES = [self::READ_INVENTORY, self::READ_TREE, self::READ_FILE, self::READ_GREP, self::READ_GUIDE];
+    const READ_TYPES = [self::READ_INVENTORY, self::READ_TREE, self::READ_FILE, self::READ_GREP, self::READ_GUIDE, self::READ_SKILL];
     /** The client (browser-executed) action types. */
     const CLIENT_TYPES = [self::DOM_READ, self::DOM_WRITE];
     /** Every action type the parser accepts. */
     const TYPES = [self::ACTION_API, self::ACTION_CODE, self::ACTION_FILE, self::ACTION_MODULE, self::ACTION_MCP,
-                   self::READ_INVENTORY, self::READ_TREE, self::READ_FILE, self::READ_GREP, self::READ_GUIDE,
+                   self::READ_INVENTORY, self::READ_TREE, self::READ_FILE, self::READ_GREP, self::READ_GUIDE, self::READ_SKILL,
                    self::DOM_READ, self::DOM_WRITE];
 
     /**
@@ -250,6 +251,12 @@ class Tiger_Agent_Contract
             case self::READ_GUIDE:
                 // module optional — empty means "the platform conventions".
                 return ['type' => $type, 'module' => preg_replace('/[^a-z0-9]/', '', strtolower((string) ($a['module'] ?? ''))), 'reason' => $reason];
+
+            case self::READ_SKILL:
+                if (empty($a['skill'])) {
+                    return null;
+                }
+                return ['type' => $type, 'skill' => preg_replace('/[^A-Za-z0-9._-]/', '-', (string) $a['skill']), 'reason' => $reason];
 
             case self::DOM_READ:
                 if (empty($a['target'])) {

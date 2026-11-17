@@ -77,31 +77,163 @@ class Tiger_Agent_Skills
 
     // ----- active set (config tier) --------------------------------------------------------------
 
-    /** The active skill keys. */
-    public static function active()
+    /**
+     * The active skill keys for an org (TIGER-532): that org's own list, else the install-wide list. Skills are
+     * INSTALLED install-wide (files), but each org curates which of them its agents use — an org that has never
+     * chosen inherits the install's list, and an org that switched everything off (an empty row) gets none.
+     *
+     * @param  string|null $orgId the org (null = the caller's current org)
+     * @return string[] the active keys
+     */
+    public static function active($orgId = null)
     {
         try {
-            $raw = (string) (new Tiger_Model_Config())->get('global', '', self::ACTIVE_KEY);
+            $org = ($orgId === null) ? Tiger_Model_Config::currentOrgId() : (string) $orgId;
+            $raw = (string) Tiger_Model_Config::orgValue($org, self::ACTIVE_KEY, '');
         } catch (Throwable $e) { $raw = ''; }
         return array_values(array_filter(array_map('trim', explode(',', $raw))));
     }
 
-    public static function isActive($key) { return in_array(self::_safeKey($key), self::active(), true); }
+    /**
+     * Is a skill active for an org?
+     *
+     * @param  string      $key   the skill key
+     * @param  string|null $orgId the org (null = the caller's current org)
+     * @return bool
+     */
+    public static function isActive($key, $orgId = null) { return in_array(self::_safeKey($key), self::active($orgId), true); }
 
     /**
-     * Turn a skill on/off (idempotent). Writes the config active-set; no schema, effective next request.
+     * Turn a skill on/off for an org (idempotent). Writes that org's active list (Tiger_Model_Config::settingScope —
+     * the global row only on an install with no org at all); effective next request, no schema.
      *
+     * @param  string      $key   the skill key
+     * @param  bool        $on    the wanted state
+     * @param  string|null $orgId the org (null = the caller's current org)
      * @return bool the resulting active state
      */
-    public static function setActive($key, $on)
+    public static function setActive($key, $on, $orgId = null)
     {
         $key    = self::_safeKey($key);
-        $active = self::active();
+        $active = self::active($orgId);
         $has    = in_array($key, $active, true);
         if ($on && !$has) { $active[] = $key; }
         if (!$on && $has) { $active = array_values(array_diff($active, [$key])); }
-        (new Tiger_Model_Config())->set('global', '', self::ACTIVE_KEY, implode(',', $active));
+        [$scope, $scopeId] = Tiger_Model_Config::settingScope($orgId);
+        (new Tiger_Model_Config())->set($scope, $scopeId, self::ACTIVE_KEY, implode(',', $active));
         return (bool) $on;
+    }
+
+    // ----- the loader (TIGERSKILLS.md §4 — progressive disclosure) ---------------------------------
+
+    /** The most text load() returns for one skill (SKILL.md first, then its other files). */
+    const LOAD_MAX_BYTES = 120000;
+
+    /**
+     * The skill MENU an agent sees up front: each skill that is installed AND active for the org, one line of
+     * know-how each — the cheap half of progressive disclosure. The same list feeds the in-app agent's system
+     * prompt and the MCP server's `initialize` instructions, so the two agents can't drift.
+     *
+     * @param  string|null $orgId the org (null = the caller's current org)
+     * @return array<int,array{key:string,name:string,description:string}>
+     */
+    public static function menu($orgId = null)
+    {
+        $active = self::active($orgId);
+        if (!$active) { return []; }
+        $out = [];
+        foreach (self::installed() as $s) {
+            if (in_array($s['key'], $active, true)) {
+                $out[] = ['key' => $s['key'], 'name' => (string) $s['name'], 'description' => (string) $s['description']];
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * LOAD one skill — the on-demand half: its SKILL.md plus the other files it ships, as TEXT. Only a skill that
+     * is installed AND active for the org loads; anything else is null (an inactive or unknown key is refused,
+     * so an admin's curation holds for every agent). A bundled script comes back as text to read, never something
+     * that runs: nothing here includes, evaluates or executes a file. Bounded by LOAD_MAX_BYTES; binary files and
+     * our own source.json are skipped.
+     *
+     * @param  string      $key   the skill key (as in menu())
+     * @param  string|null $orgId the org (null = the caller's current org)
+     * @return array{key:string,name:string,description:string,body:string,files:array<int,array{path:string,content:string}>,truncated:bool}|null
+     */
+    public static function load($key, $orgId = null)
+    {
+        $key = self::_safeKey($key);
+        if ($key === '' || !self::isInstalled($key) || !self::isActive($key, $orgId)) { return null; }
+        $dir   = self::dir() . '/' . $key;
+        $body  = self::body($key);
+        $front = Tiger_Skill_Source::parseFrontmatter($body);
+        $left  = self::LOAD_MAX_BYTES - strlen($body);
+        $files = [];
+        $truncated = $left < 0;
+
+        $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
+        $paths = [];
+        foreach ($it as $f) {
+            if (!$f->isFile() || $f->isLink()) { continue; }
+            $rel = substr($f->getPathname(), strlen($dir) + 1);
+            if ($rel === 'SKILL.md' || $rel === 'source.json') { continue; }
+            $paths[] = $rel;
+        }
+        sort($paths);
+        foreach ($paths as $rel) {
+            $content = (string) @file_get_contents($dir . '/' . $rel);
+            if ($content === '' || strpos($content, "\0") !== false || !mb_check_encoding($content, 'UTF-8')) { continue; }   // text only
+            if ($left <= 0 || strlen($content) > $left) { $truncated = true; continue; }
+            $left -= strlen($content);
+            $files[] = ['path' => $rel, 'content' => $content];
+        }
+        return [
+            'key'         => $key,
+            'name'        => (string) ($front['name'] ?? $key),
+            'description' => (string) ($front['description'] ?? ''),
+            'body'        => substr($body, 0, self::LOAD_MAX_BYTES),
+            'files'       => $files,
+            'truncated'   => $truncated,
+        ];
+    }
+
+    /**
+     * The menu as the text block both agents read (the in-app system prompt and the MCP `initialize`
+     * instructions): a heading, then one "key — name: description" line per active skill. '' with none, so a
+     * caller can skip the section entirely.
+     *
+     * @param  string|null $orgId the org (null = the caller's current org)
+     * @return string
+     */
+    public static function menuText($orgId = null)
+    {
+        $rows = [];
+        foreach (self::menu($orgId) as $s) {
+            $desc = trim(preg_replace('/\s+/', ' ', $s['description']));
+            if (strlen($desc) > 300) { $desc = substr($desc, 0, 300) . '…'; }
+            $rows[] = '  - ' . $s['key'] . ' — ' . $s['name'] . ($desc !== '' ? ': ' . $desc : '');
+        }
+        if (!$rows) { return ''; }
+        return "SKILLS — installed know-how for this site. Each line says when to use it; load one before following it:\n"
+             . implode("\n", $rows);
+    }
+
+    /**
+     * A loaded skill as one plain-text block (what an agent reads): the SKILL.md, then each bundled file under a
+     * path heading. Scripts are labelled as text to read, not run.
+     *
+     * @param  array $skill a load() result
+     * @return string
+     */
+    public static function toText(array $skill)
+    {
+        $out = 'SKILL "' . $skill['name'] . "\" (SKILL.md):\n\n" . $skill['body'];
+        foreach ($skill['files'] as $f) {
+            $out .= "\n\n----- " . $f['path'] . " (bundled file — text to read; Tiger never runs it) -----\n" . $f['content'];
+        }
+        if (!empty($skill['truncated'])) { $out .= "\n\n…(some bundled files were left out to keep this short)"; }
+        return $out;
     }
 
     // ----- install / remove ----------------------------------------------------------------------

@@ -108,9 +108,14 @@ class Mcp_ServerController extends Zend_Controller_Action
         $role =($effIdentity && !empty($effIdentity->role)) ? (string) $effIdentity->role
               : (($identity && !empty($identity->role)) ? (string) $identity->role : 'guest');
 
-        $out = Tiger_Mcp_Server::handle($msg, $role, function ($module, $service, $method, $args) use ($config, $prefix, $effIdentity, $role) {
-            return $this->_dispatchTool($module, $service, $method, (array) $args, $config, $prefix, $effIdentity, $role);
-        }, $allowed);
+        // The org whose ACTIVE skills this caller sees (TIGER-532): the token's org (an org-scoped token acts as its
+        // org), else the Bearer/session identity's, else the site org for a guest.
+        $who      = $effIdentity ?: $identity;
+        $skillOrg = ($who && !empty($who->org_id)) ? (string) $who->org_id : Tiger_Model_Config::currentOrgId();
+
+        $out = Tiger_Mcp_Server::handle($msg, $role, function ($module, $service, $method, $args) use ($config, $prefix, $effIdentity, $role, $skillOrg) {
+            return $this->_dispatchTool($module, $service, $method, (array) $args, $config, $prefix, $effIdentity, $role, $skillOrg);
+        }, $allowed, $skillOrg);
 
         if ($out === null) {
             $resp->setHttpResponseCode(202);   // a notification → accepted, no body
@@ -192,13 +197,19 @@ class Mcp_ServerController extends Zend_Controller_Action
      * org-scoped token, else the token/session identity), and audit the outcome. Returns the /api envelope
      * (a denial is a `result=0` envelope the engine renders as an MCP error).
      */
-    protected function _dispatchTool($module, $service, $method, array $args, $config, $prefix, $effIdentity, $role = 'guest')
+    protected function _dispatchTool($module, $service, $method, array $args, $config, $prefix, $effIdentity, $role = 'guest', $skillOrg = '')
     {
         $tool = $module . '__' . $service . '__' . $method;
 
-        // The agent surface (agent__scout__*, agent__forge__file) is not an /api op — it runs Scout/Forge
-        // in-process, with its own scope + read-only + role gating (TIGER-168).
-        if ($module === 'agent') {
+        // Loading an active skill (TIGER-532) — know-how, not an /api op: any role, any token scope.
+        if ($tool === Tiger_Mcp_Server::SKILL_TOOL) {
+            return $this->_dispatchSkillLoad($args, $prefix, (string) $skillOrg);
+        }
+        // The agent's Scout/Forge surface (agent__scout__*, agent__forge__*) is not an /api op — it runs
+        // in-process, with its own scope + read-only + role gating (TIGER-168). Every OTHER agent__* tool is a
+        // real /api op (agent/skills/installed…) and takes the normal path below; routing those here too left
+        // them listed but refused as "unknown agent tool".
+        if ($module === 'agent' && in_array($service, ['scout', 'forge'], true)) {
             return $this->_dispatchAgentTool($service, $method, $args, $config, $prefix, (string) $role);
         }
 
@@ -293,6 +304,34 @@ class Mcp_ServerController extends Zend_Controller_Action
         $status = (string) ($entry['status'] ?? 'error');
         Tiger_Log::info('mcp.tools_call', ['token' => $prefix, 'tool' => $tool, 'agent' => true, 'status' => $status]);
         return $this->_agentEnvelope($entry);
+    }
+
+    /**
+     * Load one ACTIVE skill for the caller's org (TIGER-532) as text. Read-only, so a read-only token may; needs no
+     * `agent` scope or admin role (a skill grants no capability). Metered + audited like every tool call. An
+     * inactive or uninstalled key is refused, so the org's curation holds for external agents too.
+     *
+     * @param  array  $args   {skill, reason?}
+     * @param  string $prefix the token prefix ('' for a session)
+     * @param  string $orgId  the caller's org
+     * @return Tiger_Model_ResponseObject
+     */
+    protected function _dispatchSkillLoad(array $args, $prefix, $orgId)
+    {
+        $tool = Tiger_Mcp_Server::SKILL_TOOL;
+        if ($prefix !== '' && !Tiger_Mcp_Token::meter($prefix)) {
+            return $this->_denied($tool, $prefix, 'rate_limited', 'Rate limit exceeded for this token.');
+        }
+        $key   = (string) ($args['skill'] ?? '');
+        $skill = Tiger_Agent_Skills::load($key, $orgId);
+        Tiger_Log::info('mcp.tools_call', ['token' => $prefix, 'tool' => $tool, 'skill' => $key, 'result' => $skill ? 1 : 0]);
+        if ($skill === null) {
+            return $this->_denied($tool, $prefix, 'not_active', 'No active skill "' . $key . '" — use a key from the server instructions.');
+        }
+        $env = new Tiger_Model_ResponseObject();
+        $env->result = 1;
+        $env->data   = ['skill' => $skill['key'], 'name' => $skill['name'], 'text' => Tiger_Agent_Skills::toText($skill)];
+        return $env;
     }
 
     /**

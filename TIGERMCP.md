@@ -209,6 +209,29 @@ set** (nothing is listed that a call would refuse):
   but is refused the write. There is no approval UI on the MCP path (as in §5), so a Forge write is dispatched
   `approved=true` — the deliberate `agent`+write token scope + the `Tiger_Log` audit line **are** the boundary.
 
+### 5b. Skills — installed know-how for an external agent (TIGER-532)
+
+An external agent uses the site's installed **skills** (TIGERSKILLS.md) the same two-step way the in-app agent
+does — a cheap menu up front, one skill's full text on demand — through one shared function
+(`Tiger_Agent_Skills::menu()` / `load()`), so the two agents can't drift:
+
+- **The menu rides `initialize`.** The `instructions` field lists the caller's org's **active** skills, one line
+  each (`key — name: when to use it`). Clients like Claude Code put server instructions in the model's context,
+  so this is the external analog of the system prompt. No active skills → no section.
+- **`agent__skills__load {skill, reason?}`** returns the skill's `SKILL.md` plus the files it ships, **as text**.
+  Listed in `tools/list` only when the org has active skills, with their keys as an `enum`; read-only.
+- **Gated as know-how, not capability:** any role, **no `agent` token scope needed** (unlike Scout/Forge, §5a), and
+  a read-only token may load. Whatever a skill describes still runs through the tools this token can call.
+- **The org's curation holds:** only a skill **installed and active for the caller's org** is listed or loads; an
+  inactive or unknown key is refused (`not_active`). The org is the token's (an org-scoped token acts as its org),
+  else the identity's, else the site org.
+- **Text only:** a bundled script comes back as text to read — Tiger never runs it, and neither should a client
+  without its own review (TIGERSKILLS.md §5). Binary files are skipped.
+- A tool rather than MCP `resources`/`prompts`: tools are what every client lets the model call on its own;
+  `skill://` resources can be added later for clients that use them.
+
+Metered and audited (`mcp.tools_call` with the skill key) like every other tool call.
+
 ---
 
 ## 6. The stdio bridge — conform to what the community expects
