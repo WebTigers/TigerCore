@@ -6,6 +6,20 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.67.0] — 2026-11-17
+
+### Added — "Update now" for theme content (TIGER-455)
+- Theme content published to the remote source reached a server only on the 15-minute `theme.content_fetch` tick,
+  so a just-published edit looked broken for up to a quarter hour. **Settings → Theme content** (`/system/themecontent`)
+  shows what this server holds — the source, the manifest's publish stamp, when it was last fetched, the file count,
+  any last error — and an **Update now** button that runs the same fetch on this server immediately, reporting files
+  checked / updated / removed and the publish stamp (an optional "re-download every file"). Listed in Settings only
+  where a remote source is configured; with none, the screen says so and the button is disabled.
+- `System_Service_Themecontent` (`status`, `fetch`), admin+, one ACL rule per method; `fetch` validates
+  `System_Form_ThemeContent` (CSRF). The screen renders status from the LOCAL manifest — a page render never fetches.
+- **`tiger theme:content-fetch [--force]`** — the same fetch from the CLI, so a deploy or firstboot serves current
+  theme content on its first request instead of its first tick.
+
 ## [1.66.1] — 2026-11-17
 
 ### Changed — loading a skill no longer pulls every bundled file into context (TIGER-532)

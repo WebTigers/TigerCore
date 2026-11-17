@@ -1,0 +1,71 @@
+<?php
+/**
+ * Theme content — what this server holds from the remote theme-content source, and "Update now" (TIGER-455).
+ * Status comes from the local manifest (no network on render); the button posts System_Service_Themecontent::fetch.
+ * Semantic Bootstrap only; behaviour in system.themecontent-index.js. See ADMIN.md.
+ */
+$s       = $this->status;
+$enabled = !empty($s['enabled']);
+$stamp   = function ($ts) { return $ts ? gmdate('Y-m-d H:i', (int) $ts) . ' UTC' : '—'; };
+?>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1"><i class="fa-solid fa-cloud-arrow-down me-2"></i><?= $this->t('system.theme_content.title') ?></h1>
+        <p class="text-body-secondary mb-0"><?= $this->t('system.theme_content.subtitle') ?></p>
+    </div>
+    <div class="text-nowrap">
+        <button type="button" id="tc-fetch" class="btn btn-primary"<?= $enabled ? '' : ' disabled' ?>>
+            <i class="fa-solid fa-rotate me-2"></i><?= $this->t('system.theme_content.update_now') ?>
+        </button>
+    </div>
+</div>
+
+<div id="tc-feedback"></div>
+<div id="tc-token"><?= $this->form->getElement('_csrf') ?></div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header fw-semibold"><i class="fa-solid fa-server me-2"></i><?= $this->t('system.theme_content.this_server') ?></div>
+            <div class="card-body">
+                <?php if (!$enabled): ?>
+                    <p class="mb-0 text-body-secondary" id="tc-disabled"><?= $this->t('system.theme_content.no_source_help') ?></p>
+                <?php else: ?>
+                    <dl class="row mb-0" id="tc-status">
+                        <dt class="col-sm-4"><?= $this->t('system.theme_content.source') ?></dt>
+                        <dd class="col-sm-8 text-break"><code><?= $this->escape($s['url']) ?></code></dd>
+                        <dt class="col-sm-4"><?= $this->t('system.theme_content.published') ?></dt>
+                        <dd class="col-sm-8" id="tc-generated"><?= $this->escape($s['generated'] !== '' ? $s['generated'] : '—') ?></dd>
+                        <dt class="col-sm-4"><?= $this->t('system.theme_content.fetched') ?></dt>
+                        <dd class="col-sm-8" id="tc-synced"><?= $this->escape($stamp($s['synced_at'])) ?></dd>
+                        <dt class="col-sm-4"><?= $this->t('system.theme_content.files') ?></dt>
+                        <dd class="col-sm-8" id="tc-files"><?= (int) $s['files'] ?></dd>
+                        <?php if ($s['error'] !== ''): ?>
+                            <dt class="col-sm-4 text-danger"><?= $this->t('system.theme_content.last_error') ?></dt>
+                            <dd class="col-sm-8 text-danger"><?= $this->escape($s['error']) ?></dd>
+                        <?php endif; ?>
+                    </dl>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body small text-body-secondary">
+                <p class="mb-2"><?= $this->t('system.theme_content.about') ?></p>
+                <div class="form-check mb-0">
+                    <input class="form-check-input" type="checkbox" id="tc-force"<?= $enabled ? '' : ' disabled' ?>>
+                    <label class="form-check-label" for="tc-force"><?= $this->t('system.theme_content.force') ?></label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php
+$this->i18n([
+    'networkError' => 'system.js.network_error',
+    'result'       => 'system.theme_content.result',
+]);
+?>
+<?php $this->pageScript('/_modules/system/js/system.themecontent-index.js', ['defer' => true]); ?>
