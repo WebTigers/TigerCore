@@ -73,7 +73,7 @@ class Agent_Service_Agent extends Tiger_Service_Service
      * is bound to the conversation + message on send. Owner-scoped: the caller owns what they upload.
      *
      * @param  array $params (the file arrives in $_FILES['file'], not $params)
-     * @apiRequest none
+     * @apiParam file file required The file to attach.
      * @return void
      */
     public function uploadFile(array $params): void

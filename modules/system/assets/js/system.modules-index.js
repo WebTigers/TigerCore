@@ -221,7 +221,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var many = deps.indexOf(',') !== -1;
             var msg = "'" + deps + "' depend" + (many ? '' : 's') + " on this module. Deactivate and/or delete "
                 + (many ? 'them' : 'it') + " before you can delete this module.";
-            if (window.TigerDOM) { TigerDOM.toast(msg, { type: 'error' }); } else { alert(msg); }
+            TigerDOM.toast(msg, { type: 'error' });
             return;
         }
         delCtx.slug  = btn.getAttribute('data-slug');
@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (delInput) { delInput.value = ''; }
         if (delBtn)   { delBtn.disabled = true; }
         if (delFb)    { delFb.innerHTML = ''; }
-        if (delModal) { delModal.show(); } else { alert(Tiger.t('deleteUnavailable')); }
+        if (delModal) { delModal.show(); } else { TigerDOM.toast(Tiger.t('deleteUnavailable'), { type: 'error' }); }
     }
 
     /* One delegated listener handles both toggle + delete triggers across every grid redraw. */

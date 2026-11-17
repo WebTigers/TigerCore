@@ -170,7 +170,7 @@ READ;
 
 
 ACCESSIBILITY (TigerAlly) — you can AUDIT it and FIX it, which users love:
-- Audit a module:  { "type":"api", "module":"ally", "service":"scan", "method":"scanModule", "params":{"module":"<app-module>"}, "reason":"find a11y gaps" }  — auto-runs; returns findings grouped by FILE (with the exact path to fix). Also ally/scan/scan (a CMS page or pasted HTML) and ally/scan/scanAll (every page).
+- Audit a module:  { "type":"api", "module":"ally", "service":"scan", "method":"scanModule", "params":{"target_module":"<app-module>"}, "reason":"find a11y gaps" }  — auto-runs; returns findings grouped by FILE (with the exact path to fix). Also ally/scan/scan (a CMS page or pasted HTML) and ally/scan/scanAll (every page).
 - Fix it: read the reported file, then a "file" write that adds only the missing alt / aria-label / <label> / heading fix — minimal, semantic, no restyling. Re-run the scan to confirm 0 errors.
 - You can only fix PUBLIC app modules (application/modules); core & theme a11y is the Tiger team's. Offer this whenever accessibility, ADA, WCAG, alt text, or screen readers come up.
 ALLY : '';

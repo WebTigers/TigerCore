@@ -96,6 +96,37 @@ namespace {
         }
     }
 
+    if (!class_exists('Openapifix_Service_Edges')) {
+        /** TIGER-529 fixture: an upload (`file` type) and a public in-process helper marked `@apiExclude`. */
+        class Openapifix_Service_Edges extends \Tiger_Service_Service
+        {
+            /**
+             * Upload one.
+             *
+             * @apiParam file file required The file.
+             * @apiParam string note
+             */
+            public function upload(array $params) {}
+
+            /**
+             * Answer a question for another module, in process.
+             *
+             * @apiExclude
+             * @param  string $a
+             * @param  string $b
+             * @return bool
+             */
+            public function ownsIt($a, $b) { return true; }
+
+            /**
+             * Say hello.
+             *
+             * @apiRequest none
+             */
+            public function hello(array $params) { $this->_success(['hello' => 1]); }
+        }
+    }
+
     // Elements whose lowercased class names contain the tokens _elementSchema keys on.
     if (!class_exists('Openapifix_El_Emailish'))  { class Openapifix_El_Emailish  extends \Zend_Form_Element_Text {} }
     if (!class_exists('Openapifix_El_Numberish')) { class Openapifix_El_Numberish extends \Zend_Form_Element_Text {} }
@@ -157,6 +188,40 @@ namespace Tiger\Tests\Unit\OpenApi {
             // nothing declared → the generic body, and untyped() names it (and only it).
             $this->assertTrue($s['openapifix/declared/mystery']['additionalProperties']);
             $this->assertSame(['openapifix/declared/mystery'], $this->gen->untyped(['Openapifix_Service_Declared']));
+        }
+
+        #[Test]
+        public function a_file_param_makes_a_multipart_body_and_marks_the_operation_as_an_upload(): void
+        {
+            $this->assertSame(['type' => 'string', 'format' => 'binary'], Tiger_OpenApi_Generator::parseApiParam('@apiParam file file')['schema']);
+
+            $doc  = $this->gen->generate(['Openapifix_Service_Edges']);
+            $body = $doc['paths']['/api/openapifix/edges/upload']['post']['requestBody']['content'];
+            $this->assertSame(['multipart/form-data'], array_keys($body), 'an upload is a multipart body');
+            $this->assertSame(['file'], $body['multipart/form-data']['schema']['required']);
+            $this->assertSame(['application/x-www-form-urlencoded'], array_keys($doc['paths']['/api/openapifix/edges/hello']['post']['requestBody']['content']));
+
+            $s = $this->gen->schemasByOp(['Openapifix_Service_Edges']);
+            $this->assertTrue(Tiger_OpenApi_Generator::takesFile($s['openapifix/edges/upload']));
+            $this->assertFalse(Tiger_OpenApi_Generator::takesFile($s['openapifix/edges/hello']));
+            $this->assertSame([], $this->gen->untyped(['Openapifix_Service_Edges']), 'a file param is a declaration');
+        }
+
+        #[Test]
+        public function an_api_exclude_method_is_not_an_operation_and_the_dispatcher_refuses_it(): void
+        {
+            $doc = $this->gen->generate(['Openapifix_Service_Edges']);
+            $this->assertArrayNotHasKey('/api/openapifix/edges/ownsit', array_change_key_case($doc['paths']));
+            $this->assertArrayNotHasKey('openapifix/edges/ownsIt', $this->gen->schemasByOp(['Openapifix_Service_Edges']));
+
+            // A message naming it is refused like an unknown action; a real operation still dispatches.
+            $res = (new \Openapifix_Service_Edges(['action' => 'ownsIt', 'a' => 'x', 'b' => 'y']))->getResponse();
+            $this->assertSame(0, (int) $res->result);
+            $this->assertStringContainsString('invalid_action', json_encode($res->messages));
+            $this->assertSame(1, (int) (new \Openapifix_Service_Edges(['action' => 'hello']))->getResponse()->result);
+
+            // PHP callers are unaffected.
+            $this->assertTrue((new \Openapifix_Service_Edges())->ownsIt('x', 'y'));
         }
 
         #[Test]

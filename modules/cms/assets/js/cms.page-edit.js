@@ -160,8 +160,10 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('[data-cms-restore]').forEach(function (btn) {
         btn.addEventListener('click', function () {
             var ver = btn.getAttribute('data-cms-restore');
-            if (!confirm(Tiger.t('confirmRestore', ver))) { return; }
-            post(btn, { method: 'restore', version: ver }, function (res) { window.location = res.redirect || window.location.href; });
+            TigerModal.confirm({ body: Tiger.t('confirmRestore', ver) }).then(function (ok) {
+                if (!ok) { return; }
+                post(btn, { method: 'restore', version: ver }, function (res) { window.location = res.redirect || window.location.href; });
+            });
         });
     });
 });

@@ -89,6 +89,9 @@ class Tiger_Mcp_Server
         foreach (Tiger_Agent_Tools::catalog($role, $allowedModules, null) as $module => $ops) {
             foreach ($ops as $op) {
                 $key = $module . '/' . $op['service'] . '/' . $op['method'];
+                if (isset($schemas[$key]) && Tiger_OpenApi_Generator::takesFile($schemas[$key])) {
+                    continue;   // an upload: no MCP client can send a file, so it isn't a tool (TIGER-529)
+                }
                 $tools[] = [
                     'name'        => self::toolName((string) $module, (string) $op['service'], (string) $op['method']),
                     'description' => (string) ($op['summary'] ?? ''),

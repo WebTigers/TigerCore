@@ -136,6 +136,9 @@ serialized into MCP tool objects:
   - `@apiParam <type> <name> [required] [description]` → one parameter, alone or added to any of the above.
     `<type>` is a JSON type, or an enum written `string(draft|published)`.
 
+  Two things are **not** tools: an operation with an `@apiParam file …` (a multipart upload — no MCP client
+  can send a file), and a public method tagged `@apiExclude` (in-process PHP, which `/api` refuses too).
+
   Every operation declares one — `OperationsDeclareInputTest` fails core's build on an undeclared method, and
   each module's suite carries the same check against `Tiger_OpenApi_Generator::untyped()`. An undeclared
   method would get a blank permissive object, which tells a client nothing about what to send.

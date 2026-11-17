@@ -31,6 +31,7 @@ class Profile_Service_OrgLogo extends Tiger_Service_Service
      *
      * @param  array $params `_csrf` (the file rides in $_FILES['file'])
      * @apiRequest Profile_Form_OrgLogo
+     * @apiParam file file required The logo image.
      * @return void
      */
     public function upload(array $params): void

@@ -117,9 +117,26 @@ abstract class Tiger_Service_Service
     // -------------------------------------------------------------------------
 
     /**
+     * Is this public method marked `@apiExclude` — public PHP for in-process callers (often another
+     * module), but NOT an `/api` operation?
+     *
+     * Such a method takes positional arguments or returns a value rather than writing the envelope, so a
+     * message aimed at it can only fail. The dispatcher refuses it like an unknown action, and the OpenAPI
+     * generator (hence MCP `tools/list` and the agent catalog) never lists it. Calling it directly in PHP
+     * is unaffected (TIGER-529).
+     *
+     * @param  ReflectionMethod $method the method to check
+     * @return bool                     true when its docblock carries `@apiExclude`
+     */
+    public static function isApiExcluded(ReflectionMethod $method)
+    {
+        return (bool) preg_match('/^\s*\*?\s*@apiExclude\b/m', (string) $method->getDocComment());
+    }
+
+    /**
      * Route the message to the action method it names. The method receives the
-     * full $params. Unknown/uncallable actions and thrown errors become a clean
-     * error response — nothing leaks.
+     * full $params. Unknown/uncallable actions, `@apiExclude` methods and thrown
+     * errors become a clean error response — nothing leaks.
      */
     protected function _dispatch(array $params)
     {
@@ -131,7 +148,8 @@ abstract class Tiger_Service_Service
         // Only real, callable methods dispatch. (The '_' guard below keeps the
         // message from reaching protected/internal helpers named like actions.)
         if ($action === '' || $action[0] === '_'
-            || !method_exists($this, $action) || !is_callable([$this, $action])) {
+            || !method_exists($this, $action) || !is_callable([$this, $action])
+            || self::isApiExcluded(new ReflectionMethod($this, $action))) {
             $this->_error('core.api.error.invalid_action');
             return;
         }

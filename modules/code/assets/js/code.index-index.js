@@ -73,14 +73,21 @@ document.addEventListener('DOMContentLoaded', function () {
         var btn = this;
         var m = btn.getAttribute('data-code-toggle'), id = btn.getAttribute('data-id');
         TigerButton.run(btn, function () { return api(m, id); }).then(function (res) {
-            (res.messages || []).forEach(function (msg) { if (msg.class === 'error') { alert(msg.message); } });
+            (res.messages || []).forEach(function (msg) { if (msg.class === 'error') { TigerDOM.toast(msg.message, { type: 'error' }); } });
             table.ajax.reload(null, false);
         });
     });
     $('#code-table tbody').on('click', '[data-code-delete]', function () {
         var btn = this;
-        if (!confirm(Tiger.t('confirmDeleteSnippet'))) { return; }
-        TigerButton.run(btn, function () { return api('delete', btn.getAttribute('data-code-delete')); }).then(function () { table.ajax.reload(null, false); });
+        TigerModal.confirm({ body: Tiger.t('confirmDeleteSnippet'), variant: 'danger' }).then(function (ok) {
+            if (!ok) { return; }
+            TigerButton.run(btn, function () { return api('delete', btn.getAttribute('data-code-delete')); }).then(function (res) {
+                if (!res || res.result !== 1) {
+                    (res && res.messages || []).forEach(function (m) { TigerDOM.toast(m.message, { type: m.class || 'error' }); });
+                }
+                table.ajax.reload(null, false);
+            });
+        });
     });
 
     // View source (module snippets) — read the PHP (read-only CodeMirror) before activating.
@@ -131,7 +138,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!srcKey) { return; }
         var method = srcActive ? 'deactivate' : 'activate';
         TigerButton.run(btn, function () { return api(method, 'module:' + srcKey); }).then(function (res) {
-            (res.messages || []).forEach(function (msg) { if (msg.class === 'error') { alert(msg.message); } });
+            (res.messages || []).forEach(function (msg) { if (msg.class === 'error') { TigerDOM.toast(msg.message, { type: 'error' }); } });
             if (res && res.result === 1 && srcModal) { srcModal.hide(); }
             table.ajax.reload(null, false);
         });

@@ -242,11 +242,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function deleteMedia(id, btn, before){
         if (!id) { return; }
-        if (!confirm(Tiger.t('confirmDeleteFile'))) { return; }
-        TigerButton.run(btn, function(){
-            return fetch('/api', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body:new URLSearchParams({ module:'media', service:'media', method:'delete', media_id:id, _csrf:mediaCsrf() }) }).then(function(r){ return r.json(); });
-        }).then(function(res){ if (before) { before(); } if (res && res.result===1) { TigerDOM.toast(Tiger.t('fileDeleted'), { type:'success' }); } refresh(); })
-          .catch(function(){ refresh(); });
+        TigerModal.confirm({ body: Tiger.t('confirmDeleteFile'), variant: 'danger' }).then(function(ok){
+            if (!ok) { return; }
+            TigerButton.run(btn, function(){
+                return fetch('/api', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body:new URLSearchParams({ module:'media', service:'media', method:'delete', media_id:id, _csrf:mediaCsrf() }) }).then(function(r){ return r.json(); });
+            }).then(function(res){
+                if (before) { before(); }
+                if (res && res.result===1) { TigerDOM.toast(Tiger.t('fileDeleted'), { type:'success' }); }
+                else { (res && res.messages || []).forEach(function(m){ TigerDOM.toast(m.message, { type: m.class || 'error' }); }); }
+                refresh();
+            }).catch(function(){ refresh(); });
+        });
     }
     // In-modal delete (both views) …
     document.getElementById('media-edit-delete').addEventListener('click', function(){

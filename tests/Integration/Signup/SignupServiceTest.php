@@ -406,6 +406,16 @@ final class SignupServiceTest extends IntegrationTestCase
     }
 
     #[Test]
+    public function verify_email_is_not_granted_to_guests_over_the_api(): void
+    {
+        // It takes positional args, so an /api call (which hands it the params array) can only fail. The
+        // controller calls it in-process; the ACL must not advertise it as a guest op (TIGER-529).
+        $acl = new \Tiger_Acl_Acl();
+        $this->assertFalse($acl->isAllowed('guest', 'Signup_Service_Signup', 'verifyEmail'));
+        $this->assertTrue($acl->isAllowed('guest', 'Signup_Service_Signup', 'create'), 'the signup op itself stays public');
+    }
+
+    #[Test]
     public function verify_email_is_safe_against_an_unknown_challenge_id(): void
     {
         $result = (new Signup_Service_Signup())->verifyEmail('not-a-real-challenge', 'whatever');

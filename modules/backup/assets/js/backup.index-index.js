@@ -66,8 +66,10 @@
     document.addEventListener('click', function (e) {
         var del = e.target.closest('[data-delete]');
         if (del) {
-            if (!confirm(Tiger.t('confirmDeleteNamed', del.getAttribute('data-name')))) { return; }
-            api('remove', { backup_id: del.getAttribute('data-delete') }, del).then(function (res) { notify(res); if (res && res.result === 1) { setTimeout(function () { location.reload(); }, 700); } });
+            TigerModal.confirm({ body: Tiger.t('confirmDeleteNamed', del.getAttribute('data-name')), variant: 'danger' }).then(function (ok) {
+                if (!ok) { return; }
+                api('remove', { backup_id: del.getAttribute('data-delete') }, del).then(function (res) { notify(res); if (res && res.result === 1) { setTimeout(function () { location.reload(); }, 700); } });
+            });
         }
     });
 

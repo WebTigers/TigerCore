@@ -68,15 +68,23 @@ document.addEventListener('DOMContentLoaded', function () {
     $('#access-user-clear').on('click', function () { fStatus.value = ''; table.ajax.reload(); });
 
     $('#access-user-table tbody').on('click', '[data-user-delete]', function () {
-        if (!confirm(Tiger.t('confirmDelUser'))) { return; }
-        var btn  = this;
-        var tok  = document.querySelector('#access-user-token [name="_csrf"]');   // the grid's CSRF token (TIGER-528)
-        var body = new URLSearchParams({ module: 'access', service: 'user', method: 'delete', user_id: btn.getAttribute('data-user-delete'), _csrf: tok ? tok.value : '' });
-        TigerButton.run(btn, function () {
-            return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
-                .then(function (r) { return r.json(); });
-        })
-            .then(function () { table.ajax.reload(null, false); })
-            .catch(function () { table.ajax.reload(null, false); });
+        var btn = this;
+        TigerModal.confirm({ title: Tiger.t('del'), body: Tiger.t('confirmDelUser'), confirmLabel: Tiger.t('del'), variant: 'danger' }).then(function (ok) {
+            if (!ok) { return; }
+            var tok  = document.querySelector('#access-user-token [name="_csrf"]');   // the grid's CSRF token (TIGER-528)
+            var body = new URLSearchParams({ module: 'access', service: 'user', method: 'delete', user_id: btn.getAttribute('data-user-delete'), _csrf: tok ? tok.value : '' });
+            TigerButton.run(btn, function () {
+                return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
+                    .then(function (r) { return r.json(); });
+            })
+                .then(function (res) {
+                    // A refused delete says why — it must not just reload the grid as if it worked (TIGER-529).
+                    if (!res || res.result !== 1) {
+                        (res && res.messages || []).forEach(function (m) { TigerDOM.toast(m.message, { type: m.class || 'error' }); });
+                    }
+                    table.ajax.reload(null, false);
+                })
+                .catch(function () { table.ajax.reload(null, false); });
+        });
     });
 });

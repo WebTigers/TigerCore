@@ -177,20 +177,24 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     function del(id, btn) {
-        if (!window.confirm(STR.confirm)) { return; }
-        var fd = new URLSearchParams();
-        fd.set('module', 'profile'); fd.set('service', SVC); fd.set('method', 'delete');
-        fd.set('link_id', id); fd.set('_csrf', csrfInput.value);
-        TigerButton.run(btn, function () {
-            return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
-                .then(function (r) { return r.json().catch(function () { return {}; }); });
-        }).then(function (res) {
-            if (res && res.result === 1 && res.data) {
-                render(res.data.contacts || []);
-                if (res.data._csrf) { csrfInput.value = res.data._csrf; }
-                TigerDOM.notify(fb, STR.del, { type: 'success' });
-            }
-        }).catch(function () { TigerDOM.notify(fb, Tiger.t('netError'), { type: 'error' }); });
+        TigerModal.confirm({ body: STR.confirm, variant: 'danger' }).then(function (ok) {
+            if (!ok) { return; }
+            var fd = new URLSearchParams();
+            fd.set('module', 'profile'); fd.set('service', SVC); fd.set('method', 'delete');
+            fd.set('link_id', id); fd.set('_csrf', csrfInput.value);
+            TigerButton.run(btn, function () {
+                return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
+                    .then(function (r) { return r.json().catch(function () { return {}; }); });
+            }).then(function (res) {
+                if (res && res.result === 1 && res.data) {
+                    render(res.data.contacts || []);
+                    if (res.data._csrf) { csrfInput.value = res.data._csrf; }
+                    TigerDOM.notify(fb, STR.del, { type: 'success' });
+                    return;
+                }
+                (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class || 'error' }); });
+            }).catch(function () { TigerDOM.notify(fb, Tiger.t('netError'), { type: 'error' }); });
+        });
     }
 
     toggleType();
