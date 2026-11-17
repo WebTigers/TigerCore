@@ -206,7 +206,8 @@ MCP;
         if ($skillBlock !== '') {
             $skillBlock = "\n\n" . $skillBlock
                 . "\nLoad one before you follow it: { \"type\":\"read.skill\", \"skill\":\"<key>\", \"reason\":\"...\" } with done:false;"
-                . "\nits SKILL.md (and any files it ships, as text) comes back to you. Use only keys from this list.";
+                . "\nits SKILL.md and a list of the files it ships come back to you. Read one of those files only when the"
+                . "\nSKILL.md points you to it: the same action plus \"file\":\"<path from the list>\". Use only keys from this list.";
         }
 
         return <<<PROMPT

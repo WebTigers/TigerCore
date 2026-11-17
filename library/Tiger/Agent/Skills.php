@@ -151,51 +151,69 @@ class Tiger_Agent_Skills
     }
 
     /**
-     * LOAD one skill — the on-demand half: its SKILL.md plus the other files it ships, as TEXT. Only a skill that
-     * is installed AND active for the org loads; anything else is null (an inactive or unknown key is refused,
-     * so an admin's curation holds for every agent). A bundled script comes back as text to read, never something
-     * that runs: nothing here includes, evaluates or executes a file. Bounded by LOAD_MAX_BYTES; binary files and
-     * our own source.json are skipped.
+     * LOAD one skill — the on-demand half, itself two-level so a skill that ships a large dataset doesn't land
+     * whole in the model's context (and the org's token bill):
+     *  - with no `$file`: its SKILL.md plus a MANIFEST of the text files it ships (path + size), no contents;
+     *  - with `$file`: that ONE bundled file's text. The path must be in the manifest exactly — never a path the
+     *    caller builds — so it can't step outside the skill's folder.
+     * Only a skill that is installed AND active for the org loads; anything else is null (so an admin's curation
+     * holds for every agent). A bundled script comes back as text to read, never something that runs: nothing here
+     * includes, evaluates or executes a file. Binary files and our own source.json are not listed. Bounded by
+     * LOAD_MAX_BYTES.
      *
      * @param  string      $key   the skill key (as in menu())
      * @param  string|null $orgId the org (null = the caller's current org)
-     * @return array{key:string,name:string,description:string,body:string,files:array<int,array{path:string,content:string}>,truncated:bool}|null
+     * @param  string|null $file  a manifest path to read one bundled file (null = the SKILL.md + manifest)
+     * @return array|null  {key,name,description,body,files:[{path,bytes}],truncated} or, for a file,
+     *                     {key,name,file,content,truncated}; null when not active/installed or the file isn't listed
      */
-    public static function load($key, $orgId = null)
+    public static function load($key, $orgId = null, $file = null)
     {
         $key = self::_safeKey($key);
         if ($key === '' || !self::isInstalled($key) || !self::isActive($key, $orgId)) { return null; }
         $dir   = self::dir() . '/' . $key;
         $body  = self::body($key);
         $front = Tiger_Skill_Source::parseFrontmatter($body);
-        $left  = self::LOAD_MAX_BYTES - strlen($body);
-        $files = [];
-        $truncated = $left < 0;
+        $name  = (string) ($front['name'] ?? $key);
+        $files = self::_textFiles($dir);
 
-        $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
-        $paths = [];
+        if ($file !== null && $file !== '') {
+            $sizes = array_column($files, 'bytes', 'path');
+            if (!array_key_exists((string) $file, $sizes)) { return null; }   // only a listed file, exactly
+            $content = (string) @file_get_contents($dir . '/' . $file, false, null, 0, self::LOAD_MAX_BYTES);
+            return ['key' => $key, 'name' => $name, 'file' => (string) $file, 'content' => $content,
+                    'truncated' => $sizes[$file] > self::LOAD_MAX_BYTES];
+        }
+        return [
+            'key'         => $key,
+            'name'        => $name,
+            'description' => (string) ($front['description'] ?? ''),
+            'body'        => substr($body, 0, self::LOAD_MAX_BYTES),
+            'files'       => $files,
+            'truncated'   => strlen($body) > self::LOAD_MAX_BYTES,
+        ];
+    }
+
+    /**
+     * The text files a skill ships (not SKILL.md, not our source.json, no symlinks, no binary), sorted by path.
+     *
+     * @param  string $dir the installed skill's folder
+     * @return array<int,array{path:string,bytes:int}>
+     */
+    protected static function _textFiles($dir)
+    {
+        $out = [];
+        $it  = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
         foreach ($it as $f) {
             if (!$f->isFile() || $f->isLink()) { continue; }
             $rel = substr($f->getPathname(), strlen($dir) + 1);
             if ($rel === 'SKILL.md' || $rel === 'source.json') { continue; }
-            $paths[] = $rel;
+            $head = (string) @file_get_contents($f->getPathname(), false, null, 0, 8192);   // sniff: text only
+            if ($head === '' || strpos($head, "\0") !== false || !mb_check_encoding($head, 'UTF-8')) { continue; }
+            $out[] = ['path' => $rel, 'bytes' => (int) $f->getSize()];
         }
-        sort($paths);
-        foreach ($paths as $rel) {
-            $content = (string) @file_get_contents($dir . '/' . $rel);
-            if ($content === '' || strpos($content, "\0") !== false || !mb_check_encoding($content, 'UTF-8')) { continue; }   // text only
-            if ($left <= 0 || strlen($content) > $left) { $truncated = true; continue; }
-            $left -= strlen($content);
-            $files[] = ['path' => $rel, 'content' => $content];
-        }
-        return [
-            'key'         => $key,
-            'name'        => (string) ($front['name'] ?? $key),
-            'description' => (string) ($front['description'] ?? ''),
-            'body'        => substr($body, 0, self::LOAD_MAX_BYTES),
-            'files'       => $files,
-            'truncated'   => $truncated,
-        ];
+        usort($out, static function ($a, $b) { return strcmp($a['path'], $b['path']); });
+        return $out;
     }
 
     /**
@@ -220,19 +238,27 @@ class Tiger_Agent_Skills
     }
 
     /**
-     * A loaded skill as one plain-text block (what an agent reads): the SKILL.md, then each bundled file under a
-     * path heading. Scripts are labelled as text to read, not run.
+     * A load() result as the plain text an agent reads: the SKILL.md followed by the list of files it ships (read
+     * one by loading again with its path), or — for a file load — that file under a heading. Bundled files are
+     * labelled as text to read, never to run.
      *
      * @param  array $skill a load() result
      * @return string
      */
     public static function toText(array $skill)
     {
-        $out = 'SKILL "' . $skill['name'] . "\" (SKILL.md):\n\n" . $skill['body'];
-        foreach ($skill['files'] as $f) {
-            $out .= "\n\n----- " . $f['path'] . " (bundled file — text to read; Tiger never runs it) -----\n" . $f['content'];
+        if (array_key_exists('file', $skill)) {
+            return 'SKILL "' . $skill['name'] . '" — file ' . $skill['file'] . " (text to read; Tiger never runs it):\n\n"
+                 . $skill['content'] . (!empty($skill['truncated']) ? "\n\n…(truncated)" : '');
         }
-        if (!empty($skill['truncated'])) { $out .= "\n\n…(some bundled files were left out to keep this short)"; }
+        $out = 'SKILL "' . $skill['name'] . "\" (SKILL.md):\n\n" . $skill['body'] . (!empty($skill['truncated']) ? "\n\n…(truncated)" : '');
+        if ($skill['files']) {
+            $out .= "\n\nFILES THIS SKILL SHIPS — read one only if the SKILL.md points you to it, by loading this skill again "
+                  . "with its path as \"file\" (text to read; Tiger never runs them):";
+            foreach ($skill['files'] as $f) {
+                $out .= "\n  - " . $f['path'] . ' (' . number_format($f['bytes']) . ' bytes)';
+            }
+        }
         return $out;
     }
 

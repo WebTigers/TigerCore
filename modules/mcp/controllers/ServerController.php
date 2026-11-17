@@ -323,10 +323,13 @@ class Mcp_ServerController extends Zend_Controller_Action
             return $this->_denied($tool, $prefix, 'rate_limited', 'Rate limit exceeded for this token.');
         }
         $key   = (string) ($args['skill'] ?? '');
-        $skill = Tiger_Agent_Skills::load($key, $orgId);
-        Tiger_Log::info('mcp.tools_call', ['token' => $prefix, 'tool' => $tool, 'skill' => $key, 'result' => $skill ? 1 : 0]);
+        $file  = (string) ($args['file'] ?? '');
+        $skill = Tiger_Agent_Skills::load($key, $orgId, $file !== '' ? $file : null);
+        Tiger_Log::info('mcp.tools_call', ['token' => $prefix, 'tool' => $tool, 'skill' => $key, 'file' => $file, 'result' => $skill ? 1 : 0]);
         if ($skill === null) {
-            return $this->_denied($tool, $prefix, 'not_active', 'No active skill "' . $key . '" — use a key from the server instructions.');
+            return $this->_denied($tool, $prefix, 'not_active', $file !== ''
+                ? 'No file "' . $file . '" in the active skill "' . $key . '" — use a path from its file list.'
+                : 'No active skill "' . $key . '" — use a key from the server instructions.');
         }
         $env = new Tiger_Model_ResponseObject();
         $env->result = 1;

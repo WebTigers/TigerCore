@@ -129,14 +129,19 @@ final class SkillsLoaderTest extends ControllerTestCase
         $this->assertNotNull($s);
         $this->assertStringContainsString('Alpha steps.', $s['body']);
         $paths = array_column($s['files'], 'path');
-        $this->assertContains('reference/notes.md', $paths);
-        $this->assertContains('scripts/run.php', $paths, 'a script comes back as text to read');
-        $this->assertNotContains('logo.bin', $paths, 'binary files are skipped');
-        $byPath = array_column($s['files'], 'content', 'path');
-        $this->assertStringContainsString("define('TIGER532_EXECUTED'", $byPath['scripts/run.php']);
+        $this->assertSame(['reference/notes.md', 'scripts/run.php'], $paths, 'text files listed; the binary and source.json are not');
+        $this->assertArrayNotHasKey('content', $s['files'][0], 'the first load is a manifest — no file contents in context');
+        $this->assertStringContainsString('scripts/run.php (', Tiger_Agent_Skills::toText($s));
+
+        $f = Tiger_Agent_Skills::load('alpha', self::ORG_A, 'scripts/run.php');
+        $this->assertStringContainsString("define('TIGER532_EXECUTED'", $f['content'], 'a script comes back as text to read');
         $this->assertFalse(defined('TIGER532_EXECUTED'), 'loading a skill never runs its files');
         $this->assertFileDoesNotExist(sys_get_temp_dir() . '/tiger532-ran');
-        $this->assertStringContainsString('Tiger never runs it', Tiger_Agent_Skills::toText($s));
+        $this->assertStringContainsString('Tiger never runs it', Tiger_Agent_Skills::toText($f));
+
+        foreach (['logo.bin', 'source.json', '../beta/SKILL.md', '/etc/passwd', 'reference/../scripts/run.php'] as $bad) {
+            $this->assertNull(Tiger_Agent_Skills::load('alpha', self::ORG_A, $bad), "$bad is not in the file list");
+        }
     }
 
     #[Test]
@@ -200,6 +205,8 @@ final class SkillsLoaderTest extends ControllerTestCase
         $ok = $ctl->runTool('agent', 'skills', 'load', ['skill' => 'alpha'], $conf, '', null, 'user', self::ORG_A);
         $this->assertSame(1, (int) $ok->result);
         $this->assertStringContainsString('Alpha steps.', $ok->data['text']);
+        $file = $ctl->runTool('agent', 'skills', 'load', ['skill' => 'alpha', 'file' => 'reference/notes.md'], $conf, '', null, 'user', self::ORG_A);
+        $this->assertStringContainsString('Alpha reference notes.', $file->data['text'], 'one bundled file on request');
 
         $no = $ctl->runTool('agent', 'skills', 'load', ['skill' => 'beta'], $conf, '', null, 'user', self::ORG_A);
         $this->assertSame(0, (int) $no->result, 'an inactive skill is refused');

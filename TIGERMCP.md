@@ -218,7 +218,8 @@ does — a cheap menu up front, one skill's full text on demand — through one 
 - **The menu rides `initialize`.** The `instructions` field lists the caller's org's **active** skills, one line
   each (`key — name: when to use it`). Clients like Claude Code put server instructions in the model's context,
   so this is the external analog of the system prompt. No active skills → no section.
-- **`agent__skills__load {skill, reason?}`** returns the skill's `SKILL.md` plus the files it ships, **as text**.
+- **`agent__skills__load {skill, file?, reason?}`** returns the skill's `SKILL.md` and the list of files it ships;
+  called again with one listed path as `file`, it returns that file, **as text**.
   Listed in `tools/list` only when the org has active skills, with their keys as an `enum`; read-only.
 - **Gated as know-how, not capability:** any role, **no `agent` token scope needed** (unlike Scout/Forge, §5a), and
   a read-only token may load. Whatever a skill describes still runs through the tools this token can call.

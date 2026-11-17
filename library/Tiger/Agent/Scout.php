@@ -377,11 +377,15 @@ class Tiger_Agent_Scout
     protected function _skill(array $action)
     {
         $key   = (string) ($action['skill'] ?? '');
-        $skill = class_exists('Tiger_Agent_Skills') ? Tiger_Agent_Skills::load($key) : null;
+        $file  = (string) ($action['file'] ?? '');
+        $skill = class_exists('Tiger_Agent_Skills') ? Tiger_Agent_Skills::load($key, null, $file !== '' ? $file : null) : null;
         if ($skill === null) {
-            return $this->_entry($action, 'error', 'No active skill "' . $key . '" — use a key from the SKILLS list.');
+            return $this->_entry($action, 'error', $file !== ''
+                ? 'No file "' . $file . '" in the active skill "' . $key . '" — use a path from its file list.'
+                : 'No active skill "' . $key . '" — use a key from the SKILLS list.');
         }
-        return $this->_entry($action, 'done', 'Loaded the "' . $skill['name'] . '" skill.', Tiger_Agent_Skills::toText($skill));
+        return $this->_entry($action, 'done', 'Loaded the "' . $skill['name'] . '" skill' . ($file !== '' ? ' file ' . $file : '') . '.',
+            Tiger_Agent_Skills::toText($skill));
     }
 
     /** The root AGENTS.md (house conventions) + pointers to the deeper reference docs. */

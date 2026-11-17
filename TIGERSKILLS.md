@@ -152,10 +152,14 @@ with **progressive disclosure** so you can have 50 installed and pay for only th
 1. **Always in context (cheap):** the org's active skills' **key + name + description** (the description says
    when to use it) — `Tiger_Agent_Skills::menu()` / `menuText()`, one line each. The model sees *what skills
    exist and when to reach for them*, nothing more.
-2. **On demand:** the **full `SKILL.md` + the files it ships**, as text — `Tiger_Agent_Skills::load($key)`. Only
-   a skill that is installed **and active for the org** loads; anything else is refused, so the admin's curation
-   holds. Bundled files come back as **text to read, never something that runs** — nothing in the loader
-   includes, evaluates or executes a file (§5), and binary files are skipped. Bounded (`LOAD_MAX_BYTES`).
+2. **On demand, itself two-level:** `Tiger_Agent_Skills::load($key)` returns the **`SKILL.md` + a list of the
+   files it ships** (path + size, no contents); `load($key, null, $path)` returns **one** of those files when the
+   SKILL.md points there. A skill that ships a dataset (ui-ux-pro-max is ~115KB of CSVs) would otherwise land
+   whole in the model's context on every load. The path must be in the list exactly, so it can't leave the
+   skill's folder. Only a skill that is installed **and active for the org** loads; anything else is refused, so
+   the admin's curation holds. Bundled files come back as **text to read, never something that runs** — nothing
+   in the loader includes, evaluates or executes a file (§5), and binary files are never listed. Bounded
+   (`LOAD_MAX_BYTES`).
 
 **One function, two agents** (built, core 1.66.0) — so the in-app agent and an external one can't drift:
 
