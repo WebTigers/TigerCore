@@ -6,6 +6,14 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.62.2] — 2026-11-17
+
+### Changed — "Get My Key" tells the checkout which site the key is for
+- A TigerPASS key binds to one domain. The Add Module screen's "Get My Key" link now carries the install's
+  origin (`?origin=https://your-site`), so the seller's checkout fills in the site and locks it instead of
+  asking. Bought from a marketplace page, with no install behind the buyer, the checkout asks for the domain.
+  MARKETPLACE.md §6 documents both.
+
 ## [1.62.1] — 2026-11-16
 
 ### Fixed — a licensed (TigerPASS) module was never offered an update
