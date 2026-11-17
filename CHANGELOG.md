@@ -6,6 +6,15 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.66.1] — 2026-11-17
+
+### Changed — loading a skill no longer pulls every bundled file into context (TIGER-532)
+- Verified on a real install, `read.skill` on ui-ux-pro-max returned ~117KB (≈30k tokens of the org's own budget)
+  because the skill ships its CSV dataset. A load now returns the `SKILL.md` plus a **list** of the files the
+  skill ships (path + size); the agent reads one file only when the SKILL.md points to it, with the same call plus
+  `file` (`read.skill {skill, file}` in-app, `agent__skills__load {skill, file}` over MCP). A file must be in that
+  list exactly, so a path can't leave the skill's folder.
+
 ## [1.66.0] — 2026-11-17
 
 ### Added — installed skills now reach both agents (TIGER-532)

@@ -256,7 +256,9 @@ class Tiger_Agent_Contract
                 if (empty($a['skill'])) {
                     return null;
                 }
-                return ['type' => $type, 'skill' => preg_replace('/[^A-Za-z0-9._-]/', '-', (string) $a['skill']), 'reason' => $reason];
+                // `file` (optional) = one path from the skill's file list; load() accepts only an exact listed path.
+                return ['type' => $type, 'skill' => preg_replace('/[^A-Za-z0-9._-]/', '-', (string) $a['skill']),
+                        'file' => (string) ($a['file'] ?? ''), 'reason' => $reason];
 
             case self::DOM_READ:
                 if (empty($a['target'])) {

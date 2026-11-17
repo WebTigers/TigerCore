@@ -113,12 +113,14 @@ class Tiger_Mcp_Server
         return [
             'name'        => self::SKILL_TOOL,
             'description' => 'Load one of this site\'s active skills (listed in the server instructions): its SKILL.md '
-                           . 'plus any files it ships, as text. Read it before following it. Bundled scripts are '
+                           . 'and the list of files it ships. Read it before following it. To read one of those files, '
+                           . 'call again with its path as "file" — only when the SKILL.md points you to it. Files are '
                            . 'returned as text to read — Tiger never runs them.',
             'inputSchema' => [
                 'type'       => 'object',
                 'properties' => [
                     'skill'  => ['type' => 'string', 'enum' => array_column($menu, 'key'), 'description' => 'The skill key.'],
+                    'file'   => ['type' => 'string', 'description' => 'Optional: one path from the skill\'s file list.'],
                     'reason' => ['type' => 'string', 'description' => 'Why you are loading it (for the audit log).'],
                 ],
                 'required'   => ['skill'],
