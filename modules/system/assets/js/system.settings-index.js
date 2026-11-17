@@ -201,6 +201,9 @@ document.addEventListener('DOMContentLoaded', function () {
             var fd = new URLSearchParams();
             fd.set('module', 'system'); fd.set('service', 'settings'); fd.set('method', 'mailTest');
             fd.set('to', to);
+            // The Settings screen's token — Send test shares its salt (TIGER-528).
+            var tok = form.querySelector('[name="_csrf"]');
+            if (tok) { fd.set('_csrf', tok.value); }
             out.innerHTML = '';
             ['mail_provider', 'mail_smtp_host', 'mail_smtp_port', 'mail_smtp_ssl', 'mail_smtp_auth',
              'mail_smtp_username', 'mail_smtp_password', 'mail_from_email', 'mail_from_name'].forEach(function (k) {

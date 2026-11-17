@@ -83,6 +83,25 @@ final class WriteCsrfTest extends IntegrationTestCase
     }
 
     #[Test]
+    public function the_mail_test_needs_the_settings_screens_token(): void
+    {
+        // mailTest SENDS real mail with the stored credentials to the address it is given — without a token a
+        // cross-site page could make an admin's browser send mail through the install (TIGER-528).
+        $this->loginAs('admin');
+        $this->withCookieSession(function () {
+            $msg = ['action' => 'mailTest', 'to' => 'not-an-address', 'mail_provider' => 'sendmail'];
+            $this->csrfRefused((new \System_Service_Settings($msg))->getResponse(), 'mailTest');
+
+            // With the token the Settings screen renders (System_Form_Settings — the same salt), the call gets
+            // past CSRF to the recipient check: a field error, so nothing is sent by this test.
+            $res = (new \System_Service_Settings($msg + ['_csrf' => $this->csrfTokenFor(new System_Form_Settings())]))->getResponse();
+            $this->assertSame(0, (int) $res->result);
+            $this->assertStringNotContainsString('core.api.error.csrf', json_encode($res->messages), 'the screen token is accepted');
+            $this->assertArrayHasKey('to', (array) $res->form, 'the bad address is a field error');
+        });
+    }
+
+    #[Test]
     public function nav_sort_needs_the_sidebar_token(): void
     {
         $this->loginAs('admin');

@@ -200,6 +200,7 @@ class System_Service_Settings extends Tiger_Service_Service
      * open socket", an auth rejection, a TLS failure) IS the diagnostic, and this action is admin-only.
      *
      * @param  array $params to, mail_provider, mail_field, mail_smtp_{host,port,ssl,auth,username,password}, mail_from_{email,name}
+     * @apiRequest System_Form_MailTest
      * @apiParam string to required The address to send the test message to.
      * @apiParam string mail_provider The mail provider to test (an API provider, sendmail, or an SMTP preset).
      * @apiParam object mail_field An API provider's credential fields, keyed by provider then field; a blank one uses the stored value.
@@ -217,10 +218,11 @@ class System_Service_Settings extends Tiger_Service_Service
     {
         if (!$this->_isAllowed('mailTest')) { $this->_error('core.api.error.not_allowed'); return; }
 
-        $to = trim((string) ($params['to'] ?? ''));
-        if ($to === '' || !Zend_Validate::is($to, 'EmailAddress')) {
-            $this->_error('system.settings.smtp.test_bad_address'); return;
-        }
+        // Sends real mail with the stored credentials — a write in effect, so it carries the Settings screen's
+        // CSRF token (TIGER-528) and validates the recipient on the form.
+        $form = new System_Form_MailTest();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        $to = (string) $form->getValue('to');
 
         // Blank password → the stored one, so testing an EXISTING setup needs no re-typing. But only
         // for the destination it was stored for: host/port/username all come from the request, so
