@@ -23,6 +23,20 @@ use Tiger_Model_Backup;
 #[CoversClass(Backup_Service_Backup::class)]
 final class BackupServiceRestoreTest extends IntegrationTestCase
 {
+    use \Tiger\Tests\Support\StatelessApi;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->useStatelessApi();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->restoreStatelessApi();
+        parent::tearDown();
+    }
+
     private function dispatch(array $msg): object
     {
         return (new Backup_Service_Backup($msg))->getResponse();

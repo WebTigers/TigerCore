@@ -112,12 +112,16 @@ class Access_Service_Org extends Tiger_Service_Service
      * Soft-delete an org (never the one you're acting in).
      *
      * @param  array $params the request payload carrying org_id
+     * @apiRequest Access_Form_OrgDelete
      * @apiParam string org_id required The org to delete.
      * @return void
      */
     public function delete(array $params): void
     {
         if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
+        // The Organizations list's token (TIGER-528) — a delete-by-id is still a write.
+        $form = new Access_Form_OrgDelete();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $id = !empty($params['org_id']) ? (string) $params['org_id'] : '';
         if ($id === '') { $this->_error('core.api.error.general'); return; }
         if ($id === $this->_org_id) { $this->_error('access.org.no_self_delete'); return; }

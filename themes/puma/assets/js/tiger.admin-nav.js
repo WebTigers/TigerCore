@@ -37,6 +37,10 @@
                 fd.set('method', 'sort');
                 fd.set('group', ul.getAttribute('data-nav-group'));
                 fd.set('keys', JSON.stringify(keys));
+                // The sidebar's CSRF token (rendered in the nav by admin-menu.phtml) — TIGER-528.
+                var tok = ul.closest('.tiger-nav-wrap');
+                tok = tok ? tok.querySelector('input[name="_csrf"]') : null;
+                fd.set('_csrf', tok ? tok.value : '');
 
                 // Fire-and-forget — the reorder is already visible; no toast (the user just did it).
                 fetch('/api', {

@@ -7,10 +7,11 @@
  * A hostname (e.g. `shop.example.com`) + the org whose public site that host should serve. The org
  * dropdown is built from the live org list. Host normalization + uniqueness live in
  * System_Service_Sites::save (a host is unique across the install), so the form only checks shape.
+ * Shares its CSRF salt with the screen's other writes (System_Form_SiteWrite).
  *
  * @api
  */
-class System_Form_Site extends Tiger_Form
+class System_Form_Site extends System_Form_SiteWrite
 {
     protected function elements(): array
     {

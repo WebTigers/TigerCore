@@ -50,6 +50,7 @@ class Backup_Service_Backup extends Tiger_Service_Service
      * Create a manual backup now.
      *
      * @param  array $params components[], disk, include_secrets
+     * @apiRequest Backup_Form_Run
      * @apiParam array components required What to back up: any of database, media, modules, platform (an array or a comma list).
      * @apiParam string disk The destination disk name (default local).
      * @apiParam boolean include_secrets Put the install's secrets in the archive (needs the include_secrets capability).
@@ -58,6 +59,8 @@ class Backup_Service_Backup extends Tiger_Service_Service
     public function run(array $params): void
     {
         if (!$this->_isAllowed('run')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Backup_Form_Run();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $components = $this->_components($params);
         if (!$components) { $this->_error('backup.bad_component', ['field' => 'components']); return; }
@@ -92,12 +95,15 @@ class Backup_Service_Backup extends Tiger_Service_Service
      * Delete a backup (archive bytes + catalog row).
      *
      * @param  array $params backup_id
+     * @apiRequest Backup_Form_Archive
      * @apiParam string backup_id required The backup to delete.
      * @return void
      */
     public function remove(array $params): void
     {
         if (!$this->_isAllowed('remove')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Backup_Form_Archive();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $id = (string) ($params['backup_id'] ?? '');
         if ($id === '' || !(new Tiger_Model_Backup())->findById($id)) { $this->_error('backup.not_found'); return; }
         Tiger_Backup::delete($id);
@@ -108,6 +114,7 @@ class Backup_Service_Backup extends Tiger_Service_Service
      * Restore from a cataloged backup. Destructive — requires confirm === 'RESTORE'.
      *
      * @param  array $params backup_id, confirm, components[] (optional subset)
+     * @apiRequest Backup_Form_Archive
      * @apiParam string backup_id required The backup to restore from.
      * @apiParam string(RESTORE) confirm required Must be the literal RESTORE.
      * @apiParam array components Restore only these (database, media, modules, platform); empty restores all.
@@ -116,6 +123,8 @@ class Backup_Service_Backup extends Tiger_Service_Service
     public function restore(array $params): void
     {
         if (!$this->_isAllowed('restore')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Backup_Form_Archive();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         if ((string) ($params['confirm'] ?? '') !== 'RESTORE') { $this->_error('backup.restore.confirm', ['field' => 'confirm']); return; }
 
         $model = new Tiger_Model_Backup();
@@ -146,6 +155,7 @@ class Backup_Service_Backup extends Tiger_Service_Service
      * Save the scheduled-backup settings (config tier — live, no deploy).
      *
      * @param  array $params components[], disk, include_secrets, retention_max, notify_enabled, notify_email
+     * @apiRequest Backup_Form_Settings
      * @apiParam array components What the scheduled backup includes: any of database, media, modules, platform (default database).
      * @apiParam string disk The destination disk name (default local).
      * @apiParam boolean include_secrets Include the install's secrets (needs the include_secrets capability).
@@ -157,6 +167,9 @@ class Backup_Service_Backup extends Tiger_Service_Service
     public function saveSettings(array $params): void
     {
         if (!$this->_isAllowed('saveSettings')) { $this->_error('core.api.error.not_allowed'); return; }
+        // The token + the notify-email list rule (a per-field error now — TIGER-528).
+        $form = new Backup_Form_Settings();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $components = $this->_components($params);
         $disk = $this->_disk($params['disk'] ?? 'local');
@@ -169,12 +182,8 @@ class Backup_Service_Backup extends Tiger_Service_Service
             $this->_error('backup.secrets.not_allowed', ['field' => 'include_secrets']);
             return;
         }
+        // Validated by Backup_Form_Settings (every non-blank entry an email) — so a scalar here.
         $email = trim((string) ($params['notify_email'] ?? ''));
-        if ($email !== '') {
-            foreach (array_map('trim', explode(',', $email)) as $addr) {
-                if ($addr !== '' && !Zend_Validate::is($addr, 'EmailAddress')) { $this->_error('backup.bad_email', ['field' => 'notify_email']); return; }
-            }
-        }
 
         $cfg = new Tiger_Model_Config();
         $g   = Tiger_Model_Config::SCOPE_GLOBAL;

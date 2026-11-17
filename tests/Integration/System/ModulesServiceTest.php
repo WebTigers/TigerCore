@@ -22,6 +22,20 @@ use Zend_Registry;
  */
 final class ModulesServiceTest extends IntegrationTestCase
 {
+    use \Tiger\Tests\Support\StatelessApi;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->useStatelessApi();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->restoreStatelessApi();
+        parent::tearDown();
+    }
+
     private function dispatch(array $msg): object
     {
         return (new System_Service_Modules($msg))->getResponse();

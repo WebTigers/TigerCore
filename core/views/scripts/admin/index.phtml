@@ -39,6 +39,8 @@ $dashLead  = $this->dashLead ?? 'core.dashboard.lead';
         <p class="mb-0"><?= $this->escape($this->t($this->dashEmptyLead ?? 'core.dashboard.empty_lead')) ?></p>
     </div>
 <?php else: ?>
+    <?php /* The layout/visibility saves' CSRF token — tiger.admin-index.js posts it (TIGER-528). */ ?>
+    <div id="dash-token"><?= $this->dashForm ? $this->dashForm->getElement('_csrf') : '' ?></div>
     <div class="dash-grid" id="dash-grid">
         <?php foreach ($widgets as $w):
             $id     = htmlspecialchars($w['id'], ENT_QUOTES);

@@ -192,6 +192,26 @@ final class OrgServiceTest extends IntegrationTestCase
         $this->assertNull($model->findById($id), 'a deleted org is excluded from reads');
     }
 
+    use \Tiger\Tests\Support\StatelessApi;
+
+    #[Test]
+    public function delete_refuses_a_tokenless_browser_call_and_accepts_the_grids_token(): void
+    {
+        // TIGER-528: on the session (cookie) path a delete-by-id needs the Organizations list's `_csrf`.
+        $this->loginAs('admin');
+        $id = (new Tiger_Model_Org())->insert(['name' => 'Guarded Org', 'slug' => 'guarded-org', 'status' => 'active']);
+        $this->withCookieSession(function () use ($id) {
+            $res = $this->call('delete', ['org_id' => $id]);
+            $this->assertSame(0, (int) $res->result);
+            $this->assertStringContainsString('core.api.error.csrf', json_encode($res->messages));
+            $this->assertSame(0, (int) $this->db->fetchOne('SELECT deleted FROM org WHERE org_id = ?', [$id]), 'nothing written');
+
+            $res = $this->call('delete', ['org_id' => $id, '_csrf' => $this->csrfTokenFor(new \Access_Form_OrgDelete())]);
+            $this->assertSame(1, (int) $res->result, json_encode($res->messages));
+            $this->assertSame(1, (int) $this->db->fetchOne('SELECT deleted FROM org WHERE org_id = ?', [$id]));
+        });
+    }
+
     #[Test]
     public function delete_refuses_the_org_you_are_acting_in(): void
     {

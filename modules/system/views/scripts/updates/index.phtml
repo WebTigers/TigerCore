@@ -31,6 +31,8 @@ $pending = $this->pending ?? [];
 </div>
 
 <div id="updates-feedback"></div>
+<?php /* The screen's CSRF token — system.updates.js posts it with every call (TIGER-528). */ ?>
+<div id="updates-token"><?= $this->applyForm ? $this->applyForm->getElement('_csrf') : '' ?></div>
 
 <?php // Always rendered: hidden while anything is pending, revealed by the JS when the last one completes. ?>
 <div class="card border-0 shadow-sm<?= $pending ? ' d-none' : '' ?>" id="updates-uptodate">

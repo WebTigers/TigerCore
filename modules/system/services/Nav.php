@@ -21,6 +21,7 @@ class System_Service_Nav extends Tiger_Service_Service
      *
      * @param  array $params `group` (the parent key: 'root' or a submenu key) + `keys` (JSON array of
      *                        item keys in their new order)
+     * @apiRequest System_Form_NavSort
      * @apiParam string group The nav group to reorder: root or a submenu key.
      * @apiParam string keys The group's item keys in their new order, as a JSON array string.
      * @return void
@@ -36,6 +37,9 @@ class System_Service_Nav extends Tiger_Service_Service
             $this->_error('core.api.error.login_required');
             return;
         }
+        // The sidebar's token (rendered by the admin-menu partial on every admin page) — TIGER-528.
+        $form = new System_Form_NavSort();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $group = preg_replace('/[^A-Za-z0-9_-]/', '', (string) ($params['group'] ?? ''));
         $keys  = json_decode((string) ($params['keys'] ?? ''), true);

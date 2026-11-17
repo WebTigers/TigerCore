@@ -25,7 +25,30 @@ class Analytics_Form_Settings extends Tiger_Form
                 'validators' => [['Regex', false, ['pattern' => '/^G-[A-Z0-9]{4,}$/i']]],
                 'attribs'    => ['class' => 'form-control', 'placeholder' => 'G-XXXXXXXXXX', 'autocomplete' => 'off'],
             ]],
+
+            // The rest of what Analytics_Service_Analytics::save reads (TIGER-528), so the form is the
+            // complete input contract. The view writes these inputs by hand; the writers
+            // (Tiger_Google_Analytics::saveMode / saveOauthConfig, and the `!empty()` switches) already
+            // normalize every value, so each is optional, unfiltered and unvalidated — declaring them
+            // must not refuse an input the save accepted before.
+            $this->_open('enabled'),
+            $this->_open('exclude_signed_in'),
+            $this->_open('oauth_mode'),
+            $this->_open('oauth_client_id'),
+            $this->_open('oauth_client_secret'),
+            $this->_open('property_id'),
         ];
+    }
+
+    /**
+     * An optional, unfiltered, unvalidated element — its writer owns normalization.
+     *
+     * @param  string $name the element/param name
+     * @return array        [type, name, options]
+     */
+    protected function _open(string $name): array
+    {
+        return ['hidden', $name, ['required' => false, 'filters' => [], 'validators' => []]];
     }
 
     /**

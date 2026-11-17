@@ -35,9 +35,12 @@ final class FakeDashboardWidget
 #[CoversClass(System_Service_Dashboard::class)]
 final class DashboardServiceTest extends IntegrationTestCase
 {
+    use \Tiger\Tests\Support\StatelessApi;
+
     protected function setUp(): void
     {
         parent::setUp();
+        $this->useStatelessApi();   // behaviour tests run CSRF-immune; the gate has its own test below
         Tiger_Dashboard::clear();
         // One known widget (no ACL resource → visible to any admin) the tests order/hide/render.
         Tiger_Dashboard::registerWidget([
@@ -51,6 +54,7 @@ final class DashboardServiceTest extends IntegrationTestCase
     protected function tearDown(): void
     {
         Tiger_Dashboard::clear();
+        $this->restoreStatelessApi();
         parent::tearDown();
     }
 

@@ -31,6 +31,7 @@ class Access_UserController extends Tiger_Controller_Admin_Action
     {
         $this->view->title         = 'Users — Tiger Admin';
         $this->view->useDataTables = true;
+        $this->view->deleteForm    = new Access_Form_UserDelete();   // renders the grid's delete token
     }
 
     /**

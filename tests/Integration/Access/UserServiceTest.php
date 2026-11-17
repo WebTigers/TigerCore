@@ -292,4 +292,24 @@ final class UserServiceTest extends IntegrationTestCase
         $this->assertStringContainsString('no_self_delete', json_encode($res->messages));
         $this->assertSame(0, (int) $this->db->fetchOne('SELECT deleted FROM user WHERE user_id = ?', [$meId]), 'still live');
     }
+
+    use \Tiger\Tests\Support\StatelessApi;
+
+    #[Test]
+    public function delete_refuses_a_tokenless_browser_call_and_accepts_the_grids_token(): void
+    {
+        // TIGER-528: on the session (cookie) path a delete-by-id needs the Users list's `_csrf`.
+        $this->loginAs('admin');
+        $id = (new Tiger_Model_User())->insert(['email' => 'csrf-del@w3ctest.com', 'status' => 'active']);
+        $this->withCookieSession(function () use ($id) {
+            $res = $this->call('delete', ['user_id' => $id]);
+            $this->assertSame(0, (int) $res->result);
+            $this->assertStringContainsString('core.api.error.csrf', json_encode($res->messages));
+            $this->assertSame(0, (int) $this->db->fetchOne('SELECT deleted FROM user WHERE user_id = ?', [$id]), 'nothing written');
+
+            $res = $this->call('delete', ['user_id' => $id, '_csrf' => $this->csrfTokenFor(new \Access_Form_UserDelete())]);
+            $this->assertSame(1, (int) $res->result, json_encode($res->messages));
+            $this->assertSame(1, (int) $this->db->fetchOne('SELECT deleted FROM user WHERE user_id = ?', [$id]));
+        });
+    }
 }

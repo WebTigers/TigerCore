@@ -43,6 +43,8 @@ $this->i18n([
         </div>
     </div>
     <div class="card-body">
+        <?php /* The grid's delete token — access.org-index.js posts it with every delete (TIGER-528). */ ?>
+        <div id="access-org-token"><?= $this->deleteForm ? $this->deleteForm->getElement('_csrf') : '' ?></div>
         <div class="table-responsive">
             <table id="access-org-table" class="table table-hover align-middle" style="width:100%;">
                 <thead>

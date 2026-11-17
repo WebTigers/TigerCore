@@ -61,6 +61,8 @@ class System_ModulesController extends Tiger_Controller_Admin_Action
         $this->view->typeLabels    = $typeLabels;
         $this->view->activeType    = $activeType;
         $this->view->useDataTables = true;
+        // The module manager's ONE CSRF token (System_Form_ModuleWrite salt) — every write here posts it.
+        $this->view->moduleForm    = new System_Form_ModuleState();
     }
 
     /**
@@ -80,5 +82,7 @@ class System_ModulesController extends Tiger_Controller_Admin_Action
         $cfg = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
         $pass = ($cfg && $cfg->get('tiger')) ? $cfg->get('tiger')->get('pass') : null;
         $this->view->passCheckoutUrl = $pass ? (string) $pass->get('checkout_url') : '';
+        // The module manager's ONE CSRF token (System_Form_ModuleWrite salt) — installs, sources, TigerPASS.
+        $this->view->moduleForm      = new System_Form_ModuleInstall();
     }
 }

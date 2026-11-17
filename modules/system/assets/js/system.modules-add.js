@@ -28,7 +28,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
     function badge(t,cls){ return '<span class="badge text-bg-'+cls+' me-1">'+esc(t)+'</span>'; }
-    function api(method,data){ var b=new URLSearchParams(Object.assign({module:'system',service:'modules',method:method},data)); return fetch('/api',{method:'POST',headers:{'X-Requested-With':'XMLHttpRequest'},body:b}).then(function(r){return r.json();}); }
+    // The module manager's ONE CSRF token (#mod-token) — posted with every call; the writes require it (TIGER-528).
+    function csrf(){ var t=document.querySelector('#mod-token [name="_csrf"]'); return t ? t.value : ''; }
+    function api(method,data){ var b=new URLSearchParams(Object.assign({module:'system',service:'modules',method:method},data,{_csrf:csrf()})); return fetch('/api',{method:'POST',headers:{'X-Requested-With':'XMLHttpRequest'},body:b}).then(function(r){return r.json();}); }
     var imgErr = "this.style.display='none'";
 
     // ---------- the detail modal (unchanged review-before-install path) ----------
@@ -270,6 +272,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var up = TigerUpload.create({
             url: '/api', field: 'archive', accept: ['.zip'], maxSize: 50 * 1048576,
             multiple: false, auto: false,
+            csrf: csrf(),   // multipart: the token rides in the same FormData as the archive (TIGER-528)
             params: { module: 'system', service: 'modules', method: 'upload' }
         });
         up.fromInput(fileEl);

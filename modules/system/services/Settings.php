@@ -95,7 +95,8 @@ class System_Service_Settings extends Tiger_Service_Service
             ]);
 
             // Location tab — provider selection + each adapter's own fields (secrets encrypted). The form
-            // fields are dynamic per adapter, so they ride on $params directly (not the static form).
+            // fields are dynamic per adapter, so the form declares the `location_adapter` map as one
+            // unfiltered element and the shared writer normalizes it; read from $params (validated above).
             if (class_exists('Tiger_Location') && method_exists('Tiger_Location', 'saveSettings')
                 && array_key_exists('location_ip_provider', $params)) {
                 Tiger_Location::saveSettings([
@@ -106,7 +107,7 @@ class System_Service_Settings extends Tiger_Service_Service
                 ]);
             }
 
-            // Cookies tab — GDPR consent mode + banner copy (shared writer; rides on $params).
+            // Cookies tab — GDPR consent mode + banner copy (declared on the form; the shared writer normalizes).
             if (class_exists('Tiger_Consent') && array_key_exists('consent_mode', $params)) {
                 Tiger_Consent::saveSettings([
                     'mode'         => $params['consent_mode']         ?? null,

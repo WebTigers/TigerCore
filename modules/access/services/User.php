@@ -136,12 +136,16 @@ class Access_Service_User extends Tiger_Service_Service
      * Soft-delete a user (never yourself).
      *
      * @param  array $params the request payload carrying user_id
+     * @apiRequest Access_Form_UserDelete
      * @apiParam string user_id required The user to delete.
      * @return void
      */
     public function delete(array $params): void
     {
         if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
+        // The Users list's token (TIGER-528) — a delete-by-id is still a write.
+        $form = new Access_Form_UserDelete();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $id = !empty($params['user_id']) ? (string) $params['user_id'] : '';
         if ($id === '') { $this->_error('core.api.error.general'); return; }
         if ($id === $this->_user_id) { $this->_error('access.user.no_self_delete'); return; }

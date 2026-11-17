@@ -34,6 +34,7 @@ class Blog_PostController extends Tiger_Controller_Admin_Action
     {
         $this->view->title         = 'Articles — Tiger Admin';
         $this->view->useDataTables = true;
+        $this->view->deleteForm    = new Blog_Form_PostDelete();   // renders the grid's delete token
     }
 
     /**

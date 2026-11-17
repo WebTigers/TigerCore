@@ -49,6 +49,8 @@ $outcomeBadge = [
 </div>
 
 <div id="backup-feedback"></div>
+<?php /* The screen's CSRF token — backup.index-index.js posts it with every write (TIGER-528). */ ?>
+<div id="backup-token"><?= $this->writeForm ? $this->writeForm->getElement('_csrf') : '' ?></div>
 
 <div class="row g-4">
 

@@ -7,6 +7,8 @@
  * Values are stored in the `config` table (scope=global) by System_Service_Settings —
  * the live-override tier, no deploy. Session/security lives here (not CMS): it's a
  * platform concern. Room to grow (mail, logging, locale) as tabs on the System page.
+ * Every field System_Service_Settings::save reads is declared here — including the Location,
+ * Cookies and Signup tabs, which the view renders by hand (TIGER-528).
  *
  * @api
  */
@@ -160,6 +162,39 @@ class System_Form_Settings extends Tiger_Form
             ['checkbox', 'recaptcha_hide_badge', [
                 'attribs' => ['id' => 'set-rc-hidebadge', 'class' => 'form-check-input'],
             ]],
+
+            // The tabs whose fields the view writes by hand (TIGER-528). Declared so the form is the
+            // complete input contract of `save` — every field it reads is here — while keeping the
+            // shared writers (Tiger_Mail / Tiger_Location / Tiger_Consent::saveSettings) as the
+            // normalizers they already are: each is optional with no validator, because those writers
+            // accept and normalize every value today and this conversion must not refuse one they took.
+            // The two per-adapter/per-provider maps (`mail_field`, `location_adapter`) arrive as nested
+            // arrays, so they carry NO filter — StringTrim casts an array with a warning.
+            $this->_open('mail_field'),
+            $this->_open('location_ip_provider'),
+            $this->_open('location_address_provider'),
+            $this->_open('location_cache_ttl'),
+            $this->_open('location_adapter'),
+            $this->_open('consent_mode'),
+            $this->_open('consent_message'),
+            $this->_open('consent_accept_label'),
+            $this->_open('consent_reject_label'),
+            $this->_open('consent_policy_url'),
+            $this->_open('consent_ccpa_notice'),
+            $this->_open('consent_honor_gpc'),
+            $this->_open('signup_settings'),
+            $this->_open('signup_disabled'),
         ];
+    }
+
+    /**
+     * An optional, unfiltered, unvalidated element — its tab's shared writer owns normalization.
+     *
+     * @param  string $name the element/param name
+     * @return array        [type, name, options]
+     */
+    protected function _open(string $name): array
+    {
+        return ['hidden', $name, ['required' => false, 'filters' => [], 'validators' => []]];
     }
 }

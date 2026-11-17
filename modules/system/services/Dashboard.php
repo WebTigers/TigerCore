@@ -21,6 +21,7 @@ class System_Service_Dashboard extends Tiger_Service_Service
      * ignored (layout is convenience state, never worth an error). Only known widget ids are stored.
      *
      * @param  array $params expects `layout` — a JSON string {"order":[id,…],"collapsed":{id:true}}
+     * @apiRequest System_Form_DashboardLayout
      * @apiParam string layout The layout as a JSON string: {"order":[widget ids],"collapsed":{id:true}}.
      * @return void
      */
@@ -30,6 +31,10 @@ class System_Service_Dashboard extends Tiger_Service_Service
 
         $uid = $this->_uid();
         if ($uid === '') { $this->_error('core.api.error.not_allowed'); return; }
+
+        // The dashboard's token (TIGER-528). Fail-soft stays fail-soft for the PAYLOAD; a missing token is refused.
+        $form = new System_Form_DashboardLayout();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $raw = (string) ($params['layout'] ?? '');
         if ($raw === '' || strlen($raw) > 20000) { $this->_success([], 'system.dashboard.saved'); return; }
@@ -67,6 +72,7 @@ class System_Service_Dashboard extends Tiger_Service_Service
      * Options" style). Fail-soft; only known widget ids are stored. An empty list means "show all".
      *
      * @param  array $params expects `hidden` — a JSON array ["id",…] of hidden widget ids
+     * @apiRequest System_Form_DashboardLayout
      * @apiParam string hidden The hidden widget ids as a JSON array string; empty shows all.
      * @return void
      */
@@ -76,6 +82,9 @@ class System_Service_Dashboard extends Tiger_Service_Service
 
         $uid = $this->_uid();
         if ($uid === '') { $this->_error('core.api.error.not_allowed'); return; }
+
+        $form = new System_Form_DashboardLayout();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $raw = (string) ($params['hidden'] ?? '');
         if (strlen($raw) > 20000) { $this->_success([], 'system.dashboard.saved'); return; }

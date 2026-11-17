@@ -31,6 +31,7 @@ class Access_OrgController extends Tiger_Controller_Admin_Action
     {
         $this->view->title         = 'Organizations — Tiger Admin';
         $this->view->useDataTables = true;
+        $this->view->deleteForm    = new Access_Form_OrgDelete();   // renders the grid's delete token
     }
 
     /**

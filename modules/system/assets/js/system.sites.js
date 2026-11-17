@@ -106,7 +106,10 @@
             confirmLabel: Tiger.t('del'), variant: 'danger'
         }).then(function (ok) {
             if (!ok) { return; }
-            var body = new URLSearchParams({ module: 'system', service: 'sites', method: 'delete', site_domain_id: btn.getAttribute('data-del') });
+            // The screen's one token (System_Form_SiteWrite salt) — the delete validates it too (TIGER-528).
+            var sForm = document.getElementById('system-sites-form');
+            var sTok  = sForm ? sForm.querySelector('[name="_csrf"]') : null;
+            var body = new URLSearchParams({ module: 'system', service: 'sites', method: 'delete', site_domain_id: btn.getAttribute('data-del'), _csrf: sTok ? sTok.value : '' });
             TigerButton.run(btn, function () {
                 return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
                     .then(function (r) { return r.json().catch(function () { return {}; }); });

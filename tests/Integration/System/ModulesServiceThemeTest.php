@@ -30,9 +30,12 @@ final class ModulesServiceThemeTest extends IntegrationTestCase
 
     private string $moduleDir;
 
+    use \Tiger\Tests\Support\StatelessApi;
+
     protected function setUp(): void
     {
         parent::setUp();
+        $this->useStatelessApi();
         $this->moduleDir = APPLICATION_PATH . '/modules/' . self::SLUG;
         @mkdir($this->moduleDir, 0777, true);
         // theme.json is the theme manifest — its presence is what discovery reads as `type:theme`.
@@ -46,6 +49,7 @@ final class ModulesServiceThemeTest extends IntegrationTestCase
     {
         @unlink($this->moduleDir . '/theme.json');
         @rmdir($this->moduleDir);
+        $this->restoreStatelessApi();
         parent::tearDown();
     }
 

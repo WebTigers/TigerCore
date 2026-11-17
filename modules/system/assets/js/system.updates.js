@@ -36,6 +36,9 @@
     function post(method, body) {
         var fd = new URLSearchParams(body || {});
         fd.set('module', 'system'); fd.set('service', 'updates'); fd.set('method', method);
+        // The screen's CSRF token — `apply` requires it; harmless on the reads (TIGER-528).
+        var tok = document.querySelector('#updates-token [name="_csrf"]');
+        fd.set('_csrf', tok ? tok.value : '');
         return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
             .then(function (r) { return r.json().catch(function () { return {}; }); });
     }

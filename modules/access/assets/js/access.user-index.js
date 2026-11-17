@@ -70,7 +70,8 @@ document.addEventListener('DOMContentLoaded', function () {
     $('#access-user-table tbody').on('click', '[data-user-delete]', function () {
         if (!confirm(Tiger.t('confirmDelUser'))) { return; }
         var btn  = this;
-        var body = new URLSearchParams({ module: 'access', service: 'user', method: 'delete', user_id: btn.getAttribute('data-user-delete') });
+        var tok  = document.querySelector('#access-user-token [name="_csrf"]');   // the grid's CSRF token (TIGER-528)
+        var body = new URLSearchParams({ module: 'access', service: 'user', method: 'delete', user_id: btn.getAttribute('data-user-delete'), _csrf: tok ? tok.value : '' });
         TigerButton.run(btn, function () {
             return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
                 .then(function (r) { return r.json(); });

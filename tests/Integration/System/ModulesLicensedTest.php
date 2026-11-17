@@ -23,9 +23,12 @@ final class ModulesLicensedTest extends IntegrationTestCase
 {
     private string $pub = '';
 
+    use \Tiger\Tests\Support\StatelessApi;
+
     protected function setUp(): void
     {
         parent::setUp();
+        $this->useStatelessApi();
         $this->pub = Tiger_Crypto_Signature::generateKeypair()['public_key'];
         Tiger_License_Vendor::setStore($this->memoryStore());
     }
@@ -35,6 +38,7 @@ final class ModulesLicensedTest extends IntegrationTestCase
         Tiger_License_Vendor::_reset();
         \Tiger_License_Checker::_reset();
         \Tiger_License_Authority::_reset();
+        $this->restoreStatelessApi();
         parent::tearDown();
     }
 

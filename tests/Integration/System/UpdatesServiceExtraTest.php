@@ -31,9 +31,12 @@ final class UpdatesServiceExtraTest extends IntegrationTestCase
     private string $coreCacheFile = '';
     private ?string $coreCacheOrig = null;
 
+    use \Tiger\Tests\Support\StatelessApi;
+
     protected function setUp(): void
     {
         parent::setUp();
+        $this->useStatelessApi();
         // Seed a low "latest" so Tiger_Update_Checker::all() resolves offline with nothing pending.
         $this->coreCacheFile = dirname(APPLICATION_PATH) . '/var/cache/updates/core.json';
         $this->coreCacheOrig = is_file($this->coreCacheFile) ? (string) file_get_contents($this->coreCacheFile) : null;
@@ -43,6 +46,7 @@ final class UpdatesServiceExtraTest extends IntegrationTestCase
 
     protected function tearDown(): void
     {
+        $this->restoreStatelessApi();
         if ($this->coreCacheFile !== '') {
             if ($this->coreCacheOrig !== null) { @file_put_contents($this->coreCacheFile, $this->coreCacheOrig); }
             else { @unlink($this->coreCacheFile); }

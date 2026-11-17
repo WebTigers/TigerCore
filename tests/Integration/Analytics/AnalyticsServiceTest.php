@@ -137,4 +137,18 @@ final class AnalyticsServiceTest extends IntegrationTestCase
         $this->assertArrayHasKey('ga4_measurement_id', $res->form);
         $this->assertSame($before, (int) $this->db->fetchOne('SELECT COUNT(*) FROM config'), 'nothing written on a reject');
     }
+
+    #[Test]
+    public function the_settings_form_declares_every_field_the_save_reads(): void
+    {
+        // TIGER-528: the form is the complete input contract of save(), not just the GA4 id.
+        $form = new \Analytics_Form_Settings();
+        foreach (['ga4_measurement_id', 'enabled', 'exclude_signed_in', 'oauth_mode', 'oauth_client_id', 'oauth_client_secret', 'property_id'] as $f) {
+            $this->assertNotNull($form->getElement($f), $f . ' is declared');
+        }
+        // Declaring them refuses nothing the save accepted before: an odd oauth_mode still saves (as broker).
+        $this->loginAs('admin');
+        $res = (new Analytics_Service_Analytics(['action' => 'save', 'enabled' => '1', 'oauth_mode' => 'weird', 'property_id' => 'abc']))->getResponse();
+        $this->assertSame(1, (int) $res->result, json_encode($res->messages));
+    }
 }
