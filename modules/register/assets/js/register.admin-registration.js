@@ -15,7 +15,9 @@
     function call(method, btn, extra) {
         var fd = new URLSearchParams(extra || {});
         fd.set('module', 'register'); fd.set('service', 'registration'); fd.set('method', method);
-        var csrf = document.querySelector('#reg-form [name="_csrf"]');
+        // The screen's one token (TIGER-528): inside the register form, or the always-rendered #reg-csrf
+        // once registered — both on Register_Form_Write's shared salt.
+        var csrf = document.querySelector('#reg-form [name="_csrf"]') || document.querySelector('#reg-csrf [name="_csrf"]');
         if (csrf) { fd.set('_csrf', csrf.value); }
         return TigerButton.run(btn, function () {
             return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })

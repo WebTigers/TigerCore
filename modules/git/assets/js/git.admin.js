@@ -20,12 +20,22 @@
         TigerDOM.notify(where || fb, msg, { type: type || 'info' });
     }
 
-    // One /api POST (mutations must be POST — the SameSite defense; reads ride POST fine too).
+    // The dashboard's one CSRF token (TIGER-528): every git write form shares a salt (Git_Form_Write), so
+    // the token the view renders inside the connect form satisfies tag / decide / apply / setPolicy /
+    // rollback / recheck / disconnect too.
+    function csrf() {
+        var el = document.querySelector('#git-connect-form [name="_csrf"]');
+        return el ? el.value : '';
+    }
+
+    // One /api POST (mutations must be POST — the SameSite defense; reads ride POST fine too). Every call
+    // carries the token; a read ignores it.
     function post(fields) {
         var body = new URLSearchParams();
         Object.keys(fields).forEach(function (k) {
             if (fields[k] !== undefined && fields[k] !== null) { body.set(k, fields[k]); }
         });
+        if (!body.has('_csrf')) { body.set('_csrf', csrf()); }
         return fetch('/api', {
             method: 'POST',
             headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },

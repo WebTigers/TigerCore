@@ -20,6 +20,7 @@ class Message_IndexController extends Tiger_Controller_Account_Action
         $view = (string) $this->getParam('view', 'inbox');
         $this->view->listView = in_array($view, ['archived', 'sent'], true) ? $view : 'inbox';
         $this->view->maySend  = $this->_maySend();
+        $this->view->csrfForm = new Message_Form_Copy();   // the page's one write token (TIGER-528)
         $this->view->headTitle($this->view->t('message.nav.label'));
     }
 
@@ -30,13 +31,15 @@ class Message_IndexController extends Tiger_Controller_Account_Action
             $this->_helper->redirector->gotoUrl('/message');
             return;
         }
-        $this->view->replyTo = trim((string) $this->getParam('reply', ''));
+        $this->view->replyTo  = trim((string) $this->getParam('reply', ''));
+        $this->view->csrfForm = new Message_Form_Compose();   // send's CSRF token (TIGER-528)
         $this->view->headTitle($this->view->t('message.compose.title'));
     }
 
     /** People I've blocked. */
     public function blockedAction()
     {
+        $this->view->csrfForm = new Message_Form_Member();   // unblock's CSRF token (TIGER-528)
         $this->view->headTitle($this->view->t('message.blocked.title'));
     }
 

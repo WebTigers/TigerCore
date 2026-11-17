@@ -69,12 +69,15 @@ class Git_Service_Update extends Git_Service_Base
      * the latest approved release; a specific `version` must also be approved. Records the rollback anchor.
      *
      * @param  array $params module_key, version?
+     * @apiRequest Git_Form_Apply
      * @apiParam string module_key required The module (its slug).
      * @apiParam string version An approved release version; omit for the newest approved.
      */
     public function apply(array $params): void
     {
         if (!$this->_signedIn() || !$this->_isAllowed('apply')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Git_Form_Apply();   // installs code over the running module — CSRF is mandatory (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $moduleKey = $this->_slug((string) ($params['module_key'] ?? ''));
         if ($moduleKey === null) { $this->_error('git.error.invalid_module'); return; }
@@ -124,6 +127,7 @@ class Git_Service_Update extends Git_Service_Base
      * Set a module's update policy: auto | notify | pinned (+ an optional pinned_version).
      *
      * @param  array $params module_key, channel, pinned_version?
+     * @apiRequest Git_Form_Policy
      * @apiParam string module_key required The module (its slug).
      * @apiParam string(auto|notify|pinned) channel required The update policy.
      * @apiParam string pinned_version The version to pin to (channel=pinned).
@@ -131,6 +135,8 @@ class Git_Service_Update extends Git_Service_Base
     public function setPolicy(array $params): void
     {
         if (!$this->_signedIn() || !$this->_isAllowed('setPolicy')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Git_Form_Policy();   // CSRF + the channel allow-list as a field error (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $moduleKey = $this->_slug((string) ($params['module_key'] ?? ''));
         if ($moduleKey === null) { $this->_error('git.error.invalid_module'); return; }
@@ -157,11 +163,14 @@ class Git_Service_Update extends Git_Service_Base
      * version it fled so auto-update does not immediately reapply it.
      *
      * @param  array $params module_key
+     * @apiRequest Git_Form_Module
      * @apiParam string module_key required The module (its slug).
      */
     public function rollback(array $params): void
     {
         if (!$this->_signedIn() || !$this->_isAllowed('rollback')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Git_Form_Module();   // a state change with no prose still carries the CSRF token (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $moduleKey = $this->_slug((string) ($params['module_key'] ?? ''));
         if ($moduleKey === null) { $this->_error('git.error.invalid_module'); return; }

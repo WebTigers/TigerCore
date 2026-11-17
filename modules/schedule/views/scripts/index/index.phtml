@@ -48,6 +48,8 @@ $outcomeBadge = [
 </div>
 
 <div id="schedule-feedback"></div>
+<?php /* The page-level scheduler token (TIGER-528) — Run now posts it even on a row with no schedule-control. */ ?>
+<span hidden data-schedule-csrf><?= $this->csrfForm ? $this->csrfForm->getElement('_csrf') : '' ?></span>
 
 <div class="row g-4">
     <div class="col-12">

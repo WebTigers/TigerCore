@@ -22,6 +22,7 @@ class Mcp_AdminController extends Tiger_Controller_Admin_Action
         $this->view->mcpUrl   = $this->_baseUrl() . '/mcp';
         $this->view->bridge   = TIGER_CORE_PATH . '/bin/mcp-bridge.php';
         $this->view->protocol = Tiger_Mcp::PROTOCOL_VERSION;
+        $this->view->csrfForm = new Mcp_Form_Settings();   // the screen's write token (TIGER-528)
     }
 
     /** Stream the zero-Node PHP stdio bridge as a download (the user runs it locally for stdio clients). */

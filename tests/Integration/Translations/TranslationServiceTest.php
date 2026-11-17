@@ -10,6 +10,7 @@ use Tiger\Tests\Support\IntegrationTestCase;
 use Tiger_I18n_Catalog;
 use Tiger_Model_Translation;
 use Translations_Service_Translation;
+use Zend_Registry;
 
 /**
  * Translations_Service_Translation — the /api engine behind the Translations admin screen, plus its
@@ -37,6 +38,15 @@ final class TranslationServiceTest extends IntegrationTestCase
         if (!defined('SUPPORTED_LANGS')) {
             define('SUPPORTED_LANGS', ['en', 'es']);
         }
+        // CSRF is a cookie-mode defence (TIGER-528); a service-level test runs as a Bearer call does.
+        Zend_Registry::set('tiger.auth.stateless', true);
+    }
+
+    protected function tearDown(): void
+    {
+        $reg = Zend_Registry::getInstance();
+        if ($reg->offsetExists('tiger.auth.stateless')) { $reg->offsetUnset('tiger.auth.stateless'); }
+        parent::tearDown();
     }
 
     private function call(string $action, array $params = []): object
@@ -177,5 +187,66 @@ final class TranslationServiceTest extends IntegrationTestCase
         $this->loginAs('admin');
         $this->assertSame(0, (int) $this->call('save', ['values' => ['es' => 'x']])->result, 'no key → error');
         $this->assertSame(0, (int) $this->call('entry')->result);
+    }
+
+    // ----- CSRF (TIGER-528) -----------------------------------------------------------------------
+
+    /** Run $fn as a browser session would: CSRF applies, against an array-backed session. */
+    private function cookieMode(callable $fn)
+    {
+        Zend_Registry::set('tiger.auth.stateless', false);
+        $prior = \Zend_Session::$_unitTestEnabled;
+        \Zend_Session::$_unitTestEnabled = true;
+        $_SESSION = [];
+        // A request always has a writable session; an earlier test may have write-closed it.
+        $w = new \ReflectionProperty(\Zend_Session_Abstract::class, '_writable');
+        $priorW = (bool) $w->getValue();
+        $w->setValue(null, true);
+        try {
+            return $fn();
+        } finally {
+            Zend_Registry::set('tiger.auth.stateless', true);
+            \Zend_Session::$_unitTestEnabled = $prior;
+            $_SESSION = [];
+            $w->setValue(null, $priorW);
+        }
+    }
+
+    #[Test]
+    public function save_and_revert_refuse_a_tokenless_cross_site_request(): void
+    {
+        $this->loginAs('admin');
+        $this->seedOverride('es', 'kept');
+
+        $this->cookieMode(function () {
+            foreach ([
+                'save'   => ['key' => self::KEY, 'values' => ['es' => 'Defaced cross-site']],
+                'revert' => ['key' => self::KEY, 'locale' => 'es'],
+            ] as $action => $params) {
+                $res = $this->call($action, $params);
+                $this->assertSame(0, (int) $res->result, "$action without a token is refused");
+                $this->assertStringContainsString('core.api.error.csrf', json_encode($res->messages), "$action: the CSRF refusal");
+            }
+        });
+
+        $this->assertSame('kept', $this->overrides('es')[self::KEY] ?? null, 'neither overwritten nor reverted');
+    }
+
+    #[Test]
+    public function save_then_revert_with_the_screens_one_token(): void
+    {
+        $this->loginAs('admin');
+        [$save, $revert] = $this->cookieMode(function () {
+            $el = (new \Translations_Form_Save())->getElement('_csrf');   // the token the screen renders
+            $el->initCsrfToken();
+            $tok = (string) $el->getHash();
+            return [
+                $this->call('save', ['key' => self::KEY, 'values' => ['es' => 'Con token'], '_csrf' => $tok]),
+                $this->call('revert', ['key' => self::KEY, 'locale' => 'es', '_csrf' => $tok]),   // shared salt
+            ];
+        });
+        $this->assertSame(1, (int) $save->result);
+        $this->assertSame(1, (int) $revert->result, 'the second write on the page is not "token expired"');
+        $this->assertArrayNotHasKey(self::KEY, $this->overrides('es'));
     }
 }

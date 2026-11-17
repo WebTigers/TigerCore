@@ -24,6 +24,20 @@ use Zend_Controller_Request_Http;
 #[CoversClass(Mcp_Service_Settings::class)]
 final class McpTokenScopeTest extends IntegrationTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // CSRF is a cookie-mode defence (TIGER-528); these service calls run as a Bearer call does.
+        \Zend_Registry::set('tiger.auth.stateless', true);
+    }
+
+    protected function tearDown(): void
+    {
+        $reg = \Zend_Registry::getInstance();
+        if ($reg->offsetExists('tiger.auth.stateless')) { $reg->offsetUnset('tiger.auth.stateless'); }
+        parent::tearDown();
+    }
+
     private function call(string $method, array $params = []): object
     {
         return (new Mcp_Service_Settings(['action' => $method] + $params))->getResponse();

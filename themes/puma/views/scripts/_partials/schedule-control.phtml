@@ -27,6 +27,11 @@ $enabled = !empty($this->jobEnabled);
 $fb      = (string) ($this->feedbackId ?? '');
 $reload  = !empty($this->reload);
 $timed   = in_array($every, ['daily', 'weekly', 'monthly'], true);
+// The scheduler's CSRF token (TIGER-528). The control is embedded in screens the schedule module does
+// not own (Backup), so it carries its own token instead of relying on the host page's — one salt for
+// every scheduler write (Schedule_Form_Write), reused across renders, so several controls on a page
+// all post the same live value. Absent when the schedule module isn't loaded (nothing to post to).
+$csrf    = class_exists('Schedule_Form_Schedule') ? (new Schedule_Form_Schedule())->getElement('_csrf') : null;
 
 // Option text is localized; the VALUES posted to schedule/setSchedule stay the stable keys.
 $freqLabels = [
@@ -46,6 +51,7 @@ $days = [
 ];
 ?>
 <div class="row g-2 align-items-end" data-schedule-form data-job="<?= $e($key) ?>"<?= $fb ? ' data-feedback="' . $e($fb) . '"' : '' ?><?= $reload ? ' data-reload' : '' ?>>
+    <?php if ($csrf): ?><span hidden data-schedule-csrf><?= $csrf ?></span><?php endif; ?>
     <div class="col-6 col-sm-4">
         <label class="form-label small text-body-secondary mb-1"><?= $e($this->t('theme.schedule.frequency')) ?></label>
         <select class="form-select form-select-sm" data-sch="every">

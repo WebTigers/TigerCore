@@ -29,6 +29,7 @@ class Email_AdminController extends Tiger_Controller_Admin_Action
     {
         $this->view->title         = 'Email Templates — Tiger Admin';
         $this->view->useDataTables = true;   // the layout loads jQuery + DataTables only when this is set
+        $this->view->csrfForm      = new Email_Form_Reset();   // the per-row Reset's CSRF token (TIGER-528)
     }
 
     /**

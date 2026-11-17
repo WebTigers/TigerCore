@@ -7,8 +7,10 @@
  * The owner/name charset and the module slug are re-checked in the service (Tiger_Git::repoSlug, the
  * slug guard) because they also gate path/host safety; the form is the field-shape contract. The token
  * is a secret — required, trimmed, never echoed back by the service.
+ *
+ * Shares the dashboard's CSRF salt via Git_Form_Write (TIGER-528), so the one rendered token covers it.
  */
-class Git_Form_Connect extends Tiger_Form
+class Git_Form_Connect extends Git_Form_Write
 {
     /** @return array the element schema */
     protected function elements(): array

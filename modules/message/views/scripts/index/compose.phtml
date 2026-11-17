@@ -24,6 +24,8 @@ $replyTo = (string) $this->replyTo;
 </div>
 
 <div id="msg-feedback"></div>
+<?php /* The messaging write token (TIGER-528) — message.compose.js posts it with send. */ ?>
+<div id="msg-csrf" hidden><?= $this->csrfForm ? $this->csrfForm->getElement('_csrf') : '' ?></div>
 
 <form id="msg-compose" class="card" autocomplete="off" data-reply-to="<?= $this->escape($replyTo) ?>">
     <div class="card-body">

@@ -22,6 +22,8 @@ $t = function ($k) { return Zend_Registry::get('Zend_Translate')->translate($k);
 <?php endif; ?>
 
 <form id="sms-settings-form" onsubmit="return false;" novalidate>
+    <?php /* save + the test send share this token (Sms_Form_Write, TIGER-528) */ ?>
+    <?= $this->csrfForm ? $this->csrfForm->getElement('_csrf') : '' ?>
     <div class="row g-4">
         <div class="col-lg-7">
             <div class="card mb-4">

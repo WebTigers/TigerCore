@@ -44,6 +44,8 @@ $this->i18n([
 </div>
 
 <div id="msg-feedback"></div>
+<?php /* The messaging write token (TIGER-528) — message.inbox.js posts it with every read/archive/delete/block. */ ?>
+<div id="msg-csrf" hidden><?= $this->csrfForm ? $this->csrfForm->getElement('_csrf') : '' ?></div>
 
 <ul class="nav nav-tabs mb-3">
     <?php foreach (['inbox' => 'message.list.inbox', 'archived' => 'message.list.archived', 'sent' => 'message.list.sent'] as $key => $label): ?>

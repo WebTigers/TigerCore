@@ -217,4 +217,60 @@ final class RepoServiceTest extends IntegrationTestCase
         $this->assertSame('core.api.error.not_allowed', $res['messages'][0]);
         $this->assertNull((new Tiger_Model_GitRepoConnection())->forModule(self::ORG, self::MODULE));
     }
+
+    // --- CSRF (TIGER-528) -------------------------------------------------------------------------
+
+    /** Run $fn as a browser session would: CSRF applies, against an array-backed session. */
+    private function cookieMode(callable $fn)
+    {
+        \Zend_Registry::set('tiger.auth.stateless', false);
+        $prior = \Zend_Session::$_unitTestEnabled;
+        \Zend_Session::$_unitTestEnabled = true;
+        $_SESSION = [];
+        // A request always has a writable session; an earlier test may have write-closed it.
+        $w = new \ReflectionProperty(\Zend_Session_Abstract::class, '_writable');
+        $priorW = (bool) $w->getValue();
+        $w->setValue(null, true);
+        try {
+            return $fn();
+        } finally {
+            \Zend_Registry::set('tiger.auth.stateless', true);
+            \Zend_Session::$_unitTestEnabled = $prior;
+            $_SESSION = [];
+            $w->setValue(null, $priorW);
+        }
+    }
+
+    #[Test]
+    public function recheck_and_disconnect_refuse_a_tokenless_cross_site_request(): void
+    {
+        $this->login('u-admin', self::ORG, 'admin');
+        $this->assertSame(1, $this->connect()['result']);
+
+        $this->cookieMode(function () {
+            foreach (['recheck', 'disconnect'] as $method) {
+                $res = $this->call($method, ['module_key' => self::MODULE]);
+                $this->assertSame(0, $res['result'], "$method without a token is refused");
+                $this->assertContains('core.api.error.csrf', $res['messages'], "$method: the CSRF refusal");
+            }
+        });
+
+        $this->assertNotNull((new Tiger_Model_GitRepoConnection())->forModule(self::ORG, self::MODULE), 'still connected');
+    }
+
+    #[Test]
+    public function disconnect_with_the_dashboard_token_goes_through(): void
+    {
+        $this->login('u-admin', self::ORG, 'admin');
+        $this->assertSame(1, $this->connect()['result']);
+
+        $res = $this->cookieMode(function () {
+            $el = (new \Git_Form_Connect())->getElement('_csrf');   // the token the view renders (shared salt)
+            $el->initCsrfToken();
+            return $this->call('disconnect', ['module_key' => self::MODULE, '_csrf' => (string) $el->getHash()]);
+        });
+
+        $this->assertSame(1, $res['result']);
+        $this->assertNull((new Tiger_Model_GitRepoConnection())->forModule(self::ORG, self::MODULE));
+    }
 }

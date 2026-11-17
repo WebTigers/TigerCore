@@ -41,6 +41,20 @@ final class TenantScopingTest extends IntegrationTestCase
     private const ORG_A = 'org-tenant-a';
     private const ORG_B = 'org-tenant-b';
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // CSRF is a cookie-mode defence (TIGER-528); these scope checks run as a Bearer call does.
+        \Zend_Registry::set('tiger.auth.stateless', true);
+    }
+
+    protected function tearDown(): void
+    {
+        $reg = \Zend_Registry::getInstance();
+        if ($reg->offsetExists('tiger.auth.stateless')) { $reg->offsetUnset('tiger.auth.stateless'); }
+        parent::tearDown();
+    }
+
     /** Sign in as an admin whose ONLY membership is org A. */
     private function asAdminOfA(): void
     {

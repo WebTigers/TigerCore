@@ -15,12 +15,15 @@ class Mcp_Service_Settings extends Tiger_Service_Service
      * Enable or disable the MCP server (`tiger.mcp.enabled`).
      *
      * @param  array $params {enabled: bool-ish}
+     * @apiRequest Mcp_Form_Settings
      * @apiParam boolean enabled required Turn the /mcp endpoint on (true) or off (false).
      * @return void
      */
     public function save(array $params): void
     {
         if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Mcp_Form_Settings();   // CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $on = !empty($params['enabled']) && $params['enabled'] !== '0' && $params['enabled'] !== 'false';
         try {
@@ -55,6 +58,7 @@ class Mcp_Service_Settings extends Tiger_Service_Service
      * default set (the old footgun). The plaintext is shown once.
      *
      * @param  array $params {scopes: string[]|csv of offer keys, read_only?: bool, org_scoped?: bool}
+     * @apiRequest Mcp_Form_Mint
      * @apiParam array scopes required Scope-offer keys from scopes() (a comma list is also accepted); an empty set is refused.
      * @apiParam boolean read_only Mint a read-only token.
      * @apiParam boolean org_scoped The token acts as the caller's current org, not the caller.
@@ -63,6 +67,8 @@ class Mcp_Service_Settings extends Tiger_Service_Service
     public function mintToken(array $params): void
     {
         if (!$this->_isAllowed('mintToken')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Mcp_Form_Mint();   // CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $identity = Zend_Auth::getInstance()->getIdentity();
         $userId   = $identity->user_id ?? null;
         if ($userId === null) { $this->_error('core.api.error.login_required'); return; }
@@ -137,12 +143,15 @@ class Mcp_Service_Settings extends Tiger_Service_Service
      * Revoke one of the caller's tokens + drop its MCP policy.
      *
      * @param  array $params the request payload
+     * @apiRequest Mcp_Form_Revoke
      * @apiParam string credential_id required The token to revoke (one of the caller's own).
      * @return void
      */
     public function revokeToken(array $params): void
     {
         if (!$this->_isAllowed('revokeToken')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Mcp_Form_Revoke();   // CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $userId = Zend_Auth::getInstance()->getIdentity()->user_id ?? null;
         $id     = (string) ($params['credential_id'] ?? '');
         if ($userId === null || $id === '') { $this->_error('core.api.error.general'); return; }

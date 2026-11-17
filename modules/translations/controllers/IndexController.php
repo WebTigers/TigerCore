@@ -29,6 +29,7 @@ class Translations_IndexController extends Tiger_Controller_Admin_Action
         $this->view->localeMap = $this->_localeNames($supported);
         $this->view->default   = $default;
         $this->view->target    = $this->_firstNonDefault($supported, $default);
+        $this->view->csrfForm  = new Translations_Form_Save();   // the screen's write token (TIGER-528)
     }
 
     /** Supported language-only locales (LocalePrefix's resolved set, else config). */
