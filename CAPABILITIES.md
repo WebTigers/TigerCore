@@ -396,6 +396,6 @@
 - **SEO** (`seo`, app)  ·  services: Head, Pages, Schema, Social  ·  `modules/seo`
 - **Signup** (`signup`, plugin)  ·  services: Signup  ·  `modules/signup`
 - **SMS** (`sms`, app)  ·  services: Settings  ·  `modules/sms`
-- **System** (`system`, plugin)  ·  services: Acl, Dashboard, Logs, Modules, Nav, Settings, Sites, Updates  ·  `modules/system`
+- **System** (`system`, plugin)  ·  services: Acl, Dashboard, Logs, Modules, Nav, Settings, Sites, Themecontent, Updates  ·  `modules/system`
 - **Translations** (`translations`, app)  ·  services: Translation  ·  `modules/translations`
 

@@ -40,6 +40,18 @@ class System_Bootstrap extends Zend_Application_Module_Bootstrap
             'resource' => 'System_SitesController',
             'order'    => 40,
         ]);
+        // Theme content (TIGER-455) — the remote theme-content mirror's status + "Update now". Shown only where a
+        // remote content source is configured: on every other install there is nothing to fetch.
+        if ((new Tiger_Theme_Remote())->isEnabled()) {
+            Tiger_Admin_Settings::register([
+                'key'      => 'system_theme_content',
+                'label'    => 'system.nav.theme_content',
+                'icon'     => 'fa-cloud-arrow-down',
+                'href'     => '/system/themecontent',
+                'resource' => 'System_ThemecontentController',
+                'order'    => 45,
+            ]);
+        }
     }
 
     /** Top-level "Logs" item (ACL-gated in the menu; Updates lives under the Modules toggle). */

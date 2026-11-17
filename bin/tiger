@@ -190,6 +190,22 @@ switch ($cmd) {
         }
         break;
 
+    case 'theme:content-fetch':
+        // TIGER-455: the scheduled theme.content_fetch tick, on demand — so a deploy / firstboot serves current theme
+        // content on its first request instead of its first tick, and an operator can pull a just-published edit.
+        $flags  = tiger_flags($argv);
+        $remote = new Tiger_Theme_Remote();
+        if (!$remote->isEnabled()) {
+            echo "  No remote theme-content source is configured (tiger.theme_remote.content_url) — nothing to fetch.\n";
+            break;
+        }
+        $res = $remote->sync(in_array('--force', $argv, true) || !empty($flags['force']));   // bare --force or --force=1
+        if (!empty($res['busy'])) { fwrite(STDERR, "  A fetch is already running on this server — try again shortly.\n"); exit(1); }
+        if ((string) $res['error'] !== '') { fwrite(STDERR, "  theme:content-fetch failed: " . $res['error'] . "\n"); exit(1); }
+        printf("  \xE2\x9C\x93 %d files checked · %d updated · %d removed · published %s\n",
+            (int) $res['files'], (int) $res['changed'], (int) $res['removed'], $res['generated'] !== '' ? $res['generated'] : '—');
+        break;
+
     case 'install:admin':
         // Create the founding org + owner. Non-interactive via flags
         // (--email= --password= --org= [--username=] [--slug=] [--role=]); prompts for anything missing.
@@ -478,6 +494,8 @@ switch ($cmd) {
         echo "                         asset dirs) — idempotent; chown to the web user after if needed\n";
         echo "  link:assets            (Re)create the webroot's _theme/_tiger symlinks (failsafe asset\n";
         echo "                         wiring) — [--webroot=DIR (cPanel: ~/public_html)] [--theme=puma]\n";
+        echo "  theme:content-fetch    Fetch the published theme content into this server now (deploy /\n";
+        echo "                         firstboot, or after a publish) — [--force] re-downloads every file\n";
         echo "  install:admin          Create the founding org + owner (also provisions secrets;\n";
         echo "                         --email= --password= --org= [--username=] [--slug=] [--role=developer])\n";
         echo "  crypto:rotate-key      Rotate the app encryption key (old kept as retired)\n";
