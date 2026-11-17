@@ -31,6 +31,8 @@ class Cms_MenuController extends Tiger_Controller_Admin_Action
     {
         $this->view->title         = 'Menus — Tiger Admin';
         $this->view->useDataTables = true;
+        // Carries the CSRF token the list's delete-menu / revert-to-theme calls post back (TIGER-528).
+        $this->view->form          = new Cms_Form_MenuKey();
     }
 
     /**

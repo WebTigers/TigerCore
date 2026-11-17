@@ -27,14 +27,18 @@ class Profile_Service_Avatar extends Tiger_Service_Service
     /**
      * Store the cropped avatar for the current user and link it via the option tier.
      *
-     * @param  array $params (file rides in $_FILES['file'])
-     * @apiRequest none
+     * @param  array $params `_csrf` (the file rides in $_FILES['file'])
+     * @apiRequest Profile_Form_Avatar
      * @return void
      */
     public function upload(array $params): void
     {
         $userId = (string) $this->_user_id;
         if ($userId === '') { $this->_error('core.api.error.not_allowed'); return; }
+
+        // The multipart upload carries the Basic tab's token as a FormData field (TIGER-528).
+        $form = new Profile_Form_Avatar();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $file = $_FILES['file'] ?? null;
         if (!$file || !is_uploaded_file((string) $file['tmp_name']) || (int) $file['error'] !== UPLOAD_ERR_OK) {
@@ -97,14 +101,16 @@ class Profile_Service_Avatar extends Tiger_Service_Service
     /**
      * Clear the current user's avatar (unlink the option; the media row is left in place).
      *
-     * @param  array $params (unused)
-     * @apiRequest none
+     * @param  array $params `_csrf`
+     * @apiRequest Profile_Form_Avatar
      * @return void
      */
     public function remove(array $params): void
     {
         $userId = (string) $this->_user_id;
         if ($userId === '') { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Profile_Form_Avatar();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         (new Tiger_Model_Option())->forget(Tiger_Model_Option::SCOPE_USER, $userId, self::OPTION_KEY);
         $this->_success([], 'profile.avatar.removed');
     }

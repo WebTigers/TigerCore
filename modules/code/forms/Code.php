@@ -9,7 +9,7 @@
  *
  * @api
  */
-class Code_Form_Code extends Tiger_Form
+class Code_Form_Code extends Code_Form_Write
 {
     protected function elements(): array
     {

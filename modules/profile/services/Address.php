@@ -77,6 +77,7 @@ class Profile_Service_Address extends Profile_Service_Base
      * Delete one of the current user's addresses (unlink + soft-delete the location).
      *
      * @param  array $params user_address_id
+     * @apiRequest Profile_Form_AddressDelete
      * @apiParam string link_id required The address link (user_address_id) to delete.
      * @return void
      */
@@ -84,8 +85,9 @@ class Profile_Service_Address extends Profile_Service_Base
     {
         $userId = (string) $this->_user_id;
         if ($userId === '') { $this->_error('core.api.error.not_allowed'); return; }
-        if (!$this->_validCsrf(Profile_Form_Address::class, $params)) { $this->_error('core.api.error.csrf'); return; }
-        $uaId = trim((string) ($params['link_id'] ?? ''));
+        $form = new Profile_Form_AddressDelete();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        $uaId = (string) $form->getValue('link_id');
 
         try {
             $this->_transaction(function () use ($userId, $uaId) {

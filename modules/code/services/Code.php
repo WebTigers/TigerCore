@@ -235,6 +235,7 @@ class Code_Service_Code extends Tiger_Service_Service
      * Activate a snippet (lints first).
      *
      * @param  array $params must carry `code_id`
+     * @apiRequest Code_Form_Id
      * @apiParam string code_id required The snippet to activate: a local code_id, or module:<key> for a module snippet.
      * @return void
      */
@@ -244,16 +245,29 @@ class Code_Service_Code extends Tiger_Service_Service
      * Deactivate a snippet.
      *
      * @param  array $params must carry `code_id`
+     * @apiRequest Code_Form_Id
      * @apiParam string code_id required The snippet to deactivate: a local code_id, or module:<key> for a module snippet.
      * @return void
      */
     public function deactivate(array $params): void { $this->_toggle($params, false); }
 
+    /**
+     * Activate or deactivate one snippet — a local row or a module snippet (`module:<key>`).
+     *
+     * The ACL question is asked about the method the caller actually invoked (activate|deactivate),
+     * never this helper's name: a role granted only one of them must not get the other.
+     *
+     * @param  array $params the request payload (`code_id`, `_csrf`)
+     * @param  bool  $on     activate (true) or deactivate (false)
+     * @return void
+     */
     protected function _toggle(array $params, $on): void
     {
-        if (!$this->_isAllowed('_toggle')) { $this->_error('core.api.error.not_allowed'); return; }
-        $id = !empty($params['code_id']) ? (string) $params['code_id'] : '';
-        if ($id === '') { $this->_error('core.api.error.general'); return; }
+        if (!$this->_isAllowed($on ? 'activate' : 'deactivate')) { $this->_error('core.api.error.not_allowed'); return; }
+
+        $form = new Code_Form_Id();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        $id = (string) $form->getValue('code_id');
 
         // A module snippet (file-based, from an installed `code` module) — toggle its config flag,
         // never a `code` row.
@@ -320,14 +334,17 @@ class Code_Service_Code extends Tiger_Service_Service
      * Soft-delete a snippet (recoverable).
      *
      * @param  array $params must carry `code_id`
+     * @apiRequest Code_Form_Id
      * @apiParam string code_id required The snippet to delete.
      * @return void
      */
     public function delete(array $params): void
     {
         if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
-        $id = !empty($params['code_id']) ? (string) $params['code_id'] : '';
-        if ($id === '') { $this->_error('core.api.error.general'); return; }
+
+        $form = new Code_Form_Id();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        $id = (string) $form->getValue('code_id');
         try {
             (new Tiger_Model_Code())->softDelete(['code_id = ?' => $id]);
             Tiger_Code_Runtime::rebuild();   // drop it from the bundle
@@ -341,6 +358,7 @@ class Code_Service_Code extends Tiger_Service_Service
      * Restore a prior version (does not auto-reactivate).
      *
      * @param  array $params must carry `code_id` and `version`
+     * @apiRequest Code_Form_Restore
      * @apiParam string code_id required The snippet to restore.
      * @apiParam integer version required The version number to restore (1 or higher).
      * @return void
@@ -348,9 +366,11 @@ class Code_Service_Code extends Tiger_Service_Service
     public function restore(array $params): void
     {
         if (!$this->_isAllowed('restore')) { $this->_error('core.api.error.not_allowed'); return; }
-        $id      = !empty($params['code_id']) ? (string) $params['code_id'] : '';
-        $version = isset($params['version']) ? (int) $params['version'] : 0;
-        if ($id === '' || $version < 1) { $this->_error('core.api.error.general'); return; }
+
+        $form = new Code_Form_Restore();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        $id      = (string) $form->getValue('code_id');
+        $version = (int) $form->getValue('version');
         try {
             $model = new Tiger_Model_Code();
             $model->restoreVersion($id, $version);

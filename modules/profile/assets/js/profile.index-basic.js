@@ -50,8 +50,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // TigerUpload: the upload engine + the full-page transparent drop pane. auto:false — we upload
     // the CROPPED result on Save, not the raw drop.
+    // The Basic tab's CSRF token — the avatar upload (a FormData field) and remove both post it (TIGER-528).
+    // Read from THIS form explicitly: TigerUpload's fallback takes the first _csrf on the page, which
+    // may belong to another card's form or the agent aside.
+    function csrf() { var el = document.querySelector('#profile-basic-form [name="_csrf"]'); return el ? el.value : ''; }
+
     var up = TigerUpload.create({
-        url: '/api', field: 'file', auto: false,
+        url: '/api', field: 'file', auto: false, csrf: csrf(),
         params: { module: 'profile', service: 'avatar', method: 'upload' }
     });
     up.dropOnWindow({ label: Tiger.t('avatarDropLabel'), sublabel: Tiger.t('avatarDropSub'),
@@ -116,6 +121,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var btn = this;
         var fd = new URLSearchParams();
         fd.set('module', 'profile'); fd.set('service', 'avatar'); fd.set('method', 'remove');
+        fd.set('_csrf', csrf());
         TigerButton.run(btn, function () {
             return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
                 .then(function (r) { return r.json().catch(function () { return {}; }); });

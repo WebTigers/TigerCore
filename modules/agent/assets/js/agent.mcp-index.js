@@ -15,8 +15,12 @@ document.addEventListener('DOMContentLoaded', function () {
     var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; }); };
     var fb  = document.getElementById('mcp-feedback');
 
+    // Every write carries the CSRF token the view renders (TIGER-528).
+    var csrfEl = document.querySelector('#mcp-csrf [name="_csrf"]');
+
     function api(method, body) {
         body = body || {}; body.module = 'agent'; body.service = 'mcp'; body.method = method;
+        if (csrfEl && csrfEl.value) { body._csrf = csrfEl.value; }
         return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: new URLSearchParams(body) }).then(function (r) { return r.json().catch(function () { return {}; }); });
     }
     function toast(res) { ((res && res.messages) || []).forEach(function (m) { TigerDOM.toast(m.message, { type: m.class }); }); }

@@ -16,5 +16,7 @@ class Agent_McpController extends Tiger_Controller_Admin_Action
     public function indexAction()
     {
         $this->view->title = 'MCP Connections — Tiger Admin';
+        // Carries the CSRF token save / remove / test post back (TIGER-528).
+        $this->view->form  = new Agent_Form_Mcp();
     }
 }

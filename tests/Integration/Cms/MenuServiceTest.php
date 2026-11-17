@@ -20,16 +20,25 @@ use Tiger_Model_Menu;
  * (deleteItem), soft-deleting a whole menu (deleteMenu), and the drag-drop reorder (a batch
  * re-parent + re-sort that ONLY touches items in the given scope).
  *
- * Cms_Form_MenuItem disables CSRF (the builder saves rapidly, reload-free), so no stateless flag is
- * needed. save/delete/deleteMenu write directly (harness transaction); reorder() opens its OWN
+ * Every menu write validates through a CSRF-bearing Tiger_Form (TIGER-528), so the header-less CLI
+ * dispatch runs as the stateless (Bearer) path; the cookie-mode refusal is pinned in CmsCsrfTest.
+ * save/delete/deleteMenu write directly (harness transaction); reorder() opens its OWN
  * transaction (can't nest), so that test commits its setup then relies on the tearDown scrub — the
  * pattern the model MenuTest uses.
  */
 #[CoversClass(Cms_Service_Menu::class)]
 final class MenuServiceTest extends IntegrationTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        \Zend_Registry::set('tiger.auth.stateless', true);
+    }
+
     protected function tearDown(): void
     {
+        $reg = \Zend_Registry::getInstance();
+        if ($reg->offsetExists('tiger.auth.stateless')) { $reg->offsetUnset('tiger.auth.stateless'); }
         // reorder() commits outside the harness txn; scrub the suite-owned menu table. For an
         // in-transaction test this runs inside that txn and is undone by the base rollback.
         try {

@@ -143,10 +143,10 @@ final class TenantScopingTest extends IntegrationTestCase
         $this->seedMenu(self::ORG_B, 'private-nav');
         $this->asAdminOfA();
 
-        $svc = new Cms_Service_Menu();
-        $svc->deleteMenu(['menu_key' => 'private-nav', 'org_id' => self::ORG_B]);
+        $svc = $this->deleteMenuStateless(['menu_key' => 'private-nav', 'org_id' => self::ORG_B]);
 
         $this->assertSame(0, (int) $svc->getResponse()->result, 'a foreign org_id is refused');
+        $this->assertStringContainsString('not_allowed', json_encode($svc->getResponse()->messages), 'refused by scope, not CSRF');
 
         $model = new Tiger_Model_Menu();
         $rows  = $model->fetchAll($model->activeSelect()
@@ -160,8 +160,7 @@ final class TenantScopingTest extends IntegrationTestCase
         $this->seedMenu(self::ORG_A, 'own-nav');
         $this->asAdminOfA();
 
-        $svc = new Cms_Service_Menu();
-        $svc->deleteMenu(['menu_key' => 'own-nav', 'org_id' => self::ORG_A]);
+        $svc = $this->deleteMenuStateless(['menu_key' => 'own-nav', 'org_id' => self::ORG_A]);
 
         $this->assertSame(1, (int) $svc->getResponse()->result);
         $model = new Tiger_Model_Menu();
@@ -177,9 +176,25 @@ final class TenantScopingTest extends IntegrationTestCase
         $this->seedMenu('', 'global-nav');
         $this->asAdminOfA();
 
-        $svc = new Cms_Service_Menu();
-        $svc->deleteMenu(['menu_key' => 'global-nav', 'org_id' => '']);
+        $svc = $this->deleteMenuStateless(['menu_key' => 'global-nav', 'org_id' => '']);
 
         $this->assertSame(1, (int) $svc->getResponse()->result, 'the global scope still works');
+    }
+
+    /**
+     * Run Cms_Service_Menu::deleteMenu on the stateless (Bearer) path. It validates through a CSRF-bearing
+     * form (TIGER-528); these tests are about org SCOPE, so they skip the token the way a Bearer call does.
+     * The cookie-mode CSRF refusal is pinned in tests/Integration/Cms/CmsCsrfTest.
+     */
+    private function deleteMenuStateless(array $params): Cms_Service_Menu
+    {
+        \Zend_Registry::set('tiger.auth.stateless', true);
+        try {
+            $svc = new Cms_Service_Menu();
+            $svc->deleteMenu($params);
+            return $svc;
+        } finally {
+            \Zend_Registry::getInstance()->offsetUnset('tiger.auth.stateless');
+        }
     }
 }

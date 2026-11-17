@@ -19,6 +19,8 @@
     </div>
 </div>
 
+<div id="sk-csrf" class="d-none"><?= $this->form->getElement('_csrf') ?></div>
+
 <div class="card mb-3">
   <div class="card-body">
     <label for="sk-url" class="form-label fw-semibold mb-1"><i class="fa-brands fa-github me-2"></i><?= $this->escape($this->t('agent.skills.add_url')) ?></label>

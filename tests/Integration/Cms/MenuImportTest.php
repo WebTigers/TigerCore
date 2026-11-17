@@ -48,10 +48,13 @@ final class MenuImportTest extends IntegrationTestCase
         items.tw.target = "_blank"
         INI);
         Zend_Registry::set('Tiger_ThemeDir', $this->dir);
+        // importFromTheme validates through a CSRF-bearing form (TIGER-528); CLI dispatch is the stateless path.
+        Zend_Registry::set('tiger.auth.stateless', true);
     }
 
     protected function tearDown(): void
     {
+        if (Zend_Registry::isRegistered('tiger.auth.stateless')) { Zend_Registry::getInstance()->offsetUnset('tiger.auth.stateless'); }
         if (Zend_Registry::isRegistered('Tiger_ThemeDir')) {
             Zend_Registry::getInstance()->offsetUnset('Tiger_ThemeDir');
         }

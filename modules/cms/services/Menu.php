@@ -229,6 +229,7 @@ class Cms_Service_Menu extends Tiger_Service_Service
      * Soft-delete one item and its subtree.
      *
      * @param  array $params the request payload (`menu_id`)
+     * @apiRequest Cms_Form_MenuItemDelete
      * @apiParam string menu_id required The item to delete (its subtree goes with it).
      * @apiParam string menu_key The menu the item belongs to.
      * @apiParam string org_id The menu's org scope: empty for global, or the caller's own org.
@@ -237,9 +238,10 @@ class Cms_Service_Menu extends Tiger_Service_Service
     public function delete(array $params): void
     {
         if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
-        $id = (string) ($params['menu_id'] ?? '');
-        if ($id === '') { $this->_error('core.api.error.general'); return; }
-        $menuKey = (string) ($params['menu_key'] ?? '');
+        $form = new Cms_Form_MenuItemDelete();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        $id      = (string) $form->getValue('menu_id');
+        $menuKey = (string) $form->getValue('menu_key');
         $orgId = $this->_scopedOrgId($params);
         if ($orgId === null) { $this->_error('core.api.error.not_allowed'); return; }
         try {
@@ -260,6 +262,7 @@ class Cms_Service_Menu extends Tiger_Service_Service
      * Soft-delete an entire menu (every item in the org+key scope).
      *
      * @param  array $params the request payload (`menu_key`, `org_id`)
+     * @apiRequest Cms_Form_MenuKey
      * @apiParam string menu_key required The menu to delete.
      * @apiParam string org_id The menu's org scope: empty for global, or the caller's own org.
      * @return void
@@ -267,10 +270,11 @@ class Cms_Service_Menu extends Tiger_Service_Service
     public function deleteMenu(array $params): void
     {
         if (!$this->_isAllowed('deleteMenu')) { $this->_error('core.api.error.not_allowed'); return; }
-        $menuKey = (string) ($params['menu_key'] ?? '');
+        $form = new Cms_Form_MenuKey();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        $menuKey = (string) $form->getValue('menu_key');
         $orgId = $this->_scopedOrgId($params);
         if ($orgId === null) { $this->_error('core.api.error.not_allowed'); return; }
-        if ($menuKey === '') { $this->_error('core.api.error.general'); return; }
         try {
             $model = new Tiger_Model_Menu();
             $db    = $model->getAdapter();
@@ -286,6 +290,7 @@ class Cms_Service_Menu extends Tiger_Service_Service
      * [{menu_id, parent_id, sort_order}, …]. Only items in the given menu are touched.
      *
      * @param  array $params the request payload (`menu_key`, `org_id`, `tree` JSON)
+     * @apiRequest Cms_Form_MenuReorder
      * @apiParam string menu_key required The menu being reordered.
      * @apiParam string tree required A JSON array of {menu_id, parent_id, sort_order}.
      * @apiParam string org_id The menu's org scope: empty for global, or the caller's own org.
@@ -294,11 +299,14 @@ class Cms_Service_Menu extends Tiger_Service_Service
     public function reorder(array $params): void
     {
         if (!$this->_isAllowed('reorder')) { $this->_error('core.api.error.not_allowed'); return; }
-        $menuKey = (string) ($params['menu_key'] ?? '');
+        $form = new Cms_Form_MenuReorder();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        $menuKey = (string) $form->getValue('menu_key');
         $orgId = $this->_scopedOrgId($params);
         if ($orgId === null) { $this->_error('core.api.error.not_allowed'); return; }
-        $items   = json_decode((string) ($params['tree'] ?? ''), true);
-        if ($menuKey === '' || !is_array($items)) { $this->_error('core.api.error.general'); return; }
+        $tree    = $form->getValue('tree');
+        $items   = is_string($tree) ? json_decode($tree, true) : null;
+        if (!is_array($items)) { $this->_error('core.api.error.general'); return; }
         try {
             // A drag on a theme menu materializes it (fork), then persists the order against real ids.
             $map   = $this->_ensureForked($menuKey, $orgId);
@@ -327,6 +335,7 @@ class Cms_Service_Menu extends Tiger_Service_Service
      * import just one; omit it to import all the theme declares.
      *
      * @param  array $params the request payload (optional `menu_key`, optional `org_id`)
+     * @apiRequest Cms_Form_MenuImport
      * @apiParam string menu_key Import only this menu. Empty imports every menu the theme declares.
      * @apiParam string org_id The target org scope: empty for global, or the caller's own org.
      * @return void
@@ -334,13 +343,15 @@ class Cms_Service_Menu extends Tiger_Service_Service
     public function importFromTheme(array $params): void
     {
         if (!$this->_isAllowed('importFromTheme')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Cms_Form_MenuImport();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $themeMenus = Tiger_Theme_Menus::all();
         if (!$themeMenus) { $this->_error('cms.menu.import_none'); return; }
 
         $orgId = $this->_scopedOrgId($params);
         if ($orgId === null) { $this->_error('core.api.error.not_allowed'); return; }
-        $only     = trim((string) ($params['menu_key'] ?? ''));
+        $only     = (string) $form->getValue('menu_key');
         $themeKey = $this->_activeThemeKey();
         $model    = new Tiger_Model_Menu();
         $imported = [];
@@ -386,6 +397,7 @@ class Cms_Service_Menu extends Tiger_Service_Service
      * `menus.ini` then renders again (the inverse of forking).
      *
      * @param  array $params the request payload (`menu_key`, `org_id`)
+     * @apiRequest Cms_Form_MenuKey
      * @apiParam string menu_key required The menu to revert to the theme's version.
      * @apiParam string org_id The menu's org scope: empty for global, or the caller's own org.
      * @return void
@@ -393,10 +405,11 @@ class Cms_Service_Menu extends Tiger_Service_Service
     public function revertToTheme(array $params): void
     {
         if (!$this->_isAllowed('revertToTheme')) { $this->_error('core.api.error.not_allowed'); return; }
-        $menuKey = (string) ($params['menu_key'] ?? '');
+        $form = new Cms_Form_MenuKey();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        $menuKey = (string) $form->getValue('menu_key');
         $orgId = $this->_scopedOrgId($params);
         if ($orgId === null) { $this->_error('core.api.error.not_allowed'); return; }
-        if ($menuKey === '') { $this->_error('core.api.error.general'); return; }
         try {
             $model = new Tiger_Model_Menu();
             $db    = $model->getAdapter();

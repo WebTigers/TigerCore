@@ -10,7 +10,7 @@
  *
  * @api
  */
-class Agent_Form_Settings extends Tiger_Form
+class Agent_Form_Settings extends Agent_Form_AdminWrite
 {
     protected function elements(): array
     {
