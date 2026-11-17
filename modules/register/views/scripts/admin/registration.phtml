@@ -16,6 +16,9 @@ $this->i18n([
 </div>
 
 <div id="reg-feedback"></div>
+<?php /* The screen's write token (TIGER-528) — present in every state, so Verify domain / Resend email
+         carry it too once the register form is gone (Register_Form_Write's shared salt). */ ?>
+<div id="reg-csrf" hidden><?= $this->form->getElement('_csrf') ?></div>
 
 <div class="row g-4"><div class="col-lg-8"><div class="card">
     <div class="card-header fw-semibold"><i class="fa-solid fa-id-badge me-2"></i><?= $this->t('register.status') ?></div>

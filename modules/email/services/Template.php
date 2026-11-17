@@ -150,12 +150,15 @@ class Email_Service_Template extends Tiger_Service_Service
      * Remove an override so the code-shipped file default renders again.
      *
      * @param  array $params {key}
+     * @apiRequest Email_Form_Reset
      * @apiParam string key required The registered template key.
      * @return void
      */
     public function reset(array $params): void
     {
         if (!$this->_isAllowed('reset')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Email_Form_Reset();   // deletes an override — CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $key = (string) ($params['key'] ?? '');
         if (!isset(Tiger_Mail::registeredTemplates()[$key])) { $this->_error('email.error.unknown_template'); return; }

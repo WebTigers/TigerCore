@@ -8,6 +8,10 @@
  * Registered by the view with $this->pageScript(); the view owns the markup, this owns the
  * behavior. Localized strings arrive through the $this->i18n() carrier (Tiger.t).
  */
+// The screen's one CSRF token (TIGER-528). Every media write form shares a salt (Media_Form_Write), so
+// the token rendered in the Filenames form also covers saveStorage, testConnection and migrateDisk.
+function mediaCsrf() { var el = document.querySelector('#media-settings-form [name="_csrf"]'); return el ? el.value : ''; }
+
 // ---- Filenames: save obfuscation flags ----
 document.getElementById('media-settings-save').addEventListener('click', function () {
     var form = document.getElementById('media-settings-form');
@@ -51,6 +55,7 @@ document.getElementById('media-settings-save').addEventListener('click', functio
         var fd = new URLSearchParams();
         fd.set('module', 'media'); fd.set('service', 'settings'); fd.set('method', method);
         fd.set('adapter', current());
+        fd.set('_csrf', mediaCsrf());
         var group = form.querySelector('.storage-fields[data-adapter="' + current() + '"]');
         if (group) {
             group.querySelectorAll('input, select').forEach(function (el) {
@@ -116,7 +121,7 @@ document.getElementById('media-settings-save').addEventListener('click', functio
             : 'COPY all media to "' + to + '"? Originals are kept.';
         if (!confirm(ask)) { return; }
         res.innerHTML = '';
-        var fd = new URLSearchParams({ module: 'media', service: 'settings', method: 'migrateDisk', to: to, move: move ? '1' : '0' });
+        var fd = new URLSearchParams({ module: 'media', service: 'settings', method: 'migrateDisk', to: to, move: move ? '1' : '0', _csrf: mediaCsrf() });
         TigerButton.run(btn, function () {
             return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
                 .then(function (r) { return r.json().catch(function () { return {}; }); });

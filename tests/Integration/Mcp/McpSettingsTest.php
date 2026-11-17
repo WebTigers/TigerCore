@@ -17,6 +17,96 @@ use Tiger_Model_Config;
 #[CoversClass(Mcp_Service_Settings::class)]
 final class McpSettingsTest extends IntegrationTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // CSRF is a cookie-mode defence (TIGER-528); these service calls run as a Bearer call does.
+        \Zend_Registry::set('tiger.auth.stateless', true);
+    }
+
+    protected function tearDown(): void
+    {
+        $reg = \Zend_Registry::getInstance();
+        if ($reg->offsetExists('tiger.auth.stateless')) { $reg->offsetUnset('tiger.auth.stateless'); }
+        parent::tearDown();
+    }
+
+    /** Run $fn as a browser session would: CSRF applies, against an array-backed session. */
+    private function cookieMode(callable $fn)
+    {
+        \Zend_Registry::set('tiger.auth.stateless', false);
+        $prior = \Zend_Session::$_unitTestEnabled;
+        \Zend_Session::$_unitTestEnabled = true;
+        $_SESSION = [];
+        // A request always has a writable session; an earlier test may have write-closed it.
+        $w = new \ReflectionProperty(\Zend_Session_Abstract::class, '_writable');
+        $priorW = (bool) $w->getValue();
+        $w->setValue(null, true);
+        try {
+            return $fn();
+        } finally {
+            \Zend_Registry::set('tiger.auth.stateless', true);
+            \Zend_Session::$_unitTestEnabled = $prior;
+            $_SESSION = [];
+            $w->setValue(null, $priorW);
+        }
+    }
+
+    /** The Connect screen's token, armed in the session the way the view renders it. */
+    private function token(): string
+    {
+        $el = (new \Mcp_Form_Settings())->getElement('_csrf');
+        $el->initCsrfToken();
+        return (string) $el->getHash();
+    }
+
+    #[Test]
+    public function every_connect_screen_write_refuses_a_tokenless_cross_site_request(): void
+    {
+        $owner = 'u-mcp-csrf';
+        $this->seedIdentityRows($owner, 'org-test', 'admin');
+        $credId = (string) (new \Tiger_Model_UserCredential())->createToken($owner)['credential_id'];
+        $this->login($owner, 'org-test', 'admin');
+        $cfg    = new Tiger_Model_Config();
+        $before = (string) $cfg->get(Tiger_Model_Config::SCOPE_GLOBAL, '', Tiger_Mcp::CONFIG_ENABLED);
+
+        $this->cookieMode(function () use ($credId) {
+            foreach ([
+                'save'        => ['enabled' => 1],
+                'mintToken'   => ['scopes' => 'cms'],
+                'revokeToken' => ['credential_id' => $credId],
+            ] as $method => $params) {
+                $res = $this->call($method, $params);
+                $this->assertSame(0, (int) $res->result, "$method without a token is refused");
+                $this->assertStringContainsString('core.api.error.csrf', json_encode($res->messages), "$method: the CSRF refusal");
+            }
+        });
+
+        $this->assertSame($before, (string) $cfg->get(Tiger_Model_Config::SCOPE_GLOBAL, '', Tiger_Mcp::CONFIG_ENABLED), '/mcp not switched on');
+        $tokens = (new \Tiger_Model_UserCredential())->tokensFor($owner);
+        $this->assertCount(1, $tokens, 'nothing minted, nothing revoked');
+    }
+
+    #[Test]
+    public function the_connect_screen_token_covers_enable_mint_and_revoke(): void
+    {
+        $owner = 'u-mcp-csrf-ok';
+        $this->seedIdentityRows($owner, 'org-test', 'admin');
+        $this->login($owner, 'org-test', 'admin');
+
+        [$on, $mint, $revoke] = $this->cookieMode(function () {
+            $tok  = $this->token();
+            $on   = $this->call('save', ['enabled' => 1, '_csrf' => $tok]);
+            $mint = $this->call('mintToken', ['scopes' => 'cms', '_csrf' => $tok]);
+            $rev  = $this->call('revokeToken', ['credential_id' => (string) ($mint->data['credential_id'] ?? ''), '_csrf' => $tok]);
+            return [$on, $mint, $rev];
+        });
+
+        $this->assertSame(1, (int) $on->result);
+        $this->assertSame(1, (int) $mint->result, json_encode($mint->messages));
+        $this->assertSame(1, (int) $revoke->result, 'a third write on the same page shares the salt');
+    }
+
     private function call(string $method, array $params = []): object
     {
         return (new Mcp_Service_Settings(['action' => $method] + $params))->getResponse();

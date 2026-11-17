@@ -44,5 +44,6 @@ class Schedule_IndexController extends Tiger_Controller_Admin_Action
         $this->view->title       = 'Scheduler — Tiger Admin';
         $this->view->jobs        = $jobs;
         $this->view->cronCommand = Schedule_Service_Schedule::cronCommand();
+        $this->view->csrfForm    = new Schedule_Form_Run();   // the page's write token (TIGER-528)
     }
 }

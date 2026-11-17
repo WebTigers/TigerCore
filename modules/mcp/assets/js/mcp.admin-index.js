@@ -18,6 +18,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function api(module, service, method, body) {
         body = body || {}; body.module = module; body.service = service; body.method = method;
+        var tok = document.querySelector('#mcp-csrf [name="_csrf"]');   // the screen's write token (TIGER-528)
+        if (tok && body._csrf === undefined) { body._csrf = tok.value; }
         return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: new URLSearchParams(body) })
             .then(function (r) { return r.json().catch(function () { return {}; }); });
     }

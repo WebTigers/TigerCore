@@ -48,10 +48,14 @@ final class ScheduleServiceTest extends IntegrationTestCase
         Zend_Registry::set('Zend_Config', new Zend_Config(['tiger' => ['log' => ['writer' => 'null']]]));
         Tiger_Log::reset();
         $this->resetScheduleRegistry();
+        // CSRF is a cookie-mode defence (TIGER-528); a service-level test runs as a Bearer call does.
+        Zend_Registry::set('tiger.auth.stateless', true);
     }
 
     protected function tearDown(): void
     {
+        $reg = Zend_Registry::getInstance();
+        if ($reg->offsetExists('tiger.auth.stateless')) { $reg->offsetUnset('tiger.auth.stateless'); }
         $this->resetScheduleRegistry();
         if ($this->priorConfig !== null) {
             Zend_Registry::set('Zend_Config', $this->priorConfig);
@@ -331,5 +335,79 @@ final class ScheduleServiceTest extends IntegrationTestCase
         $res = $this->dispatch(['action' => 'runNow', 'key' => 'no.such.job']);
         $this->assertSame(0, (int) $res->result);
         $this->assertStringContainsString('unknown_job', $this->messages($res));
+    }
+
+    // ---- CSRF (TIGER-528) ------------------------------------------------------------------------
+
+    /** Run $fn as a browser session would: CSRF applies, against an array-backed session. */
+    private function cookieMode(callable $fn)
+    {
+        Zend_Registry::set('tiger.auth.stateless', false);
+        $prior = \Zend_Session::$_unitTestEnabled;
+        \Zend_Session::$_unitTestEnabled = true;
+        $_SESSION = [];
+        // A request always has a writable session; an earlier test may have write-closed it.
+        $w = new \ReflectionProperty(\Zend_Session_Abstract::class, '_writable');
+        $priorW = (bool) $w->getValue();
+        $w->setValue(null, true);
+        try {
+            return $fn();
+        } finally {
+            Zend_Registry::set('tiger.auth.stateless', true);
+            \Zend_Session::$_unitTestEnabled = $prior;
+            $_SESSION = [];
+            $w->setValue(null, $priorW);
+        }
+    }
+
+    #[Test]
+    public function set_schedule_and_run_now_refuse_a_tokenless_cross_site_request(): void
+    {
+        $GLOBALS['__tiger_test_ran'] = false;
+        Tiger_Schedule::register([
+            'key' => 'demo.job', 'label' => 'Demo', 'run' => function () { $GLOBALS['__tiger_test_ran'] = true; },
+        ]);
+        $this->loginAs('admin');
+
+        $this->cookieMode(function () {
+            foreach ([
+                ['action' => 'setSchedule', 'key' => 'demo.job', 'every' => 'hourly', 'enabled' => 0],
+                ['action' => 'runNow', 'key' => 'demo.job'],
+            ] as $msg) {
+                $res = $this->dispatch($msg);
+                $this->assertSame(0, (int) $res->result, $msg['action'] . ' without a token is refused');
+                $this->assertStringContainsString('core.api.error.csrf', $this->messages($res), $msg['action'] . ': the CSRF refusal');
+            }
+        });
+
+        $this->assertFalse($GLOBALS['__tiger_test_ran'], 'the job never ran');
+        $this->assertNull((new \Tiger_Model_Config())->get(\Tiger_Model_Config::SCOPE_GLOBAL, '', 'tiger.schedule.demo.job.every'), 'not rescheduled');
+        unset($GLOBALS['__tiger_test_ran']);
+    }
+
+    #[Test]
+    public function the_schedule_control_token_reschedules_and_runs(): void
+    {
+        $GLOBALS['__tiger_test_ran'] = false;
+        Tiger_Schedule::register([
+            'key' => 'demo.job', 'label' => 'Demo', 'run' => function () { $GLOBALS['__tiger_test_ran'] = true; },
+        ]);
+        $this->loginAs('admin');
+
+        [$set, $run] = $this->cookieMode(function () {
+            // The token the reusable schedule-control renders (Schedule_Form_Schedule) also covers runNow.
+            $el = (new \Schedule_Form_Schedule())->getElement('_csrf');
+            $el->initCsrfToken();
+            $tok = (string) $el->getHash();
+            return [
+                $this->dispatch(['action' => 'setSchedule', 'key' => 'demo.job', 'every' => 'hourly', '_csrf' => $tok]),
+                $this->dispatch(['action' => 'runNow', 'key' => 'demo.job', '_csrf' => $tok]),
+            ];
+        });
+
+        $this->assertSame(1, (int) $set->result, $this->messages($set));
+        $this->assertSame(1, (int) $run->result, $this->messages($run));
+        $this->assertTrue($GLOBALS['__tiger_test_ran']);
+        unset($GLOBALS['__tiger_test_ran']);
     }
 }

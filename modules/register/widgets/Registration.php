@@ -83,11 +83,23 @@ class Register_Widget_Registration
             . '})();';
     }
 
-    /** A CSRF token the widget's form can submit (same session the /api form validates against). */
+    /**
+     * A CSRF token the widget's buttons submit (same session the /api forms validate against). One salt
+     * covers register, verifyDomain and resendEmail (Register_Form_Write, TIGER-528).
+     *
+     * The token must be ARMED in the session: a bare getHash() mints a random value the session never
+     * sees, so every widget post failed "token expired". Reuse the salt's live token (so the Settings
+     * screen's token stays valid), else arm a fresh one — the Comment_Service_Comment::_csrfToken shape.
+     */
     private function _csrf(): string
     {
         try {
-            return (string) (new Register_Form_Register())->getElement('_csrf')->getHash();
+            $el = (new Register_Form_Register())->getElement('_csrf');
+            if (!$el) { return ''; }
+            $live = (string) ($el->getSession()->hash ?? '');
+            if ($live !== '') { return $live; }
+            $el->initCsrfToken();
+            return (string) $el->getHash();
         } catch (Throwable $e) {
             return '';
         }

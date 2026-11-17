@@ -196,6 +196,7 @@ class Message_Service_Message extends Tiger_Service_Service
      * Mark my copy of a message read.
      *
      * @param  array $params the request payload
+     * @apiRequest Message_Form_Copy
      * @apiParam string message_id required The message.
      * @return void
      */
@@ -204,6 +205,7 @@ class Message_Service_Message extends Tiger_Service_Service
      * Mark my copy of a message unread.
      *
      * @param  array $params the request payload
+     * @apiRequest Message_Form_Copy
      * @apiParam string message_id required The message.
      * @return void
      */
@@ -212,6 +214,7 @@ class Message_Service_Message extends Tiger_Service_Service
      * Archive my copy of a message.
      *
      * @param  array $params the request payload
+     * @apiRequest Message_Form_Copy
      * @apiParam string message_id required The message.
      * @return void
      */
@@ -220,6 +223,7 @@ class Message_Service_Message extends Tiger_Service_Service
      * Move my copy of a message back to the inbox.
      *
      * @param  array $params the request payload
+     * @apiRequest Message_Form_Copy
      * @apiParam string message_id required The message.
      * @return void
      */
@@ -229,12 +233,15 @@ class Message_Service_Message extends Tiger_Service_Service
      * Delete MY copy. The message and everyone else's copies are untouched.
      *
      * @param  array $params the request payload
+     * @apiRequest Message_Form_Copy
      * @apiParam string message_id required The message whose copy to delete.
      * @return void
      */
     public function delete(array $params): void
     {
         if (!$this->_signedIn()) { return; }
+        $form = new Message_Form_Copy();   // CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $recipients = new Tiger_Model_MessageRecipient();
         $copy = $recipients->getCopy(trim((string) ($params['message_id'] ?? '')), $this->_user_id);
         if (!$copy) { $this->_error('message.error.not_found'); return; }
@@ -248,12 +255,15 @@ class Message_Service_Message extends Tiger_Service_Service
      * Stop receiving from a member. Not an admin or higher, and not yourself.
      *
      * @param  array $params the request payload
+     * @apiRequest Message_Form_Member
      * @apiParam string user_id required The member to block.
      * @return void
      */
     public function block(array $params): void
     {
         if (!$this->_signedIn()) { return; }
+        $form = new Message_Form_Member();   // CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $target = trim((string) ($params['user_id'] ?? ''));
         if ($target === '' || $target === (string) $this->_user_id) { $this->_error('message.error.cannot_block'); return; }
 
@@ -278,12 +288,15 @@ class Message_Service_Message extends Tiger_Service_Service
      * Stop blocking a member.
      *
      * @param  array $params the request payload
+     * @apiRequest Message_Form_Member
      * @apiParam string user_id required The member to unblock.
      * @return void
      */
     public function unblock(array $params): void
     {
         if (!$this->_signedIn()) { return; }
+        $form = new Message_Form_Member();   // CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $blocks = new Tiger_Model_MessageBlock();
         $row = $blocks->getBlock($this->_org_id, $this->_user_id, trim((string) ($params['user_id'] ?? '')));
         if ($row) { $blocks->softDelete($blocks->getAdapter()->quoteInto('message_block_id = ?', $row->message_block_id)); }
@@ -339,6 +352,8 @@ class Message_Service_Message extends Tiger_Service_Service
     protected function _stamp(array $params, $column, $value, $okMessage)
     {
         if (!$this->_signedIn()) { return; }
+        $form = new Message_Form_Copy();   // a state change on my copy — CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $recipients = new Tiger_Model_MessageRecipient();
         $copy = $recipients->getCopy(trim((string) ($params['message_id'] ?? '')), $this->_user_id);
         if (!$copy) { $this->_error('message.error.not_found'); return; }

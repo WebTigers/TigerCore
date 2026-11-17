@@ -8,9 +8,12 @@
  * Media_Service_Settings — the live-override tier, no separate settings table (config-discipline).
  * '1' = obfuscate (random storage key); '0' = readable slugified filename in the key/URL.
  *
+ * Shares the module's CSRF salt (Media_Form_Write, TIGER-528), so the token this form renders on the
+ * Settings screen also covers saveStorage, testConnection and migrateDisk from the same page.
+ *
  * @api
  */
-class Media_Form_Settings extends Tiger_Form
+class Media_Form_Settings extends Media_Form_Write
 {
     protected function elements(): array
     {

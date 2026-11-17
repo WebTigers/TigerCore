@@ -12,9 +12,19 @@
 (function (w, d) {
     'use strict';
 
+    // The scheduler's CSRF token (TIGER-528): the nearest control's own token, else any on the page —
+    // every control renders one on Schedule_Form_Write's shared salt, so they all carry the same value.
+    function csrf(btn) {
+        var scope = btn && btn.closest ? btn.closest('[data-schedule-form]') : null;
+        var el = (scope && scope.querySelector('[data-schedule-csrf] [name="_csrf"]'))
+            || d.querySelector('[data-schedule-csrf] [name="_csrf"]');
+        return el ? el.value : '';
+    }
+
     function post(method, params, btn) {
         var fd = new URLSearchParams(params || {});
         fd.set('module', 'schedule'); fd.set('service', 'schedule'); fd.set('method', method);
+        if (!fd.has('_csrf')) { fd.set('_csrf', csrf(btn)); }
         var task = function () {
             return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
                 .then(function (r) { return r.json().catch(function () { return {}; }); });

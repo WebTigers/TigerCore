@@ -16,9 +16,16 @@
         });
     }
 
+    // The messaging write token the view renders (Message_Form_Write's shared salt, TIGER-528).
+    function csrf() {
+        var el = document.querySelector('#msg-csrf [name="_csrf"]');
+        return el ? el.value : '';
+    }
+
     function api(method, params) {
         var body = new URLSearchParams({ module: 'message', service: 'message', method: method });
         Object.keys(params || {}).forEach(function (k) { body.append(k, params[k]); });
+        body.set('_csrf', csrf());   // the page's write token (TIGER-528); reads ignore it
         return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
             .then(function (r) { return r.json().catch(function () { return {}; }); });
     }

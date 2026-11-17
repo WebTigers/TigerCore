@@ -16,6 +16,8 @@
 </div>
 
 <div id="email-feedback"></div>
+<?php /* The list's write token (TIGER-528) — the per-row Reset posts it (Email_Form_Write's shared salt). */ ?>
+<div id="email-csrf" hidden><?= $this->csrfForm ? $this->csrfForm->getElement('_csrf') : '' ?></div>
 
 <div class="card">
     <div class="card-body">

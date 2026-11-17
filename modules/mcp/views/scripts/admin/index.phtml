@@ -18,6 +18,8 @@ $bridge = (string) $this->bridge;
 
 <?php /* The endpoint URL + the bridge path, for the JS that builds the paste-ready client config. */ ?>
 <div id="mcp-feedback" data-mcp-url="<?= $this->escape($mcpUrl) ?>" data-bridge="<?= $this->escape($bridge) ?>"></div>
+<?php /* The screen's write token (TIGER-528) — enable, mint and revoke share it (Mcp_Form_Write). */ ?>
+<div id="mcp-csrf" hidden><?= $this->csrfForm ? $this->csrfForm->getElement('_csrf') : '' ?></div>
 
 <div class="row g-4">
   <div class="col-lg-6">
