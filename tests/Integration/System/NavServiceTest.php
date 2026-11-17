@@ -28,6 +28,20 @@ use Zend_Registry;
 #[CoversClass(System_Service_Nav::class)]
 final class NavServiceTest extends IntegrationTestCase
 {
+    use \Tiger\Tests\Support\StatelessApi;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->useStatelessApi();   // behaviour tests run CSRF-immune; the gate has its own test below
+    }
+
+    protected function tearDown(): void
+    {
+        $this->restoreStatelessApi();
+        parent::tearDown();
+    }
+
     private function dispatch(array $msg): object
     {
         return (new System_Service_Nav($msg))->getResponse();

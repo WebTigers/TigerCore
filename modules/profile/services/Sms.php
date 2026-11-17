@@ -157,6 +157,7 @@ class Profile_Service_Sms extends Profile_Service_Base
      * Step 1 — send a verification code to a number the user is enrolling (requires the consent tick).
      *
      * @param  array $params phone, consent (1), _csrf
+     * @apiRequest Profile_Form_Sms
      * @apiParam string phone required The phone number to enroll (normalized to E.164).
      * @apiParam boolean consent required The user's opt-in to receive texts. Refused without it.
      * @return void
@@ -166,8 +167,9 @@ class Profile_Service_Sms extends Profile_Service_Base
         $userId = (string) $this->_user_id;
         if ($userId === '') { $this->_error('core.api.error.not_allowed'); return; }
 
+        // The card's form validates the token + fields (TIGER-528: it used to be built and never checked).
         $form = new Profile_Form_Sms();
-        if (!$this->_validCsrf(Profile_Form_Sms::class, $params)) { $this->_error('core.api.error.csrf'); return; }
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         // Consent is mandatory — we never text a number without the opt-in (TCPA/10DLC).
         if (empty($params['consent'])) { $this->_error('profile.sms.consent_required', ['field' => 'consent']); return; }
@@ -215,6 +217,7 @@ class Profile_Service_Sms extends Profile_Service_Base
      * Step 2 — confirm the texted code: mark the number verified + record consent (double opt-in done).
      *
      * @param  array $params phone, code, _csrf
+     * @apiRequest Profile_Form_Sms
      * @apiParam string phone required The phone number the code was sent to.
      * @apiParam string code required The verification code from the text.
      * @return void
@@ -223,7 +226,8 @@ class Profile_Service_Sms extends Profile_Service_Base
     {
         $userId = (string) $this->_user_id;
         if ($userId === '') { $this->_error('core.api.error.not_allowed'); return; }
-        if (!$this->_validCsrf(Profile_Form_Sms::class, $params)) { $this->_error('core.api.error.csrf'); return; }
+        $form = new Profile_Form_Sms();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $e164 = Tiger_Sms::e164((string) ($params['phone'] ?? ''));
         $code = preg_replace('/\D/', '', (string) ($params['code'] ?? ''));
@@ -285,7 +289,12 @@ class Profile_Service_Sms extends Profile_Service_Base
     {
         $userId = (string) $this->_user_id;
         if ($userId === '') { $this->_error('core.api.error.not_allowed'); return; }
-        if (!$this->_validCsrf(Profile_Form_Sms::class, $params)) { $this->_error('core.api.error.csrf'); return; }
+
+        // No fields of its own — only the card's token. isValidPartial() validates just the keys sent, so
+        // seed `_csrf` ('' not null — the parent skips a null key) to make a missing token a refusal.
+        $params['_csrf'] = !empty($params['_csrf']) ? $params['_csrf'] : '';
+        $form = new Profile_Form_Sms();
+        if (!$form->isValidPartial(['_csrf' => $params['_csrf']])) { $this->_formErrors($form); return; }
 
         try {
             $this->_transaction(function () use ($userId) {

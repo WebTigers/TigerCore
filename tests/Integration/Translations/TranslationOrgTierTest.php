@@ -41,10 +41,14 @@ final class TranslationOrgTierTest extends IntegrationTestCase
         }
         $this->translateBefore = Zend_Registry::isRegistered('Zend_Translate') ? Zend_Registry::get('Zend_Translate') : null;
         Tiger_I18n_Overrides::reset();
+        // CSRF is a cookie-mode defence (TIGER-528); a service-level test runs as a Bearer call does.
+        Zend_Registry::set('tiger.auth.stateless', true);
     }
 
     protected function tearDown(): void
     {
+        $reg = Zend_Registry::getInstance();
+        if ($reg->offsetExists('tiger.auth.stateless')) { $reg->offsetUnset('tiger.auth.stateless'); }
         Tiger_I18n_Overrides::reset();
         if ($this->translateBefore !== null) {
             Zend_Registry::set('Zend_Translate', $this->translateBefore);

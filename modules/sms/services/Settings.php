@@ -14,6 +14,7 @@ class Sms_Service_Settings extends Tiger_Service_Service
      * Save the SMS settings: the sender identity, the provider, and the provider's own fields.
      *
      * @param  array $params {brand, provider, <adapter field keys…>}
+     * @apiRequest Sms_Form_Settings
      * @apiParam string provider The SMS provider (e.g. twilio, vonage, plivo, telnyx, sns); empty switches SMS off. Also send that provider's own fields; a blank secret keeps the stored one.
      * @apiParam string brand The sender identity shown to recipients.
      * @return void
@@ -21,6 +22,8 @@ class Sms_Service_Settings extends Tiger_Service_Service
     public function save(array $params): void
     {
         if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Sms_Form_Settings();   // writes provider secrets — CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $provider = strtolower(trim((string) ($params['provider'] ?? '')));
         if ($provider !== '' && !in_array($provider, Tiger_Sms::providers(), true)) {
@@ -65,6 +68,7 @@ class Sms_Service_Settings extends Tiger_Service_Service
      * Send a test message through the configured provider.
      *
      * @param  array $params {to, message?}
+     * @apiRequest Sms_Form_Test
      * @apiParam string to required The phone number to send the test to.
      * @apiParam string message The text to send; default a branded test message.
      * @return void
@@ -72,6 +76,8 @@ class Sms_Service_Settings extends Tiger_Service_Service
     public function test(array $params): void
     {
         if (!$this->_isAllowed('test')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Sms_Form_Test();   // sends a paid message — CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $to  = (string) ($params['to'] ?? '');
         $msg = trim((string) ($params['message'] ?? '')) ?: (Tiger_Sms::brand() . ': test message.');
         if ($to === '') { $this->_error('sms.settings.error.to'); return; }

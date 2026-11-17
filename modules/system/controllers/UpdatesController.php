@@ -38,6 +38,7 @@ class System_UpdatesController extends Tiger_Controller_Admin_Action
         $this->view->updates        = $updates;
         $this->view->pending        = $pending;
         $this->view->currentVersion = Tiger_Version::VERSION;   // the installed TigerCore version, always shown
+        $this->view->applyForm      = new System_Form_UpdateApply();   // its `_csrf` token guards apply (TIGER-528)
 
         // The history grid fetches its own rows from /api (System_Service_Updates::datatable)
         // per the client/server contract — the controller renders the shell only. WITHOUT this

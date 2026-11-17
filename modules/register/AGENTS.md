@@ -35,5 +35,6 @@ Nothing is sent anywhere until the admin submits.
 ## Conventions
 
 BSD-3 headers (bundled in core). State in the config tier (`register.*`, SCOPE_GLOBAL). Admin form keeps CSRF;
-the widget submits a token via `Register_Form_Register->getElement('_csrf')->getHash()`. Aimed at the CMS
+every write (register, verifyDomain, resendEmail) validates a form on one shared salt (`Register_Form_Write`,
+TIGER-528); the widget submits that salt's token, ARMED in the session (a bare `getHash()` is never stored). Aimed at the CMS
 operator — a composer/vibe-dev who doesn't care just deactivates it.

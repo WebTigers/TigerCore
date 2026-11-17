@@ -15,6 +15,8 @@ var MEDIA_CLIENT_THUMB = MEDIA_CFG.getAttribute('data-client-thumb') === '1';
 var MEDIA_THUMB_PX     = parseInt(MEDIA_CFG.getAttribute('data-thumb-px'), 10) || 200;
 var PDFJS_URL          = MEDIA_CFG.getAttribute('data-pdfjs') || '';
 var PDFJS_WORKER       = MEDIA_CFG.getAttribute('data-pdfjs-worker') || '';
+// The media write token the view renders (TIGER-528) — every update / delete / copyToLibrary posts it.
+function mediaCsrf() { var el = document.querySelector('#media-csrf [name="_csrf"]'); return el ? el.value : ''; }
 document.addEventListener('DOMContentLoaded', function () {
     var $ = jQuery, esc = tigerDataTable.esc;
     var KIND_ICON = { image:'fa-image', pdf:'fa-file-pdf', document:'fa-file-lines', video:'fa-film', audio:'fa-music', archive:'fa-file-zipper', other:'fa-file' };
@@ -228,7 +230,8 @@ document.addEventListener('DOMContentLoaded', function () {
             caption:    document.getElementById('media-edit-caption').value,
             alt_text:   document.getElementById('media-edit-alt').value,
             description: document.getElementById('media-edit-description').value,
-            visibility: document.getElementById('media-edit-vis').value });
+            visibility: document.getElementById('media-edit-vis').value,
+            _csrf:      mediaCsrf() });
         TigerButton.run(this, function(){
             return fetch('/api', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body:body }).then(function(r){ return r.json(); });
         }).then(function(res){
@@ -241,7 +244,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!id) { return; }
         if (!confirm(Tiger.t('confirmDeleteFile'))) { return; }
         TigerButton.run(btn, function(){
-            return fetch('/api', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body:new URLSearchParams({ module:'media', service:'media', method:'delete', media_id:id }) }).then(function(r){ return r.json(); });
+            return fetch('/api', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body:new URLSearchParams({ module:'media', service:'media', method:'delete', media_id:id, _csrf:mediaCsrf() }) }).then(function(r){ return r.json(); });
         }).then(function(res){ if (before) { before(); } if (res && res.result===1) { TigerDOM.toast(Tiger.t('fileDeleted'), { type:'success' }); } refresh(); })
           .catch(function(){ refresh(); });
     }
@@ -293,7 +296,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!b || b.disabled) { return; }
         TigerButton.run(b, function(){
             return fetch('/api', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'},
-                body:new URLSearchParams({ module:'media', service:'media', method:'copyToLibrary', media_id:b.getAttribute('data-media-copy-lib') }) })
+                body:new URLSearchParams({ module:'media', service:'media', method:'copyToLibrary', media_id:b.getAttribute('data-media-copy-lib'), _csrf:mediaCsrf() }) })
                 .then(function(r){ return r.json(); });
         }).then(function(res){
             if (res && res.result===1) { TigerDOM.toast((res.data&&res.data.existing)?Tiger.t('alreadyInLibrary'):Tiger.t('copiedToLibrary'), { type:'success' }); refresh(); return; }

@@ -100,4 +100,62 @@ final class SettingsServiceTest extends IntegrationTestCase
         $this->assertArrayHasKey('obfuscate_public', $res->form);
         $this->assertSame($before, (int) $this->db->fetchOne('SELECT COUNT(*) FROM config'), 'nothing written');
     }
+
+    // ----- CSRF (TIGER-528) ---------------------------------------------------------------------
+
+    /** Run $fn as a browser session would: CSRF applies, against an array-backed session. */
+    private function cookieMode(callable $fn)
+    {
+        Zend_Registry::set('tiger.auth.stateless', false);
+        $prior = \Zend_Session::$_unitTestEnabled;
+        \Zend_Session::$_unitTestEnabled = true;
+        $_SESSION = [];
+        // A request always has a writable session; an earlier test may have write-closed it.
+        $w = new \ReflectionProperty(\Zend_Session_Abstract::class, '_writable');
+        $priorW = (bool) $w->getValue();
+        $w->setValue(null, true);
+        try {
+            return $fn();
+        } finally {
+            Zend_Registry::set('tiger.auth.stateless', true);
+            \Zend_Session::$_unitTestEnabled = $prior;
+            $_SESSION = [];
+            $w->setValue(null, $priorW);
+        }
+    }
+
+    #[Test]
+    public function storage_and_migration_writes_refuse_a_tokenless_cross_site_request(): void
+    {
+        $this->loginAs('admin');
+        $before = (int) $this->db->fetchOne('SELECT COUNT(*) FROM config');
+
+        $this->cookieMode(function () {
+            foreach ([
+                'saveStorage'    => ['adapter' => 's3', 'bucket' => 'attacker-bucket', 'key' => 'AKIA', 'secret' => 's', 'default_disk' => 'cloud'],
+                'testConnection' => ['adapter' => 's3', 'bucket' => 'attacker-bucket'],
+                'migrateDisk'    => ['to' => 'local', 'move' => '1'],
+                'save'           => ['obfuscate_public' => '1', 'obfuscate_private' => '1'],
+            ] as $action => $params) {
+                $res = (new Media_Service_Settings(['action' => $action] + $params))->getResponse();
+                $this->assertSame(0, (int) $res->result, "$action without a token is refused");
+                $this->assertStringContainsString('core.api.error.csrf', json_encode($res->messages), "$action: the CSRF refusal");
+            }
+        });
+
+        $this->assertSame($before, (int) $this->db->fetchOne('SELECT COUNT(*) FROM config'), 'no credentials written');
+    }
+
+    #[Test]
+    public function save_storage_with_the_settings_token_goes_through(): void
+    {
+        $this->loginAs('admin');
+        $res = $this->cookieMode(function () {
+            $el = (new \Media_Form_Settings())->getElement('_csrf');   // the token the Settings view renders
+            $el->initCsrfToken();
+            return (new Media_Service_Settings(['action' => 'saveStorage', 'adapter' => 'none', '_csrf' => (string) $el->getHash()]))->getResponse();
+        });
+        $this->assertSame(1, (int) $res->result);
+        $this->assertSame('local', (string) (new Tiger_Model_Config())->get(Tiger_Model_Config::SCOPE_GLOBAL, '', 'media.default_disk'));
+    }
 }

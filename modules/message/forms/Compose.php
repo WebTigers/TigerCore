@@ -6,8 +6,11 @@
  *
  * Subject and body only. Recipients are validated in the service, not here, because "is this an
  * active member of MY org" needs the caller's identity, which a form does not have.
+ *
+ * Shares the module's CSRF salt (Message_Form_Write, TIGER-528) so one rendered token covers every
+ * messaging write.
  */
-class Message_Form_Compose extends Tiger_Form
+class Message_Form_Compose extends Message_Form_Write
 {
     /** @return array the element schema */
     protected function elements(): array

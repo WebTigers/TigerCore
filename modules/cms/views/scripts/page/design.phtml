@@ -99,6 +99,7 @@ if ($this->chromeBefore !== null || $this->chromeAfter !== null) {
     </header>
 
     <div id="gjs"></div>
+    <div id="tb-csrf" hidden><?= $this->csrfForm->getElement('_csrf') ?></div>
 
     <script>
         window.TIGER_BUILDER = {

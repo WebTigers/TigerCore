@@ -22,6 +22,7 @@ class Git_Service_Release extends Git_Service_Base
      * Create an annotated semver tag on the connected repo (owner-only). Returns {tag, sha}.
      *
      * @param  array $params module_key, version
+     * @apiRequest Git_Form_Tag
      * @apiParam string module_key required The module (its slug).
      * @apiParam string version required Semver version to tag, e.g. 1.2.0.
      */
@@ -29,6 +30,8 @@ class Git_Service_Release extends Git_Service_Base
     {
         if (!$this->_signedIn()) { return; }
         if (!$this->_isAllowed(Tiger_Git::PRIV_TAG, Tiger_Git::RESOURCE_RELEASE)) { $this->_error('git.error.not_allowed'); return; }
+        $form = new Git_Form_Tag();   // cutting a tag is a write on the remote repo — CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $moduleKey = $this->_slug((string) ($params['module_key'] ?? ''));
         if ($moduleKey === null) { $this->_error('git.error.invalid_module'); return; }
@@ -107,12 +110,15 @@ class Git_Service_Release extends Git_Service_Base
      * Approve or reject a submitted release (the QA reviewer — admin). Moves it to approved|rejected.
      *
      * @param  array $params module_release_id, decision (approve|reject)
+     * @apiRequest Git_Form_Decide
      * @apiParam string module_release_id required The release to decide.
      * @apiParam string(approve|reject) decision required The QA decision.
      */
     public function decide(array $params): void
     {
         if (!$this->_signedIn() || !$this->_isAllowed('decide')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Git_Form_Decide();   // a QA verdict is a state change — CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $id       = (string) ($params['module_release_id'] ?? '');
         $decision = (string) ($params['decision'] ?? '');

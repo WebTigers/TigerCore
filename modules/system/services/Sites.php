@@ -141,12 +141,16 @@ class System_Service_Sites extends Tiger_Service_Service
      * Remove a host → org mapping (soft-delete); the site falls back to single-site resolution.
      *
      * @param  array $params the request payload carrying site_domain_id
+     * @apiRequest System_Form_SiteDelete
      * @apiParam string site_domain_id required The host mapping to remove.
      * @return void
      */
     public function delete(array $params): void
     {
         if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
+        // The Sites screen's shared token (TIGER-528) — a delete-by-id is still a write.
+        $form = new System_Form_SiteDelete();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $id = !empty($params['site_domain_id']) ? (string) $params['site_domain_id'] : '';
         if ($id === '') { $this->_error('core.api.error.general'); return; }
 

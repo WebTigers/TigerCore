@@ -13,6 +13,13 @@
   var cfg = window.TIGER_BUILDER || {};
   if (!window.grapesjs || !document.getElementById('gjs')) { return; }
 
+  // The CSRF token the builder view renders (#tb-csrf) — every save (design, block) posts it back
+  // (TIGER-528). Read at send time so a re-rendered value is always current.
+  function tbCsrf() {
+    var el = document.querySelector('#tb-csrf [name="_csrf"]');
+    return el ? el.value : '';
+  }
+
   var preset = window['grapesjs-preset-webpage'];
 
   var editor = grapesjs.init({
@@ -128,6 +135,7 @@
     body.set('service', 'page');
     body.set('method', 'saveDesign');
     body.set('page_id', cfg.pageId || '');
+    body.set('_csrf', tbCsrf());
     body.set('html', tbStripChrome(outHtml));   // belt-and-suspenders (chrome already removed above)
     body.set('css', outCss);
     body.set('project', outProject);
@@ -460,6 +468,7 @@
       var body = new URLSearchParams();
       body.set('module', 'cms'); body.set('service', 'page'); body.set('method', 'saveBlock');
       body.set('name', name); body.set('html', html); body.set('css', css);
+      body.set('_csrf', tbCsrf());
 
       saveBlockBtn.disabled = true;
       setStatus('Saving block…', 'saving');

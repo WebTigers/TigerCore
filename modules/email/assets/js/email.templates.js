@@ -10,6 +10,12 @@
         return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
             .then(function (r) { return r.json().catch(function () { return {}; }); });
     }
+    // The page's write token (TIGER-528): the list renders one in #email-csrf, the editor inside its form —
+    // both on Email_Form_Write's shared salt, so either satisfies save and reset.
+    function csrf() {
+        var el = document.querySelector('#email-csrf [name="_csrf"], #email-tpl-form [name="_csrf"]');
+        return el ? el.value : '';
+    }
     function notify(fb, msg, type) { if (window.TigerDOM && fb) { TigerDOM.notify(fb, msg, { type: type || 'info' }); } }
     function msgs(res, fb, fallback) {
         (res && res.messages && res.messages.length ? res.messages : [{ message: fallback, class: 'error' }])
@@ -64,7 +70,7 @@
             TigerModal.confirm({ title: T('confirmResetTitle'), body: T('confirmResetBody'), confirmLabel: T('actionReset'), variant: 'danger' })
                 .then(function (ok) {
                     if (!ok) { return; }
-                    var fd = new URLSearchParams({ module: 'email', service: 'template', method: 'reset', key: key });
+                    var fd = new URLSearchParams({ module: 'email', service: 'template', method: 'reset', key: key, _csrf: csrf() });
                     TigerButton.run(btn, function () { return post(fd); }).then(function (res) {
                         if (res && res.result === 1) { notify(fb, T('resetDone'), 'success'); table.ajax.reload(null, false); return; }
                         msgs(res, fb, T('general'));
@@ -139,7 +145,7 @@
                 TigerModal.confirm({ title: T('confirmResetTitle'), body: T('confirmResetBody'), confirmLabel: T('actionReset'), variant: 'danger' })
                     .then(function (ok) {
                         if (!ok) { return; }
-                        var fd = new URLSearchParams({ module: 'email', service: 'template', method: 'reset', key: key });
+                        var fd = new URLSearchParams({ module: 'email', service: 'template', method: 'reset', key: key, _csrf: csrf() });
                         TigerButton.run(btn, function () { return post(fd); }).then(function (res) {
                             if (res && res.result === 1) { window.location = '/email/admin'; return; }
                             msgs(res, fb, T('general'));

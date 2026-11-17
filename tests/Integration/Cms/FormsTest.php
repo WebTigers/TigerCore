@@ -85,12 +85,16 @@ final class FormsTest extends IntegrationTestCase
     // ----- Cms_Form_MenuItem --------------------------------------------------------------------
 
     #[Test]
-    public function menu_item_form_disables_csrf_requires_a_label_and_lists_linkable_pages(): void
+    public function menu_item_form_carries_csrf_requires_a_label_and_lists_linkable_pages(): void
     {
         $this->seedPublishedPage();   // → the page_key dropdown option-loading branch runs
-        $form = new Cms_Form_MenuItem();
 
-        $this->assertNull($form->getElement('_csrf'), 'the menu builder form carries no CSRF token');
+        // TIGER-528: the builder form is no longer CSRF-exempt — in cookie mode it carries the token.
+        Zend_Registry::set('tiger.auth.stateless', false);
+        $this->assertNotNull((new Cms_Form_MenuItem())->getElement('_csrf'), 'the menu builder form carries a CSRF token');
+        Zend_Registry::set('tiger.auth.stateless', true);
+
+        $form = new Cms_Form_MenuItem();
         $this->assertTrue($form->getElement('label')->isRequired(), 'label is required');
         foreach (['url', 'icon', 'css_class', 'link_target', 'resource', 'privilege', 'status'] as $name) {
             $this->assertNotNull($form->getElement($name), "the $name element is declared");

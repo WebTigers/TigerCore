@@ -33,10 +33,15 @@ final class AgentMcpTest extends IntegrationTestCase
         \Zend_Registry::set('Zend_Config', $cfg);
         // Connections are org-scoped (TIGER-511): the registry reads/writes the signed-in org's list.
         \Tiger_Model_Table::setOrg('org-test');
+        // The service writes through Agent_Form_Mcp (TIGER-528); a header-less CLI dispatch is the stateless
+        // (Bearer) path, which skips CSRF. The cookie-mode refusal is pinned in AgentAdminCsrfTest.
+        \Zend_Registry::set('tiger.auth.stateless', true);
     }
 
     protected function tearDown(): void
     {
+        $reg = \Zend_Registry::getInstance();
+        if ($reg->offsetExists('tiger.auth.stateless')) { $reg->offsetUnset('tiger.auth.stateless'); }
         @unlink(APPLICATION_ROOT . '/var/cache/agent-mcp/tools-' . md5('org-test') . '.json');
         parent::tearDown();
     }

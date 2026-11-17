@@ -9,9 +9,11 @@
  * substitutes + wraps it in the shared branded layout at send time. ViewHelper-only decorators (the view
  * owns markup, the editor is AJAX-submitted).
  *
+ * Shares the module's CSRF salt (Email_Form_Write, TIGER-528), so the editor's one token covers reset too.
+ *
  * @api
  */
-class Email_Form_Template extends Tiger_Form
+class Email_Form_Template extends Email_Form_Write
 {
     protected function elements(): array
     {

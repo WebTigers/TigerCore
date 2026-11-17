@@ -34,8 +34,17 @@ final class ModulesServiceExtraTest extends IntegrationTestCase
     private ?string $registryFile = null;
     private ?string $registryOrig = null;
 
+    use \Tiger\Tests\Support\StatelessApi;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->useStatelessApi();
+    }
+
     protected function tearDown(): void
     {
+        $this->restoreStatelessApi();
         if ($this->registryFile !== null) {
             if ($this->registryOrig !== null) { @file_put_contents($this->registryFile, $this->registryOrig); }
             else { @unlink($this->registryFile); }

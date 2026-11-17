@@ -189,6 +189,31 @@ class Media_Service_Media extends Tiger_Service_Service
             }
         }
         $this->_dtResponse($dt['draw'], $sAll + (int) $data['total'], $sFil + (int) $data['filtered'], $rows);
+        // The write token rides the grid read (TIGER-528): the shared media picker opens on pages owned by
+        // other modules, which render their OWN token, so it takes the media salt's token from here — the
+        // same per-view hand-off Comment_Service_Comment::list uses. A cross-site page cannot read this reply.
+        $this->_response->data['csrf'] = $this->_csrfToken();
+    }
+
+    /**
+     * A CSRF token for the media write salt, armed in this session; '' where there is no session to arm
+     * (a stateless Bearer call, which the CSRF check does not apply to). Reuses a live token so a second
+     * fetch never invalidates one a page is already holding.
+     *
+     * @return string
+     */
+    protected function _csrfToken(): string
+    {
+        try {
+            $el = (new Media_Form_Item())->getElement('_csrf');
+            if (!$el) { return ''; }
+            $live = (string) ($el->getSession()->hash ?? '');
+            if ($live !== '') { return $live; }
+            $el->initCsrfToken();
+            return (string) $el->getHash();
+        } catch (Throwable $e) {
+            return '';
+        }
     }
 
     /**
@@ -197,6 +222,7 @@ class Media_Service_Media extends Tiger_Service_Service
      * already copied by this org return the existing row instead of a duplicate.
      *
      * @param  array $params must carry `media_id` = a static entry id (`static:<slug>:<relpath>`)
+     * @apiRequest Media_Form_Item
      * @apiParam string media_id required A static entry id (`static:<slug>:<relpath>`).
      * @apiParam string ref Alias for media_id.
      * @return void
@@ -204,6 +230,8 @@ class Media_Service_Media extends Tiger_Service_Service
     public function copyToLibrary(array $params): void
     {
         if (!$this->_isAllowed('copyToLibrary')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Media_Form_Item();   // writes a file + a row — CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $src = Tiger_Media_Manifest::file((string) ($params['media_id'] ?? $params['ref'] ?? ''));
         if ($src === '') { $this->_error('media.error.static_missing'); return; }
@@ -308,6 +336,7 @@ class Media_Service_Media extends Tiger_Service_Service
      * Edit editorial fields (title / caption / alt / visibility).
      *
      * @param  array $params must carry `media_id`; optional `title`/`caption`/`alt_text`/`visibility`
+     * @apiRequest Media_Form_Update
      * @apiParam string media_id required The media item to edit.
      * @apiParam string title Title.
      * @apiParam string caption Caption.
@@ -319,6 +348,11 @@ class Media_Service_Media extends Tiger_Service_Service
     public function update(array $params): void
     {
         if (!$this->_isAllowed('update')) { $this->_error('core.api.error.not_allowed'); return; }
+        // A partial update: isValidPartial() checks only the keys sent, so seed the token first or a
+        // request that simply omits `_csrf` would skip the check (AGENTS.md, TIGER-528). '' not null.
+        $params['_csrf'] = !empty($params['_csrf']) ? $params['_csrf'] : '';
+        $form = new Media_Form_Update();
+        if (!$form->isValidPartial($params)) { $this->_formErrors($form); return; }
         $id = (string) ($params['media_id'] ?? '');
         $model = new Tiger_Model_Media();
         // Ownership, not just role: the ACL says this caller is an admin, not that this row is theirs.
@@ -346,12 +380,15 @@ class Media_Service_Media extends Tiger_Service_Service
      * Soft-delete the row AND remove the stored bytes (+ variants).
      *
      * @param  array $params must carry `media_id`
+     * @apiRequest Media_Form_Item
      * @apiParam string media_id required The media item to delete.
      * @return void
      */
     public function delete(array $params): void
     {
         if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Media_Form_Item();   // destroys stored bytes — CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $id  = (string) ($params['media_id'] ?? '');
         $model = new Tiger_Model_Media();
         // Ownership FIRST — below this point the stored bytes are destroyed, which is not undoable by

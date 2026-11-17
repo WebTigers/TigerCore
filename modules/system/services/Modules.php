@@ -220,6 +220,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * Activate a module (by `slug`), publishing its assets.
      *
      * @param  array $params the /api payload (expects `slug`)
+     * @apiRequest System_Form_ModuleState
      * @apiParam string slug required The module to activate.
      * @apiParam string(1) confirm Send 1 to also deactivate any active module it conflicts with.
      * @apiParam string(1) make_default For a theme: send 1 to make it the site's default theme.
@@ -231,6 +232,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * Deactivate a module (by `slug`), unpublishing its assets.
      *
      * @param  array $params the /api payload (expects `slug`)
+     * @apiRequest System_Form_ModuleState
      * @apiParam string slug required The module to deactivate.
      * @return void
      */
@@ -243,6 +245,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * any module regardless of its update channel (GitHub, provider, …) — it only records the opt-in.
      *
      * @param  array $params the /api payload (expects `slug`, `on`)
+     * @apiRequest System_Form_ModuleState
      * @apiParam string slug required The module to set.
      * @apiParam boolean on Turn auto-update on (true) or off (false).
      * @return void
@@ -250,6 +253,7 @@ class System_Service_Modules extends Tiger_Service_Service
     public function autoUpdate(array $params): void
     {
         if (!$this->_isAllowed('autoUpdate')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_validForm(new System_Form_ModuleState(), $params)) { return; }
         $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($params['slug'] ?? ''));
         if ($slug === '') { $this->_error('core.api.error.general'); return; }
         if (!isset(Tiger_Module_Discovery::all()[$slug])) { $this->_error('system.error.unknown'); return; }
@@ -269,6 +273,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * module's `<vendor>/<name>`; and a dependency gate — refused while another ACTIVE module requires it.
      *
      * @param  array $params the /api payload (expects `slug` + `confirm`)
+     * @apiRequest System_Form_ModuleState
      * @apiParam string slug required The module to delete (must be deactivated first).
      * @apiParam string confirm required The module's vendor/name, typed to confirm.
      * @return void
@@ -276,6 +281,7 @@ class System_Service_Modules extends Tiger_Service_Service
     public function delete(array $params): void
     {
         if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_validForm(new System_Form_ModuleState(), $params)) { return; }
 
         $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($params['slug'] ?? ''));
         if ($slug === '') { $this->_error('core.api.error.general'); return; }
@@ -333,9 +339,25 @@ class System_Service_Modules extends Tiger_Service_Service
         return $vendor !== '' ? ($vendor . '/' . $name) : $name;
     }
 
+    /**
+     * Validate a module-manager write through its form — above all the screen's shared `_csrf` token
+     * (System_Form_ModuleWrite). On failure the field/CSRF errors are already on the response.
+     *
+     * @param  Tiger_Form $form   the method's System_Form_Module* form
+     * @param  array      $params the /api payload
+     * @return bool               true when the write may proceed
+     */
+    protected function _validForm(Tiger_Form $form, array $params): bool
+    {
+        if ($form->isValid($params)) { return true; }
+        $this->_formErrors($form);
+        return false;
+    }
+
     protected function _toggle(array $params, $on): void
     {
         if (!$this->_isAllowed('_toggle')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_validForm(new System_Form_ModuleState(), $params)) { return; }
 
         $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($params['slug'] ?? ''));
         if ($slug === '') { $this->_error('core.api.error.general'); return; }
@@ -492,13 +514,14 @@ class System_Service_Modules extends Tiger_Service_Service
      * the per-user `option` tier; the banner self-corrects — it reappears once the interval elapses, with
      * no reset logic. A brand-new subscription hides it anyway (see _passNagState).
      *
-     * @param  array $params the /api payload (no fields)
-     * @apiRequest none
+     * @param  array $params the /api payload (no fields beyond the screen's `_csrf`)
+     * @apiRequest System_Form_ModulePass
      * @return void
      */
     public function snoozePassNag(array $params): void
     {
         if (!$this->_isAllowed('snoozePassNag')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_validForm(new System_Form_ModulePass(), $params)) { return; }
         $uid = self::_currentUserId();
         if ($uid !== '') {
             (new Tiger_Model_Option())->set(Tiger_Model_Option::SCOPE_USER, $uid, self::NAG_DISMISSED_KEY, (string) time());
@@ -511,12 +534,14 @@ class System_Service_Modules extends Tiger_Service_Service
      * switch. A per-user preference in the `option` tier, so one admin's choice never blinds another.
      *
      * @param  array $params the /api payload (expects `disabled` = 1|0)
+     * @apiRequest System_Form_ModulePass
      * @apiParam boolean disabled Hide the TigerPASS banner (1) or show it again (0).
      * @return void
      */
     public function setPassNag(array $params): void
     {
         if (!$this->_isAllowed('setPassNag')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_validForm(new System_Form_ModulePass(), $params)) { return; }
         $uid = self::_currentUserId();
         if ($uid === '') { $this->_error('core.api.error.general'); return; }
         $disabled = in_array((string) ($params['disabled'] ?? ''), ['1', 'true', 'on'], true);
@@ -552,6 +577,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * admin owns it. The source just has to return `{modules, taxonomy}` — everything else is automatic.
      *
      * @param  array $params the /api payload (expects `label`, `url`; optional `kind`, `priority`)
+     * @apiRequest System_Form_ModuleSource
      * @apiParam string label required The source's display name.
      * @apiParam string url required The index URL (http or https).
      * @apiParam string(git-index|live-api) kind The source type (default live-api).
@@ -561,6 +587,7 @@ class System_Service_Modules extends Tiger_Service_Service
     public function connectSource(array $params): void
     {
         if (!$this->_isAllowed('connectSource')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_validForm(new System_Form_ModuleSource(), $params)) { return; }
 
         $label = trim((string) ($params['label'] ?? ''));
         $url   = trim((string) ($params['url'] ?? ''));
@@ -598,6 +625,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * override that wins over what shipped/registered). Only the fields present are changed.
      *
      * @param  array $params the /api payload (expects `id`; optional `enabled`, `priority`)
+     * @apiRequest System_Form_ModuleSource
      * @apiParam string id required The source to change.
      * @apiParam boolean enabled Enable or disable the source; omit to leave it.
      * @apiParam integer priority The new priority; omit to leave it.
@@ -606,6 +634,7 @@ class System_Service_Modules extends Tiger_Service_Service
     public function updateSource(array $params): void
     {
         if (!$this->_isAllowed('updateSource')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_validForm(new System_Form_ModuleSource(), $params)) { return; }
 
         $id = self::_slugId((string) ($params['id'] ?? ''));
         if ($id === '' || !self::_sourceExists($id)) { $this->_error('system.source.err_unknown'); return; }
@@ -630,12 +659,14 @@ class System_Service_Modules extends Tiger_Service_Service
      * source can't be removed here — disable it instead (or deactivate the owning module).
      *
      * @param  array $params the /api payload (expects `id`)
+     * @apiRequest System_Form_ModuleSource
      * @apiParam string id required The connected source to remove.
      * @return void
      */
     public function removeSource(array $params): void
     {
         if (!$this->_isAllowed('removeSource')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_validForm(new System_Form_ModuleSource(), $params)) { return; }
 
         $id = self::_slugId((string) ($params['id'] ?? ''));
         $src = null;
@@ -691,12 +722,14 @@ class System_Service_Modules extends Tiger_Service_Service
      * endpoint only accepts the resulting key.
      *
      * @param  array $params the /api payload (expects `key`)
+     * @apiRequest System_Form_ModulePass
      * @apiParam string key required The TigerPASS license key (a UUID).
      * @return void
      */
     public function activatePass(array $params): void
     {
         if (!$this->_isAllowed('activatePass')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_validForm(new System_Form_ModulePass(), $params)) { return; }
 
         // A TigerPASS key is the license key TigerLicense mints — a lowercase v7 UUID (not a branded
         // "TPASS-…" string). Normalize + shape-check as a UUID before any authority call.
@@ -733,13 +766,14 @@ class System_Service_Modules extends Tiger_Service_Service
      * Remove the stored TigerPASS key from this install (a manage/troubleshoot action; the subscription
      * itself is cancelled on webtigers.com — this only forgets the key locally).
      *
-     * @param  array $params the /api payload (no fields)
-     * @apiRequest none
+     * @param  array $params the /api payload (no fields beyond the screen's `_csrf`)
+     * @apiRequest System_Form_ModulePass
      * @return void
      */
     public function deactivatePass(array $params): void
     {
         if (!$this->_isAllowed('deactivatePass')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_validForm(new System_Form_ModulePass(), $params)) { return; }
         Tiger_License_Checker::forget(self::PASS_SLUG);
         $this->_success(['pass' => self::_passState()], 'system.pass.removed');
     }
@@ -991,6 +1025,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * Install (or update, with force) a module from a public GitHub URL.
      *
      * @param  array $params the /api payload (expects `url`, optional `ref`, `force`)
+     * @apiRequest System_Form_ModuleInstall
      * @apiParam string url required The module's public GitHub repo URL.
      * @apiParam string ref The tag or branch to install; empty uses the latest release.
      * @apiParam boolean force Update in place when the module is already installed.
@@ -999,6 +1034,7 @@ class System_Service_Modules extends Tiger_Service_Service
     public function install(array $params): void
     {
         if (!$this->_isAllowed('install')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_validForm(new System_Form_ModuleInstall(), $params)) { return; }
 
         $url = (string) ($params['url'] ?? '');
         if (!Tiger_Module_Github::parseRepo($url)) { $this->_error('system.error.repo_url'); return; }
@@ -1019,12 +1055,15 @@ class System_Service_Modules extends Tiger_Service_Service
      * validate → place → migrate → publish → record path as a URL install (source=upload).
      *
      * @param  array $params the /api payload (optional `force` to update in place)
+     * @apiRequest System_Form_ModuleInstall
      * @apiParam boolean force Update in place when the module is already installed (the .zip itself rides as the multipart file `archive`).
      * @return void
      */
     public function upload(array $params): void
     {
         if (!$this->_isAllowed('upload')) { $this->_error('core.api.error.not_allowed'); return; }
+        // Multipart: the token rides in the same FormData as the archive (TigerUpload's `csrf` option).
+        if (!$this->_validForm(new System_Form_ModuleInstall(), $params)) { return; }
 
         $f = $_FILES['archive'] ?? null;
         if (!is_array($f) || ($f['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
@@ -1055,12 +1094,14 @@ class System_Service_Modules extends Tiger_Service_Service
      * This does NOT pin — that's the deliberate second click (pinVendor).
      *
      * @param  array $params the /api payload (expects `vendor` = "owner/repo")
+     * @apiRequest System_Form_ModuleInstall
      * @apiParam string vendor required The vendor's TigerVendor repo, as owner/repo.
      * @return void
      */
     public function connectVendor(array $params): void
     {
         if (!$this->_isAllowed('connectVendor')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_validForm(new System_Form_ModuleInstall(), $params)) { return; }
         $vendor = trim((string) ($params['vendor'] ?? ''));
         if ($vendor === '') { $this->_error('system.vendor.required'); return; }
 
@@ -1075,12 +1116,14 @@ class System_Service_Modules extends Tiger_Service_Service
      * a prior pin (the re-consent path after a reviewed key change).
      *
      * @param  array $params the /api payload (expects `vendor` = "owner/repo")
+     * @apiRequest System_Form_ModuleInstall
      * @apiParam string vendor required The vendor's TigerVendor repo to trust, as owner/repo.
      * @return void
      */
     public function pinVendor(array $params): void
     {
         if (!$this->_isAllowed('pinVendor')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_validForm(new System_Form_ModuleInstall(), $params)) { return; }
         $vendor = trim((string) ($params['vendor'] ?? ''));
         if ($vendor === '') { $this->_error('system.vendor.required'); return; }
 
@@ -1100,6 +1143,7 @@ class System_Service_Modules extends Tiger_Service_Service
      * per-vendor paid path (distinct from the TigerPASS subscription in activatePass).
      *
      * @param  array $params the /api payload (expects `vendor`, `product`|`slug`, `key` — optional for a TigerPASS module when the install has TigerPASS activated; optional `repository`, `force`)
+     * @apiRequest System_Form_ModuleInstall
      * @apiParam string vendor required The vendor (owner/repo); it must be connected and pinned first.
      * @apiParam string product The product slug to install (required unless slug is given).
      * @apiParam string slug An alias for product.
@@ -1111,6 +1155,7 @@ class System_Service_Modules extends Tiger_Service_Service
     public function installLicensed(array $params): void
     {
         if (!$this->_isAllowed('installLicensed')) { $this->_error('core.api.error.not_allowed'); return; }
+        if (!$this->_validForm(new System_Form_ModuleInstall(), $params)) { return; }
 
         $vendor  = trim((string) ($params['vendor'] ?? ''));
         $product = trim((string) ($params['product'] ?? $params['slug'] ?? ''));

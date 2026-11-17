@@ -19,6 +19,8 @@ $this->i18n([
 </div>
 
 <div id="msg-feedback"></div>
+<?php /* The messaging write token (TIGER-528) — message.blocked.js posts it with every unblock. */ ?>
+<div id="msg-csrf" hidden><?= $this->csrfForm ? $this->csrfForm->getElement('_csrf') : '' ?></div>
 <div class="list-group" id="msg-blocked" aria-live="polite"></div>
 <p class="text-body-secondary text-center py-5 d-none" id="msg-blocked-empty"></p>
 

@@ -25,6 +25,8 @@ if ($passCheckout === '') { $passCheckout = 'https://webtigers.com/checkout/tige
 
 <?php /* The TigerPASS checkout URL this install points at — read by the JS (no inline script). */ ?>
 <div id="mod-feedback" data-pass-checkout="<?= $this->escape($passCheckout) ?>"></div>
+<?php /* The module manager's CSRF token — system.modules-add.js posts it with every call (TIGER-528). */ ?>
+<div id="mod-token"><?= $this->moduleForm ? $this->moduleForm->getElement('_csrf') : '' ?></div>
 
 <!-- TigerPASS value banner — rendered by JS only when this install has no active PASS -->
 <div id="pass-banner"></div>

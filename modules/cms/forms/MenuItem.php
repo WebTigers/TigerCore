@@ -11,18 +11,14 @@
  *
  * @api
  */
-class Cms_Form_MenuItem extends Tiger_Form
+class Cms_Form_MenuItem extends Cms_Form_Write
 {
-    /**
-     * No CSRF token. The menu builder saves items rapidly and reload-free (SPA-style),
-     * which a single-use token would fight; the sibling reorder/delete endpoints are
-     * likewise tokenless. All four are ACL-gated admin-only /api mutations — the trade
-     * is deliberate and consistent.
+    /*
+     * CSRF is ON (TIGER-528). This form used to opt out because the builder saves rapidly and a
+     * single-use token would have fought it — but Tiger_Form_Element_Hash is timeout-lived, so one
+     * rendered token covers every save/reorder/delete on the page, and an ACL gate alone is no CSRF
+     * defense: any page could make a signed-in admin's browser rewrite or delete the site's menus.
      */
-    protected function csrf(): bool
-    {
-        return false;
-    }
 
     protected function elements(): array
     {

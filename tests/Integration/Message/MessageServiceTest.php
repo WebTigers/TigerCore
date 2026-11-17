@@ -388,4 +388,76 @@ final class MessageServiceTest extends IntegrationTestCase
         $this->assertSame(0, $this->call('list')['result']);
         $this->assertSame(0, $this->call('unreadCount')['result']);
     }
+
+    /* ---- CSRF (TIGER-528) ----------------------------------------------------------------------- */
+
+    /** Run $fn as a browser session would: CSRF applies, against an array-backed session. */
+    private function cookieMode(callable $fn)
+    {
+        Zend_Registry::set('tiger.auth.stateless', false);
+        $prior = \Zend_Session::$_unitTestEnabled;
+        \Zend_Session::$_unitTestEnabled = true;
+        $_SESSION = [];
+        // A request always has a writable session; an earlier test may have write-closed it.
+        $w = new \ReflectionProperty(\Zend_Session_Abstract::class, '_writable');
+        $priorW = (bool) $w->getValue();
+        $w->setValue(null, true);
+        try {
+            return $fn();
+        } finally {
+            Zend_Registry::set('tiger.auth.stateless', true);
+            \Zend_Session::$_unitTestEnabled = $prior;
+            $_SESSION = [];
+            $w->setValue(null, $priorW);
+        }
+    }
+
+    #[Test]
+    public function every_inbox_write_refuses_a_tokenless_cross_site_request(): void
+    {
+        $id = Tiger_Message::toAdmins(self::ORG, 'Keep me', 'x');
+        $this->login('u-admin', self::ORG, 'admin');
+
+        $this->cookieMode(function () use ($id) {
+            foreach ([
+                'markRead'   => ['message_id' => $id],
+                'markUnread' => ['message_id' => $id],
+                'archive'    => ['message_id' => $id],
+                'unarchive'  => ['message_id' => $id],
+                'delete'     => ['message_id' => $id],
+                'block'      => ['user_id' => 'u-alice'],
+                'unblock'    => ['user_id' => 'u-alice'],
+            ] as $method => $params) {
+                $res = $this->call($method, $params);
+                $this->assertSame(0, $res['result'], "$method without a token is refused");
+                $this->assertSame('core.api.error.csrf', $res['messages'][0]['message'], "$method: the CSRF refusal");
+            }
+        });
+
+        $this->assertSame(1, $this->call('unreadCount')['data']['unread'], 'not marked read, not deleted');
+        $this->assertCount(1, $this->call('list', ['view' => 'inbox'])['data']['messages'], 'not archived');
+        $this->assertCount(0, $this->call('blocked')['data']['blocked'], 'nobody blocked');
+    }
+
+    #[Test]
+    public function the_inbox_token_covers_every_write_on_the_page(): void
+    {
+        $id = Tiger_Message::toAdmins(self::ORG, 'File me', 'x');
+        $this->login('u-admin', self::ORG, 'admin');
+
+        [$read, $arch] = $this->cookieMode(function () use ($id) {
+            // The ONE token the inbox renders (Message_Form_Copy) satisfies a second endpoint too.
+            $el = (new \Message_Form_Copy())->getElement('_csrf');
+            $el->initCsrfToken();
+            $tok = (string) $el->getHash();
+            return [
+                $this->call('markRead', ['message_id' => $id, '_csrf' => $tok]),
+                $this->call('archive',  ['message_id' => $id, '_csrf' => $tok]),
+            ];
+        });
+
+        $this->assertSame(1, $read['result']);
+        $this->assertSame(1, $arch['result'], 'a second write on the same page is not "token expired"');
+        $this->assertCount(1, $this->call('list', ['view' => 'archived'])['data']['messages']);
+    }
 }

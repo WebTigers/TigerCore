@@ -55,6 +55,8 @@ class Backup_IndexController extends Tiger_Controller_Admin_Action
         $this->view->canDownload       = $this->_may('download');
         $this->view->canRestore        = $this->_may('restore');
         $this->view->canIncludeSecrets = $this->_may('include_secrets');
+        // The screen's ONE CSRF token — every Backup_Form_* shares its salt, so it serves every write here.
+        $this->view->writeForm = new Backup_Form_Run();
     }
 
     /** Stream a stored backup archive to the browser (superadmin: `Tiger_Backup_Data` / `download`). */
@@ -98,6 +100,15 @@ class Backup_IndexController extends Tiger_Controller_Admin_Action
         if (!$this->_may('restore')) {
             $response->setHttpResponseCode(403);
             $response->setBody($this->_jsonBody(0, 'core.api.error.not_allowed'));
+            return;
+        }
+
+        // The screen's CSRF token rides in the multipart body (TIGER-528). A restore REPLACES the install's
+        // data, and a cross-site page can post multipart with a file of its choosing — so no token, no restore.
+        $form = new Backup_Form_Archive();
+        if (!$form->isValid($this->getRequest()->getPost())) {
+            $response->setHttpResponseCode(403);
+            $response->setBody($this->_jsonBody(0, 'core.api.error.csrf'));
             return;
         }
 

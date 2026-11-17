@@ -58,6 +58,9 @@ document.addEventListener('DOMContentLoaded', function () {
         TigerModal.confirm(confirmOpts).then(function (ok) {
             if (!ok) { return; }
             var body = new URLSearchParams({ module: 'cms', service: 'menu', method: method, menu_key: key, org_id: org || '' });
+            // The CSRF token the view renders (TIGER-528).
+            var csrfEl = document.querySelector('#cms-menu-csrf [name="_csrf"]');
+            if (csrfEl && csrfEl.value) { body.set('_csrf', csrfEl.value); }
             TigerButton.run(btn, function () {
                 return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
                     .then(function (r) { return r.json().catch(function () { return {}; }); });

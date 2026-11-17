@@ -29,12 +29,17 @@ class System_Service_Updates extends Tiger_Service_Service
      * Apply the selected updates. `items` is a list of slugs (`tiger-core` for the platform).
      *
      * @param  array $params {items: string[]|string}
+     * @apiRequest System_Form_UpdateApply
      * @apiParam array items required The slugs to update (tiger-core for the platform); an array or a comma list.
      * @return void
      */
     public function apply(array $params): void
     {
         if (!$this->_isAllowed('apply')) { $this->_error('core.api.error.not_allowed'); return; }
+
+        // Applying an update downloads and installs code — the Updates screen's token is required (TIGER-528).
+        $form = new System_Form_UpdateApply();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $slugs = $params['items'] ?? [];
         if (is_string($slugs)) { $slugs = array_filter(array_map('trim', explode(',', $slugs))); }

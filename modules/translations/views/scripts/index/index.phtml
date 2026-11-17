@@ -105,6 +105,8 @@ $this->i18n([
                 </div>
 
                 <form id="tr-modal-form" onsubmit="return false;" novalidate>
+                    <?php /* save + revert share this token (Translations_Form_Write, TIGER-528) */ ?>
+                    <?= $this->csrfForm ? $this->csrfForm->getElement('_csrf') : '' ?>
                     <input type="hidden" id="tr-modal-keyfield">
                     <div id="tr-modal-fields"></div>
                 </form>

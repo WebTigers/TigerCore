@@ -3,9 +3,10 @@
 // Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
 /**
  * Register_Form_Register — the one field registration needs: the admin email (identity + recovery +
- * notifications). The domain is auto-detected, not asked. A real browser admin form, so it keeps CSRF.
+ * notifications). The domain is auto-detected, not asked. A real browser admin form, so it keeps CSRF —
+ * on the module's shared salt (Register_Form_Write, TIGER-528) so the same token covers verify + resend.
  */
-class Register_Form_Register extends Tiger_Form
+class Register_Form_Register extends Register_Form_Write
 {
     protected function elements(): array
     {

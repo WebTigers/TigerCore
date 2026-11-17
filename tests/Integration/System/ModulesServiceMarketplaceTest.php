@@ -32,9 +32,12 @@ final class ModulesServiceMarketplaceTest extends IntegrationTestCase
     private array $wrote = [];
     private $priorConfig = null;
 
+    use \Tiger\Tests\Support\StatelessApi;
+
     protected function setUp(): void
     {
         parent::setUp();
+        $this->useStatelessApi();
         $this->cacheDir = rtrim(APPLICATION_ROOT, '/') . '/storage/cache';
         @mkdir($this->cacheDir, 0775, true);
         $this->priorConfig = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
@@ -43,6 +46,7 @@ final class ModulesServiceMarketplaceTest extends IntegrationTestCase
     protected function tearDown(): void
     {
         foreach ($this->wrote as $f) { @unlink($f); }
+        $this->restoreStatelessApi();
         // Undo any pass-authority test wiring so tests don't bleed into each other.
         Tiger_License_Checker::setTransport(null);
         Tiger_License_Checker::forget('__tigerpass__');            // System_Service_Modules::PASS_SLUG

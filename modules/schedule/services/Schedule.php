@@ -62,6 +62,7 @@ class Schedule_Service_Schedule extends Tiger_Service_Service
      * Set (or clear) the schedule + enabled flag for one job — the reusable "schedule this" call.
      *
      * @param  array $params key, every, at, dow, dom, enabled
+     * @apiRequest Schedule_Form_Schedule
      * @apiParam string key required The job key.
      * @apiParam string(every_minute|every_5_min|every_15_min|hourly|daily|weekly|monthly) every How often it runs; omit to keep.
      * @apiParam string at Time of day, HH:MM (24h); omit to keep.
@@ -73,6 +74,8 @@ class Schedule_Service_Schedule extends Tiger_Service_Service
     public function setSchedule(array $params): void
     {
         if (!$this->_isAllowed('setSchedule')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Schedule_Form_Schedule();   // CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $key = preg_replace('/[^a-zA-Z0-9._-]/', '', (string) ($params['key'] ?? ''));
         if ($key === '' || !Tiger_Schedule::get($key)) { $this->_error('schedule.unknown_job'); return; }
 
@@ -99,12 +102,15 @@ class Schedule_Service_Schedule extends Tiger_Service_Service
      * Run a job immediately (ignores its schedule).
      *
      * @param  array $params key
+     * @apiRequest Schedule_Form_Run
      * @apiParam string key required The job key.
      * @return void
      */
     public function runNow(array $params): void
     {
         if (!$this->_isAllowed('runNow')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Schedule_Form_Run();   // CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $key = preg_replace('/[^a-zA-Z0-9._-]/', '', (string) ($params['key'] ?? ''));
         if ($key === '' || !Tiger_Schedule::get($key)) { $this->_error('schedule.unknown_job'); return; }
         $r = Tiger_Schedule::runNow($key);

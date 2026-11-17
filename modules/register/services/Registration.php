@@ -87,12 +87,14 @@ class Register_Service_Registration extends Tiger_Service_Service
      * (Re)confirm domain control via the registry.
      *
      * @param  array $params the request payload
-     * @apiRequest none
+     * @apiRequest Register_Form_Action
      * @return void
      */
     public function verifyDomain(array $params): void
     {
         if (!$this->_isAllowed('verifyDomain')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Register_Form_Action();   // token-only: a parameterless state change still needs CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         if (!Register_Service_Status::hasStarted()) { $this->_error('register.error.not_registered'); return; }
         $this->_selfVerifyDomain();
         $verified = Register_Service_Status::isDomainVerified();
@@ -103,12 +105,14 @@ class Register_Service_Registration extends Tiger_Service_Service
      * Resend the admin email verification link.
      *
      * @param  array $params the request payload
-     * @apiRequest none
+     * @apiRequest Register_Form_Action
      * @return void
      */
     public function resendEmail(array $params): void
     {
         if (!$this->_isAllowed('resendEmail')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Register_Form_Action();   // token-only: sends mail + mints a token — CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $email = (string) (new Tiger_Model_Config())->get(Tiger_Model_Config::SCOPE_GLOBAL, '', 'register.email');
         if ($email === '') { $this->_error('register.error.not_registered'); return; }
         $this->_issueEmailToken($email, (string) (new Tiger_Model_Config())->get(Tiger_Model_Config::SCOPE_GLOBAL, '', 'register.domain'));

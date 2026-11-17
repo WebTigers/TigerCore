@@ -14,10 +14,22 @@
  */
 (function () {
     var fb = document.getElementById('backup-feedback');
-    function notify(res) { (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); }); }
+    // The screen's ONE CSRF token (rendered in #backup-token); every write below posts it (TIGER-528).
+    function csrf() { var el = document.querySelector('#backup-token [name="_csrf"]'); return el ? el.value : ''; }
+    function notify(res) {
+        (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
+        // Per-field errors (e.g. notify_email) — show each field's message beside the summary.
+        if (res && res.form) {
+            Object.keys(res.form).forEach(function (f) {
+                var msgs = res.form[f] || {};
+                Object.keys(msgs).forEach(function (k) { TigerDOM.notify(fb, msgs[k], { type: 'error', replace: false }); });
+            });
+        }
+    }
     function api(method, params, btn) {
         var body = new URLSearchParams(params || {});
         body.set('module', 'backup'); body.set('service', 'backup'); body.set('method', method);
+        body.set('_csrf', csrf());
         var task = function () {
             return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
                 .then(function (r) { return r.json().catch(function () { return {}; }); });
@@ -41,6 +53,7 @@
         if (!comps.length) { TigerDOM.notify(fb, Tiger.t('selectComponent'), { type: 'error' }); return; }
         var body = new URLSearchParams();
         body.set('module', 'backup'); body.set('service', 'backup'); body.set('method', 'run');
+        body.set('_csrf', csrf());
         body.set('disk', document.getElementById('backup-disk').value);
         setSecrets(body);
         comps.forEach(function (c) { body.append('components[]', c); });
@@ -63,6 +76,7 @@
         var comps = checkedComponents();
         var body = new URLSearchParams();
         body.set('module', 'backup'); body.set('service', 'backup'); body.set('method', 'saveSettings');
+        body.set('_csrf', csrf());
         body.set('disk', document.getElementById('backup-disk').value);
         setSecrets(body);
         body.set('retention_max', document.getElementById('set-retention').value || '0');
@@ -111,7 +125,7 @@
             });
         } else if (pending && pending.kind === 'upload') {
             var fd = new FormData();
-            fd.append('archive', pending.file); fd.append('confirm', 'RESTORE');
+            fd.append('archive', pending.file); fd.append('confirm', 'RESTORE'); fd.append('_csrf', csrf());
             TigerButton.run(btn, function () {
                 return fetch('/backup/index/upload', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd }).then(function (r) { return r.json().catch(function () { return {}; }); });
             }).then(function (res) { modal.hide(); notify(res); if (res && res.result === 1) { setTimeout(function () { location.reload(); }, 1500); } });

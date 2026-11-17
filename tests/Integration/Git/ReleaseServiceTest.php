@@ -206,4 +206,73 @@ final class ReleaseServiceTest extends IntegrationTestCase
         foreach ($list['data']['releases'] as $r) { $byId[$r['module_release_id']] = $r['status']; }
         $this->assertSame(Tiger_Model_ModuleRelease::STATUS_REJECTED, $byId[$id] ?? null);
     }
+
+    // --- CSRF (TIGER-528) -------------------------------------------------------------------------
+
+    /** Run $fn as a browser session would: CSRF applies, against an array-backed session. */
+    private function cookieMode(callable $fn)
+    {
+        \Zend_Registry::set('tiger.auth.stateless', false);
+        $prior = \Zend_Session::$_unitTestEnabled;
+        \Zend_Session::$_unitTestEnabled = true;
+        $_SESSION = [];
+        // A request always has a writable session; an earlier test may have write-closed it.
+        $w = new \ReflectionProperty(\Zend_Session_Abstract::class, '_writable');
+        $priorW = (bool) $w->getValue();
+        $w->setValue(null, true);
+        try {
+            return $fn();
+        } finally {
+            \Zend_Registry::set('tiger.auth.stateless', true);
+            \Zend_Session::$_unitTestEnabled = $prior;
+            $_SESSION = [];
+            $w->setValue(null, $priorW);
+        }
+    }
+
+    /** The dashboard's token, armed in the session the way the view renders it. */
+    private function token(): string
+    {
+        $el = (new \Git_Form_Module())->getElement('_csrf');
+        $el->initCsrfToken();
+        return (string) $el->getHash();
+    }
+
+    #[Test]
+    public function tag_and_decide_refuse_a_tokenless_cross_site_request(): void
+    {
+        $this->login('u-super', self::ORG, 'superadmin');
+        $this->call('submit', ['module_key' => self::MODULE, 'version' => '1.5.0', 'commit_sha' => 'feedface']);
+        $id = (string) (new Tiger_Model_ModuleRelease())->byTag(self::ORG, self::MODULE, '1.5.0')->module_release_id;
+
+        $this->cookieMode(function () use ($id) {
+            $tag = $this->call('tag', ['module_key' => self::MODULE, 'version' => '1.6.0']);
+            $this->assertSame(0, $tag['result'], 'tag without a token is refused');
+            $this->assertContains('core.api.error.csrf', $tag['messages']);
+
+            $this->login('u-admin', self::ORG, 'admin');
+            $dec = $this->call('decide', ['module_release_id' => $id, 'decision' => 'approve']);
+            $this->assertSame(0, $dec['result'], 'decide without a token is refused');
+            $this->assertContains('core.api.error.csrf', $dec['messages']);
+        });
+
+        $this->assertSame(Tiger_Model_ModuleRelease::STATUS_SUBMITTED, (string) (new Tiger_Model_ModuleRelease())->findById($id)->status, 'not decided');
+    }
+
+    #[Test]
+    public function decide_with_the_dashboard_token_goes_through(): void
+    {
+        $this->login('u-super', self::ORG, 'superadmin');
+        $this->call('submit', ['module_key' => self::MODULE, 'version' => '1.7.0', 'commit_sha' => 'feedface']);
+        $id = (string) (new Tiger_Model_ModuleRelease())->byTag(self::ORG, self::MODULE, '1.7.0')->module_release_id;
+
+        $res = $this->cookieMode(function () use ($id) {
+            $this->login('u-admin', self::ORG, 'admin');
+            // The one token the dashboard renders (any Git_Form_Write) satisfies decide — the shared salt.
+            return $this->call('decide', ['module_release_id' => $id, 'decision' => 'approve', '_csrf' => $this->token()]);
+        });
+
+        $this->assertSame(1, $res['result']);
+        $this->assertSame(Tiger_Model_ModuleRelease::STATUS_APPROVED, (string) (new Tiger_Model_ModuleRelease())->findById($id)->status);
+    }
 }

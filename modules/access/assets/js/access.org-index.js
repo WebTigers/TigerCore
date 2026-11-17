@@ -64,7 +64,8 @@ document.addEventListener('DOMContentLoaded', function () {
     $('#access-org-table tbody').on('click', '[data-org-delete]', function () {
         if (!confirm(Tiger.t('confirmDelOrg'))) { return; }
         var btn  = this;
-        var body = new URLSearchParams({ module: 'access', service: 'org', method: 'delete', org_id: btn.getAttribute('data-org-delete') });
+        var tok  = document.querySelector('#access-org-token [name="_csrf"]');   // the grid's CSRF token (TIGER-528)
+        var body = new URLSearchParams({ module: 'access', service: 'org', method: 'delete', org_id: btn.getAttribute('data-org-delete'), _csrf: tok ? tok.value : '' });
         TigerButton.run(btn, function () {
             return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
                 .then(function (r) { return r.json(); });

@@ -144,11 +144,17 @@ document.addEventListener('DOMContentLoaded', function () {
         }).catch(function () {});
     });
 
+    // The screen's write token (TIGER-528) — save and revert share it (Translations_Form_Write).
+    function trCsrf() {
+        var el = document.querySelector('#tr-modal-form [name="_csrf"]');
+        return el ? el.value : '';
+    }
+
     // --- save ---
     document.getElementById('tr-save').addEventListener('click', function () {
         if (!current) { return; }
         var fb = document.getElementById('tr-modal-feedback');
-        var body = new URLSearchParams({ module: 'translations', service: 'translation', method: 'save', key: current.key });
+        var body = new URLSearchParams({ module: 'translations', service: 'translation', method: 'save', key: current.key, _csrf: trCsrf() });
         document.querySelectorAll('#tr-modal-fields [data-tr-value]').forEach(function (el) {
             body.append('values[' + el.getAttribute('data-tr-value') + ']', el.value);
         });
@@ -172,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var key = current.key, self = this;
         TigerModal.confirm({ title: Tiger.t('revertConfirm'), body: key, confirmLabel: Tiger.t('revertConfirm') }).then(function (ok) {
             if (!ok) { return; }
-            var body = new URLSearchParams({ module: 'translations', service: 'translation', method: 'revert', key: key });
+            var body = new URLSearchParams({ module: 'translations', service: 'translation', method: 'revert', key: key, _csrf: trCsrf() });
             TigerButton.run(self, function () {
                 return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
                     .then(function (r) { return r.json().catch(function () { return {}; }); });

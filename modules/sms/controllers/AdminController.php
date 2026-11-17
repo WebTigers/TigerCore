@@ -48,6 +48,7 @@ class Sms_AdminController extends Tiger_Controller_Admin_Action
         $this->view->provider    = Tiger_Sms::provider();
         $this->view->configured  = Tiger_Sms::isConfigured();
         $this->view->cryptoReady = class_exists('Tiger_Crypto') && Tiger_Crypto::isConfigured();
+        $this->view->csrfForm    = new Sms_Form_Settings();   // the screen's write token (TIGER-528)
         $this->i18n([
             'sms.settings.saved', 'sms.settings.test_sent', 'sms.settings.error.test',
             'sms.settings.error.to', 'core.api.error.general',

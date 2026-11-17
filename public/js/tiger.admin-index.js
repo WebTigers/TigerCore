@@ -35,6 +35,9 @@
         }
     });
 
+    // The dashboard's CSRF token (#dash-token) — the layout/visibility saves require it (TIGER-528).
+    function dashCsrf() { var t = document.querySelector('#dash-token [name="_csrf"]'); return t ? t.value : ''; }
+
     function debounce(fn, ms) { var t; return function () { clearTimeout(t); t = setTimeout(fn, ms); }; }
     window.addEventListener('resize', debounce(function () { grid.refreshItems().layout(); }, 150));
 
@@ -51,6 +54,7 @@
         var fd = new URLSearchParams();
         fd.set('module', 'system'); fd.set('service', 'dashboard'); fd.set('method', 'saveLayout');
         fd.set('layout', JSON.stringify({ order: order, collapsed: collapsed }));
+        fd.set('_csrf', dashCsrf());
         fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd }).catch(function () {});
     }
 
@@ -106,6 +110,7 @@
         var fd = new URLSearchParams();
         fd.set('module', 'system'); fd.set('service', 'dashboard'); fd.set('method', 'saveWidgetPrefs');
         fd.set('hidden', JSON.stringify(hiddenIds()));
+        fd.set('_csrf', dashCsrf());
         fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd }).catch(function () {});
     }
 

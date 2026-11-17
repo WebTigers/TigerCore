@@ -7,8 +7,10 @@
  * The version is re-checked against Tiger_Git::isSemver in the service (the authoritative semver gate);
  * here the shape is enforced. `commit_sha` is the 7–40 hex of the tagged commit (the owner gets it from
  * the `tag` response). `qa_report_ref` is an optional pointer to the QA evidence.
+ *
+ * Shares the dashboard's CSRF salt via Git_Form_Write (TIGER-528), so the one rendered token covers it.
  */
-class Git_Form_Submit extends Tiger_Form
+class Git_Form_Submit extends Git_Form_Write
 {
     /** @return array the element schema */
     protected function elements(): array

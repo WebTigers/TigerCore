@@ -33,6 +33,8 @@ class Code_IndexController extends Tiger_Controller_Admin_Action
     {
         $this->view->title         = 'Code — Tiger Admin';
         $this->view->useDataTables = true;
+        // Carries the CSRF token the list's activate / deactivate / delete calls post back (TIGER-528).
+        $this->view->form          = new Code_Form_Id();
     }
 
     /**

@@ -74,20 +74,42 @@ final class IndexControllerTest extends ModuleControllerTestCase
         $this->assertSame(404, $res->getHttpResponseCode(), 'past the gate: no matching row → 404, never a fatal');
     }
 
+    /** The screen's live CSRF token (the session is array-backed in this harness). */
+    private function token(): string
+    {
+        $el = (new \Backup_Form_Run())->getElement('_csrf');
+        $el->initCsrfToken();
+        return (string) $el->getHash();
+    }
+
+    #[Test]
+    public function an_upload_restore_without_the_screens_token_is_refused_before_anything_else(): void
+    {
+        // TIGER-528: a cross-site page can post multipart with a file of its choosing; a restore replaces
+        // the install's data, so no token means no restore — refused before the confirm or file checks.
+        $this->loginAs('superadmin');
+        $res = $this->dispatchAction(Backup_IndexController::class, 'upload', ['confirm' => 'RESTORE'], 'POST');
+        $this->assertSame(403, $res->getHttpResponseCode());
+        $json = json_decode($res->getBody(), true);
+        $this->assertSame(0, (int) ($json['result'] ?? -1));
+        $this->assertStringNotContainsString('upload', json_encode($json), 'refused at the token, not at the file check');
+    }
+
     #[Test]
     public function a_restore_without_the_typed_confirmation_is_refused(): void
     {
         $this->loginAs('superadmin');
-        $res = $this->dispatchAction(Backup_IndexController::class, 'upload', ['confirm' => ''], 'POST');
+        $res = $this->dispatchAction(Backup_IndexController::class, 'upload', ['confirm' => '', '_csrf' => $this->token()], 'POST');
         $json = json_decode($res->getBody(), true);
         $this->assertSame(0, (int) ($json['result'] ?? -1), 'a restore needs the literal RESTORE confirmation');
+        $this->assertNotSame(403, $res->getHttpResponseCode(), 'the token passed; the confirmation is what refused it');
     }
 
     #[Test]
     public function a_confirmed_restore_with_no_uploaded_file_reports_upload_failed(): void
     {
         $this->loginAs('superadmin');
-        $res = $this->dispatchAction(Backup_IndexController::class, 'upload', ['confirm' => 'RESTORE'], 'POST');
+        $res = $this->dispatchAction(Backup_IndexController::class, 'upload', ['confirm' => 'RESTORE', '_csrf' => $this->token()], 'POST');
         $json = json_decode($res->getBody(), true);
         $this->assertSame(0, (int) ($json['result'] ?? -1), 'no file → refused');
         $this->assertStringContainsString('upload', json_encode($json), 'the failure is an upload error');

@@ -43,10 +43,14 @@ final class McpOrgScopedTokenTest extends ControllerTestCase
         \Tiger_Log::reset();
         Zend_Registry::set('Zend_Acl', new \Tiger_Acl_Acl());
         FakeOrgMcpController::$body = '';
+        // The minting calls run as a Bearer/API call does — CSRF is a cookie-mode defence (TIGER-528).
+        Zend_Registry::set('tiger.auth.stateless', true);
     }
 
     protected function tearDown(): void
     {
+        $reg = Zend_Registry::getInstance();
+        if ($reg->offsetExists('tiger.auth.stateless')) { $reg->offsetUnset('tiger.auth.stateless'); }
         if ($this->origConfig !== null) { Zend_Registry::set('Zend_Config', $this->origConfig); }
         \Tiger_Log::reset();
         Tiger_Mcp_Scope::resetRegistered();

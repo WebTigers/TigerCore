@@ -265,4 +265,65 @@ final class UpdateServiceTest extends IntegrationTestCase
         $this->assertSame(0, $res['result']);
         $this->assertContains('git.error.no_previous', $res['messages']);
     }
+
+    // --- CSRF (TIGER-528) -------------------------------------------------------------------------
+
+    /** Run $fn as a browser session would: CSRF applies, against an array-backed session. */
+    private function cookieMode(callable $fn)
+    {
+        \Zend_Registry::set('tiger.auth.stateless', false);
+        $prior = \Zend_Session::$_unitTestEnabled;
+        \Zend_Session::$_unitTestEnabled = true;
+        $_SESSION = [];
+        // A request always has a writable session; an earlier test may have write-closed it.
+        $w = new \ReflectionProperty(\Zend_Session_Abstract::class, '_writable');
+        $priorW = (bool) $w->getValue();
+        $w->setValue(null, true);
+        try {
+            return $fn();
+        } finally {
+            \Zend_Registry::set('tiger.auth.stateless', true);
+            \Zend_Session::$_unitTestEnabled = $prior;
+            $_SESSION = [];
+            $w->setValue(null, $priorW);
+        }
+    }
+
+    #[Test]
+    public function apply_set_policy_and_rollback_refuse_a_tokenless_cross_site_request(): void
+    {
+        $this->approve('1.0.0', 'sha10');
+        $this->approve('1.2.0', 'sha12');
+        $this->pin(['installed_version' => '1.2.0', 'previous_version' => '1.0.0']);
+
+        $this->cookieMode(function () {
+            foreach ([
+                'apply'     => ['module_key' => self::MODULE],
+                'setPolicy' => ['module_key' => self::MODULE, 'channel' => Tiger_Git::POLICY_AUTO],
+                'rollback'  => ['module_key' => self::MODULE],
+            ] as $method => $params) {
+                $res = $this->call($method, $params);
+                $this->assertSame(0, $res['result'], "$method without a token is refused");
+                $this->assertContains('core.api.error.csrf', $res['messages'], "$method: the CSRF refusal");
+            }
+        });
+
+        $this->assertCount(0, $this->installs, 'nothing was installed');
+        $pin = $this->freshPin();
+        $this->assertSame('1.2.0', (string) $pin->installed_version, 'not rolled back');
+        $this->assertSame(Tiger_Git::POLICY_NOTIFY, (string) $pin->channel, 'policy unchanged (still the seeded notify)');
+    }
+
+    #[Test]
+    public function set_policy_with_the_dashboard_token_goes_through(): void
+    {
+        $this->pin(['installed_version' => '1.0.0']);
+        $res = $this->cookieMode(function () {
+            $el = (new \Git_Form_Connect())->getElement('_csrf');   // the token the view renders (shared salt)
+            $el->initCsrfToken();
+            return $this->call('setPolicy', ['module_key' => self::MODULE, 'channel' => Tiger_Git::POLICY_AUTO, '_csrf' => (string) $el->getHash()]);
+        });
+        $this->assertSame(1, $res['result']);
+        $this->assertSame(Tiger_Git::POLICY_AUTO, (string) $this->freshPin()->channel);
+    }
 }

@@ -68,6 +68,7 @@ class Media_Service_Settings extends Tiger_Service_Service
      * resumable — a re-run continues where a prior run left off. Install-wide; admin-gated.
      *
      * @param  array $params expects `to` (target disk) + optional `move` ('1' to delete originals)
+     * @apiRequest Media_Form_Migrate
      * @apiParam string to required The target storage disk name, e.g. local or cloud.
      * @apiParam string(1|0) move 1 to delete each original after a verified copy.
      * @return void
@@ -75,6 +76,8 @@ class Media_Service_Settings extends Tiger_Service_Service
     public function migrateDisk(array $params): void
     {
         if (!$this->_isAllowed('migrateDisk')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Media_Form_Migrate();   // a move deletes originals — CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $to   = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($params['to'] ?? ''));
         $move = (string) ($params['move'] ?? '') === '1';
@@ -104,6 +107,7 @@ class Media_Service_Settings extends Tiger_Service_Service
      * blank entirely to use the server's IAM instance role. Install-wide; admin-gated.
      *
      * @param  array $params expects `adapter` (none|s3|gcs|azure), that adapter's fields, and `default_disk`
+     * @apiRequest Media_Form_Storage
      * @apiParam string(none|s3|gcs|azure) adapter required The storage adapter.
      * @apiParam string bucket Bucket (s3, gcs).
      * @apiParam string region Region (s3).
@@ -122,6 +126,8 @@ class Media_Service_Settings extends Tiger_Service_Service
     public function saveStorage(array $params): void
     {
         if (!$this->_isAllowed('saveStorage')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Media_Form_Storage();   // writes cloud credentials — CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $adapter = $this->_storageAdapter($params);
         if ($adapter === null) { $this->_error('media.storage.bad_adapter'); return; }
@@ -169,6 +175,7 @@ class Media_Service_Settings extends Tiger_Service_Service
      * secret field so an admin editing an existing disk needn't re-type it. Admin-gated; nothing persists.
      *
      * @param  array $params expects `adapter` + that adapter's fields (same shape as saveStorage)
+     * @apiRequest Media_Form_Storage
      * @apiParam string(s3|gcs|azure) adapter required The storage adapter to test.
      * @apiParam string bucket Bucket (s3, gcs).
      * @apiParam string region Region (s3).
@@ -186,6 +193,10 @@ class Media_Service_Settings extends Tiger_Service_Service
     public function testConnection(array $params): void
     {
         if (!$this->_isAllowed('testConnection')) { $this->_error('core.api.error.not_allowed'); return; }
+        // Not a stored write, but it makes the server write to a remote bucket with the STORED secret
+        // merged in — so a cross-site page must not be able to drive it either (TIGER-528).
+        $form = new Media_Form_Storage();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $settings = $this->_storageSettings($params);
         if ($settings === null) { $this->_error('media.storage.bad_adapter'); return; }

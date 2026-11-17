@@ -78,6 +78,7 @@ class Profile_Service_OrgAddress extends Profile_Service_Base
      * Delete one of the current org's addresses (unlink + soft-delete the location).
      *
      * @param  array $params link_id
+     * @apiRequest Profile_Form_AddressDelete
      * @apiParam string link_id required The org address link (org_address_id) to delete.
      * @return void
      */
@@ -86,8 +87,9 @@ class Profile_Service_OrgAddress extends Profile_Service_Base
         if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
         $orgId = (string) $this->_org_id;
         if ($orgId === '') { $this->_error('core.api.error.not_allowed'); return; }
-        if (!$this->_validCsrf(Profile_Form_Address::class, $params)) { $this->_error('core.api.error.csrf'); return; }
-        $linkId = trim((string) ($params['link_id'] ?? ''));
+        $form = new Profile_Form_AddressDelete();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        $linkId = (string) $form->getValue('link_id');
 
         try {
             $this->_transaction(function () use ($orgId, $linkId) {

@@ -166,12 +166,16 @@ class Blog_Service_Post extends Tiger_Service_Service
      * Soft-delete an article (recoverable).
      *
      * @param  array $params the request payload carrying post_id
+     * @apiRequest Blog_Form_PostDelete
      * @apiParam string post_id required The article to delete.
      * @return void
      */
     public function delete(array $params): void
     {
         if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
+        // The shared article token (TIGER-528) — a delete-by-id is still a write.
+        $form = new Blog_Form_PostDelete();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $id = !empty($params['post_id']) ? (string) $params['post_id'] : '';
         if ($id === '') { $this->_error('core.api.error.general'); return; }
 
@@ -187,6 +191,7 @@ class Blog_Service_Post extends Tiger_Service_Service
      * Restore an article to a prior version (current content snapshotted first).
      *
      * @param  array $params the request payload carrying post_id + version
+     * @apiRequest Blog_Form_PostRestore
      * @apiParam string post_id required The article to restore.
      * @apiParam integer version required The version number to restore (1 or higher).
      * @return void
@@ -194,6 +199,9 @@ class Blog_Service_Post extends Tiger_Service_Service
     public function restore(array $params): void
     {
         if (!$this->_isAllowed('restore')) { $this->_error('core.api.error.not_allowed'); return; }
+        // The editor's token — it posts its whole form here (TIGER-528).
+        $form = new Blog_Form_PostRestore();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $id      = !empty($params['post_id']) ? (string) $params['post_id'] : '';
         $version = isset($params['version']) ? (int) $params['version'] : 0;
         if ($id === '' || $version < 1) { $this->_error('core.api.error.general'); return; }

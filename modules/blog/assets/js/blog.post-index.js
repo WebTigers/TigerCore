@@ -69,7 +69,8 @@ document.addEventListener('DOMContentLoaded', function () {
     $('#blog-posts-table tbody').on('click', '[data-blog-delete]', function () {
         var btn = this;
         if (!confirm(Tiger.t('confirmDeleteArticle'))) { return; }
-        var body = new URLSearchParams({ module: 'blog', service: 'post', method: 'delete', post_id: btn.getAttribute('data-blog-delete') });
+        var tok  = document.querySelector('#blog-posts-token [name="_csrf"]');   // the grid's CSRF token (TIGER-528)
+        var body = new URLSearchParams({ module: 'blog', service: 'post', method: 'delete', post_id: btn.getAttribute('data-blog-delete'), _csrf: tok ? tok.value : '' });
         TigerButton.run(btn, function () {
             return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
                 .then(function (r) { return r.json(); });

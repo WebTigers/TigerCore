@@ -37,5 +37,8 @@ class Media_IndexController extends Tiger_Controller_Admin_Action
         $this->view->useDataTables = true;
         // Active modules that contribute static media -> the source filter dropdown ("Uploads" + each).
         $this->view->mediaSources  = Tiger_Media_Manifest::sources();
+        // The screen's CSRF token (TIGER-528): every media write form shares one salt, so this single
+        // rendered token covers update, delete and copyToLibrary.
+        $this->view->csrfForm      = new Media_Form_Item();
     }
 }

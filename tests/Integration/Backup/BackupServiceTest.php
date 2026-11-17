@@ -41,9 +41,12 @@ final class BackupServiceTest extends IntegrationTestCase
     private array $artifacts = [];
     private ?Zend_Config $priorConfig = null;
 
+    use \Tiger\Tests\Support\StatelessApi;
+
     protected function setUp(): void
     {
         parent::setUp();
+        $this->useStatelessApi();
         $this->priorConfig = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
         // A null log sink — Tiger_Backup logs on some paths, which the strict output check would flag.
         Zend_Registry::set('Zend_Config', new Zend_Config(['tiger' => ['log' => ['writer' => 'null']]]));
@@ -54,6 +57,7 @@ final class BackupServiceTest extends IntegrationTestCase
     {
         foreach ($this->artifacts as $f) { @unlink($f); }
         $this->artifacts = [];
+        $this->restoreStatelessApi();
         if ($this->priorConfig !== null) {
             Zend_Registry::set('Zend_Config', $this->priorConfig);
         } elseif (Zend_Registry::isRegistered('Zend_Config')) {
@@ -313,6 +317,41 @@ final class BackupServiceTest extends IntegrationTestCase
 
         $badEmail = $this->dispatch(['action' => 'saveSettings', 'components' => 'database', 'disk' => 'local', 'notify_email' => 'not-an-email']);
         $this->assertSame(0, (int) $badEmail->result);
-        $this->assertStringContainsString('bad_email', $this->messages($badEmail));
+        // A per-FIELD error now (Backup_Form_Settings, TIGER-528), not a bare message.
+        $this->assertArrayHasKey('notify_email', (array) $badEmail->form);
+
+        $okList = $this->dispatch(['action' => 'saveSettings', 'components' => 'database', 'disk' => 'local', 'notify_email' => 'a@example.com, ,b@example.com']);
+        $this->assertSame(1, (int) $okList->result, 'a comma list (blank entries ignored) is accepted, as before');
+    }
+
+    #[Test]
+    public function every_backup_write_is_refused_without_the_screens_token(): void
+    {
+        // TIGER-528: on the session (cookie) path run / remove / restore / saveSettings need the token.
+        $this->loginAs('superadmin');
+        $this->withCookieSession(function () {
+            $before = (int) $this->db->fetchOne('SELECT COUNT(*) FROM config');
+            $writes = [
+                'run'          => ['components' => 'database', 'disk' => 'local'],
+                'remove'       => ['backup_id' => 'nope'],
+                'restore'      => ['backup_id' => 'nope', 'confirm' => 'RESTORE'],
+                'saveSettings' => ['components' => 'database', 'disk' => 'local', 'notify_email' => 'evil@example.com'],
+            ];
+            foreach ($writes as $action => $params) {
+                $res = $this->dispatch(['action' => $action] + $params);
+                $this->assertSame(0, (int) $res->result, $action);
+                $this->assertStringContainsString('core.api.error.csrf', $this->messages($res), $action);
+            }
+            $this->assertSame($before, (int) $this->db->fetchOne('SELECT COUNT(*) FROM config'), 'nothing written');
+
+            // One rendered token (any Backup_Form_* — they share a salt) serves every write on the screen.
+            $el = (new \Backup_Form_Run())->getElement('_csrf');
+            $el->initCsrfToken();
+            $res = $this->dispatch(['action' => 'saveSettings', 'components' => 'database', 'disk' => 'local',
+                'notify_email' => 'ops@example.com', '_csrf' => (string) $el->getHash()]);
+            $this->assertSame(1, (int) $res->result, $this->messages($res));
+            $res = $this->dispatch(['action' => 'remove', 'backup_id' => 'nope', '_csrf' => (string) $el->getHash()]);
+            $this->assertStringContainsString('backup.not_found', $this->messages($res), 'past the token, the service keeps its own refusal');
+        });
     }
 }

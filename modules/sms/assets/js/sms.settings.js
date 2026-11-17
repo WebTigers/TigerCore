@@ -33,7 +33,10 @@
         return fd;
     }
 
+    // Every write carries the screen's token (TIGER-528) — save and test share Sms_Form_Write's salt.
     function post(fd) {
+        var tok = document.querySelector('#sms-settings-form [name="_csrf"]');
+        if (tok && !fd.has('_csrf')) { fd.set('_csrf', tok.value); }
         return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
             .then(function (r) { return r.json().catch(function () { return {}; }); });
     }

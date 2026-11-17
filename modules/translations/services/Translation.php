@@ -174,6 +174,7 @@ class Translations_Service_Translation extends Tiger_Service_Service
      * override tier lean — only genuine divergences are stored.
      *
      * @param  array $params `key` + `values[<locale>]`
+     * @apiRequest Translations_Form_Save
      * @apiParam string key required The translation key, e.g. core.api.error.general.
      * @apiParam object values Map of locale => translated text.
      * @return void
@@ -181,6 +182,8 @@ class Translations_Service_Translation extends Tiger_Service_Service
     public function save(array $params): void
     {
         if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Translations_Form_Save();   // CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $key    = trim((string) ($params['key'] ?? ''));
         $values = (array) ($params['values'] ?? []);
@@ -221,6 +224,7 @@ class Translations_Service_Translation extends Tiger_Service_Service
      * `locale` is omitted) — drops the DB override(s).
      *
      * @param  array $params `key` + optional `locale`
+     * @apiRequest Translations_Form_Revert
      * @apiParam string key required The translation key, e.g. core.api.error.general.
      * @apiParam string locale Revert only this locale; omit for every locale.
      * @return void
@@ -228,6 +232,8 @@ class Translations_Service_Translation extends Tiger_Service_Service
     public function revert(array $params): void
     {
         if (!$this->_isAllowed('revert')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Translations_Form_Revert();   // CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
 
         $key = trim((string) ($params['key'] ?? ''));
         if ($key === '') { $this->_error('translations.error.no_key'); return; }

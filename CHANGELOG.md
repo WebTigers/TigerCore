@@ -6,6 +6,32 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.63.0] — 2026-11-17
+
+### Security — every browser write is CSRF-protected (TIGER-528)
+Many `/api` writes validated their input by hand, with no `Tiger_Form` — so the browser (session-cookie) path
+carried no CSRF token, and any page on the internet could make a signed-in admin's browser call them. Each now
+validates through a form, each screen renders ONE token (forms on a screen share a salt), and the screen's JS sends
+it on every call. Bearer / MCP calls are stateless and unaffected. Existing error keys are kept.
+- **system:** dashboard layout + widget prefs, sidebar sort, site delete, apply updates, all 16 Module Manager
+  writes (activate, deactivate, auto-update, delete, TigerPASS on/off/nag, sources, install, upload, vendors,
+  licensed install), Send test mail (it sent real mail with the stored credentials), and Settings now declares every
+  field it saves (location, cookies, signup tabs).
+- **access** org/user delete · **analytics** settings declares every field · **backup** run/remove/restore/settings
+  and the upload-restore controller (a cross-site multipart POST could restore the install) · **blog** delete/restore.
+- **agent:** admin agents delete, mode, MCP connections save/remove/test, skills install/toggle/remove.
+- **cms:** menu delete/deleteMenu/reorder/import/revert, page fork/delete/restore, the visual builder's design + block
+  saves; the menu builder's item form had CSRF switched off — it is back on.
+- **code:** activate/deactivate/delete/restore (and `_toggle` now asks the ACL about the real privilege).
+- **profile:** avatar + org-logo upload/remove, address/contact deletes, SMS request/verify/remove — off a
+  hand-rolled `_validCsrf()` that failed open on any exception (removed).
+- **git, media (incl. storage credentials), message, translations, mcp settings/tokens, email template reset,
+  schedule, sms settings + test, register verify/resend.**
+- Bugs found on the way: the agent settings page's own save could never pass CSRF (two salts); the message compose
+  page rendered no token, so Send failed in the browser; the register widget's token was never stored in the session.
+- Left alone on purpose: reads; in-process seams; webhooks; guest token-in-link endpoints (newsletter confirm /
+  unsubscribe); `media/upload` (its callers live in other modules — follow-up).
+
 ## [1.62.2] — 2026-11-17
 
 ### Changed — "Get My Key" tells the checkout which site the key is for

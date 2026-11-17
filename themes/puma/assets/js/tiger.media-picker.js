@@ -19,6 +19,7 @@
 
     var modalEl = null, bs = null, opts = null;
     var rows = [], picked = {}, offset = 0, total = 0, busy = false, GLEN = 60;
+    var csrfTok = '';   // the media write token, handed out by the datatable read (TIGER-528)
 
     function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; }); }
     function icon(k) { var m = { image:'fa-image', pdf:'fa-file-pdf', document:'fa-file-lines', video:'fa-film', audio:'fa-music', archive:'fa-file-zipper', other:'fa-file' }; return '<i class="fa-solid ' + (m[k] || 'fa-file') + '"></i>'; }
@@ -95,6 +96,7 @@
             .then(function (res) {
                 busy = false;
                 if (!res || res.result !== 1 || !res.data) { return; }
+                if (res.data.csrf) { csrfTok = res.data.csrf; }   // the media write token rides the grid read (TIGER-528)
                 total = res.data.recordsFiltered || 0;
                 rows = rows.concat(res.data.data || []);
                 offset = rows.length;
@@ -149,7 +151,7 @@
         if (btn.disabled) { return; }
         btn.disabled = true;
         fetch('/api', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'},
-            body:new URLSearchParams({ module:'media', service:'media', method:'copyToLibrary', media_id:btn.getAttribute('data-tmp-copy') }) })
+            body:new URLSearchParams({ module:'media', service:'media', method:'copyToLibrary', media_id:btn.getAttribute('data-tmp-copy'), _csrf:csrfTok }) })
             .then(function (r) { return r.json(); })
             .then(function (res) {
                 if (res && res.result === 1) {

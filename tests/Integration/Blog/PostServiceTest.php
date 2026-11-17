@@ -299,6 +299,30 @@ final class PostServiceTest extends IntegrationTestCase
         $this->assertSame(0, (int) $this->call('delete', ['post_id' => ''])->result, 'a missing id is refused, not fatal');
     }
 
+    use \Tiger\Tests\Support\StatelessApi;
+
+    #[Test]
+    public function delete_and_restore_refuse_a_tokenless_browser_call_and_share_the_editors_token(): void
+    {
+        // TIGER-528: on the session (cookie) path both id-only writes need a token. They share the
+        // editor's salt, so the token Blog_Form_Post renders satisfies them (the editor posts its whole
+        // form to `restore`; the Articles list renders the same-salt token for `delete`).
+        $this->loginAs('admin');
+        $id = $this->seedArticle(['title' => 'Guarded', 'slug' => 'guarded', 'page_key' => 'guarded']);
+        $this->withCookieSession(function () use ($id) {
+            foreach (['delete' => ['post_id' => $id], 'restore' => ['post_id' => $id, 'version' => 1]] as $action => $params) {
+                $res = $this->call($action, $params);
+                $this->assertSame(0, (int) $res->result, $action);
+                $this->assertStringContainsString('core.api.error.csrf', json_encode($res->messages), $action);
+            }
+            $this->assertSame(0, (int) $this->db->fetchOne('SELECT deleted FROM page WHERE page_id = ?', [$id]), 'nothing written');
+
+            $res = $this->call('delete', ['post_id' => $id, '_csrf' => $this->csrfTokenFor(new Blog_Form_Post())]);
+            $this->assertSame(1, (int) $res->result, json_encode($res->messages));
+            $this->assertSame(1, (int) $this->db->fetchOne('SELECT deleted FROM page WHERE page_id = ?', [$id]));
+        });
+    }
+
     // ----- restore -------------------------------------------------------------------------------
 
     #[Test]

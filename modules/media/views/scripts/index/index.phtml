@@ -29,6 +29,8 @@ $this->i18n([
      data-thumb-px="<?= (int) ($this->thumbPx ?? 200) ?>"
      data-pdfjs="<?= $this->escape($this->asset($this->themeAssets . '/vendor/pdfjs/pdf.js')) ?>"
      data-pdfjs-worker="<?= $this->escape($this->asset($this->themeAssets . '/vendor/pdfjs/pdf.worker.js')) ?>"></div>
+<?php /* The media write token (TIGER-528) — media.index-index.js posts it with update / delete / copyToLibrary. */ ?>
+<div id="media-csrf" hidden><?= $this->csrfForm ? $this->csrfForm->getElement('_csrf') : '' ?></div>
 <div class="d-flex align-items-center justify-content-between mb-3">
     <div>
         <h1 class="h3 mb-1"><?= $this->t('media.library.title') ?></h1>

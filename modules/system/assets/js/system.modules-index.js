@@ -11,6 +11,8 @@
 document.addEventListener('DOMContentLoaded', function () {
     if (typeof tigerDataTable !== 'function') { return; }
     var esc = tigerDataTable.esc;
+    // The module manager's ONE CSRF token (#mod-token) — every write below posts it (TIGER-528).
+    function csrf() { var t = document.querySelector('#mod-token [name="_csrf"]'); return t ? t.value : ''; }
 
     /* ---- type filter: the active pill is set server-side from the cookie; a click re-filters + re-fetches ---- */
     var filterEl   = document.getElementById('mods-type-filter');
@@ -137,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var requiredBy = (btn.getAttribute('data-required-by') || '').split(',').filter(Boolean);
 
         function send(extra) {
-            var body = new URLSearchParams(Object.assign({ module: 'system', service: 'modules', method: method, slug: slug }, extra || {}));
+            var body = new URLSearchParams(Object.assign({ module: 'system', service: 'modules', method: method, slug: slug }, extra || {}, { _csrf: csrf() }));
             return TigerButton.run(btn, function () {
                 return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
                     .then(function (r) { return r.json(); });
@@ -245,7 +247,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!sw) { return; }
         var slug = sw.getAttribute('data-slug'), on = sw.checked, prev = !on;
         sw.disabled = true;
-        var body = new URLSearchParams({ module: 'system', service: 'modules', method: 'autoUpdate', slug: slug, on: on ? '1' : '0' });
+        var body = new URLSearchParams({ module: 'system', service: 'modules', method: 'autoUpdate', slug: slug, on: on ? '1' : '0', _csrf: csrf() });
         fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
             .then(function (r) { return r.json(); })
             .then(function (res) {
@@ -268,7 +270,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (delBtn) {
         delBtn.addEventListener('click', function () {
             if (delInput && delInput.value !== delCtx.token) { return; }   // matches the server re-check
-            var body = new URLSearchParams({ module: 'system', service: 'modules', method: 'delete', slug: delCtx.slug, confirm: delCtx.token });
+            var body = new URLSearchParams({ module: 'system', service: 'modules', method: 'delete', slug: delCtx.slug, confirm: delCtx.token, _csrf: csrf() });
             TigerButton.run(delBtn, function () {
                 return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
                     .then(function (r) { return r.json().catch(function () { return {}; }); });

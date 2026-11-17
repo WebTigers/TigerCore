@@ -346,4 +346,71 @@ final class MediaServiceTest extends IntegrationTestCase
             @unlink($tmp);
         }
     }
+
+    // ----- CSRF (TIGER-528) ---------------------------------------------------------------------
+
+    /** Run $fn as a browser session would: CSRF applies, against an array-backed session. */
+    private function cookieMode(callable $fn)
+    {
+        Zend_Registry::set('tiger.auth.stateless', false);
+        $prior = \Zend_Session::$_unitTestEnabled;
+        \Zend_Session::$_unitTestEnabled = true;
+        $_SESSION = [];
+        // A request always has a writable session; an earlier test may have write-closed it.
+        $w = new \ReflectionProperty(\Zend_Session_Abstract::class, '_writable');
+        $priorW = (bool) $w->getValue();
+        $w->setValue(null, true);
+        try {
+            return $fn();
+        } finally {
+            Zend_Registry::set('tiger.auth.stateless', true);
+            \Zend_Session::$_unitTestEnabled = $prior;
+            $_SESSION = [];
+            $w->setValue(null, $priorW);
+        }
+    }
+
+    #[Test]
+    public function update_delete_and_copy_refuse_a_tokenless_cross_site_request(): void
+    {
+        $this->loginAs('admin');
+        $id = $this->seed(['title' => 'Untouched']);
+
+        $this->cookieMode(function () use ($id) {
+            foreach ([
+                'update'        => ['media_id' => $id, 'title' => 'Rewritten cross-site'],
+                'delete'        => ['media_id' => $id],
+                'copyToLibrary' => ['media_id' => 'static:nope:x.png'],
+            ] as $action => $params) {
+                $res = $this->call($action, $params);
+                $this->assertSame(0, (int) $res->result, "$action without a token is refused");
+                $this->assertStringContainsString('core.api.error.csrf', json_encode($res->messages), "$action: the CSRF refusal");
+            }
+            // update is a PARTIAL write validated with isValidPartial(): the seeded `_csrf` is what makes
+            // an omitted key a refusal rather than a skip.
+            $res = $this->call('update', ['media_id' => $id, 'title' => 'x', '_csrf' => 'forged']);
+            $this->assertSame(0, (int) $res->result, 'a forged token is refused');
+        });
+
+        $row = (new Tiger_Model_Media())->findById($id);
+        $this->assertNotNull($row, 'not deleted');
+        $this->assertSame('Untouched', $row->title, 'not edited');
+    }
+
+    #[Test]
+    public function update_with_the_library_token_goes_through_and_the_grid_hands_it_out(): void
+    {
+        $this->loginAs('admin');
+        $id = $this->seed();
+
+        [$res, $grid] = $this->cookieMode(function () use ($id) {
+            $grid = $this->call('datatable', ['draw' => 1]);   // the shared media picker takes its token from here
+            $res  = $this->call('update', ['media_id' => $id, 'title' => 'Signed', '_csrf' => (string) $grid->data['csrf']]);
+            return [$res, $grid];
+        });
+
+        $this->assertNotSame('', (string) $grid->data['csrf'], 'the grid read hands out the write token');
+        $this->assertSame(1, (int) $res->result);
+        $this->assertSame('Signed', (new Tiger_Model_Media())->findById($id)->title);
+    }
 }

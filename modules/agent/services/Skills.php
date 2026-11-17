@@ -152,6 +152,7 @@ class Agent_Service_Skills extends Tiger_Service_Service
      * Install a skill — from a browse entry (`repo`/`ref`/`path`/`name`/`source`) or a pasted `url`.
      *
      * @param  array $params either a browse entry's fields, or `url`
+     * @apiRequest Agent_Form_SkillInstall
      * @apiParam string url A GitHub URL (repo, folder or SKILL.md) to install every skill found at. Replaces the browse fields.
      * @apiParam string repo The browse entry's repository (owner/name). Required when no url is sent.
      * @apiParam string ref The browse entry's branch or tag. Defaults to main.
@@ -164,6 +165,8 @@ class Agent_Service_Skills extends Tiger_Service_Service
     public function install(array $params): void
     {
         if (!$this->_isAllowed('install')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Agent_Form_SkillInstall();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         try {
             $keys = [];
             if (!empty($params['url'])) {
@@ -194,6 +197,7 @@ class Agent_Service_Skills extends Tiger_Service_Service
      * Turn an installed skill on/off.
      *
      * @param  array $params the request payload
+     * @apiRequest Agent_Form_SkillKey
      * @apiParam string key required The installed skill's key.
      * @apiParam boolean active Turn it on (true) or off (false).
      * @return void
@@ -201,8 +205,10 @@ class Agent_Service_Skills extends Tiger_Service_Service
     public function toggle(array $params): void
     {
         if (!$this->_isAllowed('toggle')) { $this->_error('core.api.error.not_allowed'); return; }
-        $key = (string) ($params['key'] ?? '');
-        if ($key === '' || !Tiger_Agent_Skills::isInstalled($key)) { $this->_error('core.api.error.general'); return; }
+        $form = new Agent_Form_SkillKey();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        $key = (string) $form->getValue('key');
+        if (!Tiger_Agent_Skills::isInstalled($key)) { $this->_error('core.api.error.general'); return; }
         $on = !empty($params['active']) && $params['active'] !== '0' && $params['active'] !== 'false';
         Tiger_Agent_Skills::setActive($key, $on);
         $this->_success(['key' => $key, 'active' => $on], $on ? 'agent.skills.enabled' : 'agent.skills.disabled');
@@ -212,14 +218,17 @@ class Agent_Service_Skills extends Tiger_Service_Service
      * Uninstall a skill (files + active set).
      *
      * @param  array $params the request payload
+     * @apiRequest Agent_Form_SkillKey
      * @apiParam string key required The installed skill's key.
      * @return void
      */
     public function remove(array $params): void
     {
         if (!$this->_isAllowed('remove')) { $this->_error('core.api.error.not_allowed'); return; }
-        $key = (string) ($params['key'] ?? '');
-        if ($key === '' || !Tiger_Agent_Skills::isInstalled($key)) { $this->_error('core.api.error.general'); return; }
+        $form = new Agent_Form_SkillKey();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        $key = (string) $form->getValue('key');
+        if (!Tiger_Agent_Skills::isInstalled($key)) { $this->_error('core.api.error.general'); return; }
         Tiger_Agent_Skills::remove($key);
         $this->_success(['key' => $key], 'agent.skills.removed');
     }

@@ -40,10 +40,15 @@ final class SkillsTest extends IntegrationTestCase
             file_put_contents($file, json_encode(['at' => time(), 'entries' => []]));
             $this->indexCaches[] = $file;
         }
+        // install/toggle/remove validate through a Tiger_Form (TIGER-528); a header-less CLI dispatch is the
+        // stateless path, which skips CSRF. The cookie-mode refusal is pinned in AgentAdminCsrfTest.
+        \Zend_Registry::set('tiger.auth.stateless', true);
     }
 
     protected function tearDown(): void
     {
+        $reg = \Zend_Registry::getInstance();
+        if ($reg->offsetExists('tiger.auth.stateless')) { $reg->offsetUnset('tiger.auth.stateless'); }
         foreach (['/SKILL.md', '/source.json'] as $f) { @unlink($this->skillDir . $f); }
         @rmdir($this->skillDir);
         \Tiger_Skill_Index::clearSources();

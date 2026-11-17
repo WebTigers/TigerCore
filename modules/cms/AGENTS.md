@@ -62,8 +62,11 @@ a CMS table; write through `Tiger_Model_Page::save()` (transactional, version sn
 - **Formats:** `html | markdown | phtml (trusted code) | builder`. `forkTheme` picks `phtml` if the
   template body has `<?php`/`<?=`, else `html`. **Theme files are never modified** — a fork copies into
   a DB page at the same slug that overrides the file (live-override tier).
-- **Menu items are tokenless by design** (`Cms_Form_MenuItem::csrf() = false`) for SPA-style rapid
-  saves; a link is a `page_key` (resolved to the live slug at render) OR a literal `url` (page wins).
+- **Every CMS content write carries CSRF** (TIGER-528). Page + menu forms extend `Cms_Form_Write`,
+  which pins ONE salt for the surface, so each screen's single rendered token (the page editor, the
+  list screens, the builder's `#tb-csrf`, the menu builder's item form) covers every endpoint it posts.
+  The token is timeout-lived, so the menu builder's rapid saves are fine — there is no tokenless write.
+  A menu link is a `page_key` (resolved to the live slug at render) OR a literal `url` (page wins).
 
 ## ACL
 

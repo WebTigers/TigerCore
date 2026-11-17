@@ -141,11 +141,14 @@ class Git_Service_Repo extends Git_Service_Base
      * + status. The "Re-check environment" action behind the connection screen.
      *
      * @param  array $params module_key
+     * @apiRequest Git_Form_Module
      * @apiParam string module_key required The module (its slug).
      */
     public function recheck(array $params): void
     {
         if (!$this->_signedIn() || !$this->_isAllowed('recheck')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Git_Form_Module();   // rewrites the stored transport + status — CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $moduleKey = $this->_slug((string) ($params['module_key'] ?? ''));
         if ($moduleKey === null) { $this->_error('git.error.invalid_module'); return; }
         $conn = $this->_connection($moduleKey);
@@ -221,11 +224,14 @@ class Git_Service_Repo extends Git_Service_Base
      * reconnect) and revoke its credential.
      *
      * @param  array $params module_key
+     * @apiRequest Git_Form_Module
      * @apiParam string module_key required The module (its slug).
      */
     public function disconnect(array $params): void
     {
         if (!$this->_signedIn() || !$this->_isAllowed('disconnect')) { $this->_error('core.api.error.not_allowed'); return; }
+        $form = new Git_Form_Module();   // deletes the connection + revokes its credential — CSRF (TIGER-528)
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
         $moduleKey = $this->_slug((string) ($params['module_key'] ?? ''));
         if ($moduleKey === null) { $this->_error('git.error.invalid_module'); return; }
         $conn = $this->_connection($moduleKey);

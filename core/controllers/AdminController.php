@@ -40,6 +40,8 @@ class AdminController extends Tiger_Controller_Admin_Action
     public function indexAction()
     {
         $this->view->title = 'Dashboard — Tiger Admin';
+        // The layout/visibility saves (System_Service_Dashboard) validate this form's `_csrf` (TIGER-528).
+        $this->view->dashForm = class_exists('System_Form_DashboardLayout') ? new System_Form_DashboardLayout() : null;
 
         $widgets = Tiger_Dashboard::allowed();               // registered + ACL-filtered for this role
 
