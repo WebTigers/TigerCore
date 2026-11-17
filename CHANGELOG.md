@@ -6,6 +6,15 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.65.1] — 2026-11-17
+
+### Fixed — the TigerPASS key never handed back to the site that bought it (TIGER-524)
+- The Module Manager's **Get My Key** opened the checkout as a plain new tab with `rel="noopener"` and no
+  product, so the checkout had no `window.opener` to post the key to and the buyer had to copy and paste it.
+  It now opens the checkout as a popup that keeps the opener, with `?product=tigerpass&origin=<site>`, and
+  listens for `{tiger_license_key}` from the checkout's own origin only (MARKETPLACE.md §6); the key fills in
+  and activates exactly as if pasted. A blocked popup falls back to the link; pasting still works.
+
 ## [1.65.0] — 2026-11-17
 
 ### Added (TIGER-525)

@@ -15,8 +15,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var PASS_CHECKOUT = fb.getAttribute('data-pass-checkout') || '';
     // Tell the checkout which site the key is for: a TigerPASS key binds to one domain, and this install is
     // the site it is being bought from, so the seller's checkout fills that in and locks it (MARKETPLACE.md §6).
+    // `product` names what is being bought, so the checkout can post the key back as {tiger_license_key, product}.
+    var PASS_ORIGIN = '';
     if (PASS_CHECKOUT) {
-        PASS_CHECKOUT += (PASS_CHECKOUT.indexOf('?') < 0 ? '?' : '&') + 'origin=' + encodeURIComponent(window.location.origin);
+        PASS_CHECKOUT += (PASS_CHECKOUT.indexOf('?') < 0 ? '?' : '&') + 'product=tigerpass&origin=' + encodeURIComponent(window.location.origin);
+        try { PASS_ORIGIN = new URL(PASS_CHECKOUT, window.location.href).origin; } catch (e) { PASS_ORIGIN = ''; }
     }
     var urlEl = document.getElementById('mod-url'), refEl = document.getElementById('mod-ref');
     var modalEl = document.getElementById('mod-detail');
@@ -521,7 +524,7 @@ document.addEventListener('DOMContentLoaded', function () {
             '</div>'+
             '<div class="modal-body pt-3">'+
               '<div class="d-grid mb-1">'+
-                '<a href="'+esc(PASS_CHECKOUT)+'" target="_blank" rel="noopener" class="btn btn-warning btn-lg d-flex align-items-center justify-content-center gap-2"><span class="fw-semibold">Get My Key</span><i class="fa-solid fa-arrow-right"></i></a>'+
+                '<a href="'+esc(PASS_CHECKOUT)+'" target="_blank" rel="opener" id="pass-get" class="btn btn-warning btn-lg d-flex align-items-center justify-content-center gap-2"><span class="fw-semibold">Get My Key</span><i class="fa-solid fa-arrow-right"></i></a>'+
               '</div>'+
               '<div class="d-flex align-items-center gap-2 text-body-secondary my-3" style="font-size:12px"><span class="flex-grow-1 border-top"></span>already have a key?<span class="flex-grow-1 border-top"></span></div>'+
               '<label class="form-label small fw-semibold" for="pass-key">Paste your TigerPASS key</label>'+
@@ -555,8 +558,30 @@ document.addEventListener('DOMContentLoaded', function () {
             }).catch(function(){ pending=false; input.classList.add('is-invalid'); });
         }
         input.addEventListener('input', tryActivate);
+
+        // The key hand-off (MARKETPLACE.md §6, TIGER-524): open the checkout as a popup that keeps
+        // window.opener, then take {tiger_license_key} from THAT origin only and activate it as if pasted.
+        // A blocked popup falls back to the link (a tab that still has an opener); pasting always works.
+        var get = document.getElementById('pass-get');
+        if (get && PASS_ORIGIN) {
+            get.addEventListener('click', function(e){
+                var pop = window.open(PASS_CHECKOUT, 'tigerpass', 'width=560,height=820');
+                if (pop) { e.preventDefault(); try { pop.focus(); } catch(x){} }
+            });
+        }
+        if (passListener) { window.removeEventListener('message', passListener); }
+        passListener = function(e){
+            if (!PASS_ORIGIN || e.origin !== PASS_ORIGIN) { return; }              // only the seller's checkout
+            var d = e.data || {};
+            var key = typeof d.tiger_license_key === 'string' ? d.tiger_license_key.trim().toLowerCase() : '';
+            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(key)) { return; }
+            input.value = key;
+            tryActivate();
+        };
+        window.addEventListener('message', passListener);
         setTimeout(function(){ try { input.focus(); } catch(e){} }, 200);
     }
+    var passListener = null;
 
     // ---- persistent value banner (only when there's no active PASS, and the user hasn't snoozed/disabled it) ----
     function renderBanner(){
