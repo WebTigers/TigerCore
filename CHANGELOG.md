@@ -6,6 +6,31 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.66.0] — 2026-11-17
+
+### Added — installed skills now reach both agents (TIGER-532)
+- **The progressive-disclosure loader, for real.** TIGERSKILLS.md said it had shipped; nothing read the active
+  skills into any agent. Now one function serves both: `Tiger_Agent_Skills::menu()` (the org's active skills, one
+  line each) and `load($key)` (that skill's `SKILL.md` plus the files it ships, as text).
+  - **In-app agent:** a `SKILLS` block in the system prompt + a new Scout read, `read.skill`.
+  - **MCP:** the menu is appended to the `initialize` instructions, and `agent__skills__load {skill}` loads one
+    (listed only when the org has active skills, keys as an enum, read-only).
+- **Know-how, not capability:** any role may load a skill, and over MCP it needs no `agent` token scope (a
+  read-only token may use it). Whatever a skill asks for still runs through the caller's own ACL.
+- **Only installed AND active skills** appear or load; anything else is refused. Bundled files come back as text
+  — nothing in the loader includes, evaluates or executes a file — and binary files are skipped.
+
+### Changed
+- **The active-skills list is per organization** (Beau's call): each org curates which installed skills its agents
+  use; an org that never chose inherits the install-wide list, and one that switched everything off gets none.
+  `active()`/`isActive()`/`setActive()` take an optional org; the Skills admin toggles the admin's own org.
+  Installing stays install-wide.
+
+### Fixed
+- Over MCP, every `agent__*` tool was routed to the Scout/Forge runner, so the real `/api` ops on the agent module
+  (`agent__skills__installed`, …) were listed for an agent-scoped admin token but refused as "unknown agent tool".
+  Only Scout/Forge take that path now.
+
 ## [1.65.2] — 2026-11-17
 
 ### Fixed — the `/cms` page scrolled sideways on a phone

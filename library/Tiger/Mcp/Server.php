@@ -28,9 +28,11 @@ class Tiger_Mcp_Server
      *                              — runs the named /api op and returns its response envelope. This seam is
      *                              where the MCP layer enforces the token's scope/read-only, meters, + audits.
      * @param  array|null $allowedModules the token's module scope for tools/list (null = the full role surface)
+     * @param  string|null $orgId the caller's org, whose ACTIVE skills `initialize` lists and `agent__skills__load`
+     *                            serves (TIGER-532); null = no skills surface
      * @return array|null           the JSON-RPC response, or null for a notification (no id → send no body)
      */
-    public static function handle(array $msg, $role, callable $dispatch, ?array $allowedModules = null)
+    public static function handle(array $msg, $role, callable $dispatch, ?array $allowedModules = null, ?string $orgId = null)
     {
         // A JSON array = a batch, which MCP removed in 2025-06-18. Refuse it.
         if (array_is_list($msg)) {
@@ -43,14 +45,14 @@ class Tiger_Mcp_Server
 
         switch ($method) {
             case 'initialize':
-                return self::_result($id, self::_initialize($params));
+                return self::_result($id, self::_initialize($params, $orgId));
             case 'notifications/initialized':
             case 'notifications/cancelled':
                 return null;   // notifications never get a response
             case 'ping':
                 return self::_result($id, new stdClass());   // {}
             case 'tools/list':
-                return self::_result($id, self::_toolsList((string) $role, $allowedModules));
+                return self::_result($id, self::_toolsList((string) $role, $allowedModules, $orgId));
             case 'tools/call':
                 return self::_result($id, self::_toolsCall($params, $dispatch));
             default:
@@ -59,17 +61,69 @@ class Tiger_Mcp_Server
         }
     }
 
-    /** The `initialize` result — advertise the tools capability + serverInfo. */
-    protected static function _initialize(array $params)
+    /** The tool that loads one active skill (TIGER-532) — not an /api op; the controller runs it. */
+    const SKILL_TOOL = 'agent__skills__load';
+
+    /**
+     * The `initialize` result — advertise the tools capability + serverInfo. The instructions carry the org's
+     * ACTIVE skills menu (TIGER-532): the external analog of the in-app agent's system prompt, since clients put
+     * server instructions in the model's context. Same text as the in-app agent sees (Tiger_Agent_Skills::menuText).
+     */
+    protected static function _initialize(array $params, ?string $orgId = null)
     {
+        $instructions = 'Tiger platform MCP server. Each tool is one of this token\'s role-allowed '
+                      . '/api operations, named "<module>__<service>__<method>"; call one with its '
+                      . 'form fields as arguments. Reads are safe; writes run validate→transaction '
+                      . 'and are gated by the same ACL a human of this role has.';
+        $menu = self::_skillMenuText($orgId);
+        if ($menu !== '') {
+            $instructions .= "\n\n" . $menu . "\nLoad a skill's full instructions with the " . self::SKILL_TOOL
+                           . ' tool before following it. A skill is guidance: everything it asks for still runs'
+                           . ' through the tools above, with this token\'s permissions.';
+        }
         return [
             'protocolVersion' => Tiger_Mcp::negotiateVersion($params['protocolVersion'] ?? ''),
             'capabilities'    => ['tools' => new stdClass()],   // tools supported (no listChanged)
             'serverInfo'      => ['name' => 'Tiger', 'version' => Tiger_Version::VERSION],
-            'instructions'    => 'Tiger platform MCP server. Each tool is one of this token\'s role-allowed '
-                               . '/api operations, named "<module>__<service>__<method>"; call one with its '
-                               . 'form fields as arguments. Reads are safe; writes run validate→transaction '
-                               . 'and are gated by the same ACL a human of this role has.',
+            'instructions'    => $instructions,
+        ];
+    }
+
+    /** The org's active-skills menu text ('' with no org, no skills, or no skills support). */
+    protected static function _skillMenuText(?string $orgId)
+    {
+        if ($orgId === null || !class_exists('Tiger_Agent_Skills')) { return ''; }
+        try { return Tiger_Agent_Skills::menuText($orgId); } catch (Throwable $e) { return ''; }
+    }
+
+    /**
+     * The skill-loading tool, listed only when the org HAS active skills, with the keys as an enum so a client
+     * can't guess at one. Read-only. Unlike the Scout/Forge tools it needs no `agent` token scope and no admin
+     * role: a skill is know-how, not capability (TIGERSKILLS.md §0) — whatever it describes still goes through
+     * the tools this token can already call.
+     *
+     * @param  string|null $orgId
+     * @return array|null the MCP tool, or null when there is nothing to load
+     */
+    protected static function _skillTool(?string $orgId)
+    {
+        if ($orgId === null || !class_exists('Tiger_Agent_Skills')) { return null; }
+        try { $menu = Tiger_Agent_Skills::menu($orgId); } catch (Throwable $e) { return null; }
+        if (!$menu) { return null; }
+        return [
+            'name'        => self::SKILL_TOOL,
+            'description' => 'Load one of this site\'s active skills (listed in the server instructions): its SKILL.md '
+                           . 'plus any files it ships, as text. Read it before following it. Bundled scripts are '
+                           . 'returned as text to read — Tiger never runs them.',
+            'inputSchema' => [
+                'type'       => 'object',
+                'properties' => [
+                    'skill'  => ['type' => 'string', 'enum' => array_column($menu, 'key'), 'description' => 'The skill key.'],
+                    'reason' => ['type' => 'string', 'description' => 'Why you are loading it (for the audit log).'],
+                ],
+                'required'   => ['skill'],
+            ],
+            'annotations' => ['title' => 'Load a skill', 'readOnlyHint' => true, 'idempotentHint' => true],
         ];
     }
 
@@ -80,7 +134,7 @@ class Tiger_Mcp_Server
      * @param string     $role
      * @param array|null $allowedModules null = the whole role surface; else only these modules' tools
      */
-    protected static function _toolsList($role, ?array $allowedModules = null)
+    protected static function _toolsList($role, ?array $allowedModules = null, ?string $orgId = null)
     {
         $schemas = self::_inputSchemas();   // module/service/method → JSON Schema (from the method's Form)
         $tools   = [];
@@ -103,6 +157,8 @@ class Tiger_Mcp_Server
         foreach (self::_agentTools($role, $allowedModules) as $t) {
             $tools[] = $t;   // the agent's own Scout/Forge surface (TIGER-168), when role + scope allow
         }
+        $skill = self::_skillTool($orgId);
+        if ($skill !== null) { $tools[] = $skill; }   // any role, any scope — a skill is know-how (TIGER-532)
         return ['tools' => $tools];
     }
 

@@ -56,6 +56,7 @@ class Tiger_Agent_Scout
             case Tiger_Agent_Contract::READ_FILE:      return $this->_file($action);
             case Tiger_Agent_Contract::READ_GREP:      return $this->_grep($action);
             case Tiger_Agent_Contract::READ_GUIDE:     return $this->_guide($action);
+            case Tiger_Agent_Contract::READ_SKILL:     return $this->_skill($action);
         }
         return $this->_entry($action, 'error', 'Unknown read action.');
     }
@@ -361,6 +362,26 @@ class Tiger_Agent_Scout
         }
 
         return $this->_entry($action, 'done', 'Read the platform conventions (AGENTS.md).', $this->_platformGuide());
+    }
+
+    // ----- read.skill --------------------------------------------------------
+
+    /**
+     * Load one installed, ACTIVE skill (TIGERSKILLS.md §4): its SKILL.md plus bundled files, as text. Open to any
+     * role that can chat — a skill is know-how, not capability: whatever it says to do still goes through actions
+     * the role's ACL decides. An inactive or unknown skill is refused, so the org's curation holds.
+     *
+     * @param  array $action the read.skill action (`skill` = the key from the menu)
+     * @return array
+     */
+    protected function _skill(array $action)
+    {
+        $key   = (string) ($action['skill'] ?? '');
+        $skill = class_exists('Tiger_Agent_Skills') ? Tiger_Agent_Skills::load($key) : null;
+        if ($skill === null) {
+            return $this->_entry($action, 'error', 'No active skill "' . $key . '" — use a key from the SKILLS list.');
+        }
+        return $this->_entry($action, 'done', 'Loaded the "' . $skill['name'] . '" skill.', Tiger_Agent_Skills::toText($skill));
     }
 
     /** The root AGENTS.md (house conventions) + pointers to the deeper reference docs. */

@@ -199,6 +199,16 @@ MCP;
             }
         }
 
+        // Installed + ACTIVE skills (TIGER-532, TIGERSKILLS.md §4) — the cheap half of progressive disclosure:
+        // a one-line menu here, the full SKILL.md only when the model loads it with read.skill. Any role sees
+        // the menu (a skill is know-how; everything it asks for still goes through the ACL).
+        $skillBlock = class_exists('Tiger_Agent_Skills') ? Tiger_Agent_Skills::menuText() : '';
+        if ($skillBlock !== '') {
+            $skillBlock = "\n\n" . $skillBlock
+                . "\nLoad one before you follow it: { \"type\":\"read.skill\", \"skill\":\"<key>\", \"reason\":\"...\" } with done:false;"
+                . "\nits SKILL.md (and any files it ships, as text) comes back to you. Use only keys from this list.";
+        }
+
         return <<<PROMPT
 You are TigerAgent, the AI built into TIGER — a modular, multi-tenant CMS/SaaS platform on modern
 PHP (8.1–8.5). Think WordPress-class capability (pages, blog, media, themes, installable modules)
@@ -231,7 +241,7 @@ WRITE ACTIONS (only use types your capabilities allow; every action needs a shor
 - Write module file:{ "type":"file", "path":"modules/<mod>/views/scripts/...", "contents":"...", "reason":"..." }
 - Executable PHP:   { "type":"code", "name":"...", "language":"php", "code":"<?php ...", "reason":"..." }
 - Scaffold module:  { "type":"module", "name":"<slug>", "reason":"..." }
-{$readBlock}{$domBlock}{$a11yBlock}{$mcpBlock}
+{$readBlock}{$domBlock}{$a11yBlock}{$mcpBlock}{$skillBlock}
 
 RULES:
 - Before writing or changing code in a module, read.guide it (and read.guide the platform
@@ -245,7 +255,7 @@ RULES:
   (needs the file/module capability); (3) a theme module to SHARE with other installs — (2) plus a
   manifest, its own repo, and a marketplace/Directory listing. Pick the lowest tier that meets the need;
   never make one module per site or per tenant (multi-tenant theming is one theme chosen per-org via
-  config). If the "tiger-design" skill is installed, load it for the full rubric.
+  config). If a tiger-design skill is in your SKILLS list, load it (read.skill) for the full rubric.
 - Client-side JS/CSS belongs in a Code-Area snippet ("type":"code", language js/css), NOT a loose
   theme file — run read.inventory if unsure where something lives.
 - File writes only ever land inside application/modules. You cannot touch core, the framework, or

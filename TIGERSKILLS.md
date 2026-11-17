@@ -7,10 +7,12 @@ this before building the skill loader, the Skills admin, or the MCP surfaces. Fo
 install/update/registry machinery read [MARKETPLACE.md](MARKETPLACE.md); for the file-discovery + active-set
 pattern this mirrors read [CODE.md](CODE.md).
 
-> **Status: BUILT.** TigerSkills ships — browse via the source adapters + index, install + the config
-> active-set, the `load_skill` progressive-disclosure loader, and the Skills admin grid (Admin → Settings →
-> Agent). MCP is the sibling extension layer (also built — see TIGERMCP.md). This doc records the decisions
-> so we don't relitigate them.
+> **Status: BUILT.** TigerSkills ships — browse via the source adapters + index, install + the per-org
+> active-set, the progressive-disclosure loader for BOTH agents (core 1.66.0, TIGER-532: the in-app agent's
+> menu + `read.skill`; the MCP `initialize` menu + `agent__skills__load`), and the Skills admin grid (Admin →
+> Settings → Agent). Before 1.66.0 this line claimed the loader shipped; it didn't — nothing read the active
+> skills into any agent. MCP is the sibling extension layer (see TIGERMCP.md §5b). This doc records the
+> decisions so we don't relitigate them.
 
 ---
 
@@ -124,18 +126,21 @@ owner.**
 
 ## 3. Discovery + activation — mirror the Code-module active-set
 
-Skills are **discovered live from files, never copied to a DB** (the same source-of-truth discipline as code
-snippets and theme components). A new static class **`Tiger_Agent_Skills`** mirrors `Tiger_Code_Modules`:
+Skills are **files, never copied to a DB** (the same source-of-truth discipline as code snippets and theme
+components). **`Tiger_Agent_Skills`** owns the installed side:
 
-- Globs `{APPLICATION_PATH,TIGER_CORE_PATH}/modules/*/skills/*/SKILL.md`, **skipping any module in
-  `Tiger_Model_Module::inactiveSlugs()`** (only active packs contribute), and parses each frontmatter.
-- The **active set is one config value** — `tiger.agent.skills = "author-storefront,seo-audit,…"` (the
-  live-override tier, effective next request, config-discipline — *not* a `wp_options`-style table, *not* a
-  new schema). `setActive($key,$on)` flips a key; `body($key)`/`resources($key)` read the file on demand.
-- `entries()` returns `{key, name, description, module, path}` for the admin list + the loader.
+- **Install** fetches a skill's folder (its `SKILL.md` + bundled files, bounded) into the app-owned store
+  **`application/skills/<key>/`** — install-wide, survives `composer update` — with a `source.json` for
+  provenance. `installed()` reads that store; `body($key)` reads one `SKILL.md`.
+- **The active set is a config value, per org** — `tiger.agent.skills.active = "key1,key2"` (the live-override
+  tier, effective next request, config-discipline — *not* a table, *not* a schema). Skills are installed for the
+  whole install, but **each org curates which of them its agents use** (TIGER-532): `active($orgId)` reads that
+  org's row, else the install-wide row — an org that never chose inherits the install's list; an org that
+  switched everything off (an empty row) gets none. `setActive($key, $on, $orgId)` writes the org's row
+  (`Tiger_Model_Config::settingScope`).
 
-So a skill has **no DB row**; "what's active" is the only state, and it's a config key. Install ≠ activate:
-installing a pack surfaces its skills **inactive**; activation is a deliberate toggle.
+So a skill has **no DB row**; "what's active for this org" is the only state, and it's a config key. Install ≠
+activate: an installed skill is **inactive** until an admin turns it on.
 
 ---
 
@@ -144,14 +149,24 @@ installing a pack surfaces its skills **inactive**; activation is a deliberate t
 The model remembers nothing between turns (TIGERAGENT.md §5b); context is assembled per turn. Skills plug in
 with **progressive disclosure** so you can have 50 installed and pay for only the one that's relevant:
 
-1. **Always in the system prompt (cheap):** the active skills' **name + description** (the description says when to use it) — a short
-   menu, one line each. The model sees *what skills exist and when to reach for them*, nothing more.
-2. **On demand (a read-tool):** a `load_skill(name)` tool — a **Scout-side read**, no permission gate (it only
-   reads a shipped file) — pulls the **full `SKILL.md` body + referenced resources** into context when the
-   model decides the skill applies. Same move Claude Code makes with its skill tool.
+1. **Always in context (cheap):** the org's active skills' **key + name + description** (the description says
+   when to use it) — `Tiger_Agent_Skills::menu()` / `menuText()`, one line each. The model sees *what skills
+   exist and when to reach for them*, nothing more.
+2. **On demand:** the **full `SKILL.md` + the files it ships**, as text — `Tiger_Agent_Skills::load($key)`. Only
+   a skill that is installed **and active for the org** loads; anything else is refused, so the admin's curation
+   holds. Bundled files come back as **text to read, never something that runs** — nothing in the loader
+   includes, evaluates or executes a file (§5), and binary files are skipped. Bounded (`LOAD_MAX_BYTES`).
 
-That's the whole loader: a menu in the prompt + a read-tool for the body. It rides `Tiger_Agent_Loop` and the
-existing tool-registry seam; no new execution machinery.
+**One function, two agents** (built, core 1.66.0) — so the in-app agent and an external one can't drift:
+
+| | the menu | loading one |
+|---|---|---|
+| **In-app agent** | a `SKILLS` block in the system prompt (`Tiger_Agent_Tools::systemPrompt`) | the Scout read action **`read.skill`** `{ "type":"read.skill", "skill":"<key>" }` — auto-runs like any read |
+| **External agent (MCP)** | appended to the `initialize` **instructions** (clients put these in the model's context) | the read-only tool **`agent__skills__load`** `{skill}` (TIGERMCP.md §5b) |
+
+Both are open to **any role** — a skill is know-how, not capability (§0): whatever it says to do still goes
+through tools the role's ACL decides. Over MCP the loader needs no `agent` token scope either, and a read-only
+token may use it. No new execution machinery: it rides the Scout and the MCP tool seam.
 
 ---
 
@@ -244,7 +259,8 @@ there.
 2. **Install + the active-set** — `Tiger_Agent_Skills`: pull a chosen skill's files into a local store, glob
    installed `SKILL.md`, the `tiger.agent.skills` active-set config, `entries()`/`body()`/`resources()`;
    remove. *(§3 — mirrors `Tiger_Code_Modules`.)*
-3. **Loader** — inject the active skills' menu into the system prompt; add the `load_skill` read-tool. *(§4.)*
+3. **Loader — ✅ BUILT (core 1.66.0, TIGER-532).** The active skills' menu in the system prompt + the
+   `read.skill` Scout read; the same menu in the MCP `initialize` instructions + `agent__skills__load`. *(§4.)*
 4. **Skills admin** — the "Agent" nav section + the Skills screen (search the index, install, activate/
    deactivate, view source, remove, add a source, update badges), per ADMIN.md. *(§6.)*
 5. **(later) MCP** — the outbound Connections surface + the inbound Server/Access adapter (the thin `/api`
@@ -259,7 +275,7 @@ there.
 | A Tiger-specific skill format | strands us from the ecosystem; every skill would need a Tiger port | the portable **`SKILL.md`** format |
 | Skills as DB rows | forks the file → update-reconciliation hell (the WP "owns a row" trap) | **files discovered live** + a config active-set (§3) |
 | Skills ship arbitrary executable tools by default | RCE outside the ACL/identity model | **know-how by default**; new capability = a **module** (`/api` tool, ACL-gated); script-bundling gated like Tiger Code |
-| Load every active skill's full body every turn | context bloat; caps how many you can install | **progressive disclosure** — menu in the prompt, body via `load_skill` on demand |
+| Load every active skill's full body every turn | context bloat; caps how many you can install | **progressive disclosure** — menu in the prompt, body via `read.skill` / `agent__skills__load` on demand |
 | A bespoke skill installer/registry | duplicates the module machinery | a skill **is** a module (`type:skill`) on the existing installer/registry/updates |
 | MCP as a new tool-execution engine | duplicates the `/api` surface + the ACL | MCP = **authenticated `/api` relay** (session or Bearer token); tools fall out of `/api/openapi` (§7) |
 
@@ -267,8 +283,10 @@ there.
 
 ## 10. Open questions
 
-- **Skill scoping** — per-org active-sets (a tenant enables its own skills) vs global? The config tier already
-  supports `scope=org`, so per-org is nearly free; decide the default.
+- ~~**Skill scoping**~~ — **settled (Beau, 2026-11-17, TIGER-532):** per-org active sets with an install-wide
+  fallback (§3). Installing stays install-wide.
+- **Role-filtering the menu** — a skill may describe calls the caller's role can't make. Harmless (the ACL still
+  refuses them), so the menu is not filtered by role yet; a later refinement if a skill list gets noisy.
 - **Skill → tool affinity** — should a skill be able to *declare* which `/api` tools it expects (a hint the
   loader uses to pre-warm the tool list), or stay purely instructional?
 - **Script-bundling: support at all, or instructions-only for v1?** (Recommended: instructions-only first; add
