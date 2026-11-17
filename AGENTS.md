@@ -8,6 +8,8 @@ for the `/api` model read [WEBSERVICES.md](WEBSERVICES.md); for URLs + module ro
 read [ROUTING.md](ROUTING.md); for building an admin screen read [ADMIN.md](ADMIN.md); for installing on shared cPanel read [CPANEL.md](CPANEL.md); for buying/selling
 paid modules (the open licensing protocol + the buyer-side client) read [MARKETPLACE.md](MARKETPLACE.md); for comments/ratings/reviews read [COMMENTS.md](COMMENTS.md),
 and for the *seller* side (list free / sell paid → Add Module, + the build status) read [SELLING.md](SELLING.md).
+Building a module for others to install (a third-party vendor)? [MODULE_VENDORS.md](MODULE_VENDORS.md) — branded
+table prefixes (enforced at install), multi-tenant awareness, and the review checklist.
 Weighing whether to build on Tiger at all — or handed this repo cold — start with [WHY-TIGER.md](WHY-TIGER.md).
 
 ---

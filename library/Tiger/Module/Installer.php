@@ -198,6 +198,12 @@ class Tiger_Module_Installer
                 throw new RuntimeException("Module '{$slug}' declares a licensed pricing model but arrived unsigned — refusing to install.");
             }
 
+            // Table collisions (TIGER-444): refuse, BEFORE anything is moved into place, a package whose pending
+            // migrations would create a table that already exists — and a third-party package without a branded
+            // table prefix (configs/module.ini tables.prefix) that all its tables use. A named reason, not a raw SQL
+            // failure halfway through a migration.
+            Tiger_Module_TableGuard::check($slug, $root, $manifest, self::_guardDb(), $provenance);
+
             $target   = self::modulesDir() . '/' . $slug;
             $isUpdate = !empty($opts['force']);   // an explicit force is always an update-in-place
             if (is_dir($target) && !$isUpdate) {
@@ -708,6 +714,13 @@ class Tiger_Module_Installer
         if (defined('TIGER_CORE_PATH'))  { $roots[] = TIGER_CORE_PATH . '/modules'; }
         if (!$roots) { $roots[] = self::modulesDir(); }
         return $roots;
+    }
+
+    /** The database the table guard checks against (null when none is configured — the guard then skips its live check). */
+    protected static function _guardDb(): ?Zend_Db_Adapter_Abstract
+    {
+        $db = Zend_Db_Table_Abstract::getDefaultAdapter();
+        return $db instanceof Zend_Db_Adapter_Abstract ? $db : null;
     }
 
     protected static function _migrate()

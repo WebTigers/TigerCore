@@ -6,6 +6,22 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.68.0] — 2026-11-17
+
+### Added — modules can't install colliding database tables (TIGER-444)
+- **`Tiger_Module_TableGuard`**, run by the installer on the staged package BEFORE anything is placed, refuses with a
+  named reason instead of a raw SQL failure halfway through a migration:
+  - **`E_TABLE_COLLISION`** — a table one of the module's pending migrations would create already exists (core, the
+    app, or another module). Every module, first-party included. Migrations the ledger already applied are skipped,
+    so an update re-shipping them is fine.
+  - **`E_TABLE_PREFIX`** — a third-party module must declare a **branded** table prefix in `configs/module.ini`
+    (`tables.prefix = "paysoft_"`): well-formed, not generic or reserved (`user_`, `mail_`, `tiger_`…), not
+    overlapping another installed module's prefix, and used by every table its migrations create. The platform's
+    first-party modules keep plain names, as core does.
+  - Table names are read from the migration files as text; nothing runs until the checks pass.
+- **`MODULE_VENDORS.md`** — the vendor rulebook: branded prefixes, multi-tenant awareness (even on a single-tenant
+  install), and the review checklist. Linked from AGENTS.md and SELLING.md.
+
 ## [1.67.0] — 2026-11-17
 
 ### Added — "Update now" for theme content (TIGER-455)
