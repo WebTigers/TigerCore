@@ -129,9 +129,11 @@ class Signup_Service_Signup extends Tiger_Service_Service
     /**
      * Redeem an email_verify challenge and activate the account. Returns ['ok'=>bool].
      *
+     * In-process only — Signup_IndexController::verifyAction calls it for the emailed link; never an /api op.
+     *
+     * @apiExclude
      * @param  string $challengeId the auth_challenge id from the emailed link
      * @param  string $code        the single-use verification token
-     * @apiRequest none
      * @return array               ['ok'=>bool] and, on success, 'user_id'
      */
     public function verifyEmail($challengeId, $code): array
