@@ -23,3 +23,6 @@
 # UI probe artifacts + local test credentials
 tests/ui/artifacts/
 tests/ui/credentials.local.json
+
+# local agent worktrees (Claude Code)
+.claude/worktrees/

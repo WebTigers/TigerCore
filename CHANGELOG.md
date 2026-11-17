@@ -6,6 +6,14 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.65.2] — 2026-11-17
+
+### Fixed — the `/cms` page scrolled sideways on a phone
+- The hero badge ("Tiger CMS · the modern WordPress alternative") is a Bootstrap `.badge`, which never
+  wraps, and it carried an inline `font-size:1.6em` — so on a 390px screen it was ~730px wide and the
+  whole page scrolled horizontally. It now wraps (`text-wrap`) and takes its size from `fs-5` instead of
+  an inline style.
+
 ## [1.65.1] — 2026-11-17
 
 ### Fixed — the TigerPASS key never handed back to the site that bought it (TIGER-524)
