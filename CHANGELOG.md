@@ -6,6 +6,30 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.64.0] — 2026-11-17
+
+### Added — two `/api` declarations (TIGER-529)
+- **`@apiExclude`** marks a public service method that is in-process PHP (often called by another module), not
+  an `/api` operation. The dispatcher refuses a message naming it like an unknown action, and OpenAPI, MCP
+  `tools/list` and the agent catalog no longer list it — such methods used to appear as tools that TypeErrored.
+  `Tiger_Service_Service::isApiExcluded()`.
+- **`@apiParam file <name>`** declares a multipart upload. OpenAPI gets a `multipart/form-data` body
+  (`format: binary`); MCP `tools/list` leaves the operation out, since no MCP client can send a file
+  (`Tiger_OpenApi_Generator::takesFile()`). Media upload, agent file attach, avatar, org logo and module upload
+  now declare their file part instead of `none` + prose.
+
+### Fixed (TIGER-529)
+- **ally:** `scanModule` read the module to scan from `module` — over `/api` that is the routing field (always
+  `ally`), so no caller could scan another module. It is now `target_module`, declared.
+- **signup:** `verifyEmail` takes positional args and is called in-process by the emailed link's controller, but
+  its guest ACL grant advertised it as an `/api` op that could only fail. The grant is gone.
+- **Native browser dialogs → TigerModal** across core's admin JS: access org/user delete, agent delete, backup
+  delete, blog delete/restore/link prompt/media-picker notice, cms delete/restore/customize errors, code
+  delete/restore/toggle errors, media delete + storage migration, profile address/contact delete, module-manager
+  notices, and the page builder's "name this block" prompt (the builder document now loads `tiger.modal.js`).
+- **A refused delete says why.** The access, blog, cms, code, media and profile grids reloaded silently after a
+  refused delete; they now show the service's message.
+
 ## [1.63.0] — 2026-11-17
 
 ### Security — every browser write is CSRF-protected (TIGER-528)

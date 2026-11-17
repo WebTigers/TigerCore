@@ -65,8 +65,10 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.addEventListener('click', function () {
             var el = this;
             var ver = btn.getAttribute('data-code-restore');
-            if (!confirm(Tiger.t('confirmRestore', ver))) { return; }
-            post({ method: 'restore', version: ver }, function (res) { window.location = res.redirect || window.location.href; }, el);
+            TigerModal.confirm({ body: Tiger.t('confirmRestore', ver) }).then(function (ok) {
+                if (!ok) { return; }
+                post({ method: 'restore', version: ver }, function (res) { window.location = res.redirect || window.location.href; }, el);
+            });
         });
     });
 });

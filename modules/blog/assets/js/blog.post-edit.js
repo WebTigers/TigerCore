@@ -59,13 +59,21 @@ document.addEventListener('DOMContentLoaded', function () {
     var linkBtn = document.querySelector('[data-ed-link]');
     if (linkBtn) { linkBtn.addEventListener('mousedown', function (e){ e.preventDefault(); });
         linkBtn.addEventListener('click', function () {
-            var url = prompt(Tiger.t('linkUrl')); if (url) { bodyEl.focus(); document.execCommand('createLink', false, url); }
+            // The modal takes focus, so remember the selection and put it back before linking it.
+            var sel = window.getSelection(), range = sel && sel.rangeCount ? sel.getRangeAt(0).cloneRange() : null;
+            TigerModal.prompt({ label: Tiger.t('linkUrl'), placeholder: 'https://' }).then(function (url) {
+                url = url === null ? '' : url.trim();
+                if (!url) { return; }
+                bodyEl.focus();
+                if (range) { sel.removeAllRanges(); sel.addRange(range); }
+                document.execCommand('createLink', false, url);
+            });
         });
     }
 
     // Media picker: feature image + inline image insert (uses the platform TigerMediaPicker).
     function pickImage(cb) {
-        if (typeof TigerMediaPicker === 'undefined') { alert(Tiger.t('mediaPickerUnavailable')); return; }
+        if (typeof TigerMediaPicker === 'undefined') { TigerDOM.toast(Tiger.t('mediaPickerUnavailable'), { type: 'error' }); return; }
         TigerMediaPicker.open({ kind: 'image', multiple: false, onSelect: function (items) {
             var m = items && items[0]; if (m) { cb(m); }
         }});
@@ -129,8 +137,10 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.addEventListener('click', function () {
             var el = this;
             var ver = btn.getAttribute('data-ed-restore');
-            if (!confirm(Tiger.t('confirmRestore', ver))) { return; }
-            post({ method: 'restore', version: ver }, function (res) { window.location = res.redirect || window.location.href; }, el);
+            TigerModal.confirm({ body: Tiger.t('confirmRestore', ver) }).then(function (ok) {
+                if (!ok) { return; }
+                post({ method: 'restore', version: ver }, function (res) { window.location = res.redirect || window.location.href; }, el);
+            });
         });
     });
 });

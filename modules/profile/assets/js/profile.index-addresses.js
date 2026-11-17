@@ -124,14 +124,18 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     function del(id, btn) {
-        if (!window.confirm(STR.confirm)) { return; }
-        post('delete', { link_id: id }, btn).then(function (res) {
-            if (res && res.result === 1 && res.data) {
-                render(res.data.addresses || []);
-                if (res.data._csrf) { csrfInput.value = res.data._csrf; }
-                TigerDOM.notify(fb, STR.del, { type: 'success' });
-            }
-        }).catch(function () { TigerDOM.notify(fb, Tiger.t('netError'), { type: 'error' }); });
+        TigerModal.confirm({ body: STR.confirm, variant: 'danger' }).then(function (ok) {
+            if (!ok) { return; }
+            post('delete', { link_id: id }, btn).then(function (res) {
+                if (res && res.result === 1 && res.data) {
+                    render(res.data.addresses || []);
+                    if (res.data._csrf) { csrfInput.value = res.data._csrf; }
+                    TigerDOM.notify(fb, STR.del, { type: 'success' });
+                    return;
+                }
+                (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class || 'error' }); });
+            }).catch(function () { TigerDOM.notify(fb, Tiger.t('netError'), { type: 'error' }); });
+        });
     }
 
     render(cfg('addresses', '[]'));

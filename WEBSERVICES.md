@@ -283,7 +283,9 @@ request body is *already written*. An `email` element → `string`/`format:email
 `NotEmpty` validator → `required`. A method points at its form (an `@apiRequest
 <FormClass>` docblock tag). A form-less method declares its input instead — `@apiRequest datatable`
 (a grid source), `@apiRequest none`, or one `@apiParam <type> <name> [required] [description]` line per
-parameter, which can also add to a form's fields. Every operation declares one (AGENTS.md "Services");
+parameter, which can also add to a form's fields (a `file` parameter makes the body `multipart/form-data`). A
+public method that is in-process PHP rather than an operation is tagged `@apiExclude` and is neither listed nor
+dispatched. Every operation declares one (AGENTS.md "Services");
 an undeclared method would get a generic body that tells a client nothing.
 
 ### Discovery respects the ACL

@@ -454,7 +454,7 @@
     saveBlockBtn.addEventListener('click', function () {
       var sel = editor.getSelected();
       if (!sel) { setStatus('Select an element first', 'err'); return; }
-      var name = window.prompt('Name this block:', '');
+      TigerModal.prompt({ title: 'Save as block', label: 'Name this block' }).then(function (name) {
       if (name === null) { return; }
       name = String(name).trim();
       if (!name) { setStatus('A name is required', 'err'); return; }
@@ -484,6 +484,7 @@
         })
         .catch(function () { setStatus('Block save failed', 'err'); })
         .finally(function () { saveBlockBtn.disabled = false; });
+      });
     });
   }
 

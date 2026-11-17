@@ -147,6 +147,16 @@ final class McpTokenScopeTest extends IntegrationTestCase
     }
 
     #[Test]
+    public function tools_list_leaves_out_uploads_no_mcp_client_can_send(): void
+    {
+        // media/media/upload takes a multipart file (`@apiParam file`) — not a tool; the module's other ops are.
+        $out   = Tiger_Mcp_Server::handle(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list'], 'admin', fn() => null, ['media']);
+        $names = array_column($out['result']['tools'], 'name');
+        $this->assertNotContains('media__media__upload', $names, 'an upload is not an MCP tool (TIGER-529)');
+        $this->assertContains('media__media__delete', $names, 'the module\'s other operations stay listed');
+    }
+
+    #[Test]
     public function service_factory_identity_override_drives_the_acl(): void
     {
         $req = new Zend_Controller_Request_Http();

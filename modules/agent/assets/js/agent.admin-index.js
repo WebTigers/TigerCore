@@ -99,15 +99,18 @@
         card.querySelector('.agent-delete').addEventListener('click', function () {
             var id = card.dataset.agentId || '';
             if (!id) { card.remove(); refreshEmpty(); return; }   // unsaved card — just drop it
-            if (!window.confirm(Tiger.t('confirmDelete'))) { return; }
-            TigerButton.run(this, function () { return api('delete', { agent_id: id }); }).then(function (res) {
-                if (res && res.result === 1) {
-                    card.remove(); refreshEmpty();
-                    TigerDOM.notify(fb, Tiger.t('agentDeleted'), { type: 'success' });
-                    return;
-                }
-                (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
-            }).catch(function () { TigerDOM.notify(fb, Tiger.t('networkError'), { type: 'error' }); });
+            var btn = this;
+            TigerModal.confirm({ body: Tiger.t('confirmDelete'), variant: 'danger' }).then(function (ok) {
+                if (!ok) { return; }
+                TigerButton.run(btn, function () { return api('delete', { agent_id: id }); }).then(function (res) {
+                    if (res && res.result === 1) {
+                        card.remove(); refreshEmpty();
+                        TigerDOM.notify(fb, Tiger.t('agentDeleted'), { type: 'success' });
+                        return;
+                    }
+                    (res && res.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class }); });
+                }).catch(function () { TigerDOM.notify(fb, Tiger.t('networkError'), { type: 'error' }); });
+            });
         });
 
         loadModels(card);

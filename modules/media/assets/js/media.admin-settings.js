@@ -119,7 +119,12 @@ document.getElementById('media-settings-save').addEventListener('click', functio
         var ask  = move
             ? 'MOVE all media to "' + to + '" and DELETE each original after it is copied? (Files already there are skipped.)'
             : 'COPY all media to "' + to + '"? Originals are kept.';
-        if (!confirm(ask)) { return; }
+        TigerModal.confirm({ body: ask, variant: move ? 'danger' : 'primary' }).then(function (ok) {
+            if (ok) { runMigrate(to, move, res, fb); }
+        });
+    });
+
+    function runMigrate(to, move, res, fb) {
         res.innerHTML = '';
         var fd = new URLSearchParams({ module: 'media', service: 'settings', method: 'migrateDisk', to: to, move: move ? '1' : '0', _csrf: mediaCsrf() });
         TigerButton.run(btn, function () {
@@ -142,5 +147,5 @@ document.getElementById('media-settings-save').addEventListener('click', functio
             }
             (r && r.messages || []).forEach(function (m) { TigerDOM.notify(fb, m.message, { type: m.class || 'error' }); });
         }).catch(function () { TigerDOM.notify(fb, Tiger.t('networkError'), { type: 'error' }); });
-    });
+    }
 })();

@@ -149,20 +149,28 @@ document.addEventListener('DOMContentLoaded', function () {
         }).then(function (res) {
             var url = (res && res.data && res.data.edit_url) || (res && res.redirect);
             if (res && res.result === 1 && url) { window.location = url; return; }
-            (res && res.messages || []).forEach(function (m) { alert(m.message); });
-        }).catch(function () { alert(Tiger.t('customizeFailed')); });
+            (res && res.messages || []).forEach(function (m) { TigerDOM.toast(m.message, { type: m.class || 'error' }); });
+        }).catch(function () { TigerDOM.toast(Tiger.t('customizeFailed'), { type: 'error' }); });
     });
 
     // Soft-delete via /api, then reload just the table data (no page reload).
     $('#cms-pages-table tbody').on('click', '[data-cms-delete]', function () {
-        if (!confirm(Tiger.t('confirmDeletePage'))) { return; }
-        var btn  = this;
-        var body = new URLSearchParams({ module: 'cms', service: 'page', method: 'delete', page_id: this.getAttribute('data-cms-delete'), _csrf: csrf() });
-        TigerButton.run(btn, function () {
-            return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
-                .then(function (r) { return r.json(); });
-        })
-            .then(function () { table.ajax.reload(null, false); })
-            .catch(function () { table.ajax.reload(null, false); });
+        var btn = this;
+        TigerModal.confirm({ body: Tiger.t('confirmDeletePage'), variant: 'danger' }).then(function (ok) {
+            if (!ok) { return; }
+            var body = new URLSearchParams({ module: 'cms', service: 'page', method: 'delete', page_id: btn.getAttribute('data-cms-delete'), _csrf: csrf() });
+            TigerButton.run(btn, function () {
+                return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
+                    .then(function (r) { return r.json(); });
+            })
+                .then(function (res) {
+                    // A refused delete says why — it must not just reload the grid as if it worked (TIGER-529).
+                    if (!res || res.result !== 1) {
+                        (res && res.messages || []).forEach(function (m) { TigerDOM.toast(m.message, { type: m.class || 'error' }); });
+                    }
+                    table.ajax.reload(null, false);
+                })
+                .catch(function () { table.ajax.reload(null, false); });
+        });
     });
 });

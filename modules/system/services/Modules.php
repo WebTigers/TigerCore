@@ -1056,7 +1056,8 @@ class System_Service_Modules extends Tiger_Service_Service
      *
      * @param  array $params the /api payload (optional `force` to update in place)
      * @apiRequest System_Form_ModuleInstall
-     * @apiParam boolean force Update in place when the module is already installed (the .zip itself rides as the multipart file `archive`).
+     * @apiParam file archive required The module's .zip.
+     * @apiParam boolean force Update in place when the module is already installed.
      * @return void
      */
     public function upload(array $params): void

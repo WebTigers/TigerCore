@@ -60,14 +60,17 @@ class Ally_Service_Scan extends Tiger_Service_Service
      * A Forge read-verb, so the agent can run it on demand; the returned `file` paths are exactly what
      * a `file` write (or a Scout read) accepts.
      *
-     * @param  array $params module
-     * @apiRequest none
+     * The module to scan is `target_module`, not `module`: over /api `module` is the routing field
+     * (always `ally`), so a param named `module` could never name another module (TIGER-529).
+     *
+     * @param  array $params target_module
+     * @apiParam string target_module required The app module whose view templates to scan (e.g. "blog").
      * @return void
      */
     public function scanModule(array $params): void
     {
         if (!$this->_isAllowed('scanModule')) { $this->_error('core.api.error.not_allowed'); return; }
-        $mod = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($params['module'] ?? ''));
+        $mod = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($params['target_module'] ?? ''));
         if ($mod === '' || !defined('MODULES_PATH')) { $this->_error('ally.scan.module_not_found'); return; }
 
         $viewsDir = MODULES_PATH . '/' . $mod . '/views';

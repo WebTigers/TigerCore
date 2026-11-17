@@ -377,8 +377,14 @@ and its MCP tool `inputSchema` — an undeclared method shows an agent a blank o
 /** @apiParam string page_id required The page to delete. */   // form-less: one line per parameter
 ```
 
-`<type>` is `string|integer|number|boolean|array|object`, or an enum `string(a|b|c)`; `required` after the
-name marks it required. Core's `OperationsDeclareInputTest` fails the build on an undeclared method, and a
+`<type>` is `string|integer|number|boolean|array|object`, an enum `string(a|b|c)`, or `file` for a multipart
+upload (`$_FILES`); `required` after the name marks it required. A `file` operation gets a multipart body in
+OpenAPI and is left out of MCP `tools/list` (no MCP client can send a file).
+
+**A public method that is NOT an `/api` operation gets `@apiExclude`.** Some service methods are public PHP for
+in-process callers — often another module (`Member_Service_Access::ownsResource`) — and take positional args
+or return a value. Tag them `@apiExclude`: the dispatcher refuses a message naming them, and OpenAPI, MCP and
+the agent catalog never list them. Calling them directly in PHP is unaffected. Core's `OperationsDeclareInputTest` fails the build on an undeclared method, and a
 module's suite asserts `(new Tiger_OpenApi_Generator())->untyped($classes) === []` for its own services.
 For a module to be reachable over a scoped MCP token at all, it also ships `configs/mcp-scope.ini` (TIGERMCP.md §4).
 

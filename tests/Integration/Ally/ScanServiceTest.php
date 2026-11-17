@@ -168,7 +168,7 @@ final class ScanServiceTest extends IntegrationTestCase
     public function scan_module_scans_a_modules_view_templates(): void
     {
         $this->loginAs('admin');
-        $res = $this->call('scanModule', ['module' => 'ally']);
+        $res = $this->call('scanModule', ['target_module' => 'ally']);
 
         $this->assertSame(1, (int) $res->result);
         $this->assertSame('ally', $res->data['module']);
@@ -182,7 +182,7 @@ final class ScanServiceTest extends IntegrationTestCase
         // The blog module ships view templates with nominal a11y gaps — a good fixture for the
         // per-file attribution path (the files[] roll-up branch).
         $this->loginAs('admin');
-        $res = $this->call('scanModule', ['module' => 'blog']);
+        $res = $this->call('scanModule', ['target_module' => 'blog']);
 
         $this->assertSame(1, (int) $res->result);
         $this->assertGreaterThanOrEqual(1, $res->data['totals']['files_with_issues']);
@@ -190,6 +190,18 @@ final class ScanServiceTest extends IntegrationTestCase
         $first = $res->data['files'][0];
         $this->assertStringStartsWith('application/modules/blog/views', $first['file'], 'finding attributed to its source file');
         $this->assertArrayHasKey('findings', $first);
+    }
+
+    #[Test]
+    public function scan_module_names_its_target_beside_the_routing_module_field(): void
+    {
+        // Over /api the message always carries module=ally (the routing field). The module to scan
+        // travels as target_module, so the routing field can never decide what is scanned (TIGER-529).
+        $this->loginAs('admin');
+        $res = $this->call('scanModule', ['module' => 'ally', 'target_module' => 'blog']);
+
+        $this->assertSame(1, (int) $res->result);
+        $this->assertStringStartsWith('application/modules/blog/views', $res->data['files'][0]['file']);
     }
 
     // ----- render-failure branches --------------------------------------------------------------
@@ -242,7 +254,7 @@ final class ScanServiceTest extends IntegrationTestCase
     public function scan_module_errors_on_an_unknown_module(): void
     {
         $this->loginAs('admin');
-        $res = $this->call('scanModule', ['module' => 'no-such-module-xyz']);
+        $res = $this->call('scanModule', ['target_module' => 'no-such-module-xyz']);
         $this->assertSame(0, (int) $res->result);
         $this->assertStringContainsString('ally.scan.module_not_found', json_encode($res->messages));
     }
@@ -251,7 +263,7 @@ final class ScanServiceTest extends IntegrationTestCase
     public function scan_module_rejects_a_blank_module(): void
     {
         $this->loginAs('admin');
-        $res = $this->call('scanModule', ['module' => '']);
+        $res = $this->call('scanModule', ['target_module' => '']);
         $this->assertSame(0, (int) $res->result);
         $this->assertStringContainsString('ally.scan.module_not_found', json_encode($res->messages));
     }

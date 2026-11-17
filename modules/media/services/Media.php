@@ -18,7 +18,9 @@ class Media_Service_Media extends Tiger_Service_Service
      * Receive one uploaded file: validate -> store -> record. Returns the media row.
      *
      * @param  array $params the upload message ($_FILES carries the file; may set `visibility`)
-     * @apiParam string(public|private) visibility Who may fetch the file; default public. The file itself is a multipart `file` part (optional `thumbnail` part), not a parameter.
+     * @apiParam file file required The file to store.
+     * @apiParam file thumbnail An optional client-made thumbnail image.
+     * @apiParam string(public|private) visibility Who may fetch the file; default public.
      * @return void
      */
     public function upload(array $params): void

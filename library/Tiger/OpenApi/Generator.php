@@ -160,17 +160,25 @@ class Tiger_OpenApi_Generator
         ];
         $schema = $this->_requestSchema($doc);
         if ($schema !== null) {
-            $op['requestBody'] = ['content' => ['application/x-www-form-urlencoded' => ['schema' => $schema]]];
+            // An upload is a multipart body; everything else is the urlencoded message.
+            $type = self::takesFile($schema) ? 'multipart/form-data' : 'application/x-www-form-urlencoded';
+            $op['requestBody'] = ['content' => [$type => ['schema' => $schema]]];
         }
         return $op;
     }
 
-    /** Public, own, non-`_` instance methods (skip the base's helpers + `__construct`). */
+    /**
+     * Public, own, non-`_` instance methods (skip the base's helpers + `__construct`), minus any marked
+     * `@apiExclude` — public for in-process PHP callers, but not an operation (the dispatcher refuses them too).
+     */
     protected function _operations($class)
     {
         $out = [];
         foreach ((new ReflectionClass($class))->getMethods(ReflectionMethod::IS_PUBLIC) as $m) {
             if ($m->isStatic() || $m->getName() === '__construct' || strpos($m->getName(), '_') === 0) {
+                continue;
+            }
+            if (Tiger_Service_Service::isApiExcluded($m)) {
                 continue;
             }
             if ($m->getDeclaringClass()->getName() === 'Tiger_Service_Service') {
@@ -192,8 +200,10 @@ class Tiger_OpenApi_Generator
      *   @apiRequest none          the method takes no parameters
      *   @apiParam <type> <name> [required] [description]
      *                             one parameter; adds to (or overrides) whatever @apiRequest declared.
-     *                             <type> is string|integer|number|boolean|array|object, or an enum
-     *                             written `string(draft|published)`.
+     *                             <type> is string|integer|number|boolean|array|object, an enum
+     *                             written `string(draft|published)`, or `file` — an uploaded file
+     *                             ($_FILES), which makes the body multipart and keeps the operation
+     *                             out of MCP (no MCP client can send a file).
      *
      * With none of these the body is a generic object — which tells an MCP client nothing about what to
      * send, so every operation should declare one (`typed()` reports the ones that don't).
@@ -259,6 +269,23 @@ class Tiger_OpenApi_Generator
                 ],
             ],
         ];
+    }
+
+    /**
+     * Does this request schema take an uploaded file (an `@apiParam file …` property)? Such an operation is a
+     * multipart upload: OpenAPI describes it, MCP `tools/list` leaves it out.
+     *
+     * @param  array $schema a request schema from schemasByOp()/the operation's requestBody
+     * @return bool
+     */
+    public static function takesFile(array $schema)
+    {
+        foreach ((array) ($schema['properties'] ?? []) as $prop) {
+            if (is_array($prop) && ($prop['format'] ?? null) === 'binary') {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -415,8 +442,9 @@ class Tiger_OpenApi_Generator
             return null;
         }
         $type = $m[1];
-        if (!in_array($type, ['string', 'integer', 'number', 'boolean', 'array', 'object'], true)) { return null; }
-        $schema = ['type' => $type];
+        if (!in_array($type, ['string', 'integer', 'number', 'boolean', 'array', 'object', 'file'], true)) { return null; }
+        // A file is OpenAPI's binary string (a multipart part), not a JSON type of its own.
+        $schema = $type === 'file' ? ['type' => 'string', 'format' => 'binary'] : ['type' => $type];
         if ($m[2] !== '') {
             $schema['enum'] = array_values(array_filter(array_map('trim', explode('|', $m[2])), 'strlen'));
         }
