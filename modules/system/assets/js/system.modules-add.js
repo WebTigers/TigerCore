@@ -13,6 +13,11 @@
 document.addEventListener('DOMContentLoaded', function () {
     var fb = document.getElementById('mod-feedback');
     var PASS_CHECKOUT = fb.getAttribute('data-pass-checkout') || '';
+    // Tell the checkout which site the key is for: a TigerPASS key binds to one domain, and this install is
+    // the site it is being bought from, so the seller's checkout fills that in and locks it (MARKETPLACE.md §6).
+    if (PASS_CHECKOUT) {
+        PASS_CHECKOUT += (PASS_CHECKOUT.indexOf('?') < 0 ? '?' : '&') + 'origin=' + encodeURIComponent(window.location.origin);
+    }
     var urlEl = document.getElementById('mod-url'), refEl = document.getElementById('mod-ref');
     var modalEl = document.getElementById('mod-detail');
     var modal = new bootstrap.Modal(modalEl);
