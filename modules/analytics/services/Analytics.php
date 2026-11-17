@@ -46,6 +46,13 @@ class Analytics_Service_Analytics extends Tiger_Service_Service
                 $cfg->set($scope, $scopeId, 'tiger.analytics.ga4.measurement_id',  $id);
                 $cfg->set($scope, $scopeId, 'tiger.analytics.exclude_signed_in',   !empty($params['exclude_signed_in']) ? '1' : '0');
 
+                // The Measurement Protocol API secret for server-side events (Tiger_Analytics::track) —
+                // encrypted, org-level; a blank field keeps the stored one (it is never sent back to the page).
+                $mp = trim((string) ($params['mp_api_secret'] ?? ''));
+                if ($mp !== '' && class_exists('Tiger_Crypto') && Tiger_Crypto::isConfigured()) {
+                    $cfg->set($scope, $scopeId, Tiger_Analytics_Adapter_Ga::CFG_API_SECRET, (string) Tiger_Crypto::encrypt($mp));
+                }
+
                 // Reporting: the connect mode (broker | byo), the GA4 property id, and — for BYO — the
                 // Google OAuth client creds (secret encrypted; blank secret keeps the current one).
                 // The Connect flow reads these afterward. Broker mode needs no client creds locally.

@@ -129,6 +129,11 @@ $this->i18n([
                         <?= $el('ga4_measurement_id') ?>
                         <div class="form-text">Find it in GA under <em>Admin → Data Streams → your web stream</em>. It looks like <code>G-XXXXXXXXXX</code>.</div>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="analytics-mp-secret"><?= $this->t('analytics.mp_secret') ?></label>
+                        <input type="password" class="form-control" id="analytics-mp-secret" name="mp_api_secret" autocomplete="off" placeholder="<?= $this->escape($this->hasMpSecret ? $this->t('analytics.oauth_secret_keep') : '') ?>">
+                        <div class="form-text"><?= $this->t('analytics.mp_secret_help') ?></div>
+                    </div>
                     <div class="form-check form-switch mb-0">
                         <input class="form-check-input" type="checkbox" role="switch" id="analytics-exclude" name="exclude_signed_in" value="1"<?= $this->excludeSignedIn ? ' checked' : '' ?>>
                         <label class="form-check-label" for="analytics-exclude"><?= $this->t('analytics.exclude_staff') ?></label>

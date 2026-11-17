@@ -6,6 +6,21 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.65.0] — 2026-11-17
+
+### Added (TIGER-525)
+- **Server-side analytics events — `Tiger_Analytics::track($orgId, $name, $params)`.** The analytics registry
+  could only report; it can now send. Every provider that implements the new optional
+  `Tiger_Analytics_Tracker_Interface` and can track the org receives the event: **GA4** via the Measurement
+  Protocol (the measurement id + a new, encrypted "Measurement Protocol API secret" field in Analytics settings)
+  and **Matomo** via its tracking API (URL + site id; with the org's token the visitor IP is passed too, in the
+  POST body). No provider = a no-op. Fail-soft, 2-second timeout, a named User-Agent, no redirects. The visitor id
+  is GA's own `_ga` id when present, else a hash of IP + user agent — never the raw IP. Reporting-only adapters
+  are untouched.
+- **`Tiger_RateLimit`** — a small fixed-window limiter for public endpoints: `hit($name, $key, $max, $window)`.
+  File-backed under `var/cache/ratelimit` (no cache server, shared-host safe), keys hashed (no raw IP on disk),
+  per box, and fail-open on any storage fault.
+
 ## [1.64.0] — 2026-11-17
 
 ### Added — two `/api` declarations (TIGER-529)

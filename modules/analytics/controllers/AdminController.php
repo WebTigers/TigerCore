@@ -43,6 +43,8 @@ class Analytics_AdminController extends Tiger_Controller_Admin_Action
         $this->view->form            = $form;
         $this->view->enabled         = $b('tiger.analytics.enabled', false);
         $this->view->excludeSignedIn = $b('tiger.analytics.exclude_signed_in', true);
+        // Only whether a Measurement Protocol secret is stored — never the secret itself.
+        $this->view->hasMpSecret     = (string) Tiger_Model_Config::currentValue(Tiger_Analytics_Adapter_Ga::CFG_API_SECRET, '') !== '';
 
         // Reporting/OAuth connection state for the "Connect Google" section.
         $this->view->ga = [

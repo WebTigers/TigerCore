@@ -37,6 +37,7 @@ class Analytics_Form_Settings extends Tiger_Form
             $this->_open('oauth_client_id'),
             $this->_open('oauth_client_secret'),
             $this->_open('property_id'),
+            $this->_open('mp_api_secret'),   // GA4 Measurement Protocol API secret (server-side events, TIGER-525)
         ];
     }
 

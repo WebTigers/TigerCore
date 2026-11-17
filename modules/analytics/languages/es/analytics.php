@@ -27,6 +27,8 @@ return [
     'analytics.ga4'                    => 'Google Analytics 4',
     'analytics.enable'                 => 'Activar Google Analytics',
     'analytics.measurement_id'         => 'ID de medición',
+    'analytics.mp_secret'              => 'Secreto de API de Measurement Protocol (opcional)',
+    'analytics.mp_secret_help'         => 'Permite que los módulos envíen eventos del lado del servidor (p. ej., clics en enlaces cortos) a GA4. Créalo en GA en Administrar → Flujos de datos → tu flujo web → Secretos de la API de Measurement Protocol.',
     'analytics.exclude_staff'          => 'No rastrear al personal con sesión iniciada',
     'analytics.exclude_staff_help'     => 'Omite las visitas de gerentes, administradores y desarrolladores para que tu propio equipo no distorsione las cifras.',
     'analytics.privacy_title'          => 'Privacidad y consentimiento',

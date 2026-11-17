@@ -27,6 +27,8 @@ return [
     'analytics.ga4'                    => 'Google Analytics 4',
     'analytics.enable'                 => 'Google Analytics सक्षम करें',
     'analytics.measurement_id'         => 'मेज़रमेंट ID',
+    'analytics.mp_secret'              => 'Measurement Protocol API सीक्रेट (वैकल्पिक)',
+    'analytics.mp_secret_help'         => 'मॉड्यूल को GA4 में सर्वर-साइड इवेंट (जैसे शॉर्ट-लिंक क्लिक) भेजने देता है। इसे GA में Admin → Data Streams → आपकी वेब स्ट्रीम → Measurement Protocol API secrets में बनाएँ।',
     'analytics.exclude_staff'          => 'साइन-इन किए गए स्टाफ़ को ट्रैक न करें',
     'analytics.exclude_staff_help'     => 'मैनेजर, एडमिन और डेवलपर की विज़िट छोड़ें ताकि आपकी अपनी टीम आँकड़ों को प्रभावित न करे।',
     'analytics.privacy_title'          => 'गोपनीयता और सहमति',

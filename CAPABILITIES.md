@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**259 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**261 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -335,6 +335,7 @@
 - **Tiger_Analytics_Adapter_Ga** `@api` — Google Analytics 4 reporting behind the provider-agnostic registry.  ·  `library/Tiger/Analytics/Adapter/Ga.php`
 - **Tiger_Analytics_Adapter_Interface** `@api` — the contract every analytics REPORTING provider implements.  ·  `library/Tiger/Analytics/Adapter/Interface.php`
 - **Tiger_Analytics_Adapter_Matomo** `@api` — self-hosted Matomo reporting behind the provider-agnostic registry.  ·  `library/Tiger/Analytics/Adapter/Matomo.php`
+- **Tiger_Analytics_Tracker_Interface** `@api` — the optional SEND side of an analytics provider: a server-side event.  ·  `library/Tiger/Analytics/Tracker/Interface.php`
 - **Tiger_Comment** `@api` — the subject registry and policy gate for comments, ratings and reviews.  ·  `library/Tiger/Comment.php`
 - **Tiger_Comment_Spam** `@api` — the spam-check registry, and the first checker: the in-platform AI agent.  ·  `library/Tiger/Comment/Spam.php`
 - **Tiger_Git** `@api` — the facade + shared constants for the platform's one git/GitHub layer (TIGER-334).  ·  `library/Tiger/Git.php`
@@ -349,6 +350,7 @@
 - **Tiger_Git_WorkingTree** `@api` — one module's git working tree (TIGER-334).  ·  `library/Tiger/Git/WorkingTree.php`
 - **Tiger_Message** `@api` — the platform's way of telling people things (TIGER-114).  ·  `library/Tiger/Message.php`
 - **Tiger_MicroId** `@api` — a compact, human-friendly receipt / order / ticket number from a micro timestamp.  ·  `library/Tiger/MicroId.php`
+- **Tiger_RateLimit** `@api` — a small fixed-window rate limiter for public endpoints.  ·  `library/Tiger/RateLimit.php`
 - **Tiger_Secret** `@api` — provider-neutral resolution of secrets and sensitive config values.  ·  `library/Tiger/Secret.php`
 - **Tiger_Secret_Adapter_Chain** `@api` — try several backends in order; the first hit wins.  ·  `library/Tiger/Secret/Adapter/Chain.php`
 - **Tiger_Secret_Adapter_Env** `@api` — resolve a secret from an environment variable (the 12-factor backend).  ·  `library/Tiger/Secret/Adapter/Env.php`

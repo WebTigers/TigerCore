@@ -65,6 +65,43 @@ abstract class Tiger_Analytics_Adapter_Abstract implements Tiger_Analytics_Adapt
         try { return (string) Tiger_Crypto::decrypt($enc); } catch (Throwable $e) { return ''; }
     }
 
+    /** Seconds before a server-side tracking call is abandoned — it runs inside a visitor's request. */
+    const TRACK_TIMEOUT = 2;
+
+    /**
+     * POST a tracking payload (Tiger_Analytics_Tracker_Interface::track). The one network seam a tracker
+     * uses, so a test can override it. Fail-soft: 0 on any transport failure, never an exception.
+     *
+     * @param  string   $url     the endpoint
+     * @param  string   $body    the request body
+     * @param  string[] $headers raw header lines
+     * @return int               the HTTP status, or 0 when the call failed
+     */
+    protected function _httpPost(string $url, string $body, array $headers = []): int
+    {
+        if (!function_exists('curl_init')) {
+            return 0;
+        }
+        try {
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_POST           => true,
+                CURLOPT_POSTFIELDS     => $body,
+                CURLOPT_HTTPHEADER     => $headers,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => false,   // a secret in the URL/body must never be replayed elsewhere
+                CURLOPT_USERAGENT      => 'Tiger_Analytics/' . Tiger_Version::VERSION,   // edge WAFs refuse a blank UA
+                CURLOPT_TIMEOUT        => self::TRACK_TIMEOUT,
+                CURLOPT_CONNECTTIMEOUT => self::TRACK_TIMEOUT,
+            ]);
+            $ok   = curl_exec($ch) !== false;
+            $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);   // the handle is freed by GC (curl_close is a deprecated no-op)
+            return $ok ? $code : 0;
+        } catch (Throwable $e) {
+            return 0;
+        }
+    }
+
     /**
      * The error envelope a failed report returns.
      *

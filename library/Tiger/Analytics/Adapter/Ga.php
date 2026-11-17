@@ -21,8 +21,61 @@
  *
  * @api
  */
-class Tiger_Analytics_Adapter_Ga extends Tiger_Analytics_Adapter_Abstract
+class Tiger_Analytics_Adapter_Ga extends Tiger_Analytics_Adapter_Abstract implements Tiger_Analytics_Tracker_Interface
 {
+    /** The GA4 property's web-stream measurement id (the same one the tag uses). */
+    const CFG_MEASUREMENT_ID = 'tiger.analytics.ga4.measurement_id';
+
+    /** A Measurement Protocol API secret (GA Admin → Data streams → Measurement Protocol), encrypted. */
+    const CFG_API_SECRET = 'tiger.analytics.ga4.api_secret_enc';
+
+    /** The Measurement Protocol collect endpoint. */
+    const MP_ENDPOINT = 'https://www.google-analytics.com/mp/collect';
+
+    /**
+     * Server-side events need the measurement id + an org-level Measurement Protocol API secret.
+     *
+     * @param  string $orgId the org
+     * @return bool
+     */
+    public function canTrack(string $orgId): bool
+    {
+        return $this->_measurementId($orgId) !== '' && $this->_secret($orgId, self::CFG_API_SECRET) !== '';
+    }
+
+    /**
+     * Send one event via the GA4 Measurement Protocol. Fail-soft, short timeout.
+     *
+     * @param  string $orgId the org
+     * @param  array  $event the normalized event (Tiger_Analytics_Tracker_Interface)
+     * @return bool
+     */
+    public function track(string $orgId, array $event): bool
+    {
+        $mid    = $this->_measurementId($orgId);
+        $secret = $this->_secret($orgId, self::CFG_API_SECRET);
+        if ($mid === '' || $secret === '') {
+            return false;
+        }
+        $params = (array) ($event['params'] ?? []);
+        if (!empty($event['url']))      { $params['page_location'] = (string) $event['url']; }
+        if (!empty($event['referrer'])) { $params['page_referrer'] = (string) $event['referrer']; }
+        $body = json_encode([
+            'client_id' => (string) ($event['client_id'] ?? ''),
+            'events'    => [['name' => (string) $event['name'], 'params' => $params ?: new stdClass()]],
+        ]);
+        $url  = self::MP_ENDPOINT . '?measurement_id=' . rawurlencode($mid) . '&api_secret=' . rawurlencode($secret);
+        $code = $this->_httpPost($url, (string) $body, ['Content-Type: application/json']);
+        return $code >= 200 && $code < 300;
+    }
+
+    /** The org's GA4 measurement id (`G-…`), or ''. */
+    protected function _measurementId(string $orgId): string
+    {
+        $id = $this->_setting($orgId, self::CFG_MEASUREMENT_ID);
+        return preg_match('/^G-[A-Z0-9]+$/i', $id) ? $id : '';
+    }
+
     /**
      * @return string the registry key
      */
