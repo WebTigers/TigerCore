@@ -27,6 +27,8 @@ return [
     'analytics.ga4'                    => 'Google Analytics 4',
     'analytics.enable'                 => 'Google Analytics aktivieren',
     'analytics.measurement_id'         => 'Mess-ID',
+    'analytics.mp_secret'              => 'Measurement-Protocol-API-Secret (optional)',
+    'analytics.mp_secret_help'         => 'Damit können Module serverseitige Ereignisse (z. B. Kurzlink-Klicks) an GA4 senden. Erstellen Sie es in GA unter Verwaltung → Datenstreams → Ihr Webstream → Measurement Protocol API-Secrets.',
     'analytics.exclude_staff'          => 'Angemeldete Mitarbeiter nicht tracken',
     'analytics.exclude_staff_help'     => 'Überspringt Besuche von Managern, Administratoren und Entwicklern, damit Ihr eigenes Team die Zahlen nicht verfälscht.',
     'analytics.privacy_title'          => 'Datenschutz & Einwilligung',

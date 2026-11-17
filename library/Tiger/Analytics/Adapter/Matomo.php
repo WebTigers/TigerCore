@@ -29,8 +29,56 @@
  *
  * @api
  */
-class Tiger_Analytics_Adapter_Matomo extends Tiger_Analytics_Adapter_Abstract
+class Tiger_Analytics_Adapter_Matomo extends Tiger_Analytics_Adapter_Abstract implements Tiger_Analytics_Tracker_Interface
 {
+    /**
+     * Server-side events need only the URL + site id (Matomo's tracking API is unauthenticated). With the
+     * org's token the event also carries the visitor's IP (`cip`), which Matomo accepts only authenticated.
+     *
+     * @param  string $orgId the org
+     * @return bool
+     */
+    public function canTrack(string $orgId): bool
+    {
+        return $this->url($orgId) !== '' && $this->siteId($orgId) > 0;
+    }
+
+    /**
+     * Send one event to Matomo's HTTP tracking API (`matomo.php`) as an Event: category `tiger`, action = the
+     * event name, name = the `label` param (else the first param). Token (when set) in the POST body only.
+     *
+     * @param  string $orgId the org
+     * @param  array  $event the normalized event (Tiger_Analytics_Tracker_Interface)
+     * @return bool
+     */
+    public function track(string $orgId, array $event): bool
+    {
+        $url  = $this->url($orgId);
+        $site = $this->siteId($orgId);
+        if ($url === '' || $site < 1) {
+            return false;
+        }
+        $params = (array) ($event['params'] ?? []);
+        $label  = (string) ($params['label'] ?? (reset($params) !== false ? reset($params) : ''));
+        $fields = [
+            'idsite' => $site, 'rec' => 1, 'apiv' => 1, 'send_image' => 0,
+            'e_c'    => 'tiger', 'e_a' => (string) $event['name'], 'e_n' => $label,
+            '_id'    => substr(hash('sha256', (string) ($event['client_id'] ?? '')), 0, 16),
+            'url'    => (string) ($event['url'] ?? ''), 'urlref' => (string) ($event['referrer'] ?? ''),
+            'ua'     => (string) ($event['ua'] ?? ''),
+        ];
+        if (isset($params['value']) && is_numeric($params['value'])) {
+            $fields['e_v'] = $params['value'];
+        }
+        $token = $this->_secret($orgId, self::CFG_TOKEN);
+        if ($token !== '' && !empty($event['ip'])) {
+            $fields['cip']        = (string) $event['ip'];
+            $fields['token_auth'] = $token;
+        }
+        $code = $this->_httpPost($url . 'matomo.php', http_build_query($fields), ['Content-Type: application/x-www-form-urlencoded']);
+        return $code >= 200 && $code < 300;
+    }
+
     const CFG_URL     = 'tiger.matomo.url';
     const CFG_SITE_ID = 'tiger.matomo.site_id';
     const CFG_TOKEN   = 'tiger.matomo.token_auth_enc';

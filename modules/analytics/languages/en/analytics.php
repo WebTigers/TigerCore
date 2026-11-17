@@ -28,6 +28,8 @@ return [
     'analytics.ga4'                    => 'Google Analytics 4',
     'analytics.enable'                 => 'Enable Google Analytics',
     'analytics.measurement_id'         => 'Measurement ID',
+    'analytics.mp_secret'              => 'Measurement Protocol API secret (optional)',
+    'analytics.mp_secret_help'         => 'Lets modules send server-side events (e.g. short-link clicks) to GA4. Create one in GA under Admin → Data Streams → your web stream → Measurement Protocol API secrets.',
     'analytics.exclude_staff'          => "Don't track signed-in staff",
     'analytics.exclude_staff_help'     => "Skip visits from managers, admins, and developers so your own team doesn't skew the numbers.",
     'analytics.privacy_title'          => 'Privacy & consent',

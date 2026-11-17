@@ -225,6 +225,94 @@ class Tiger_Analytics
     }
 
     /**
+     * Send a SERVER-SIDE event to every provider that can receive one for the org (TIGER-525).
+     *
+     * Separate from the reporting choice, the way tags are: every registered adapter that implements
+     * Tiger_Analytics_Tracker_Interface and canTrack() the org gets the event — GA4 via the Measurement
+     * Protocol (measurement id + an API secret), Matomo via its tracking API (URL + site id). No such provider
+     * = a no-op returning []. Fail-soft throughout: a provider's failure is `false` in the result, never an
+     * exception, and each call has a short timeout. Call it AFTER the response is flushed when latency
+     * matters (`fastcgi_finish_request()`), e.g. on a redirect.
+     *
+     *   Tiger_Analytics::track($orgId, 'short_link_click', ['slug' => 'spring', 'label' => 'spring']);
+     *
+     * @param  string $orgId   the org whose providers receive it
+     * @param  string $name    the event name; normalized to [a-z0-9_], <= 40 chars (GA4's limit)
+     * @param  array  $params  event parameters; non-scalar values are dropped, keys normalized like $name
+     * @param  array  $context overrides for `client_id`, `url`, `referrer`, `ip`, `ua` (default: this request)
+     * @return array<string,bool> provider => accepted
+     */
+    public static function track(string $orgId, string $name, array $params = [], array $context = []): array
+    {
+        $event = self::event($name, $params, $context);
+        if ($event['name'] === '') {
+            return [];
+        }
+        $out = [];
+        foreach (self::names() as $provider) {
+            $a = self::adapter($provider);
+            if (!($a instanceof Tiger_Analytics_Tracker_Interface)) {
+                continue;
+            }
+            try {
+                if ($a->canTrack($orgId)) {
+                    $out[$provider] = (bool) $a->track($orgId, $event);
+                }
+            } catch (Throwable $e) {
+                $out[$provider] = false;
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Normalize an event (the shape in Tiger_Analytics_Tracker_Interface), filling the request context.
+     *
+     * The visitor id is GA's own `_ga` cookie id when the browser carries one (so the server event joins the
+     * same GA user as the tag's), else a hash of IP + user agent — stable for a visitor, never the raw IP.
+     *
+     * @param  string $name    the event name
+     * @param  array  $params  event parameters
+     * @param  array  $context overrides for client_id, url, referrer, ip, ua
+     * @return array
+     */
+    public static function event(string $name, array $params = [], array $context = []): array
+    {
+        $clean = static fn($s) => substr(trim((string) preg_replace('/[^a-z0-9_]+/', '_', strtolower((string) $s)), '_'), 0, 40);
+        $p = [];
+        foreach ($params as $k => $v) {
+            $k = $clean($k);
+            if ($k !== '' && (is_scalar($v) || $v === null)) {
+                $p[$k] = is_string($v) ? substr($v, 0, 100) : $v;
+            }
+        }
+        $ip  = (string) ($context['ip'] ?? ($_SERVER['REMOTE_ADDR'] ?? ''));
+        $ua  = (string) ($context['ua'] ?? ($_SERVER['HTTP_USER_AGENT'] ?? ''));
+        $cid = (string) ($context['client_id'] ?? '');
+        if ($cid === '' && preg_match('/^GA\d\.\d\.(\d+\.\d+)$/', (string) ($_COOKIE['_ga'] ?? ''), $m)) {
+            $cid = $m[1];
+        }
+        if ($cid === '') {
+            $h   = hash('sha256', 'cid|' . $ip . '|' . $ua);
+            $cid = hexdec(substr($h, 0, 8)) . '.' . hexdec(substr($h, 8, 8));
+        }
+        $url = (string) ($context['url'] ?? '');
+        if ($url === '' && !empty($_SERVER['HTTP_HOST'])) {
+            $url = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http') . '://'
+                 . $_SERVER['HTTP_HOST'] . (string) ($_SERVER['REQUEST_URI'] ?? '/');
+        }
+        return [
+            'name'      => $clean($name),
+            'params'    => $p,
+            'client_id' => $cid,
+            'url'       => $url,
+            'referrer'  => (string) ($context['referrer'] ?? ($_SERVER['HTTP_REFERER'] ?? '')),
+            'ip'        => $ip,
+            'ua'        => substr($ua, 0, 500),
+        ];
+    }
+
+    /**
      * The picker's view of every provider for one org: key, label, configured, plus the org's choice
      * and effective provider. Carries no credential.
      *

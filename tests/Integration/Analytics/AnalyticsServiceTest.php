@@ -68,6 +68,36 @@ final class AnalyticsServiceTest extends IntegrationTestCase
     // ----- save ---------------------------------------------------------------------------------
 
     #[Test]
+    public function the_measurement_protocol_secret_is_stored_encrypted_and_a_blank_keeps_it(): void
+    {
+        // The booted app has an encryption key in local.ini; give the test config one the same way.
+        $was = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
+        $cfg = $was ? $was->toArray() : [];
+        $cfg['tiger']['crypto']['key'] = base64_encode(str_repeat("\x11", 32));
+        Zend_Registry::set('Zend_Config', new \Zend_Config($cfg, true));
+        try {
+            $this->_assertMpSecretRoundTrip();
+        } finally {
+            if ($was) { Zend_Registry::set('Zend_Config', $was); }
+        }
+    }
+
+    private function _assertMpSecretRoundTrip(): void
+    {
+        $this->assertTrue(\Tiger_Crypto::isConfigured());
+        $this->loginAs('admin');
+        $this->assertSame(1, (int) $this->call(['ga4_measurement_id' => 'G-ABC123', 'mp_api_secret' => 'mp-s3cret'])->result);
+
+        $enc = (string) $this->cfg(\Tiger_Analytics_Adapter_Ga::CFG_API_SECRET);
+        $this->assertNotSame('', $enc);
+        $this->assertStringNotContainsString('mp-s3cret', $enc, 'never stored in the clear');
+        $this->assertSame('mp-s3cret', \Tiger_Crypto::decrypt($enc));
+
+        $this->assertSame(1, (int) $this->call(['ga4_measurement_id' => 'G-ABC123', 'mp_api_secret' => ''])->result);
+        $this->assertSame($enc, (string) $this->cfg(\Tiger_Analytics_Adapter_Ga::CFG_API_SECRET), 'a blank field keeps the stored secret');
+    }
+
+    #[Test]
     public function save_persists_the_measurement_id_and_switches(): void
     {
         $this->loginAs('admin');
