@@ -79,6 +79,7 @@ class Agent_Service_Settings extends Tiger_Service_Service
      * (TIGER-511), never install-wide.
      *
      * @param  array $params mode_max
+     * @apiRequest Agent_Form_Mode
      * @apiParam string(ask|auto|yolo) mode_max The highest auto-mode a user may pick (anything else saves as auto).
      * @return void
      */
@@ -89,7 +90,10 @@ class Agent_Service_Settings extends Tiger_Service_Service
         $orgId = (string) ($this->_org_id ?? '');
         if ($orgId === '') { $this->_error('core.api.error.not_allowed'); return; }
 
-        $modeMax = (string) ($params['mode_max'] ?? '');
+        $form = new Agent_Form_Mode();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+
+        $modeMax = (string) $form->getValue('mode_max');
         if (!isset(Tiger_Agent::MODES[$modeMax])) { $modeMax = 'auto'; }
 
         try {

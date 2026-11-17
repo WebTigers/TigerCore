@@ -13,7 +13,9 @@
  * behavior. Localized strings arrive through the $this->i18n() carrier (Tiger.t).
  */
 (function () {
-    var csrf = document.querySelector('[name="_csrf"]');
+    // Scoped to this screen's container: the agent chat aside renders its own (differently salted)
+    // _csrf on the same page, so a bare document-wide lookup could pick up the wrong token.
+    var csrf = document.querySelector('#agent-admin-csrf [name="_csrf"]');
     var csrfVal = csrf ? csrf.value : '';
     var fb = document.getElementById('agent-feedback');
 

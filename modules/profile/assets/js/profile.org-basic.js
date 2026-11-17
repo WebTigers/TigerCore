@@ -49,8 +49,13 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('logo-remove').classList.remove('d-none');
     }
 
+    // The org Basic tab's CSRF token — the logo upload (a FormData field) and remove both post it (TIGER-528).
+    // Read from THIS form explicitly: TigerUpload's fallback takes the first _csrf on the page, which
+    // may belong to another form (the agent aside renders its own).
+    function csrf() { var el = document.querySelector('#org-basic-form [name="_csrf"]'); return el ? el.value : ''; }
+
     var up = TigerUpload.create({
-        url: '/api', field: 'file', auto: false,
+        url: '/api', field: 'file', auto: false, csrf: csrf(),
         params: { module: 'profile', service: 'OrgLogo', method: 'upload' }
     });
     up.dropOnWindow({ label: Tiger.t('orgLogoDropLabel'), sublabel: Tiger.t('orgLogoDropSub'),
@@ -105,6 +110,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('logo-remove').addEventListener('click', function () {
         var fd = new URLSearchParams();
         fd.set('module', 'profile'); fd.set('service', 'OrgLogo'); fd.set('method', 'remove');
+        fd.set('_csrf', csrf());
         TigerButton.run(this, function () {
             return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
                 .then(function (r) { return r.json().catch(function () { return {}; }); });

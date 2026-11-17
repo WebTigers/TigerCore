@@ -20,7 +20,7 @@ use Zend_Registry;
  * the type/country membership guards, the single-primary rule (setting one clears the others), the
  * coordinate range-normalizer, delete (unlink + soft-delete the location, ownership enforced), and
  * the success envelope (the refreshed list + a rotated CSRF token). Extends Profile_Service_Base, so
- * these also cover _soloPrimary / _freshToken / _validCsrf.
+ * these also cover _soloPrimary / _freshToken.
  */
 #[CoversClass(Profile_Service_Address::class)]
 final class AddressServiceTest extends IntegrationTestCase

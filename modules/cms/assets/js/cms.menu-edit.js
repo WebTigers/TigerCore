@@ -51,6 +51,9 @@ document.addEventListener('DOMContentLoaded', function () {
     function api(method, params) {
         var body = new URLSearchParams(params || {});
         body.set('module', 'cms'); body.set('service', 'menu'); body.set('method', method);
+        // Every builder write (save, reorder, delete) carries the CSRF token rendered in the item form (TIGER-528).
+        var csrfEl = form.querySelector('[name="_csrf"]');
+        if (csrfEl && csrfEl.value) { body.set('_csrf', csrfEl.value); }
         return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
             .then(function (r) { return r.json().catch(function () { return {}; }); })
             .then(function (res) { if (res && res.data && res.data.idmap) { applyIdMap(res.data.idmap); } return res; });

@@ -15,7 +15,7 @@
  *
  * @api
  */
-class Cms_Form_Page extends Tiger_Form
+class Cms_Form_Page extends Cms_Form_Write
 {
     protected function elements(): array
     {

@@ -13,8 +13,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof tigerDataTable !== 'function') { return; }
     var $ = jQuery, esc = tigerDataTable.esc;
 
+    // Every write carries the CSRF token the view renders (TIGER-528); reads ignore it.
+    var csrfEl = document.querySelector('#code-csrf [name="_csrf"]');
+
     function api(method, id) {
         var body = new URLSearchParams({ module: 'code', service: 'code', method: method, code_id: id });
+        if (csrfEl && csrfEl.value) { body.set('_csrf', csrfEl.value); }
         return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body }).then(function (r) { return r.json(); });
     }
 

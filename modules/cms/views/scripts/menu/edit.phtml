@@ -177,6 +177,7 @@ $this->i18n([
       <form id="menu-item-form" novalidate>
         <input type="hidden" name="menu_id" id="mi-menu-id">
         <input type="hidden" name="menu_key" id="mi-menu-key-hidden">
+        <?= $f->getElement('_csrf') ?>
         <div class="modal-header"><h5 class="modal-title" id="menuItemModalTitle"><?= $this->t('cms.menu.item_properties') ?></h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= $this->escape($this->t('cms.action.close')) ?>"></button></div>
         <div class="modal-body">

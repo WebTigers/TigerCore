@@ -44,10 +44,14 @@ final class PageServiceExtraTest extends IntegrationTestCase
         $this->hadThemeDir = $reg->offsetExists('Tiger_ThemeDir');
         if ($this->hadThemeDir) { $this->priorThemeDir = Zend_Registry::get('Tiger_ThemeDir'); }
         Zend_Registry::set('Tiger_ThemeDir', $this->themeDir);
+        // forkTheme/saveDesign/saveBlock/delete/restore validate through CSRF-bearing forms (TIGER-528);
+        // header-less CLI dispatch is the stateless path. The cookie-mode refusal lives in CmsCsrfTest.
+        Zend_Registry::set('tiger.auth.stateless', true);
     }
 
     protected function tearDown(): void
     {
+        if (Zend_Registry::isRegistered('tiger.auth.stateless')) { Zend_Registry::getInstance()->offsetUnset('tiger.auth.stateless'); }
         try {
             $this->db->query('DELETE FROM page_version');
             $this->db->query('DELETE FROM page_redirect');

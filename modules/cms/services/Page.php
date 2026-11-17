@@ -172,6 +172,7 @@ class Cms_Service_Page extends Tiger_Service_Service
      * can later offer "revert to theme default" + non-destructive theme updates (AUTHORING.md §4).
      *
      * @param  array $params `slug` (the theme content slug/key) + optional `kind` (page|layout|partial)
+     * @apiRequest Cms_Form_PageFork
      * @apiParam string slug required The theme template's slug (a page) or key (a layout/partial).
      * @apiParam string(page|layout|partial) kind What kind of template to fork. Defaults to page.
      * @apiParam string theme The theme key; only the active theme is accepted. Empty means the active theme.
@@ -181,14 +182,17 @@ class Cms_Service_Page extends Tiger_Service_Service
     {
         if (!$this->_isAllowed('forkTheme')) { $this->_error('core.api.error.not_allowed'); return; }
 
-        $kind = (string) ($params['kind'] ?? 'page');
+        $form = new Cms_Form_PageFork();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+
+        $kind = (string) ($form->getValue('kind') ?: 'page');
         if (!in_array($kind, ['page', 'layout', 'partial'], true)) { $kind = 'page'; }
-        $key  = trim((string) ($params['slug'] ?? ''), '/');
+        $key  = trim((string) $form->getValue('slug'), '/');
 
         // Only the ACTIVE theme is forkable (its assets are symlinked/reachable). Refuse any other — a
         // crafted request could otherwise name an installed-but-inactive theme whose content is dark.
         $active     = Tiger_Theme::active();
-        $themeParam = (string) ($params['theme'] ?? '');
+        $themeParam = (string) $form->getValue('theme');
         if ($themeParam !== '' && $themeParam !== $active['key']) {
             $this->_error('cms.page.theme_inactive'); return;
         }
@@ -389,6 +393,7 @@ class Cms_Service_Page extends Tiger_Service_Service
      * this touches the design only, on an existing row.
      *
      * @param  array $params the builder payload (`page_id`, `html`, `css`, `project`)
+     * @apiRequest Cms_Form_PageDesign
      * @apiParam string page_id required The page whose design is saved.
      * @apiParam string html The rendered builder markup (script tags are stripped).
      * @apiParam string css The builder's CSS, stored as a style block ahead of the markup.
@@ -399,8 +404,9 @@ class Cms_Service_Page extends Tiger_Service_Service
     {
         if (!$this->_isAllowed('saveDesign')) { $this->_error('core.api.error.not_allowed'); return; }
 
-        $pageId = trim((string) ($params['page_id'] ?? ''));
-        if ($pageId === '') { $this->_error('core.api.error.general'); return; }
+        $form = new Cms_Form_PageDesign();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        $pageId = (string) $form->getValue('page_id');
 
         $model = new Tiger_Model_Page();
         $page  = $model->findById($pageId);
@@ -462,6 +468,7 @@ class Cms_Service_Page extends Tiger_Service_Service
      * resolved at render time. Returns the new block for a live palette add.
      *
      * @param  array $params `name`, `html`, and optional `css`
+     * @apiRequest Cms_Form_PageBlock
      * @apiParam string name required The block's name in the palette.
      * @apiParam string html required The block's markup (script tags are stripped).
      * @apiParam string css The block's scoped CSS.
@@ -471,7 +478,10 @@ class Cms_Service_Page extends Tiger_Service_Service
     {
         if (!$this->_isAllowed('saveBlock')) { $this->_error('core.api.error.not_allowed'); return; }
 
-        $name = trim((string) ($params['name'] ?? ''));
+        $form = new Cms_Form_PageBlock();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+
+        $name = (string) $form->getValue('name');
         if ($name === '') { $this->_error('cms.block.name_required'); return; }
 
         // Strip <script> — a block is a SAFE (tenant-editable) fragment, never code.
@@ -520,14 +530,16 @@ class Cms_Service_Page extends Tiger_Service_Service
      * Soft-delete a page (recoverable — the row is flagged, not dropped).
      *
      * @param  array $params the request payload (`page_id`)
+     * @apiRequest Cms_Form_PageId
      * @apiParam string page_id required The page to delete.
      * @return void
      */
     public function delete(array $params): void
     {
         if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
-        $id = !empty($params['page_id']) ? (string) $params['page_id'] : '';
-        if ($id === '') { $this->_error('core.api.error.general'); return; }
+        $form = new Cms_Form_PageId();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        $id = (string) $form->getValue('page_id');
 
         try {
             (new Tiger_Model_Page())->softDelete(['page_id = ?' => $id]);
@@ -541,6 +553,7 @@ class Cms_Service_Page extends Tiger_Service_Service
      * Restore a page to a prior version (current content is snapshotted first).
      *
      * @param  array $params the request payload (`page_id`, `version`)
+     * @apiRequest Cms_Form_PageRestore
      * @apiParam string page_id required The page to restore.
      * @apiParam integer version required The version number to restore (1 or higher).
      * @return void
@@ -548,9 +561,10 @@ class Cms_Service_Page extends Tiger_Service_Service
     public function restore(array $params): void
     {
         if (!$this->_isAllowed('restore')) { $this->_error('core.api.error.not_allowed'); return; }
-        $id      = !empty($params['page_id']) ? (string) $params['page_id'] : '';
-        $version = isset($params['version']) ? (int) $params['version'] : 0;
-        if ($id === '' || $version < 1) { $this->_error('core.api.error.general'); return; }
+        $form = new Cms_Form_PageRestore();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        $id      = (string) $form->getValue('page_id');
+        $version = (int) $form->getValue('version');
 
         try {
             (new Tiger_Model_Page())->restoreVersion($id, $version);

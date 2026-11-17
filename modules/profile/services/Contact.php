@@ -78,6 +78,7 @@ class Profile_Service_Contact extends Profile_Service_Base
      * Delete one of the current user's contacts (unlink + soft-delete the channel).
      *
      * @param  array $params user_contact_id
+     * @apiRequest Profile_Form_ContactDelete
      * @apiParam string link_id required The contact link (user_contact_id) to delete.
      * @return void
      */
@@ -85,8 +86,9 @@ class Profile_Service_Contact extends Profile_Service_Base
     {
         $userId = (string) $this->_user_id;
         if ($userId === '') { $this->_error('core.api.error.not_allowed'); return; }
-        if (!$this->_validCsrf(Profile_Form_Contact::class, $params)) { $this->_error('core.api.error.csrf'); return; }
-        $ucId = trim((string) ($params['link_id'] ?? ''));
+        $form = new Profile_Form_ContactDelete();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        $ucId = (string) $form->getValue('link_id');
 
         try {
             $this->_transaction(function () use ($userId, $ucId) {

@@ -36,6 +36,7 @@ class Agent_Service_Mcp extends Tiger_Service_Service
      * Create or update a connection (a blank token keeps the existing one).
      *
      * @param  array $params the request payload
+     * @apiRequest Agent_Form_Mcp
      * @apiParam string id The connection to update. Empty to create.
      * @apiParam string label required A display name for the connection.
      * @apiParam string url required The remote MCP server URL (http or https).
@@ -48,14 +49,16 @@ class Agent_Service_Mcp extends Tiger_Service_Service
         if (!$this->_isAllowed('save')) { $this->_error('core.api.error.not_allowed'); return; }
         // Connections hold credentials, so they belong to the caller's org (TIGER-511) — no org, no write.
         if ($this->_org() === '') { $this->_error('core.api.error.not_allowed'); return; }
-        $url = trim((string) ($params['url'] ?? ''));
-        if (!preg_match('#^https?://#i', $url)) { $this->_error('agent.mcp.bad_url'); return; }
-        $label = trim((string) ($params['label'] ?? ''));
-        if ($label === '') { $this->_error('agent.mcp.bad_label'); return; }
+
+        // The form carries the CSRF token and the label/url rules (their keys: agent.mcp.bad_label/bad_url).
+        $form = new Agent_Form_Mcp();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        $url   = (string) $form->getValue('url');
+        $label = (string) $form->getValue('label');
 
         try {
             $id = Tiger_Agent_Mcp::save([
-                'id'      => (string) ($params['id'] ?? ''),
+                'id'      => (string) $form->getValue('id'),
                 'label'   => $label,
                 'url'     => $url,
                 'token'   => (string) ($params['token'] ?? ''),
@@ -72,13 +75,16 @@ class Agent_Service_Mcp extends Tiger_Service_Service
      * Remove a connection.
      *
      * @param  array $params the request payload
+     * @apiRequest Agent_Form_McpId
      * @apiParam string id The connection to remove.
      * @return void
      */
     public function remove(array $params): void
     {
         if (!$this->_isAllowed('remove')) { $this->_error('core.api.error.not_allowed'); return; }
-        Tiger_Agent_Mcp::remove((string) ($params['id'] ?? ''), $this->_org());
+        $form = new Agent_Form_McpId();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        Tiger_Agent_Mcp::remove((string) $form->getValue('id'), $this->_org());
         $this->_success(['connections' => Tiger_Agent_Mcp::forAdmin($this->_org())], 'agent.mcp.removed');
     }
 
@@ -86,13 +92,17 @@ class Agent_Service_Mcp extends Tiger_Service_Service
      * Test a connection — list its tools live.
      *
      * @param  array $params the request payload
+     * @apiRequest Agent_Form_McpId
      * @apiParam string id required The connection to test.
      * @return void
      */
     public function test(array $params): void
     {
         if (!$this->_isAllowed('test')) { $this->_error('core.api.error.not_allowed'); return; }
-        $conn = Tiger_Agent_Mcp::connection((string) ($params['id'] ?? ''), $this->_org());
+        // A live outbound call with the stored credential — gated by the token like any write.
+        $form = new Agent_Form_McpId();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        $conn = Tiger_Agent_Mcp::connection((string) $form->getValue('id'), $this->_org());
         if ($conn === null) { $this->_error('agent.mcp.not_found'); return; }
 
         $tools = Tiger_Agent_Mcp_Client::listTools($conn);

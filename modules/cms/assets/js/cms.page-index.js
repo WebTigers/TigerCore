@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var TYPE_ICON = { page: 'fa-file-lines', layout: 'fa-table-columns', partial: 'fa-puzzle-piece', block: 'fa-cube' };
     var BADGE     = { published: 'success', draft: 'secondary', archived: 'warning' };
     function cap(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
+    // Every write (fork, delete) carries the CSRF token the view renders (TIGER-528).
+    function csrf() { var el = document.querySelector('#cms-page-csrf [name="_csrf"]'); return el ? el.value : ''; }
 
     var fStatus = document.getElementById('cms-filter-status');
     var fType   = document.getElementById('cms-filter-type');
@@ -141,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!btn) { return; }
         var body = new URLSearchParams({ module: 'cms', service: 'page', method: 'forkTheme',
             slug: btn.getAttribute('data-theme-fork'), kind: btn.getAttribute('data-fork-kind') || 'page',
-            theme: btn.getAttribute('data-fork-theme') || '' });
+            theme: btn.getAttribute('data-fork-theme') || '', _csrf: csrf() });
         TigerButton.run(btn, function () {
             return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body }).then(function (r) { return r.json(); });
         }).then(function (res) {
@@ -155,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function () {
     $('#cms-pages-table tbody').on('click', '[data-cms-delete]', function () {
         if (!confirm(Tiger.t('confirmDeletePage'))) { return; }
         var btn  = this;
-        var body = new URLSearchParams({ module: 'cms', service: 'page', method: 'delete', page_id: this.getAttribute('data-cms-delete') });
+        var body = new URLSearchParams({ module: 'cms', service: 'page', method: 'delete', page_id: this.getAttribute('data-cms-delete'), _csrf: csrf() });
         TigerButton.run(btn, function () {
             return fetch('/api', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body })
                 .then(function (r) { return r.json(); });

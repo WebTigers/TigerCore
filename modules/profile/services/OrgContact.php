@@ -76,6 +76,7 @@ class Profile_Service_OrgContact extends Profile_Service_Base
      * Delete one of the current org's contacts (unlink + soft-delete the channel).
      *
      * @param  array $params link_id
+     * @apiRequest Profile_Form_ContactDelete
      * @apiParam string link_id required The org contact link (org_contact_id) to delete.
      * @return void
      */
@@ -84,8 +85,9 @@ class Profile_Service_OrgContact extends Profile_Service_Base
         if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
         $orgId = (string) $this->_org_id;
         if ($orgId === '') { $this->_error('core.api.error.not_allowed'); return; }
-        if (!$this->_validCsrf(Profile_Form_Contact::class, $params)) { $this->_error('core.api.error.csrf'); return; }
-        $linkId = trim((string) ($params['link_id'] ?? ''));
+        $form = new Profile_Form_ContactDelete();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+        $linkId = (string) $form->getValue('link_id');
 
         try {
             $this->_transaction(function () use ($orgId, $linkId) {

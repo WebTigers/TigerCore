@@ -45,6 +45,8 @@ class Cms_PageController extends Tiger_Controller_Admin_Action
         // (Cms_Service_Page::themeTemplates); here we only need the count for the tab badge (cheap —
         // Tiger_Theme::forkables is fingerprint-cached).
         $this->view->themeCount = count(Tiger_Theme::forkables());
+        // Carries the CSRF token the list's fork + delete calls post back (TIGER-528).
+        $this->view->form       = new Cms_Form_PageId();
     }
 
     /**
@@ -196,6 +198,8 @@ class Cms_PageController extends Tiger_Controller_Admin_Action
         $this->view->chromeAfter     = $chromeAfter;
         $this->view->layoutOptions   = $layoutOpts;
         $this->view->partialLayoutKey = $isFragment ? (string) ($page->layout_key ?? '') : '';
+        // Carries the CSRF token the builder's design + block saves post back (TIGER-528).
+        $this->view->csrfForm        = new Cms_Form_PageDesign();
     }
 
     /**

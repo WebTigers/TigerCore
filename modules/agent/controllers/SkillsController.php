@@ -18,5 +18,7 @@ class Agent_SkillsController extends Tiger_Controller_Admin_Action
     {
         $this->view->title         = 'Agent Skills — Tiger Admin';
         $this->view->useDataTables = true;   // opt into the DataTables + tiger.datatable.js assets (admin.phtml)
+        // Carries the CSRF token install / toggle / remove post back (TIGER-528).
+        $this->view->form          = new Agent_Form_SkillKey();
     }
 }

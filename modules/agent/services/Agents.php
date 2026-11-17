@@ -138,6 +138,7 @@ class Agent_Service_Agents extends Tiger_Service_Service
      * allowed — the org then resolves its own legacy config keys, if any, else has no agent.
      *
      * @param  array $params agent_id
+     * @apiRequest Agent_Form_AgentDelete
      * @apiParam string agent_id required The agent to delete.
      * @return void
      */
@@ -146,9 +147,12 @@ class Agent_Service_Agents extends Tiger_Service_Service
         if (!$this->_isAllowed('delete')) { $this->_error('core.api.error.not_allowed'); return; }
         if (!$this->_hasOrg()) { return; }
 
+        $form = new Agent_Form_AgentDelete();
+        if (!$form->isValid($params)) { $this->_formErrors($form); return; }
+
         $scope   = $this->_scope();
         $model   = new Tiger_Model_Agent();
-        $agentId = (string) ($params['agent_id'] ?? '');
+        $agentId = (string) $form->getValue('agent_id');
         $row     = $agentId !== '' ? $model->findForOrg($scope, $agentId) : null;
         if ($row === null) { $this->_error('agent.agents.error.not_found'); return; }
 
