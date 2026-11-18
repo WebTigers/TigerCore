@@ -6,6 +6,17 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.68.2] — 2026-11-18
+
+### Fixed — a string missing in the active language showed as its raw key (TIGER-539)
+- The translator now falls back to the default language (English) for any key the active language lacks, using
+  Zend_Translate's `route` option, before it gives up and returns the key. A partially translated language reads in
+  English where it has no string, instead of showing `module.some.key`.
+- Found on the Quenya joke locale, which ships strings only for the home page view: every other screen a visitor or
+  admin opened in `qya` was raw keys. Quenya and Klingon still render their home page; everything else reads in English.
+- Needs TigerZF 1.32.3: ZF1 cut any 3-letter language with no region (`tlh`, `qya`) to `''` during lookup, which lost
+  its fallback route.
+
 ## [1.68.1] — 2026-11-17
 
 ### Fixed — an update switched deactivated modules back on

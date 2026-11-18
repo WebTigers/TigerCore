@@ -357,6 +357,10 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
             'content'        => [],
             'locale'         => $default,
             'disableNotices' => true,
+            // A key missing in the active locale is looked up in the default before it falls through to
+            // the raw key (TIGER-539) — so a partial locale (and qya, which ships no strings outside the
+            // home page view) reads in English instead of showing `module.some.key`.
+            'route'          => $this->_fallbackRoutes($supported, $default),
         ]);
 
         // The org whose override tier this request folds: the SITE org (the tenant the host maps to, else
@@ -377,6 +381,24 @@ class Tiger_Application_Bootstrap extends Zend_Application_Bootstrap_Bootstrap
 
         Zend_Registry::set('Zend_Translate', $translate);
         return $translate;
+    }
+
+    /**
+     * The translator's fallback map: every supported locale other than the default routes a missing key to
+     * the default (ZF1's Zend_Translate `route` option). Never routes the default to itself, so a key missing
+     * everywhere still ends at the raw key rather than looping.
+     *
+     * @param  string[] $supported the configured supported locales
+     * @param  string   $default   the default (fallback) locale
+     * @return array<string,string> locale => fallback locale
+     */
+    protected function _fallbackRoutes(array $supported, string $default): array
+    {
+        $routes = [];
+        foreach ($supported as $lang) {
+            if ($lang !== '' && $lang !== $default) { $routes[$lang] = $default; }
+        }
+        return $routes;
     }
 
     /**
