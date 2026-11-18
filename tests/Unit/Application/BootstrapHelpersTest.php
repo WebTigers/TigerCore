@@ -150,4 +150,38 @@ final class BootstrapHelpersTest extends UnitTestCase
             @chmod("$dir/sess_$bad", 0600); array_map('unlink', glob("$dir/sess_*") ?: []); @unlink($dir . '/error.log'); @rmdir($dir);
         }
     }
+
+    #[Test]
+    public function every_non_default_locale_falls_back_to_the_default(): void
+    {
+        $this->assertSame(
+            ['es' => 'en', 'tlh' => 'en', 'qya' => 'en'],
+            $this->call('_fallbackRoutes', [['en', 'es', 'tlh', 'qya', ''], 'en']),
+            'the default never routes to itself, so a key missing everywhere ends at the raw key'
+        );
+    }
+
+    #[Test]
+    public function a_key_missing_in_the_active_locale_reads_in_english_not_as_the_raw_key(): void
+    {
+        // TIGER-539: dev admin screens in qya showed raw keys, because qya ships no strings outside the
+        // home page view. Built the way _initTranslate builds it, with the same fallback map.
+        $this->call('_registerCustomLocales', [['en', 'tlh', 'qya']]);
+        $t = new \Zend_Translate([
+            'adapter' => \Zend_Translate::AN_ARRAY, 'content' => [], 'locale' => 'en', 'disableNotices' => true,
+            'route'   => $this->call('_fallbackRoutes', [['en', 'tlh', 'qya'], 'en']),
+        ]);
+        $t->addTranslation(['content' => ['demo.save' => 'Save', 'demo.title' => 'Coming Soon'], 'locale' => 'en']);
+        $t->addTranslation(['content' => ['demo.save' => "Qa'"], 'locale' => 'tlh']);
+        $t->addTranslation(['content' => ['demo.placeholder' => 'x'], 'locale' => 'qya']);
+
+        $t->setLocale('qya');
+        $this->assertSame('Save', $t->translate('demo.save'), 'qya has no string → English');
+        $this->assertSame('Coming Soon', $t->translate('demo.title'));
+        $t->setLocale('tlh');
+        $this->assertSame("Qa'", $t->translate('demo.save'), 'a locale that has the string keeps it');
+        $this->assertSame('Coming Soon', $t->translate('demo.title'), 'and falls back only for what it lacks');
+        $this->assertSame('demo.nowhere', $t->translate('demo.nowhere'), 'missing everywhere → the raw key, no loop');
+        $this->assertSame('Save', $t->translate('demo.save', 'qya'), 'an explicit locale argument falls back too');
+    }
 }
