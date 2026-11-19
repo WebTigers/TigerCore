@@ -109,7 +109,7 @@ class Tiger_Agent_Forge
      */
     protected function _api(array $action)
     {
-        $className = ucfirst($action['module']) . '_Service_' . ucfirst($action['service']);
+        $className = Tiger_Service_Locator::className($action['module'], $action['service']);   // TIGER-531
         $method    = (string) $action['method'];
         $isWrite   = !in_array(strtolower($method), self::READ_VERBS, true);
 
