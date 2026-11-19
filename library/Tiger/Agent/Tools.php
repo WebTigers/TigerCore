@@ -64,7 +64,10 @@ class Tiger_Agent_Tools
                 continue;
             }
 
-            $class = ucfirst($module) . '_Service_' . ucfirst($service);
+            // The path's service segment is lower-cased; the ACL resource is the REAL class name, so a
+            // two-word service (orgaddress → Profile_Service_OrgAddress) must be resolved, not ucfirst'd —
+            // Zend_Acl ids are case-sensitive and the rebuild silently dropped it (TIGER-531).
+            $class = Tiger_Service_Locator::className($module, $service);
             if (!$acl->has($class) || !$acl->isAllowed($role, $class, $method)) {
                 continue;   // the role can't call it → the model never sees it
             }

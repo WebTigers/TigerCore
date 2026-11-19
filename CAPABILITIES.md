@@ -5,7 +5,7 @@
 > before assuming something isn't built. `@api` = stable to build on; `@internal` = may change.
 > Grouped by **capability** (across layers), not by directory.
 
-**262 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
+**263 classes** across **33 capabilities** · **27 modules**. Full prose: [FEATURES.md](FEATURES.md) (what) · [ARCHITECTURE.md](ARCHITECTURE.md) (why). Not-yet-built: [BACKLOG.md](BACKLOG.md).
 
 ## Capabilities (`library/Tiger`)
 
@@ -361,6 +361,7 @@
 - **Tiger_Secret_Adapter_SecretsManager** `@api` — AWS Secrets Manager backend (the rotation-managed sibling of SSM).  ·  `library/Tiger/Secret/Adapter/SecretsManager.php`
 - **Tiger_Secret_Adapter_Ssm** `@api` — AWS Systems Manager Parameter Store (SecureString) backend.  ·  `library/Tiger/Secret/Adapter/Ssm.php`
 - **Tiger_Secret_Writer_Interface** `@api` — the OPTIONAL write side of a secret backend.  ·  `library/Tiger/Secret/Writer/Interface.php`
+- **Tiger_Service_Locator** `@api` — turn the module + service NAMES a caller sends (`/api`, MCP `tools/call`, the agent Forge, the agent/MCP catalog) into the service's REAL class name, whatever the casing (TIGER-…  ·  `library/Tiger/Service/Locator.php`
 - **Tiger_Sms** `@api` — provider-agnostic SMS send, the SMS sibling of Tiger_Mail.  ·  `library/Tiger/Sms.php`
 - **Tiger_Sms_Adapter_Abstract** `@api` — the base every SMS provider adapter extends.  ·  `library/Tiger/Sms/Adapter/Abstract.php`
 - **Tiger_Sms_Adapter_Plivo** `@api` — the Plivo SMS adapter.  ·  `library/Tiger/Sms/Adapter/Plivo.php`

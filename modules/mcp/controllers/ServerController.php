@@ -115,7 +115,7 @@ class Mcp_ServerController extends Zend_Controller_Action
 
         $out = Tiger_Mcp_Server::handle($msg, $role, function ($module, $service, $method, $args) use ($config, $prefix, $effIdentity, $role, $skillOrg) {
             return $this->_dispatchTool($module, $service, $method, (array) $args, $config, $prefix, $effIdentity, $role, $skillOrg);
-        }, $allowed, $skillOrg);
+        }, $allowed, $skillOrg, $this->_permits($config));
 
         if ($out === null) {
             $resp->setHttpResponseCode(202);   // a notification → accepted, no body
@@ -193,6 +193,47 @@ class Mcp_ServerController extends Zend_Controller_Action
     }
 
     /**
+     * The token's policy for one tool — the ONE place it is decided, used by BOTH `tools/call` (refuse) and
+     * `tools/list` (don't advertise), so discovery == authorization (TIGERMCP §4, TIGER-498).
+     *  - the agent's Scout/Forge surface: the token must include the pseudo-module `agent`, and a read-only
+     *    token can't run a Forge write (Scout reads always pass — the agent verbs aren't in READ_VERBS, so
+     *    read-vs-write is decided here explicitly, not via `Tiger_Mcp_Token::denyReason`);
+     *  - every /api tool: `Tiger_Mcp_Token::denyReason` (module scope, read-only, the optional resource fence).
+     * No token config (a session caller) = no token policy; the role's ACL still gates everything.
+     *
+     * @return array{0:string,1:string}|null [reason, message], or null when the token allows it
+     */
+    protected function _tokenDeny($module, $service, $method, $config)
+    {
+        if ($config === null) {
+            return null;
+        }
+        if ($module === 'agent' && in_array($service, ['scout', 'forge'], true)) {
+            if (!Tiger_Mcp_Token::allowsModule($config, 'agent')) {
+                return ['out_of_scope', 'This token is not scoped to the agent surface.'];
+            }
+            if ($service === 'forge' && !empty($config['read_only'])) {
+                return ['read_only', 'This token is read-only; it cannot write files or scaffold modules.'];
+            }
+            return null;
+        }
+        switch (Tiger_Mcp_Token::denyReason($config, $module, $method, $service)) {
+            case 'out_of_scope':    return ['out_of_scope', 'This token cannot call that tool (out of scope).'];
+            case 'read_only':       return ['read_only', 'This token is read-only.'];
+            case 'out_of_resource': return ['out_of_resource', 'This token cannot call that tool (outside its resource scope).'];
+        }
+        return null;
+    }
+
+    /** The `tools/list` filter for a token: list exactly what `_tokenDeny` lets a `tools/call` run. */
+    protected function _permits($config): callable
+    {
+        return function ($module, $service, $method) use ($config) {
+            return $this->_tokenDeny($module, $service, $method, $config) === null;
+        };
+    }
+
+    /**
      * Run one tool: enforce the token's scope + read-only, meter it, dispatch it (as the org for an
      * org-scoped token, else the token/session identity), and audit the outcome. Returns the /api envelope
      * (a denial is a `result=0` envelope the engine renders as an MCP error).
@@ -215,11 +256,9 @@ class Mcp_ServerController extends Zend_Controller_Action
 
         // Token policy (scope + read-only + the optional resource fence), then the soft rate limit. The
         // service's own ACL still gates the dispatch below regardless — this is an EXTRA, tighter fence.
-        if ($config !== null) {
-            $deny = Tiger_Mcp_Token::denyReason($config, $module, $method, $service);
-            if ($deny === 'out_of_scope')    { return $this->_denied($tool, $prefix, $deny, 'This token cannot call that tool (out of scope).'); }
-            if ($deny === 'read_only')       { return $this->_denied($tool, $prefix, $deny, 'This token is read-only.'); }
-            if ($deny === 'out_of_resource') { return $this->_denied($tool, $prefix, $deny, 'This token cannot call that tool (outside its resource scope).'); }
+        $deny = $this->_tokenDeny($module, $service, $method, $config);
+        if ($deny !== null) {
+            return $this->_denied($tool, $prefix, $deny[0], $deny[1]);
         }
         if ($prefix !== '' && !Tiger_Mcp_Token::meter($prefix)) {
             return $this->_denied($tool, $prefix, 'rate_limited', 'Rate limit exceeded for this token.');
@@ -275,13 +314,9 @@ class Mcp_ServerController extends Zend_Controller_Action
         $tool    = 'agent__' . $service . '__' . $method;
         $isForge = ($service === 'forge');
 
-        if ($config !== null) {
-            if (!Tiger_Mcp_Token::allowsModule($config, 'agent')) {
-                return $this->_denied($tool, $prefix, 'out_of_scope', 'This token is not scoped to the agent surface.');
-            }
-            if ($isForge && !empty($config['read_only'])) {
-                return $this->_denied($tool, $prefix, 'read_only', 'This token is read-only; it cannot write files or scaffold modules.');
-            }
+        $deny = $this->_tokenDeny('agent', $service, $method, $config);
+        if ($deny !== null) {
+            return $this->_denied($tool, $prefix, $deny[0], $deny[1]);
         }
         if ($prefix !== '' && !Tiger_Mcp_Token::meter($prefix)) {
             return $this->_denied($tool, $prefix, 'rate_limited', 'Rate limit exceeded for this token.');

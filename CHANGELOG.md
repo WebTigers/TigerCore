@@ -6,6 +6,23 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.69.0] — 2026-11-19
+
+### Fixed — MCP `tools/list` advertised calls the token can't make (TIGER-498)
+- A read-only MCP token listed every write tool (`blog__post__save`, `blog__post__delete` …) and only learned
+  "This token is read-only." when it called one. TIGERMCP §4 promises discovery == authorization.
+- The MCP controller now decides a token's policy — module scope, read-only, the resource fence, and the agent
+  Scout/Forge gate — in ONE method (`_tokenDeny`), used by both `tools/call` (refuse) and `tools/list` (don't
+  list). `Tiger_Mcp_Server::handle()` takes an optional `$permits` filter for that.
+
+### Fixed — two-word services were missing from the agent/MCP catalog and unreachable by their API name (TIGER-531)
+- `Profile_Service_OrgAddress`, `OrgContact` and `OrgLogo` never appeared as MCP tools: the catalog, `/api` and
+  the agent Forge rebuilt the class as `ucfirst($service)`, so `orgaddress` became `Profile_Service_Orgaddress`,
+  an ACL resource that doesn't exist (and a file a case-sensitive filesystem doesn't have).
+- New `Tiger_Service_Locator::className($module, $service)` returns the real class: the `ucfirst` name when it is
+  the declared class (no file scan), else the class declared by the module's own `services/` file whose name
+  matches case-insensitively. It never looks outside that one module.
+
 ## [1.68.2] — 2026-11-18
 
 ### Fixed — a string missing in the active language showed as its raw key (TIGER-539)

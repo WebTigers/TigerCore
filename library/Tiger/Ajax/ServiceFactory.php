@@ -195,7 +195,9 @@ class Tiger_Ajax_ServiceFactory
 
             // --- SERVICE mode ---
             if ($service !== '') {
-                $className = ucfirst($module) . '_Service_' . ucfirst($service);
+                // The REAL class, whatever casing the caller sent (`orgaddress` → Profile_Service_OrgAddress),
+                // so the ACL resource + the autoloaded file both match (TIGER-531).
+                $className = Tiger_Service_Locator::className($module, $service);
                 if (!$this->_authorize($className, $action)) {
                     return; // _authorize set the error response
                 }

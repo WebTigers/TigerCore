@@ -30,9 +30,14 @@ class Tiger_Mcp_Server
      * @param  array|null $allowedModules the token's module scope for tools/list (null = the full role surface)
      * @param  string|null $orgId the caller's org, whose ACTIVE skills `initialize` lists and `agent__skills__load`
      *                            serves (TIGER-532); null = no skills surface
+     * @param  callable|null $permits fn(string $module, string $service, string $method): bool — the caller's
+     *                            token policy (read-only, resource fence …), the SAME gate its dispatch applies.
+     *                            `tools/list` drops every tool it refuses, so discovery == authorization: a
+     *                            client is never advertised a call the token can't make (TIGER-498). null = no
+     *                            token policy beyond the role + module scope.
      * @return array|null           the JSON-RPC response, or null for a notification (no id → send no body)
      */
-    public static function handle(array $msg, $role, callable $dispatch, ?array $allowedModules = null, ?string $orgId = null)
+    public static function handle(array $msg, $role, callable $dispatch, ?array $allowedModules = null, ?string $orgId = null, ?callable $permits = null)
     {
         // A JSON array = a batch, which MCP removed in 2025-06-18. Refuse it.
         if (array_is_list($msg)) {
@@ -52,7 +57,7 @@ class Tiger_Mcp_Server
             case 'ping':
                 return self::_result($id, new stdClass());   // {}
             case 'tools/list':
-                return self::_result($id, self::_toolsList((string) $role, $allowedModules, $orgId));
+                return self::_result($id, self::_toolsList((string) $role, $allowedModules, $orgId, $permits));
             case 'tools/call':
                 return self::_result($id, self::_toolsCall($params, $dispatch));
             default:
@@ -133,10 +138,11 @@ class Tiger_Mcp_Server
      * tools/list = the role-filtered /api catalog, clipped to the token's module scope, one MCP tool per
      * operation, args typed from the Form.
      *
-     * @param string     $role
-     * @param array|null $allowedModules null = the whole role surface; else only these modules' tools
+     * @param string        $role
+     * @param array|null    $allowedModules null = the whole role surface; else only these modules' tools
+     * @param callable|null $permits        the token policy (see handle()); a tool it refuses is not listed
      */
-    protected static function _toolsList($role, ?array $allowedModules = null, ?string $orgId = null)
+    protected static function _toolsList($role, ?array $allowedModules = null, ?string $orgId = null, ?callable $permits = null)
     {
         $schemas = self::_inputSchemas();   // module/service/method → JSON Schema (from the method's Form)
         $tools   = [];
@@ -148,6 +154,9 @@ class Tiger_Mcp_Server
                 if (isset($schemas[$key]) && Tiger_OpenApi_Generator::takesFile($schemas[$key])) {
                     continue;   // an upload: no MCP client can send a file, so it isn't a tool (TIGER-529)
                 }
+                if ($permits !== null && !$permits((string) $module, (string) $op['service'], (string) $op['method'])) {
+                    continue;   // the token would refuse it (e.g. a write on a read-only token) — TIGER-498
+                }
                 $tools[] = [
                     'name'        => self::toolName((string) $module, (string) $op['service'], (string) $op['method']),
                     'description' => (string) ($op['summary'] ?? ''),
@@ -157,6 +166,10 @@ class Tiger_Mcp_Server
             }
         }
         foreach (self::_agentTools($role, $allowedModules) as $t) {
+            $p = self::parseToolName($t['name']);
+            if ($permits !== null && $p !== null && !$permits($p[0], $p[1], $p[2])) {
+                continue;   // e.g. agent__forge__file on a read-only token (TIGER-498)
+            }
             $tools[] = $t;   // the agent's own Scout/Forge surface (TIGER-168), when role + scope allow
         }
         $skill = self::_skillTool($orgId);
@@ -180,8 +193,8 @@ class Tiger_Mcp_Server
      *    never gets filesystem read/write; an admin widens a token to `agent` on purpose.
      *  - **Role:** the very ACL resources/privileges `Tiger_Agent_Scout::_allowed` + `Tiger_Agent_Forge` check
      *    — `Tiger_Agent_Scout`/`inventory` (admin+), `Tiger_Agent_Scout`/`read` (superadmin+), and
-     *    `Tiger_Agent_Forge`/`file` (superadmin+). `forge.file` is a write, so a read-only token still lists
-     *    it (mirroring how a write `/api` tool is listed) but the call is refused at dispatch.
+     *    `Tiger_Agent_Forge`/`file` (superadmin+). The token's own policy (a read-only token can't run a
+     *    Forge write) is applied on top by `_toolsList()`'s `$permits` filter (TIGER-498).
      *
      * @param  string     $role
      * @param  array|null $allowedModules
