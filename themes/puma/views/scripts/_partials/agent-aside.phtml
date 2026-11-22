@@ -12,7 +12,9 @@
  */
 $agentCsrf = '';
 try {
-    $agentCsrf = (new Agent_Form_Send())->getElement('_csrf');   // hidden <input name="_csrf">
+    // hidden <input name="_csrf">, with its own id: every Tiger_Form token renders as id="_csrf", and the aside
+    // sits on pages that have forms of their own. tiger.agent.js reads it by name inside the aside, not by id.
+    $agentCsrf = (new Agent_Form_Send())->getElement('_csrf')->setAttrib('id', 'tiger-agent-csrf');
 } catch (Throwable $e) { /* no token → the JS falls back to a page reload prompt */ }
 $agentModel = Tiger_Agent::model();
 
