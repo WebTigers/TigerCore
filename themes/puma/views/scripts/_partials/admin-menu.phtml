@@ -201,9 +201,13 @@ $render = function ($items, $depth = 0, $group = 'root') use (&$render, $allowed
 <?php
 // The sort-order save (System_Service_Nav::sort) validates a CSRF token (TIGER-528); the sidebar renders
 // on every admin page, so it carries its own. Fail-soft: no token → the drag still reorders, just unsaved.
+// Its own id, too: every Tiger_Form token renders as id="_csrf", so on a page with a form of its own the
+// sidebar's would duplicate that id. tiger.admin-nav.js reads it by name inside .tiger-nav-wrap, not by id.
 $navCsrf = '';
 try {
-    if (class_exists('System_Form_NavSort')) { $navCsrf = (string) (new System_Form_NavSort())->getElement('_csrf'); }
+    if (class_exists('System_Form_NavSort')) {
+        $navCsrf = (string) (new System_Form_NavSort())->getElement('_csrf')->setAttrib('id', 'tiger-nav-csrf');
+    }
 } catch (Throwable $e) { $navCsrf = ''; }
 ?>
 <nav class="tiger-nav-wrap" role="navigation" aria-label="<?= $this->escape($this->t('theme.a11y.main_nav')) ?>">
