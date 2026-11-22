@@ -31,7 +31,11 @@ $timed   = in_array($every, ['daily', 'weekly', 'monthly'], true);
 // not own (Backup), so it carries its own token instead of relying on the host page's — one salt for
 // every scheduler write (Schedule_Form_Write), reused across renders, so several controls on a page
 // all post the same live value. Absent when the schedule module isn't loaded (nothing to post to).
-$csrf    = class_exists('Schedule_Form_Schedule') ? (new Schedule_Form_Schedule())->getElement('_csrf') : null;
+// A unique id per render: every Tiger_Form token renders as id="_csrf", and this control can appear several times
+// on a page beside the host page's own form. tiger.schedule.js reads it by name inside [data-schedule-csrf].
+$csrf    = class_exists('Schedule_Form_Schedule')
+    ? (new Schedule_Form_Schedule())->getElement('_csrf')->setAttrib('id', 'tiger-schedule-csrf-' . bin2hex(random_bytes(4)))
+    : null;
 
 // Option text is localized; the VALUES posted to schedule/setSchedule stay the stable keys.
 $freqLabels = [

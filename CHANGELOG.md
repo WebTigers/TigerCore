@@ -6,6 +6,15 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.69.2] — 2026-11-22
+
+### Fixed — the agent side panel and the schedule control duplicated `id="_csrf"` too
+- The same defect 1.69.1 fixed for the sidebar: both render their own CSRF token, and every `Tiger_Form` token
+  renders as `id="_csrf"`, so on a page with a form of its own the id repeated.
+- The agent panel's token is now `id="tiger-agent-csrf"` (one per page). The schedule control can appear several
+  times on a page, so each render gets a unique `id="tiger-schedule-csrf-<random>"`. `tiger.agent.js` and
+  `tiger.schedule.js` read their token by name inside their own container, so nothing that uses them changes.
+
 ## [1.69.1] — 2026-11-22
 
 ### Fixed — the admin sidebar duplicated the page form's `id="_csrf"`
