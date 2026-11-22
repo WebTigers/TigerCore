@@ -6,6 +6,15 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.69.1] — 2026-11-22
+
+### Fixed — the admin sidebar duplicated the page form's `id="_csrf"`
+- Since 1.63.0 (TIGER-528) the admin side navigation carries its own CSRF token for saving the menu order. Every
+  `Tiger_Form` token renders as `id="_csrf"`, so any admin page with a form of its own (the CMS page editor, for
+  one) had two elements with that id — invalid HTML, and a trap for a script that looks the token up by id.
+- The sidebar's token now renders as `id="tiger-nav-csrf"`. `tiger.admin-nav.js` already finds it by name inside
+  `.tiger-nav-wrap`, so nothing that reads it changes.
+
 ## [1.69.0] — 2026-11-19
 
 ### Fixed — MCP `tools/list` advertised calls the token can't make (TIGER-498)
