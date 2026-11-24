@@ -6,6 +6,13 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.72.1] — 2026-11-24
+
+### Fixed — the analytics device filter listed choices that couldn't filter
+- Matomo returns every device type it knows, with zero visits too, and multi-word types come back form-encoded
+  (`car+browser`), which the filter then refused. Choices are now decoded and limited to what the window actually
+  has, for devices, countries and campaigns alike. Found by running 1.72.0 read-only against prod's Matomo.
+
 ## [1.72.0] — 2026-11-24
 
 ### Added — analytics dashboard: date ranges, filters and drill-downs
