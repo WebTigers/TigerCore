@@ -11,7 +11,8 @@
 (function () {
     try {
         var m    = document.cookie.match(/(?:^|;\s*)tiger_theme=([^;]+)/);
-        var pref = m ? decodeURIComponent(m[1]) : 'browser';
+        // No cookie yet → the site's default mode, rendered by the layout as <html data-tiger-mode>.
+        var pref = m ? decodeURIComponent(m[1]) : (document.documentElement.getAttribute('data-tiger-mode') || 'browser');
         if (pref !== 'light' && pref !== 'dark') {
             pref = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
         }

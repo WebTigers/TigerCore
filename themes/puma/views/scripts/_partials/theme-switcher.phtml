@@ -7,8 +7,7 @@
  * the `tiger_theme` cookie). Uses Font Awesome icons — the layout including it must
  * load FA. MIT, Tiger-original.
  */
-$pref = $_COOKIE['tiger_theme'] ?? 'browser';
-if (!in_array($pref, ['browser', 'light', 'dark'], true)) { $pref = 'browser'; }
+$pref = Tiger_Theme::modePreference();   // the visitor's cookie, else the site default
 $icons = ['browser' => 'fa-solid fa-display', 'light' => 'fa-solid fa-sun', 'dark' => 'fa-solid fa-moon'];
 ?>
 <div class="dropdown">

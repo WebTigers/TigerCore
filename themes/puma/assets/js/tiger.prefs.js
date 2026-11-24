@@ -146,7 +146,7 @@
     if (window.matchMedia) {
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
             var m = document.cookie.match(/(?:^|;\s*)tiger_theme=([^;]+)/);
-            var pref = m ? decodeURIComponent(m[1]) : 'browser';
+            var pref = m ? decodeURIComponent(m[1]) : (document.documentElement.getAttribute('data-tiger-mode') || 'browser');
             if (pref === 'browser') { applyTheme('browser'); }
         });
     }

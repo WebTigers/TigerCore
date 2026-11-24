@@ -6,6 +6,17 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.71.0] — 2026-11-24
+
+### Added — a site-wide default colour mode
+- `tiger.ui.mode` (`browser` | `light` | `dark`, default `browser`) sets what a visitor sees before they pick a mode
+  with the switcher. Their own choice (the `tiger_theme` cookie) still wins. Unset or unknown is `browser`, so
+  existing sites look the same.
+- `Tiger_Theme::defaultMode()` and `::modePreference()` are the one place the mode is decided: the PUMA public,
+  admin and auth layouts and the theme switcher read them, and `<html data-tiger-mode>` hands the default to
+  `theme-init.js` / `tiger.prefs.js` for the first paint.
+- The key sits under `tiger.ui`, not `tiger.theme`, which must stay a scalar (the active theme's key).
+
 ## [1.70.0] — 2026-11-24
 
 ### Added — add and edit users in a modal, with their org memberships
