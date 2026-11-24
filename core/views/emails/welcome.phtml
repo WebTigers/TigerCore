@@ -1,0 +1,24 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 WebTigers. Tiger™ and WebTigers™ are trademarks of WebTigers.
+/** Welcome — an admin created this account; the user chooses their password. Variables: $url, $site. */
+$e = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); };
+$url  = (string) $this->url;
+$site = (string) ($this->site ?? '');
+?>
+<h1 class="tg-h1" style="margin:0 0 14px; font-size:24px; line-height:1.3; font-weight:700; color:#111827;">Welcome<?= $site !== '' ? ' to ' . $e($site) : '' ?></h1>
+
+<p style="margin:0 0 16px;">An account has been created for you. Choose your password with the button below, then sign in.</p>
+
+<p style="margin:0;">This link expires in <strong>72 hours</strong>.</p>
+
+<?php $this->btnUrl = $url; $this->btnLabel = 'Choose a password'; echo $this->render('_button.phtml'); ?>
+
+<p class="tg-muted" style="margin:0 0 8px; font-size:13px; color:#6b7280;">Or paste this link into your browser:</p>
+<p style="margin:0 0 24px; font-size:13px; word-break:break-all;"><a href="<?= $e($url) ?>" style="color:#3459e6;"><?= $e($url) ?></a></p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr><td class="tg-rule" style="border-top:1px solid #e5e7eb; font-size:0; line-height:0;">&nbsp;</td></tr>
+</table>
+
+<p class="tg-muted" style="margin:20px 0 0; font-size:13px; color:#6b7280;">If you weren&rsquo;t expecting this, you can ignore this email &mdash; nothing happens until the link is used.</p>

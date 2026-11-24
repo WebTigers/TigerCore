@@ -47,6 +47,8 @@ final class UserServiceTest extends IntegrationTestCase
         // run inside that txn and are undone by the base rollback, so this is harmless either way.
         try {
             $this->db->query('DELETE FROM user_credential');
+            $this->db->query('DELETE FROM org_user');
+            $this->db->query("DELETE FROM org WHERE slug LIKE 'ust-%'");
             $this->db->query('DELETE FROM user');
         } catch (\Throwable $e) {
             // ignore
@@ -60,6 +62,13 @@ final class UserServiceTest extends IntegrationTestCase
     private function call(string $action, array $params = []): object
     {
         return (new Access_Service_User(['action' => $action] + $params))->getResponse();
+    }
+
+    /** A real org + a one-membership payload (role `user`) — a new user must start in an org. */
+    private function memberships(string $role = 'user'): string
+    {
+        $orgId = (new \Tiger_Model_Org())->insert(['name' => 'UST Org', 'slug' => 'ust-' . bin2hex(random_bytes(4))]);
+        return json_encode([['org_id' => $orgId, 'role' => $role]]);
     }
 
     /** Commit + leave the harness txn so the service can open its own (nested txns aren't supported). */
@@ -176,7 +185,7 @@ final class UserServiceTest extends IntegrationTestCase
     {
         $this->login('admin-actor', 'org-test', 'admin');
         $this->escapeTxn();
-        $res = $this->call('save', ['email' => 'created@w3ctest.com', 'username' => 'creado', 'status' => 'active']);
+        $res = $this->call('save', ['email' => 'created@w3ctest.com', 'username' => 'creado', 'status' => 'active', 'memberships' => $this->memberships()]);
 
         $this->assertSame(1, (int) $res->result, 'valid payload saved');
         $id = $res->data['user_id'];
@@ -196,7 +205,7 @@ final class UserServiceTest extends IntegrationTestCase
     {
         $this->loginAs('admin');
         $this->escapeTxn();
-        $res = $this->call('save', ['email' => '  MixedCase@W3Ctest.com  ', 'status' => 'active']);
+        $res = $this->call('save', ['email' => '  MixedCase@W3Ctest.com  ', 'status' => 'active', 'memberships' => $this->memberships()]);
         $this->assertSame(1, (int) $res->result);
         $row = (new Tiger_Model_User())->findById($res->data['user_id']);
         $this->assertSame('mixedcase@w3ctest.com', $row->email, 'email is normalized to lowercase+trimmed');
@@ -253,7 +262,7 @@ final class UserServiceTest extends IntegrationTestCase
     {
         $this->loginAs('admin');
         $this->escapeTxn();
-        $res = $this->call('save', ['email' => 'withpw@w3ctest.com', 'status' => 'active', 'new_password' => 'S3cure-P@ssw0rd-9x']);
+        $res = $this->call('save', ['email' => 'withpw@w3ctest.com', 'status' => 'active', 'new_password' => 'S3cure-P@ssw0rd-9x', 'memberships' => $this->memberships()]);
         $this->assertSame(1, (int) $res->result, 'valid password policy accepted');
         $id = $res->data['user_id'];
 

@@ -108,8 +108,11 @@ final class SavepointIsolationTest extends IntegrationTestCase
         Zend_Registry::set('tiger.auth.stateless', true);                                    // no CSRF session in CLI
         Zend_Registry::set('Zend_Config', new Zend_Config(['tiger' => ['i18n' => ['locales' => 'en,es']]], true));
 
+        // A new user starts in an org (1.70.0); the org row is discarded by the base rollback too.
+        $orgId = (new \Tiger_Model_Org())->insert(['name' => 'Savepoint Org', 'slug' => 'savepoint-org']);
         $res = (new Access_Service_User([
             'action' => 'save', 'email' => 'savepoint@w3ctest.com', 'username' => 'spuser', 'status' => 'active',
+            'new_password' => 'S3cure-P@ssw0rd-9x', 'memberships' => json_encode([['org_id' => $orgId, 'role' => 'user']]),
         ]))->getResponse();
 
         $this->assertSame(1, (int) $res->result, 'the service save committed its own nested transaction');

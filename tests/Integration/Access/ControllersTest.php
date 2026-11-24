@@ -34,32 +34,25 @@ final class ControllersTest extends ModuleControllerTestCase
     }
 
     #[Test]
-    public function user_edit_renders_a_blank_form_for_a_new_user(): void
+    public function user_index_carries_the_add_edit_modal_form(): void
     {
         $this->loginAs('admin');
-        $this->dispatchAction(Access_UserController::class, 'edit', [], 'GET');
+        $this->dispatchAction(Access_UserController::class, 'index', ['id' => '01a2058e-33b6-74f0-8455-6ccd81efa246'], 'GET');
 
         $view = $this->controller()->view;
-        $this->assertStringContainsString('New User', (string) $view->title);
-        $this->assertInstanceOf(\Access_Form_User::class, $view->form);
-        $this->assertNull($view->user);
+        $this->assertInstanceOf(\Access_Form_User::class, $view->userForm, 'the modal renders the user form + its CSRF token');
+        $this->assertSame('01a2058e-33b6-74f0-8455-6ccd81efa246', $view->openUserId, 'a user id in the path opens that user');
     }
 
     #[Test]
-    public function user_edit_prefills_the_form_for_an_existing_user(): void
+    public function the_retired_edit_page_redirects_into_the_modal(): void
     {
-        $id = (new Tiger_Model_User())->insert([
-            'email'    => 'edituser@example.test',
-            'username' => 'edituser',
-            'status'   => 'active',
-        ]);
         $this->loginAs('admin');
-        $this->dispatchAction(Access_UserController::class, 'edit', ['id' => $id], 'GET');
+        $this->dispatchAction(Access_UserController::class, 'edit', ['id' => '01a2058e-33b6-74f0-8455-6ccd81efa246'], 'GET');
+        $this->assertStringEndsWith('/access/user/index/id/01a2058e-33b6-74f0-8455-6ccd81efa246', (string) $this->redirectLocation());
 
-        $view = $this->controller()->view;
-        $this->assertStringContainsString('Edit User', (string) $view->title);
-        $this->assertNotNull($view->user);
-        $this->assertSame('edituser@example.test', $view->form->getValues()['email']);
+        $this->dispatchAction(Access_UserController::class, 'edit', [], 'GET');
+        $this->assertStringEndsWith('/access/user/index/new/1', (string) $this->redirectLocation());
     }
 
     #[Test]

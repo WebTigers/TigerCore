@@ -32,32 +32,23 @@ class Access_UserController extends Tiger_Controller_Admin_Action
         $this->view->title         = 'Users — Tiger Admin';
         $this->view->useDataTables = true;
         $this->view->deleteForm    = new Access_Form_UserDelete();   // renders the grid's delete token
+        // The Add/Edit user modal: the form owns its fields + CSRF token; the modal JS fills it over /api.
+        $this->view->userForm      = new Access_Form_User();
+        // /access/user/index/id/<uuid> opens that user's modal on load (the retired edit page redirects here).
+        $id = (string) $this->getParam('id', '');
+        $this->view->openUserId    = preg_match('/^[0-9a-f-]{36}$/', $id) ? $id : '';
+        $this->view->openNew       = (bool) $this->getParam('new', false);
     }
 
     /**
-     * Create (no id) or edit (id) a user — renders the form; saving is an /api call.
+     * The old standalone editor — Add/Edit now live in a modal on the Users list. Kept as a redirect so
+     * bookmarks and links still land on the right user.
      *
      * @return void
      */
     public function editAction()
     {
-        $id   = (string) $this->getParam('id', '');
-        $user = $id !== '' ? (new Tiger_Model_User())->findById($id) : null;
-
-        $form = new Access_Form_User();
-        if ($user) {
-            $form->populate([
-                'user_id'  => $user->user_id,
-                'email'    => $user->email,
-                'username' => $user->username,
-                'locale'   => (string) $user->locale,
-                'timezone' => (string) $user->timezone,
-                'status'   => $user->status,
-            ]);
-        }
-
-        $this->view->title = ($user ? 'Edit' : 'New') . ' User — Tiger Admin';
-        $this->view->form  = $form;
-        $this->view->user  = $user;
+        $id = (string) $this->getParam('id', '');
+        $this->_redirect(preg_match('/^[0-9a-f-]{36}$/', $id) ? '/access/user/index/id/' . $id : '/access/user/index/new/1');
     }
 }

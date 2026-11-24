@@ -233,6 +233,41 @@ class Tiger_Service_Authentication
     /** Reset-link lifetime (seconds). */
     const RESET_TTL = 3600;   // 1 hour
 
+    /** Welcome (set-your-password) link lifetime — an invitation waits longer than a reset. */
+    const WELCOME_TTL = 259200;   // 72 hours
+
+    /**
+     * Email a user an admin just created a link to choose their own password (the Users admin, when the
+     * admin leaves the password blank). Rides the password-reset challenge + /auth/reset screen — same
+     * single-use, hashed, TTL'd token — with a welcome message and a longer lifetime.
+     *
+     * @param  string $userId   the new user
+     * @param  string $baseUrl  the site base URL the link is built on
+     * @param  string $siteName how the email names the site
+     * @return bool             true when the email was handed to the transport
+     */
+    public function sendWelcome($userId, $baseUrl, $siteName = '')
+    {
+        $user = (new Tiger_Model_User())->findById((string) $userId);
+        if (!$user || $user->status !== 'active' || empty($user->email)) {
+            return false;
+        }
+        $token       = bin2hex(random_bytes(32));
+        $challengeId = (new Tiger_Model_AuthChallenge())->issue($user->user_id, 'password_reset', $token, self::WELCOME_TTL);
+        $url = rtrim((string) $baseUrl, '/') . '/auth/reset/cid/' . rawurlencode($challengeId) . '/code/' . rawurlencode($token);
+        try {
+            (new Tiger_Mail())
+                ->to($user->email)
+                ->subject($siteName !== '' ? 'Your ' . $siteName . ' account' : 'Your new account')
+                ->template('welcome', ['url' => $url, 'site' => (string) $siteName])
+                ->send();
+            return true;
+        } catch (Throwable $e) {
+            error_log('Tiger welcome mail failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
     /**
      * Request a password reset. If the email maps to an ACTIVE user, issue a
      * password_reset challenge and email a reset link (built on $baseUrl, e.g.
