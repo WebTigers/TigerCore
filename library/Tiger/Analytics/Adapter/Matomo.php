@@ -356,16 +356,19 @@ class Tiger_Analytics_Adapter_Matomo extends Tiger_Analytics_Adapter_Abstract im
         ]);
         if (isset($res['error'])) { return []; }
         $out = ['campaign' => [], 'device' => [], 'country' => []];
+        // Only choices this window actually has — Matomo lists every device type it knows, visits or not.
+        $seen = static fn ($r) => is_array($r) && (!array_key_exists('nb_visits', $r) || (int) $r['nb_visits'] > 0);
         foreach ((array) ($res['results'][0] ?? []) as $r) {
-            if (is_array($r) && ($r['label'] ?? '') !== '') { $out['campaign'][] = ['value' => (string) $r['label'], 'label' => (string) $r['label']]; }
+            if ($seen($r) && ($r['label'] ?? '') !== '') { $out['campaign'][] = ['value' => (string) $r['label'], 'label' => (string) $r['label']]; }
         }
         foreach ((array) ($res['results'][1] ?? []) as $r) {
-            if (is_array($r) && preg_match('/deviceType==([^;]+)/', (string) ($r['segment'] ?? ''), $m)) {
-                $out['device'][] = ['value' => strtolower(rawurldecode($m[1])), 'label' => (string) ($r['label'] ?? $m[1])];
+            // The row's segment is form-encoded ("car+browser"): decode it to the plain value segment() takes.
+            if ($seen($r) && preg_match('/deviceType==([^;]+)/', (string) ($r['segment'] ?? ''), $m)) {
+                $out['device'][] = ['value' => strtolower(urldecode($m[1])), 'label' => (string) ($r['label'] ?? $m[1])];
             }
         }
         foreach ((array) ($res['results'][2] ?? []) as $r) {
-            if (is_array($r) && preg_match('/^[a-z]{2}$/i', (string) ($r['code'] ?? ''))) {
+            if ($seen($r) && preg_match('/^[a-z]{2}$/i', (string) ($r['code'] ?? ''))) {
                 $out['country'][] = ['value' => strtolower((string) $r['code']), 'label' => (string) ($r['label'] ?? $r['code'])];
             }
         }

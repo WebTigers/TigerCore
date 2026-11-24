@@ -592,14 +592,19 @@ final class ProviderChoiceTest extends IntegrationTestCase
         $this->matomo('org-test', self::TOKEN_A);
         $this->fakeMatomo(200, json_encode([
             [['label' => 'facebook-groups']],
-            [['label' => 'Smartphone', 'segment' => 'deviceType==smartphone']],
+            [['label' => 'Smartphone', 'segment' => 'deviceType==smartphone', 'nb_visits' => 3],
+             ['label' => 'Car browser', 'segment' => 'deviceType==car+browser', 'nb_visits' => 1],
+             ['label' => 'Wearable', 'segment' => 'deviceType==wearable', 'nb_visits' => 0]],
             [['label' => 'United States', 'code' => 'us']],
         ]));
         $res = (new Analytics_Service_Reports(['action' => 'options', 'days' => 28]))->getResponse();
         $this->assertTrue($res->data['capabilities']['range']);
         $this->assertSame(['campaign', 'channel', 'device', 'country'], $res->data['capabilities']['filters']);
         $this->assertSame([['value' => 'facebook-groups', 'label' => 'facebook-groups']], $res->data['filters']['campaign']);
-        $this->assertSame([['value' => 'smartphone', 'label' => 'Smartphone']], $res->data['filters']['device']);
+        $this->assertSame([['value' => 'smartphone', 'label' => 'Smartphone'], ['value' => 'car browser', 'label' => 'Car browser']],
+            $res->data['filters']['device'], 'decoded, and only types with visits');
+        $m = new Tiger_Analytics_Adapter_Matomo();
+        $this->assertSame('deviceType==car%20browser', $m->segment(['device' => 'car browser']), 'a listed value filters');
         $this->assertSame([['value' => 'us', 'label' => 'United States']], $res->data['filters']['country']);
     }
 
