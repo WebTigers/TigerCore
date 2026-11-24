@@ -13,12 +13,11 @@
  * the first paint is correct; theme-init.js finishes 'browser' via matchMedia
  * before CSS applies (same mechanism as the admin shell).
  */
-$_pref = $_COOKIE['tiger_theme'] ?? 'browser';
-if (!in_array($_pref, ['browser', 'light', 'dark'], true)) { $_pref = 'browser'; }
+$_pref = Tiger_Theme::modePreference();   // the visitor's cookie, else the site default (tiger.ui.mode)
 $_mode = ($_pref === 'dark') ? 'dark' : 'light';
 $_lang = defined('LANG') ? LANG : 'en';
 ?><!doctype html>
-<html lang="<?= $this->escape($_lang) ?>" data-bs-theme="<?= $_mode ?>">
+<html lang="<?= $this->escape($_lang) ?>" data-bs-theme="<?= $_mode ?>" data-tiger-mode="<?= $this->escape(Tiger_Theme::defaultMode()) ?>">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">

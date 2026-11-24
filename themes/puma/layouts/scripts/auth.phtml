@@ -9,12 +9,11 @@
  * vendored assets (no CDN), no-FOUC theme resolution, cache-busted via $this->asset().
  * A controller opts in with `$this->_helper->layout()->setLayout('auth')`.
  */
-$_pref = $_COOKIE['tiger_theme'] ?? 'browser';
-if (!in_array($_pref, ['browser', 'light', 'dark'], true)) { $_pref = 'browser'; }
+$_pref = Tiger_Theme::modePreference();   // the visitor's cookie, else the site default (tiger.ui.mode)
 $_mode = ($_pref === 'dark') ? 'dark' : 'light';
 $_lang = defined('LANG') ? LANG : 'en';
 ?><!doctype html>
-<html lang="<?= $this->escape($_lang) ?>" data-bs-theme="<?= $_mode ?>" class="tiger-auth">
+<html lang="<?= $this->escape($_lang) ?>" data-bs-theme="<?= $_mode ?>" data-tiger-mode="<?= $this->escape(Tiger_Theme::defaultMode()) ?>" class="tiger-auth">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">

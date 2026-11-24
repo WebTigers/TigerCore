@@ -264,6 +264,37 @@ class Tiger_Theme
         ];
     }
 
+    /** The colour modes a visitor (or the site default) may choose. */
+    const MODES = ['browser', 'light', 'dark'];
+
+    /**
+     * The site's DEFAULT colour mode — what a visitor sees before they pick one with the switcher (`tiger_theme`
+     * cookie): `browser` (follow the OS), `light` or `dark`. Config `tiger.ui.mode`, org-scopable like any setting;
+     * anything unset or unknown is `browser`, today's behaviour. Deliberately NOT under `tiger.theme`, which must
+     * stay a scalar (the active theme's key) — a child key would turn it into a section and fatal every boot.
+     *
+     * @return string browser|light|dark
+     */
+    public static function defaultMode()
+    {
+        $cfg = Zend_Registry::isRegistered('Zend_Config') ? Zend_Registry::get('Zend_Config') : null;
+        $ui  = ($cfg instanceof Zend_Config && $cfg->get('tiger') instanceof Zend_Config) ? $cfg->get('tiger')->get('ui') : null;
+        $m   = ($ui instanceof Zend_Config) ? strtolower(trim((string) $ui->get('mode', ''))) : '';
+        return in_array($m, self::MODES, true) ? $m : 'browser';
+    }
+
+    /**
+     * The visitor's colour-mode preference for this request: their `tiger_theme` cookie when it's a valid
+     * mode, else the site default. Layouts and the switcher read this so they all agree.
+     *
+     * @return string browser|light|dark
+     */
+    public static function modePreference()
+    {
+        $ck = (string) ($_COOKIE['tiger_theme'] ?? '');
+        return in_array($ck, self::MODES, true) ? $ck : self::defaultMode();
+    }
+
     /**
      * Make an installed theme the active one (THEMES.md §5a): write `tiger.theme` (global scope — one
      * active theme per scope) and link its assets to its `assetBase` (copied where symlink() is blocked).

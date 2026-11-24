@@ -22,8 +22,7 @@
 // No-FOUC: resolve the theme cookie server-side so the FIRST paint is already
 // correct for explicit light/dark. 'browser' starts light here and is corrected
 // client-side by theme-init.js (matchMedia) before stylesheets apply.
-$_pref = $_COOKIE['tiger_theme'] ?? 'browser';
-if (!in_array($_pref, ['browser', 'light', 'dark'], true)) { $_pref = 'browser'; }
+$_pref = Tiger_Theme::modePreference();   // the visitor's cookie, else the site default (tiger.ui.mode)
 $_mode = ($_pref === 'dark') ? 'dark' : 'light';
 $_lang = defined('LANG') ? LANG : 'en';
 $_hasAside = !empty($this->rightAside);
@@ -52,7 +51,7 @@ $_dtLang = [
     ],
 ];
 ?><!doctype html>
-<html lang="<?= $this->escape($_lang) ?>" data-bs-theme="<?= $_mode ?>" data-dt-lang="<?= $this->escape(json_encode($_dtLang)) ?>" class="tiger-admin<?= $_hasAside ? ' has-right-aside' : '' ?><?= $_hasAgent ? ' has-agent' : '' ?>">
+<html lang="<?= $this->escape($_lang) ?>" data-bs-theme="<?= $_mode ?>" data-tiger-mode="<?= $this->escape(Tiger_Theme::defaultMode()) ?>" data-dt-lang="<?= $this->escape(json_encode($_dtLang)) ?>" class="tiger-admin<?= $_hasAside ? ' has-right-aside' : '' ?><?= $_hasAgent ? ' has-agent' : '' ?>">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
