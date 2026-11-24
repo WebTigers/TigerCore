@@ -37,8 +37,10 @@
  *         'avg_time'    => int|null,     // average visit length, seconds
  *     ],
  *     'series'        => [['date' => 'YYYY-MM-DD', 'visitors' => int, 'pageviews' => int], …],  // daily, for the chart
- *     'top_pages'     => [['label' => '/path', 'hits' => int], …],
+ *     'top_pages'     => [['label' => '/path', 'hits' => int, 'url'? => full URL], …],
  *     'top_referrers' => [['label' => 'Organic Search', 'visits' => int], …],
+ *     // provider extras (Matomo): 'channels' => [['label', 'key' (direct|search|website|social|campaign), 'visits']],
+ *     //                           'campaigns' => [['label', 'visits']]
  *     'fetched_at'    => ISO-8601,
  *   ]
  *
@@ -180,7 +182,8 @@ class Tiger_Analytics
      * The org's traffic report from its effective provider, normalized (shape in the class doc).
      *
      * @param  string $orgId  the org
-     * @param  array  $period `days` (1..365, default 28), `fresh` (bypass cache)
+     * @param  array  $period `days` (1..365, default 28), or `start`/`end` (YYYY-MM-DD, where the provider supports
+     *                        ranges); `filters` (campaign/channel/device/country, where supported); `fresh`
      * @return array the normalized report, or ['error' => …, 'code' => …]
      */
     public static function report(string $orgId, array $period = []): array
@@ -201,6 +204,61 @@ class Tiger_Analytics
             $out += ['code' => 'error', 'provider' => $name];
         }
         return $out;
+    }
+
+    /**
+     * What the org's reporting provider can do beyond the basic report — so a dashboard offers only the
+     * controls that work (Matomo: date ranges, filters, drill-downs; Google Analytics: rolling windows only).
+     * Feature-detected, so an adapter that predates it simply reports "nothing extra".
+     *
+     * @param  string $orgId the org
+     * @return array{provider:string,range:bool,filters:string[],drilldowns:string[]}
+     */
+    public static function capabilities(string $orgId): array
+    {
+        $name = self::provider($orgId);
+        $a    = $name !== '' ? self::adapter($name) : null;
+        $caps = ($a && method_exists($a, 'capabilities')) ? (array) $a->capabilities() : [];
+        return ['provider' => $name, 'range' => !empty($caps['range']),
+                'filters' => array_values((array) ($caps['filters'] ?? [])), 'drilldowns' => array_values((array) ($caps['drilldowns'] ?? []))];
+    }
+
+    /**
+     * One drill-down from the org's provider: a campaign's keywords, a channel's sources, or a page's trend.
+     *
+     * @param  string $orgId  the org
+     * @param  string $kind   campaign | channel | page
+     * @param  string $item   the campaign name, channel key or page URL
+     * @param  array  $period `start`/`end` (or `days`) and `filters`, as report() takes
+     * @return array `{kind, item, rows[, series]}`, or `{error, code}`
+     */
+    public static function breakdown(string $orgId, string $kind, string $item, array $period = []): array
+    {
+        $name = self::provider($orgId);
+        $a    = $name !== '' ? self::adapter($name) : null;
+        if (!$a || !method_exists($a, 'breakdown')) {
+            return ['error' => 'analytics.reports.unsupported', 'code' => 'unsupported'];
+        }
+        try {
+            return $a->breakdown($orgId, $kind, $item, $period);
+        } catch (Throwable $e) {
+            return ['error' => 'analytics.reports.error', 'code' => 'error'];
+        }
+    }
+
+    /**
+     * The values each filter can take for the window (campaigns, device types, countries).
+     *
+     * @param  string $orgId  the org
+     * @param  array  $period the window
+     * @return array<string,array<int,array{value:string,label:string}>>
+     */
+    public static function filterOptions(string $orgId, array $period = []): array
+    {
+        $name = self::provider($orgId);
+        $a    = $name !== '' ? self::adapter($name) : null;
+        if (!$a || !method_exists($a, 'filterOptions')) { return []; }
+        try { return (array) $a->filterOptions($orgId, $period); } catch (Throwable $e) { return []; }
     }
 
     /**

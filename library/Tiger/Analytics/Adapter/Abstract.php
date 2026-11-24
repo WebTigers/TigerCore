@@ -124,17 +124,19 @@ abstract class Tiger_Analytics_Adapter_Abstract implements Tiger_Analytics_Adapt
      * @param  array $series [['date' => 'YYYY-MM-DD', 'visitors' => n, 'pageviews' => n], …]
      * @param  array $pages  [['label' => …, 'hits' => n], …]
      * @param  array $refs   [['label' => …, 'visits' => n], …]
+     * @param  array|null $range ['start' => Y-m-d, 'end' => Y-m-d] for an explicit window; null = the last $days
+     * @param  array $extra  provider extras merged on top (e.g. Matomo's `channels`, `campaigns`)
      * @return array the normalized report (see Tiger_Analytics::report())
      */
-    protected function _normalize(int $days, array $totals, array $series, array $pages, array $refs): array
+    protected function _normalize(int $days, array $totals, array $series, array $pages, array $refs, ?array $range = null, array $extra = []): array
     {
         $int = static function ($v) { return ($v === null || $v === '') ? null : (int) round((float) $v); };
         $out = [
             'provider'      => $this->name(),
             'range'         => [
                 'days'  => $days,
-                'start' => date('Y-m-d', strtotime('-' . ($days - 1) . ' days')),
-                'end'   => date('Y-m-d'),
+                'start' => (string) ($range['start'] ?? date('Y-m-d', strtotime('-' . ($days - 1) . ' days'))),
+                'end'   => (string) ($range['end'] ?? date('Y-m-d')),
             ],
             'totals'        => [
                 'visits'      => $int($totals['visits'] ?? null),
@@ -156,12 +158,76 @@ abstract class Tiger_Analytics_Adapter_Abstract implements Tiger_Analytics_Adapt
             ];
         }
         foreach ($pages as $p) {
-            $out['top_pages'][] = ['label' => (string) ($p['label'] ?? ''), 'hits' => (int) ($p['hits'] ?? 0)];
+            $row = ['label' => (string) ($p['label'] ?? ''), 'hits' => (int) ($p['hits'] ?? 0)];
+            if (!empty($p['url'])) { $row['url'] = (string) $p['url']; }   // lets a dashboard drill into the page
+            $out['top_pages'][] = $row;
         }
         foreach ($refs as $r) {
             $out['top_referrers'][] = ['label' => (string) ($r['label'] ?? ''), 'visits' => (int) ($r['visits'] ?? 0)];
         }
-        return $out;
+        return $out + $extra;
+    }
+
+    /**
+     * What this provider can do beyond the basic report, so a dashboard shows only controls that work:
+     * `range` (an explicit start/end window, not just "last N days"), `filters` (campaign | channel | device |
+     * country) and `drilldowns` (campaign | channel | page | day). The base answers "nothing extra".
+     *
+     * @return array{range:bool,filters:string[],drilldowns:string[]}
+     */
+    public function capabilities(): array
+    {
+        return ['range' => false, 'filters' => [], 'drilldowns' => []];
+    }
+
+    /**
+     * One drill-down (a campaign's keywords, a channel's sources, a page's trend). Unsupported by default.
+     *
+     * @param  string $orgId  the org
+     * @param  string $kind   campaign | channel | page
+     * @param  string $item   the campaign name, channel key or page URL
+     * @param  array  $period the same window + filters the report takes
+     * @return array
+     */
+    public function breakdown(string $orgId, string $kind, string $item, array $period = []): array
+    {
+        return $this->_error('analytics.reports.unsupported', 'unsupported');
+    }
+
+    /**
+     * The values each supported filter can take for this window (campaign names, device types, countries).
+     *
+     * @param  string $orgId  the org
+     * @param  array  $period the window
+     * @return array<string,array<int,array{value:string,label:string}>>
+     */
+    public function filterOptions(string $orgId, array $period = []): array
+    {
+        return [];
+    }
+
+    /**
+     * Resolve the report window. An explicit `start` + `end` (YYYY-MM-DD) wins — clamped so it never runs
+     * past today, swapped if reversed, at most two years long; otherwise the last `days` days.
+     *
+     * @param  array $period `start`/`end`, else `days`
+     * @return array{0:string,1:string,2:int} [start, end, days]
+     */
+    protected function _range(array $period): array
+    {
+        $today = date('Y-m-d');
+        $s = (string) ($period['start'] ?? '');
+        $e = (string) ($period['end'] ?? '');
+        $isDate = static fn ($d) => (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) && strtotime($d) !== false;
+        if ($isDate($s) && $isDate($e)) {
+            if ($e > $today) { $e = $today; }
+            if ($s > $e) { [$s, $e] = [$e, $s]; }
+            $days = (int) round((strtotime($e) - strtotime($s)) / 86400) + 1;
+            if ($days > 731) { $s = date('Y-m-d', strtotime($e . ' -730 days')); $days = 731; }
+            return [$s, $e, $days];
+        }
+        $days = $this->_days($period);
+        return [date('Y-m-d', strtotime('-' . ($days - 1) . ' days')), $today, $days];
     }
 
     /**

@@ -464,6 +464,155 @@ final class ProviderChoiceTest extends IntegrationTestCase
     }
 
     /** Org-scoped Matomo rows (token optional). */
+    // =================================================================================================
+    //  Dashboard: date windows, filters, drill-downs (Matomo)
+    // =================================================================================================
+
+    /** The decoded query of bulk sub-request $i from the last recorded call. */
+    private function sub(int $i): array
+    {
+        parse_str((string) ($this->calls[count($this->calls) - 1][1]['urls[' . $i . ']'] ?? ''), $q);
+        return $q;
+    }
+
+    #[Test]
+    public function matomo_filters_become_one_anded_segment_and_bad_values_are_dropped(): void
+    {
+        $m = new Tiger_Analytics_Adapter_Matomo();
+        $this->assertSame('', $m->segment([]));
+        $this->assertSame(
+            'referrerType==campaign;referrerName==facebook-groups;referrerType==social;deviceType==smartphone;countryCode==us',
+            $m->segment(['campaign' => 'Facebook-Groups', 'channel' => 'social', 'device' => 'Smartphone', 'country' => 'US'])
+        );
+        $this->assertSame('referrerType==campaign;referrerName==spring%20sale%3Bx', $m->segment(['campaign' => 'Spring Sale;x']), 'a value is encoded, never able to add a clause');
+        $this->assertSame('', $m->segment(['channel' => 'evil', 'country' => 'usa', 'device' => 'x;countryCode==de']), 'unknown shapes are dropped');
+    }
+
+    #[Test]
+    public function matomo_report_honours_an_explicit_window_and_the_filters(): void
+    {
+        $this->matomo('org-a', self::TOKEN_A);
+        $r = Tiger_Analytics::report('org-a', ['start' => '2026-11-01', 'end' => '2026-11-10', 'filters' => ['channel' => 'social']]);
+
+        $this->assertArrayNotHasKey('error', $r);
+        $this->assertSame(['days' => 10, 'start' => '2026-11-01', 'end' => '2026-11-10'], $r['range']);
+        foreach ([0, 2, 6, 7] as $i) {
+            $q = $this->sub($i);
+            $this->assertSame('2026-11-01,2026-11-10', $q['date']);
+            $this->assertSame('referrerType==social', $q['segment'], "sub-request $i is filtered");
+        }
+        $this->assertSame('range', $this->sub(0)['period']);
+        $this->assertSame('day', $this->sub(2)['period']);
+    }
+
+    #[Test]
+    public function an_explicit_window_never_runs_past_today_and_a_reversed_one_is_swapped(): void
+    {
+        $this->matomo('org-a', self::TOKEN_A);
+        $today = date('Y-m-d');
+        $r = Tiger_Analytics::report('org-a', ['start' => '2026-01-10', 'end' => '2099-12-31']);
+        $this->assertSame($today, $r['range']['end']);
+        $r = Tiger_Analytics::report('org-a', ['start' => '2026-01-10', 'end' => '2026-01-01']);
+        $this->assertSame(['days' => 10, 'start' => '2026-01-01', 'end' => '2026-01-10'], $r['range']);
+    }
+
+    #[Test]
+    public function matomo_report_carries_channels_and_campaigns_for_drilling(): void
+    {
+        $this->matomo('org-a', self::TOKEN_A);
+        $fixture = json_decode($this->bulkFixture(), true);
+        $fixture[] = [['label' => 'Social Networks', 'segment' => 'referrerType==social', 'nb_visits' => 5],
+                      ['label' => 'Direct Entry', 'segment' => 'referrerType==direct', 'nb_visits' => 4]];
+        $fixture[] = [['label' => 'facebook-groups', 'nb_visits' => 3]];
+        $this->fakeMatomo(200, json_encode($fixture));
+
+        $r = Tiger_Analytics::report('org-a', ['days' => 2]);
+        $this->assertSame([['label' => 'Social Networks', 'key' => 'social', 'visits' => 5],
+                           ['label' => 'Direct Entry', 'key' => 'direct', 'visits' => 4]], $r['channels']);
+        $this->assertSame([['label' => 'facebook-groups', 'visits' => 3]], $r['campaigns']);
+    }
+
+    #[Test]
+    public function a_campaign_drills_into_its_keywords(): void
+    {
+        $this->matomo('org-a', self::TOKEN_A);
+        $this->fakeMatomo(200, json_encode([[
+            ['label' => 'linkedin', 'nb_visits' => 1, 'subtable' => [['label' => 'post-1', 'nb_visits' => 1]]],
+            ['label' => 'facebook-groups', 'nb_visits' => 3, 'subtable' => [
+                ['label' => 'vibe-coding-tools', 'nb_visits' => 2], ['label' => 'vibe-coders-app-builders', 'nb_visits' => 1]]],
+        ]]));
+
+        $b = Tiger_Analytics::breakdown('org-a', 'campaign', 'Facebook-Groups', ['days' => 28]);
+        $this->assertSame([['label' => 'vibe-coding-tools', 'visits' => 2], ['label' => 'vibe-coders-app-builders', 'visits' => 1]], $b['rows']);
+        $this->assertSame('Referrers.getCampaigns', $this->sub(0)['method']);
+        $this->assertSame('1', $this->sub(0)['expanded']);
+    }
+
+    #[Test]
+    public function a_channel_drills_into_its_sources_and_direct_has_none(): void
+    {
+        $this->matomo('org-a', self::TOKEN_A);
+        $this->fakeMatomo(200, json_encode([[['label' => 'Facebook', 'nb_visits' => 7], ['label' => 'LinkedIn', 'nb_visits' => 2]]]));
+
+        $b = Tiger_Analytics::breakdown('org-a', 'channel', 'social', ['days' => 28]);
+        $this->assertSame('Referrers.getSocials', $this->sub(0)['method']);
+        $this->assertSame([['label' => 'Facebook', 'visits' => 7], ['label' => 'LinkedIn', 'visits' => 2]], $b['rows']);
+
+        $this->calls = [];
+        $this->assertSame([], Tiger_Analytics::breakdown('org-a', 'channel', 'direct', ['days' => 28])['rows']);
+        $this->assertCount(0, $this->calls, 'direct needs no call');
+        $this->assertSame('unsupported', Tiger_Analytics::breakdown('org-a', 'channel', 'nope')['code']);
+    }
+
+    #[Test]
+    public function a_page_drills_into_its_daily_views_and_its_channels(): void
+    {
+        $this->matomo('org-a', self::TOKEN_A);
+        $this->fakeMatomo(200, json_encode([
+            ['2026-11-15' => [['nb_hits' => 4]], '2026-11-16' => []],
+            [['label' => 'Social Networks', 'segment' => 'referrerType==social', 'nb_visits' => 3]],
+        ]));
+
+        $b = Tiger_Analytics::breakdown('org-a', 'page', 'https://webtigers.com/hosting', ['days' => 2, 'filters' => ['country' => 'us']]);
+        $this->assertSame([['date' => '2026-11-15', 'pageviews' => 4], ['date' => '2026-11-16', 'pageviews' => 0]], $b['series']);
+        $this->assertSame([['label' => 'Social Networks', 'key' => 'social', 'visits' => 3]], $b['rows']);
+        $this->assertSame('countryCode==us;pageUrl==' . rawurlencode('https://webtigers.com/hosting'), $this->sub(1)['segment'],
+            'the page drill keeps the dashboard filters and adds the page');
+    }
+
+    #[Test]
+    public function reports_options_says_what_the_provider_can_do(): void
+    {
+        $this->loginAs('admin');
+        $none = (new Analytics_Service_Reports(['action' => 'options']))->getResponse();
+        $this->assertSame(1, (int) $none->result);
+        $this->assertFalse($none->data['capabilities']['range'], 'no provider → no extras');
+        $this->assertSame([], $none->data['capabilities']['filters']);
+
+        $this->matomo('org-test', self::TOKEN_A);
+        $this->fakeMatomo(200, json_encode([
+            [['label' => 'facebook-groups']],
+            [['label' => 'Smartphone', 'segment' => 'deviceType==smartphone']],
+            [['label' => 'United States', 'code' => 'us']],
+        ]));
+        $res = (new Analytics_Service_Reports(['action' => 'options', 'days' => 28]))->getResponse();
+        $this->assertTrue($res->data['capabilities']['range']);
+        $this->assertSame(['campaign', 'channel', 'device', 'country'], $res->data['capabilities']['filters']);
+        $this->assertSame([['value' => 'facebook-groups', 'label' => 'facebook-groups']], $res->data['filters']['campaign']);
+        $this->assertSame([['value' => 'smartphone', 'label' => 'Smartphone']], $res->data['filters']['device']);
+        $this->assertSame([['value' => 'us', 'label' => 'United States']], $res->data['filters']['country']);
+    }
+
+    #[Test]
+    public function reports_breakdown_refuses_an_unknown_kind(): void
+    {
+        $this->matomo('org-test', self::TOKEN_A);
+        $this->loginAs('admin');
+        $res = (new Analytics_Service_Reports(['action' => 'breakdown', 'kind' => 'everything', 'item' => 'x']))->getResponse();
+        $this->assertSame(0, (int) $res->result);
+        $this->assertSame('unsupported', $res->data['code']);
+    }
+
     private function matomo(string $org, ?string $token): void
     {
         $cfg = new Tiger_Model_Config();

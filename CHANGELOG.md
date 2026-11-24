@@ -6,6 +6,22 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.72.0] — 2026-11-24
+
+### Added — analytics dashboard: date ranges, filters and drill-downs
+- **Date ranges:** Today, Yesterday, Last 7 / 28 / 90 days, This month, Last month, This year, Last 12 months, or a
+  custom start–end. The report takes `start`/`end` (clamped to today, swapped if reversed, at most two years).
+- **Filters** for the whole dashboard (tiles, chart, tables): campaign, channel (direct, search, websites, social,
+  campaigns), device and country. On Matomo they become one ANDed segment; every value is checked and URL-encoded,
+  so a filter value can never add a clause of its own.
+- **Drill-downs:** a campaign → its keywords (for the Facebook-group links: which group), a channel → its sources,
+  a top page → its daily views and the channels its visitors came from, a day on the chart → the dashboard for that
+  day. A campaign or channel drill can become a filter with "Show only this".
+- New `Analytics_Service_Reports::breakdown` and `::options`; `report` takes `start`, `end` and the filters. The
+  Matomo report also returns `channels` and `campaigns`, and top pages carry their `url`.
+- Providers declare what they can do (`capabilities()`), and the dashboard hides what a provider can't: Google
+  Analytics keeps its rolling-day presets; custom dates, filters and drill-downs show only where supported.
+
 ## [1.71.0] — 2026-11-24
 
 ### Added — a site-wide default colour mode
