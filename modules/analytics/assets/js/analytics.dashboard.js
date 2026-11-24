@@ -169,10 +169,16 @@
     function fixLink() { return ' <a href="' + esc(box.getAttribute('data-fix-url') || '/analytics/admin') + '" class="alert-link">' + esc(Tiger.t('fix')) + '</a>'; }
 
     // ── Loading ───────────────────────────────────────────────────────────────────────────────────────
+    var optionsReady = Promise.resolve();
+    var lastRange = null;
     function load() {
         box.innerHTML = '';
         summarize();
-        return api('report', windowParams()).then(function (res) {
+        // The report and the options travel together; rendering waits for both (clickable rows need the capabilities).
+        return Promise.all([api('report', windowParams()), optionsReady]).then(function (all) {
+            var res = all[0];
+            lastRange = res && res.data && res.data.report ? res.data.report.range : null;
+            summarize();
             if (res && res.result === 1 && res.data && res.data.report) {
                 render(res.data.report);
                 if (!hasData(res.data.report)) { note(esc(Tiger.t('noData'))); }
@@ -216,6 +222,7 @@
     /** The "what am I looking at" line: the drilled day (with an undo chip) and the active filters. */
     function summarize() {
         var el = $('ga-active'), bits = [];
+        if (lastRange && !state.day) { bits.push('<span class="me-1"><i class="fa-regular fa-calendar me-1" aria-hidden="true"></i>' + esc(lastRange.start) + ' – ' + esc(lastRange.end) + '</span>'); }
         if (state.day) {
             bits.push('<button type="button" class="btn btn-sm btn-primary py-0" id="ga-day-undo">' + esc(Tiger.t('dayChip', state.day.date)) +
                 ' <i class="fa-solid fa-xmark ms-1" aria-hidden="true"></i></button>');
@@ -305,13 +312,13 @@
             return;   // wait for Apply
         }
         showCustom(false);
-        loadOptions().then(load);
+        optionsReady = loadOptions(); load();
     });
     $('ga-end').max = $('ga-start').max = ymd(new Date());
     $('ga-apply').addEventListener('click', function () {
         if (!$('ga-start').value || !$('ga-end').value) { return; }
         state.start = $('ga-start').value; state.end = $('ga-end').value; state.day = null;
-        loadOptions().then(load);
+        optionsReady = loadOptions(); load();
     });
     document.querySelectorAll('[data-filter]').forEach(function (sel) {
         sel.addEventListener('change', function () { state.filters[sel.getAttribute('data-filter')] = sel.value; load(); });
@@ -322,5 +329,7 @@
         load();
     });
 
-    loadOptions().then(load);
+    // First paint: the options and the report go out together (a rolling preset needs no capabilities to ask for).
+    optionsReady = loadOptions();
+    load();
 })();

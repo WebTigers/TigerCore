@@ -6,6 +6,14 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.72.2] — 2026-11-24
+
+### Fixed — analytics dashboard polish (found driving it on prod)
+- The date-range picker showed "Today" while the dashboard showed the last 28 days: PHP turned the numeric preset
+  keys into integers, so the default was never marked selected.
+- The first load waited for the filter options before asking for the report; both now go out together (~1s faster).
+- The summary line now states the window's dates.
+
 ## [1.72.1] — 2026-11-24
 
 ### Fixed — the analytics device filter listed choices that couldn't filter

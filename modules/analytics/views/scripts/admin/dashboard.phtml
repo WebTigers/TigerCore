@@ -69,7 +69,7 @@ $channels = ['direct' => 'analytics.channel.direct', 'search' => 'analytics.chan
             <div class="col-sm-6 col-lg-3">
                 <label class="form-label small text-body-secondary mb-1" for="ga-range"><?= $this->t('analytics.range.label') ?></label>
                 <select id="ga-range" class="form-select form-select-sm">
-                    <?php foreach ($ranges as $v => $k): ?>
+                    <?php foreach ($ranges as $v => $k): $v = (string) $v;   /* '28' etc. become int keys in PHP */ ?>
                     <option value="<?= $this->escape($v) ?>"<?= $v === '28' ? ' selected' : '' ?><?= in_array($v, ['7', '28', '90', '365'], true) ? '' : ' data-needs-range="1"' ?>><?= $this->escape($this->t($k)) ?></option>
                     <?php endforeach; ?>
                 </select>
