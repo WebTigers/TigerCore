@@ -180,12 +180,8 @@ class Tiger_Analytics_Adapter_Matomo extends Tiger_Analytics_Adapter_Abstract im
         if (!$this->isConfigured($orgId)) {
             return $this->_error('analytics.reports.not_configured', 'not_configured');
         }
-        $days  = $this->_days($period);
-        $start = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));
-        $end   = date('Y-m-d');
-        $site  = $this->siteId($orgId);
-        $range = ['idSite' => $site, 'period' => 'range', 'date' => $start . ',' . $end];
-        $daily = ['idSite' => $site, 'period' => 'day', 'date' => $start . ',' . $end];
+        [$start, $end, $days] = $this->_range($period);
+        [$range, $daily] = $this->_windows($orgId, $start, $end, $period);
 
         $res = $this->_bulk($orgId, [
             ['method' => 'VisitsSummary.get'] + $range,
@@ -196,11 +192,184 @@ class Tiger_Analytics_Adapter_Matomo extends Tiger_Analytics_Adapter_Abstract im
                 'filter_sort_column' => 'nb_hits', 'filter_sort_order' => 'desc'] + $range,
             ['method' => 'Referrers.getAll', 'filter_limit' => 6,
                 'filter_sort_column' => 'nb_visits', 'filter_sort_order' => 'desc'] + $range,
+            ['method' => 'Referrers.getReferrerType'] + $range,
+            ['method' => 'Referrers.getCampaigns', 'filter_limit' => 10,
+                'filter_sort_column' => 'nb_visits', 'filter_sort_order' => 'desc'] + $range,
         ]);
         if (isset($res['error'])) {
             return $res;
         }
-        return $this->fromBulk($days, $res['results']);
+        return $this->fromBulk($days, $res['results'], ['start' => $start, 'end' => $end]);
+    }
+
+    /** Matomo's referrer types, as the dashboard's channel keys. */
+    const CHANNELS = ['direct', 'search', 'website', 'social', 'campaign'];
+
+    /**
+     * {@inheritDoc} Matomo answers every filter through a segment and every drill-down from its own reports.
+     *
+     * @return array{range:bool,filters:string[],drilldowns:string[]}
+     */
+    public function capabilities(): array
+    {
+        return ['range' => true, 'filters' => ['campaign', 'channel', 'device', 'country'],
+                'drilldowns' => ['campaign', 'channel', 'page', 'day']];
+    }
+
+    /**
+     * The Matomo segment for the dashboard filters — every filter ANDed (`;`). Values are URL-encoded inside
+     * the definition, as Matomo requires; anything not shaped like a real value is dropped, never passed on.
+     *
+     * @param  array $filters `campaign` (a name), `channel` (CHANNELS), `device` (a Matomo device type, e.g.
+     *                        smartphone), `country` (an ISO-3166 alpha-2 code)
+     * @return string the segment definition, '' when no filter applies
+     */
+    public function segment(array $filters): string
+    {
+        $parts = [];
+        $campaign = trim((string) ($filters['campaign'] ?? ''));
+        if ($campaign !== '' && strlen($campaign) <= 191) {
+            $parts[] = 'referrerType==campaign;referrerName==' . rawurlencode(strtolower($campaign));
+        }
+        $channel = strtolower(trim((string) ($filters['channel'] ?? '')));
+        if (in_array($channel, self::CHANNELS, true)) {
+            $parts[] = 'referrerType==' . $channel;
+        }
+        $device = strtolower(trim((string) ($filters['device'] ?? '')));
+        if ($device !== '' && preg_match('/^[a-z][a-z0-9 _-]{0,30}$/', $device)) {
+            $parts[] = 'deviceType==' . rawurlencode($device);
+        }
+        $country = strtolower(trim((string) ($filters['country'] ?? '')));
+        if (preg_match('/^[a-z]{2}$/', $country)) {
+            $parts[] = 'countryCode==' . $country;
+        }
+        return implode(';', $parts);
+    }
+
+    /**
+     * The `range` and `day` request params for a window, with the filter segment attached when there is one.
+     *
+     * @return array{0:array,1:array}
+     */
+    protected function _windows(string $orgId, string $start, string $end, array $period): array
+    {
+        $site  = $this->siteId($orgId);
+        $range = ['idSite' => $site, 'period' => 'range', 'date' => $start . ',' . $end];
+        $daily = ['idSite' => $site, 'period' => 'day', 'date' => $start . ',' . $end];
+        $seg   = $this->segment((array) ($period['filters'] ?? []));
+        if ($seg !== '') { $range['segment'] = $seg; $daily['segment'] = $seg; }
+        return [$range, $daily];
+    }
+
+    /** Matomo's referrer-type row → a channel key, from the row's own segment (fallback: its label). */
+    protected function _channelOf(array $row): string
+    {
+        if (preg_match('/referrerType==([a-z]+)/', (string) ($row['segment'] ?? ''), $m) && in_array($m[1], self::CHANNELS, true)) {
+            return $m[1];
+        }
+        $l = strtolower((string) ($row['label'] ?? ''));
+        foreach (['direct' => 'direct', 'search' => 'search', 'website' => 'website', 'social' => 'social', 'campaign' => 'campaign'] as $needle => $key) {
+            if (strpos($l, $needle) !== false) { return $key; }
+        }
+        return '';
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * - `campaign` → the campaign's keywords (for the Facebook-group links: which group), visits each
+     * - `channel`  → the individual sources in that channel (facebook.com, google, a referring site…)
+     * - `page`     → the page's daily views over the window + where its visitors came from (channels)
+     *
+     * @return array `{kind, item, rows:[{label, visits}]}` (+ `series` for a page), or an error envelope
+     */
+    public function breakdown(string $orgId, string $kind, string $item, array $period = []): array
+    {
+        if (!$this->isConfigured($orgId)) {
+            return $this->_error('analytics.reports.not_configured', 'not_configured');
+        }
+        [$start, $end] = $this->_range($period);
+        [$range, $daily] = $this->_windows($orgId, $start, $end, $period);
+        $item = trim($item);
+        $rowsOf = static function ($data, string $value = 'nb_visits') {
+            $out = [];
+            foreach ((is_array($data) ? $data : []) as $r) {
+                if (is_array($r)) { $out[] = ['label' => (string) ($r['label'] ?? ''), 'visits' => (int) ($r[$value] ?? 0)]; }
+            }
+            return $out;
+        };
+
+        if ($kind === 'campaign' && $item !== '') {
+            $res = $this->_bulk($orgId, [['method' => 'Referrers.getCampaigns', 'expanded' => 1, 'filter_limit' => 50] + $range]);
+            if (isset($res['error'])) { return $res; }
+            foreach ((array) ($res['results'][0] ?? []) as $r) {
+                if (is_array($r) && strcasecmp((string) ($r['label'] ?? ''), $item) === 0) {
+                    return ['kind' => $kind, 'item' => $item, 'rows' => $rowsOf($r['subtable'] ?? [])];
+                }
+            }
+            return ['kind' => $kind, 'item' => $item, 'rows' => []];
+        }
+        if ($kind === 'channel' && in_array($item, self::CHANNELS, true)) {
+            $method = ['search' => 'Referrers.getSearchEngines', 'website' => 'Referrers.getWebsites',
+                       'social' => 'Referrers.getSocials', 'campaign' => 'Referrers.getCampaigns'][$item] ?? null;
+            if ($method === null) { return ['kind' => $kind, 'item' => $item, 'rows' => []]; }   // direct: no sources
+            $res = $this->_bulk($orgId, [['method' => $method, 'filter_limit' => 50,
+                'filter_sort_column' => 'nb_visits', 'filter_sort_order' => 'desc'] + $range]);
+            if (isset($res['error'])) { return $res; }
+            return ['kind' => $kind, 'item' => $item, 'rows' => $rowsOf($res['results'][0] ?? [])];
+        }
+        if ($kind === 'page' && $item !== '' && strlen($item) <= 2048) {
+            $pageSeg = 'pageUrl==' . rawurlencode($item);
+            $segRange = $range; $segRange['segment'] = isset($range['segment']) ? $range['segment'] . ';' . $pageSeg : $pageSeg;
+            $res = $this->_bulk($orgId, [
+                ['method' => 'Actions.getPageUrl', 'pageUrl' => $item] + $daily,
+                ['method' => 'Referrers.getReferrerType'] + $segRange,
+            ]);
+            if (isset($res['error'])) { return $res; }
+            $series = [];
+            foreach ((array) ($res['results'][0] ?? []) as $date => $rows) {
+                $hits = 0;
+                foreach ((is_array($rows) ? $rows : []) as $r) { $hits += is_array($r) ? (int) ($r['nb_hits'] ?? 0) : 0; }
+                $series[] = ['date' => (string) $date, 'pageviews' => $hits];
+            }
+            $channels = [];
+            foreach ((array) ($res['results'][1] ?? []) as $r) {
+                if (is_array($r)) { $channels[] = ['label' => (string) ($r['label'] ?? ''), 'key' => $this->_channelOf($r), 'visits' => (int) ($r['nb_visits'] ?? 0)]; }
+            }
+            return ['kind' => $kind, 'item' => $item, 'series' => $series, 'rows' => $channels];
+        }
+        return $this->_error('analytics.reports.unsupported', 'unsupported');
+    }
+
+    /**
+     * {@inheritDoc} The window's campaigns, device types and countries, as `{value, label}` choices.
+     */
+    public function filterOptions(string $orgId, array $period = []): array
+    {
+        if (!$this->isConfigured($orgId)) { return []; }
+        [$start, $end] = $this->_range($period);
+        $range = ['idSite' => $this->siteId($orgId), 'period' => 'range', 'date' => $start . ',' . $end];
+        $res = $this->_bulk($orgId, [
+            ['method' => 'Referrers.getCampaigns', 'filter_limit' => 100] + $range,
+            ['method' => 'DevicesDetection.getType', 'filter_limit' => 20] + $range,
+            ['method' => 'UserCountry.getCountry', 'filter_limit' => 250] + $range,
+        ]);
+        if (isset($res['error'])) { return []; }
+        $out = ['campaign' => [], 'device' => [], 'country' => []];
+        foreach ((array) ($res['results'][0] ?? []) as $r) {
+            if (is_array($r) && ($r['label'] ?? '') !== '') { $out['campaign'][] = ['value' => (string) $r['label'], 'label' => (string) $r['label']]; }
+        }
+        foreach ((array) ($res['results'][1] ?? []) as $r) {
+            if (is_array($r) && preg_match('/deviceType==([^;]+)/', (string) ($r['segment'] ?? ''), $m)) {
+                $out['device'][] = ['value' => strtolower(rawurldecode($m[1])), 'label' => (string) ($r['label'] ?? $m[1])];
+            }
+        }
+        foreach ((array) ($res['results'][2] ?? []) as $r) {
+            if (is_array($r) && preg_match('/^[a-z]{2}$/i', (string) ($r['code'] ?? ''))) {
+                $out['country'][] = ['value' => strtolower((string) $r['code']), 'label' => (string) ($r['label'] ?? $r['code'])];
+            }
+        }
+        return $out;
     }
 
     /**
@@ -210,7 +379,7 @@ class Tiger_Analytics_Adapter_Matomo extends Tiger_Analytics_Adapter_Abstract im
      * @param  array $results the decoded getBulkRequest array, in request order
      * @return array the normalized report
      */
-    public function fromBulk(int $days, array $results): array
+    public function fromBulk(int $days, array $results, ?array $range = null): array
     {
         $summary = is_array($results[0] ?? null) ? $results[0] : [];
         $actions = is_array($results[1] ?? null) ? $results[1] : [];
@@ -239,14 +408,25 @@ class Tiger_Analytics_Adapter_Matomo extends Tiger_Analytics_Adapter_Abstract im
         $pages = [];
         foreach ((is_array($results[4] ?? null) ? $results[4] : []) as $r) {
             if (!is_array($r)) { continue; }
-            $pages[] = ['label' => $r['label'] ?? ($r['url'] ?? ''), 'hits' => $r['nb_hits'] ?? 0];
+            $pages[] = ['label' => $r['label'] ?? ($r['url'] ?? ''), 'hits' => $r['nb_hits'] ?? 0, 'url' => $r['url'] ?? null];
         }
         $refs = [];
         foreach ((is_array($results[5] ?? null) ? $results[5] : []) as $r) {
             if (!is_array($r)) { continue; }
             $refs[] = ['label' => $r['label'] ?? '', 'visits' => $r['nb_visits'] ?? 0];
         }
-        return $this->_normalize($days, $totals, $series, $pages, $refs);
+        // Extras the dashboard drills into (absent from an older six-request response → empty lists).
+        $channels = [];
+        foreach ((is_array($results[6] ?? null) ? $results[6] : []) as $r) {
+            if (!is_array($r)) { continue; }
+            $channels[] = ['label' => (string) ($r['label'] ?? ''), 'key' => $this->_channelOf($r), 'visits' => (int) ($r['nb_visits'] ?? 0)];
+        }
+        $campaigns = [];
+        foreach ((is_array($results[7] ?? null) ? $results[7] : []) as $r) {
+            if (!is_array($r)) { continue; }
+            $campaigns[] = ['label' => (string) ($r['label'] ?? ''), 'visits' => (int) ($r['nb_visits'] ?? 0)];
+        }
+        return $this->_normalize($days, $totals, $series, $pages, $refs, $range, ['channels' => $channels, 'campaigns' => $campaigns]);
     }
 
     /**

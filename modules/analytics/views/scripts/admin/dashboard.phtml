@@ -18,7 +18,29 @@ $this->i18n([
     'noDataRow'    => 'analytics.dashboard.no_data_row',
     'unavailable'  => 'analytics.dashboard.unavailable',
     'fix'          => 'analytics.widget.fix',
+    'all'          => 'analytics.filter.all',
+    'drillCampaign'=> 'analytics.drill.campaign_title',
+    'drillChannel' => 'analytics.drill.channel_title',
+    'drillPage'    => 'analytics.drill.page_title',
+    'drillNone'    => 'analytics.drill.none',
+    'drillDirect'  => 'analytics.drill.direct_none',
+    'drillLoading' => 'analytics.drill.loading',
+    'dayChip'      => 'analytics.drill.day_chip',
+    'chDirect'     => 'analytics.channel.direct',
+    'chSearch'     => 'analytics.channel.search',
+    'chWebsite'    => 'analytics.channel.website',
+    'chSocial'     => 'analytics.channel.social',
+    'chCampaign'   => 'analytics.channel.campaign',
+    'visits'       => 'analytics.metric.visits',
 ]);
+$ranges = [
+    'today' => 'analytics.range.today', 'yesterday' => 'analytics.range.yesterday', '7' => 'analytics.range.last_7',
+    '28' => 'analytics.range.last_28', '90' => 'analytics.range.last_90', 'this_month' => 'analytics.range.this_month',
+    'last_month' => 'analytics.range.last_month', 'this_year' => 'analytics.range.this_year', '365' => 'analytics.range.last_365',
+    'custom' => 'analytics.range.custom',
+];
+$channels = ['direct' => 'analytics.channel.direct', 'search' => 'analytics.channel.search', 'website' => 'analytics.channel.website',
+             'social' => 'analytics.channel.social', 'campaign' => 'analytics.channel.campaign'];
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
@@ -39,6 +61,48 @@ $this->i18n([
 </div>
 <?php else: ?>
 <div id="ga-feedback" data-fix-url="/analytics/admin?provider=<?= $this->escape($this->provider) ?>"></div>
+
+<?php /* Window + filters. Controls a provider can't honour stay hidden (the JS reads Reports::options). */ ?>
+<div class="card border-0 shadow-sm mb-4" id="ga-toolbar">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-sm-6 col-lg-3">
+                <label class="form-label small text-body-secondary mb-1" for="ga-range"><?= $this->t('analytics.range.label') ?></label>
+                <select id="ga-range" class="form-select form-select-sm">
+                    <?php foreach ($ranges as $v => $k): ?>
+                    <option value="<?= $this->escape($v) ?>"<?= $v === '28' ? ' selected' : '' ?><?= in_array($v, ['7', '28', '90', '365'], true) ? '' : ' data-needs-range="1"' ?>><?= $this->escape($this->t($k)) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-6 col-lg-2 d-none" data-custom-range>
+                <label class="form-label small text-body-secondary mb-1" for="ga-start"><?= $this->t('analytics.range.start') ?></label>
+                <input type="date" id="ga-start" class="form-control form-control-sm">
+            </div>
+            <div class="col-6 col-lg-2 d-none" data-custom-range>
+                <label class="form-label small text-body-secondary mb-1" for="ga-end"><?= $this->t('analytics.range.end') ?></label>
+                <div class="input-group input-group-sm">
+                    <input type="date" id="ga-end" class="form-control">
+                    <button type="button" id="ga-apply" class="btn btn-primary"><?= $this->t('analytics.range.apply') ?></button>
+                </div>
+            </div>
+            <?php foreach (['campaign', 'channel', 'device', 'country'] as $f): ?>
+            <div class="col-6 col-lg d-none" data-filter-wrap="<?= $f ?>">
+                <label class="form-label small text-body-secondary mb-1" for="ga-f-<?= $f ?>"><?= $this->t('analytics.filter.' . $f) ?></label>
+                <select id="ga-f-<?= $f ?>" class="form-select form-select-sm" data-filter="<?= $f ?>">
+                    <option value=""><?= $this->escape($this->t('analytics.filter.all')) ?></option>
+                    <?php if ($f === 'channel'): foreach ($channels as $v => $k): ?>
+                    <option value="<?= $v ?>"><?= $this->escape($this->t($k)) ?></option>
+                    <?php endforeach; endif; ?>
+                </select>
+            </div>
+            <?php endforeach; ?>
+            <div class="col-auto d-none" id="ga-clear-wrap">
+                <button type="button" id="ga-clear" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-filter-circle-xmark me-1"></i><?= $this->t('analytics.filter.clear') ?></button>
+            </div>
+        </div>
+        <div id="ga-active" class="mt-2 small text-body-secondary"></div>
+    </div>
+</div>
 
 <div class="row g-3 mb-4">
     <?php
@@ -77,10 +141,37 @@ $this->i18n([
     </div>
     <div class="col-lg-6">
         <div class="card border-0 shadow-sm h-100">
-            <div class="card-header fw-semibold bg-transparent"><i class="fa-solid fa-diagram-project me-2"></i><?= $this->t('analytics.card.top_referrers') ?></div>
+            <div class="card-header fw-semibold bg-transparent"><i class="fa-solid fa-diagram-project me-2"></i><span id="ga-sources-title" data-channels-title="<?= $this->escape($this->t('analytics.card.channels')) ?>"><?= $this->t('analytics.card.top_referrers') ?></span></div>
             <div class="table-responsive"><table class="table table-sm mb-0 align-middle"><tbody id="ga-sources"></tbody></table></div>
         </div>
     </div>
+    <div class="col-12 d-none" id="ga-campaigns-wrap">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header fw-semibold bg-transparent"><i class="fa-solid fa-bullhorn me-2"></i><?= $this->t('analytics.card.campaigns') ?></div>
+            <div class="table-responsive"><table class="table table-sm mb-0 align-middle"><tbody id="ga-campaigns"></tbody></table></div>
+        </div>
+    </div>
+</div>
+
+<?php /* One drill-down modal: a campaign's keywords, a channel's sources, or a page's trend + its channels. */ ?>
+<div class="modal fade" id="ga-drill-modal" tabindex="-1" aria-labelledby="ga-drill-title" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-truncate" id="ga-drill-title"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= $this->escape($this->t('analytics.drill.close')) ?>"></button>
+      </div>
+      <div class="modal-body">
+        <div id="ga-drill-feedback"></div>
+        <div class="ratio ratio-21x9 mb-3 d-none" id="ga-drill-chart-wrap"><canvas id="ga-drill-chart" role="img" aria-label="<?= $this->escape($this->t('analytics.card.traffic')) ?>"></canvas></div>
+        <div class="table-responsive"><table class="table table-sm mb-0 align-middle"><tbody id="ga-drill-rows"></tbody></table></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-primary d-none" id="ga-drill-only"><i class="fa-solid fa-filter me-1"></i><?= $this->t('analytics.drill.only_this') ?></button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= $this->t('analytics.drill.close') ?></button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <?php $this->pageScript('/_modules/analytics/js/analytics.dashboard.js', ['defer' => true]); ?>

@@ -52,8 +52,14 @@ class Analytics_Service_Reports extends Tiger_Service_Service
      * result=0 with `data.code` (`no_provider` | `not_configured` | `reconnect_required` | `unreachable`
      * | `auth` | `error`) and `data.provider`, so the UI can say exactly what to do.
      *
-     * @param  array $params optional `days` (1..365, default 28) and `fresh` (bypass cache)
-     * @apiParam integer days The report window in days (1..365, default 28).
+     * @param  array $params optional `days` (1..365, default 28) or `start`/`end`, the filters, and `fresh`
+     * @apiParam integer days The report window in days (1..365, default 28); ignored when start and end are given.
+     * @apiParam string start The window's first day (YYYY-MM-DD), where the provider supports ranges.
+     * @apiParam string end The window's last day (YYYY-MM-DD).
+     * @apiParam string campaign Only visits from this campaign (e.g. facebook-groups).
+     * @apiParam string(direct|search|website|social|campaign) channel Only visits from this channel.
+     * @apiParam string device Only this device type (e.g. desktop, smartphone, tablet).
+     * @apiParam string country Only visitors from this country (ISO-3166 alpha-2, e.g. us).
      * @apiParam boolean fresh Bypass the cache and fetch live.
      * @return void
      */
@@ -64,15 +70,83 @@ class Analytics_Service_Reports extends Tiger_Service_Service
             return;
         }
         $orgId = (string) Tiger_Model_Config::currentOrgId();
-        $out   = Tiger_Analytics::report($orgId, [
-            'days'  => isset($params['days']) ? (int) $params['days'] : 28,
-            'fresh' => !empty($params['fresh']),
-        ]);
+        $out   = Tiger_Analytics::report($orgId, $this->_period($params) + ['fresh' => !empty($params['fresh'])]);
         if (isset($out['error'])) {
             $this->_error((string) $out['error'], ['code' => (string) $out['code'], 'provider' => (string) ($out['provider'] ?? '')]);
             return;
         }
         $this->_success(['report' => $out]);
+    }
+
+    /**
+     * One drill-down for the dashboard: a campaign's keywords, a channel's individual sources, or a page's daily
+     * trend and the channels its visitors came from. Same window + filters as `report`.
+     *
+     * @apiParam string(campaign|channel|page) kind required What to break down.
+     * @apiParam string item required The campaign name, channel key (direct|search|website|social|campaign) or page URL.
+     * @apiParam integer days The window in days, when start/end aren't given.
+     * @apiParam string start The window's first day (YYYY-MM-DD).
+     * @apiParam string end The window's last day (YYYY-MM-DD).
+     * @apiParam string campaign Filter: only this campaign.
+     * @apiParam string channel Filter: only this channel.
+     * @apiParam string device Filter: only this device type.
+     * @apiParam string country Filter: only this country (alpha-2).
+     * @param  array $params `kind`, `item`, the window and the filters
+     * @return void
+     */
+    public function breakdown(array $params): void
+    {
+        if (!$this->_isAllowed('breakdown')) { $this->_error('core.api.error.not_allowed'); return; }
+        $kind = is_string($params['kind'] ?? null) ? $params['kind'] : '';
+        $item = is_string($params['item'] ?? null) ? $params['item'] : '';
+        if (!in_array($kind, ['campaign', 'channel', 'page'], true) || $item === '') {
+            $this->_error('analytics.reports.unsupported', ['code' => 'unsupported']);
+            return;
+        }
+        $out = Tiger_Analytics::breakdown((string) Tiger_Model_Config::currentOrgId(), $kind, $item, $this->_period($params));
+        if (isset($out['error'])) {
+            $this->_error((string) $out['error'], ['code' => (string) ($out['code'] ?? 'error')]);
+            return;
+        }
+        $this->_success(['breakdown' => $out]);
+    }
+
+    /**
+     * What the dashboard can offer for this org: the provider's capabilities (date ranges, which filters, which
+     * drill-downs) and, for the window, the values each filter can take.
+     *
+     * @apiParam integer days The window in days, when start/end aren't given.
+     * @apiParam string start The window's first day (YYYY-MM-DD).
+     * @apiParam string end The window's last day (YYYY-MM-DD).
+     * @param  array $params the window
+     * @return void
+     */
+    public function options(array $params): void
+    {
+        if (!$this->_isAllowed('options')) { $this->_error('core.api.error.not_allowed'); return; }
+        $orgId = (string) Tiger_Model_Config::currentOrgId();
+        $caps  = Tiger_Analytics::capabilities($orgId);
+        $this->_success([
+            'capabilities' => $caps,
+            'filters'      => $caps['filters'] ? Tiger_Analytics::filterOptions($orgId, $this->_period($params)) : [],
+        ]);
+    }
+
+    /** The window + filters from the request — a read, so it only coerces; the adapter validates every value. */
+    private function _period(array $params): array
+    {
+        $str = static fn ($k) => is_string($params[$k] ?? null) ? trim($params[$k]) : '';
+        $period = ['days' => isset($params['days']) ? (int) $params['days'] : 28];
+        if ($str('start') !== '' && $str('end') !== '') {
+            $period['start'] = $str('start');
+            $period['end']   = $str('end');
+        }
+        $filters = [];
+        foreach (['campaign', 'channel', 'device', 'country'] as $f) {
+            if ($str($f) !== '') { $filters[$f] = $str($f); }
+        }
+        if ($filters) { $period['filters'] = $filters; }
+        return $period;
     }
 
     /**
