@@ -30,6 +30,8 @@ use Zend_Registry;
 final class UserMembershipTest extends IntegrationTestCase
 {
     private static ?CaptureTransport $mail = null;
+    /** The suite-wide transport the bootstrap installs (a file sink) — restored after each test. */
+    private $previousTransport = null;
 
     protected function setUp(): void
     {
@@ -39,6 +41,7 @@ final class UserMembershipTest extends IntegrationTestCase
             'i18n' => ['locales' => 'en,es'],
             'site' => ['url' => 'https://example.test', 'name' => 'Example'],
         ]], true));
+        $this->previousTransport = (new \ReflectionProperty(Tiger_Mail::class, '_defaultTransport'))->getValue();
         self::$mail = new CaptureTransport();
         Tiger_Mail::setDefaultTransport(self::$mail);
     }
@@ -54,7 +57,7 @@ final class UserMembershipTest extends IntegrationTestCase
         } catch (\Throwable $e) {}
         $reg = Zend_Registry::getInstance();
         if ($reg->offsetExists('tiger.auth.stateless')) { $reg->offsetUnset('tiger.auth.stateless'); }
-        Tiger_Mail::setDefaultTransport(null);
+        Tiger_Mail::setDefaultTransport($this->previousTransport);   // never leave later tests on a real MTA
         parent::tearDown();
     }
 
