@@ -152,7 +152,10 @@ class Tiger_Model_User extends Tiger_Model_Table
         $dir = (strtoupper((string) ($opts['orderDir'] ?? '')) === 'ASC') ? 'ASC' : 'DESC';
         $orderSql = isset($orderCols[$col]) ? ($orderCols[$col] . ' ' . $dir) : 'u.created_at DESC';
 
+        // status 'deleted' lists the soft-deleted users (so an admin can open one and restore it);
+        // every other filter — including none — lists only live users.
         $scope = function ($sel) use ($status) {
+            if ($status === 'deleted') { $sel->where('u.deleted = 1'); return; }
             $sel->where('u.deleted = 0');
             if ($status !== '') { $sel->where('u.status = ?', $status); }
         };
@@ -173,7 +176,7 @@ class Tiger_Model_User extends Tiger_Model_Table
         $filtered = (int) $db->fetchOne($filteredSel);
 
         $pageSel = $db->select()
-            ->from(['u' => $this->_name], ['user_id', 'email', 'username', 'status', 'created_at'])
+            ->from(['u' => $this->_name], ['user_id', 'email', 'username', 'status', 'deleted', 'created_at'])
             ->joinLeft(['ou' => 'org_user'], 'ou.user_id = u.user_id AND ou.deleted = 0', [
                 'org_count'  => new Zend_Db_Expr('COUNT(DISTINCT ou.org_id)'),
                 'role_names' => new Zend_Db_Expr("GROUP_CONCAT(DISTINCT ou.role ORDER BY ou.role SEPARATOR ', ')"),
@@ -200,6 +203,25 @@ class Tiger_Model_User extends Tiger_Model_Table
             return false;
         }
         $sel = $this->activeSelect()->where("$col = ?", (string) $value);
+        if ($excludeId) { $sel->where('user_id != ?', (string) $excludeId); }
+        return (bool) $this->fetchRow($sel);
+    }
+
+    /**
+     * Is $value held in $col (email|username) by a SOFT-DELETED user? The columns are plain UNIQUE, so a
+     * deleted user still occupies the value — the admin restores that user rather than creating a twin.
+     *
+     * @param  string      $col       'email' or 'username'
+     * @param  string      $value     the value to test
+     * @param  string|null $excludeId a user_id to exclude (the row being edited)
+     * @return bool
+     */
+    public function heldByDeleted($col, $value, $excludeId = null)
+    {
+        if (!in_array($col, ['email', 'username'], true) || (string) $value === '') {
+            return false;
+        }
+        $sel = $this->select()->where("$col = ?", (string) $value)->where('deleted = 1');
         if ($excludeId) { $sel->where('user_id != ?', (string) $excludeId); }
         return (bool) $this->fetchRow($sel);
     }

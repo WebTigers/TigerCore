@@ -196,4 +196,26 @@ class Tiger_Model_Org extends Tiger_Model_Table
         if ($excludeId) { $sel->where('org_id != ?', (string) $excludeId); }
         return (bool) $this->fetchRow($sel);
     }
+
+    /**
+     * Live orgs whose name or slug matches — an org picker's query (the Users admin's Memberships tab).
+     *
+     * @param  string        $term   what the admin typed; empty returns the first page alphabetically
+     * @param  int           $limit  at most 50
+     * @param  string[]|null $scope  org ids the caller may see (the service's _orgScope()); null = all
+     * @return array<int,array{org_id:string,name:string,slug:string}>
+     */
+    public function search($term, $limit = 20, ?array $scope = null)
+    {
+        $sel = $this->activeSelect()->from($this->_name, ['org_id', 'name', 'slug'])
+            ->order('name ASC')
+            ->limit(max(1, min(50, (int) $limit)));
+        if ($scope !== null) { $sel->where('org_id IN (?)', $scope ?: ['']); }
+        $term = trim((string) $term);
+        if ($term !== '') {
+            $like = $this->getAdapter()->quote('%' . addcslashes($term, '%_\\') . '%');
+            $sel->where("(name LIKE $like OR slug LIKE $like)");
+        }
+        return $this->fetchAll($sel)->toArray();
+    }
 }

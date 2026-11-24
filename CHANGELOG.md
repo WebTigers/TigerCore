@@ -6,6 +6,30 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.70.0] — 2026-11-24
+
+### Added — add and edit users in a modal, with their org memberships
+- The Users list's **Add user** button and each row's edit button open one tabbed modal: **Details** (email,
+  username, language, time zone), **Sign-in & status** (status, password, a **Deleted** switch) and
+  **Memberships** (every org the user belongs to, with a role each; add an org, change a role, remove one).
+  The separate `/access/user/edit` page is retired; its URL redirects to the list and opens the modal.
+- An admin could create a user but not place them in an org, so the account belonged to no org and held no role.
+  `Access_Service_User::save` now takes `memberships` (`[{org_id, role}]`) and writes the user and the
+  memberships in one transaction. A new user must start in at least one org.
+- A role is grantable only by someone who may manage that tier (`Tiger_Access_ManageRole`), so an admin can't
+  hand out `superadmin`. The modal offers only grantable roles (`options`); the org picker searches the orgs
+  the caller can see (`orgSearch`). `get` returns one user, deleted or not, with their memberships.
+- Leave the password blank when adding a user and they're emailed a link to choose their own
+  (`Tiger_Service_Authentication::sendWelcome`, a 72-hour link through the existing reset screen).
+- The status filter gains **Deleted**, so a soft-deleted user can be opened and restored with the switch.
+  A deleted user still holds their email and username; adding a new user with either says to restore instead.
+
+### Changed
+- An edit that doesn't send `memberships` (an API caller changing just an email) leaves them as they are.
+- An admin can't delete or suspend themselves, or change their own memberships, from the modal.
+- `Tiger_Model_OrgUser::assign()` reactivates a removed membership instead of inserting a second row:
+  `org_user`'s unique key also covers soft-deleted rows.
+
 ## [1.69.2] — 2026-11-22
 
 ### Fixed — the agent side panel and the schedule control duplicated `id="_csrf"` too

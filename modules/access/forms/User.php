@@ -5,10 +5,11 @@
  * Access_Form_User — create/edit a user identity.
  *
  * The user is deliberately thin: email (canonical login id, unique), an optional
- * username (unique), and a lifecycle status. Profile fields belong to an Account
- * module; role belongs to org membership (managed in the org context) — neither is
- * here. Uniqueness is enforced by Access_Service_User::save (friendly errors) on top
- * of the DB unique indexes.
+ * username (unique), a lifecycle status and the soft-delete flag. Profile fields belong
+ * to an Account module. Roles live on org memberships, which ride along as
+ * `memberships` ({org_id, role} pairs) so the Users admin creates a user AND places them
+ * in an org in one save. Uniqueness and every membership rule are enforced by
+ * Access_Service_User::save (friendly errors) on top of the DB unique indexes.
  *
  * @api
  */
@@ -70,6 +71,18 @@ class Access_Form_User extends Tiger_Form
                 'value'        => 'active',
                 'attribs'      => array_merge($select, ['id' => 'access-status']),
             ]],
+
+            // Soft-delete flag — the modal's Deleted switch (check = delete, uncheck = restore).
+            ['checkbox', 'deleted', [
+                'checkedValue'   => '1',
+                'uncheckedValue' => '0',
+                'attribs'        => ['class' => 'form-check-input', 'id' => 'access-deleted', 'role' => 'switch'],
+            ]],
+
+            // The user's memberships: a list of {org_id, role} (JSON text or an array). No filters — it can
+            // arrive as an array, and StringTrim would cast it. Access_Service_User::save owns the shape and
+            // every rule (org exists + in scope, role exists + manageable, at least one).
+            ['hidden', 'memberships', ['required' => false, 'filters' => []]],
         ];
     }
 }

@@ -15,14 +15,28 @@ $this->i18n([
     'deleteSelf'     => 'access.js.delete_self',
     'notPermitted'   => 'access.js.not_permitted',
     'confirmDelUser' => 'access.js.confirm_delete_user',
+    'fixFields'      => 'access.js.fix_fields',
+    'networkError'   => 'access.js.network_error',
+    'titleNew'       => 'access.user.modal.title_new',
+    'titleEdit'      => 'access.user.modal.title_edit',
+    'mRemove'        => 'access.js.membership_remove',
+    'mNone'          => 'access.user.membership.none',
+    'orgSearch'      => 'access.js.org_search',
+    'pickOrg'        => 'access.js.pick_org',
+    'loading'        => 'access.js.loading',
+    'pwNewHelp'      => 'access.user.field.password_new_help',
+    'pwEditHelp'     => 'access.user.field.password_help',
+    'statusDeleted'  => 'access.status.deleted',
 ]);
+$uf = $this->userForm;
+$el = function ($name) use ($uf) { return $uf->getElement($name); };
 ?>
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
         <h1 class="h3 mb-1"><?= $this->t('access.user.list.title') ?></h1>
         <p class="text-body-secondary mb-0"><?= $this->t('access.user.list.subtitle') ?></p>
     </div>
-    <a href="/access/user/edit" class="btn btn-primary"><i class="fa-solid fa-user-plus me-2"></i><?= $this->t('access.user.list.new') ?></a>
+    <button type="button" id="access-user-new" class="btn btn-primary"><i class="fa-solid fa-user-plus me-2"></i><?= $this->t('access.user.list.new') ?></button>
 </div>
 
 <div class="card">
@@ -34,6 +48,7 @@ $this->i18n([
                     <option value=""><?= $this->escape($this->t('access.filter.all_statuses')) ?></option>
                     <option value="active"><?= $this->escape($this->t('access.status.active')) ?></option>
                     <option value="suspended"><?= $this->escape($this->t('access.status.suspended')) ?></option>
+                    <option value="deleted"><?= $this->escape($this->t('access.status.deleted')) ?></option>
                 </select>
             </div>
             <div class="col-auto">
@@ -62,6 +77,103 @@ $this->i18n([
             </table>
         </div>
     </div>
+</div>
+
+<?php /* Add / Edit user — one tabbed modal, filled and saved over /api (Access_Service_User get/save). */ ?>
+<div class="modal fade" id="access-user-modal" tabindex="-1" aria-labelledby="access-user-modal-title" aria-hidden="true"
+     data-open-user="<?= $this->escape($this->openUserId) ?>" data-open-new="<?= $this->openNew ? '1' : '' ?>">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="access-user-modal-title"><?= $this->t('access.user.modal.title_new') ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= $this->escape($this->t('access.action.cancel')) ?>"></button>
+      </div>
+      <div class="modal-body">
+        <div id="access-user-feedback"></div>
+        <form id="access-user-form" onsubmit="return false;" novalidate>
+          <?= $el('_csrf') ?>
+          <?= $el('user_id') ?>
+          <?= $el('memberships') ?>
+          <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item" role="presentation"><button class="nav-link active" id="access-tab-details-btn" data-bs-toggle="tab" data-bs-target="#access-tab-details" type="button" role="tab" aria-controls="access-tab-details" aria-selected="true"><?= $this->t('access.user.tab.details') ?></button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" id="access-tab-signin-btn" data-bs-toggle="tab" data-bs-target="#access-tab-signin" type="button" role="tab" aria-controls="access-tab-signin" aria-selected="false"><?= $this->t('access.user.tab.signin') ?></button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" id="access-tab-memberships-btn" data-bs-toggle="tab" data-bs-target="#access-tab-memberships" type="button" role="tab" aria-controls="access-tab-memberships" aria-selected="false"><?= $this->t('access.user.tab.memberships') ?> <span class="badge rounded-pill text-bg-secondary ms-1" id="access-membership-count">0</span></button></li>
+          </ul>
+          <div class="tab-content">
+            <div class="tab-pane fade show active" id="access-tab-details" role="tabpanel" aria-labelledby="access-tab-details-btn" tabindex="0">
+              <div class="mb-3">
+                <label class="form-label" for="<?= $this->escape($el('email')->getId()) ?>"><?= $this->t('access.label.email') ?></label>
+                <?= $el('email') ?>
+                <div class="form-text"><?= $this->t('access.user.field.email_help') ?></div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="<?= $this->escape($el('username')->getId()) ?>"><?= $this->t('access.label.username') ?></label>
+                <?= $el('username') ?>
+                <div class="form-text"><?= $this->t('access.user.field.username_help') ?></div>
+              </div>
+              <div class="row g-3">
+                <div class="col-sm-6">
+                  <label class="form-label" for="<?= $this->escape($el('locale')->getId()) ?>"><?= $this->t('access.user.field.language') ?></label>
+                  <?= $el('locale') ?>
+                </div>
+                <div class="col-sm-6">
+                  <label class="form-label" for="<?= $this->escape($el('timezone')->getId()) ?>"><?= $this->t('access.user.field.timezone') ?></label>
+                  <?= $el('timezone') ?>
+                </div>
+              </div>
+            </div>
+            <div class="tab-pane fade" id="access-tab-signin" role="tabpanel" aria-labelledby="access-tab-signin-btn" tabindex="0">
+              <div class="mb-3">
+                <label class="form-label" for="<?= $this->escape($el('status')->getId()) ?>"><?= $this->t('access.label.status') ?></label>
+                <?= $el('status') ?>
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="<?= $this->escape($el('new_password')->getId()) ?>"><?= $this->t('access.user.field.password') ?></label>
+                <?= $el('new_password') ?>
+                <div class="form-text" id="access-password-help"><?= $this->t('access.user.field.password_new_help') ?></div>
+              </div>
+              <div class="form-check form-switch mb-0">
+                <?= $el('deleted') ?>
+                <label class="form-check-label" for="<?= $this->escape($el('deleted')->getId()) ?>"><?= $this->t('access.user.field.deleted') ?></label>
+                <div class="form-text"><?= $this->t('access.user.field.deleted_help') ?></div>
+              </div>
+            </div>
+            <div class="tab-pane fade" id="access-tab-memberships" role="tabpanel" aria-labelledby="access-tab-memberships-btn" tabindex="0">
+              <div id="access-membership-self" class="alert alert-info small d-none" role="status"><?= $this->t('access.user.membership.self_note') ?></div>
+              <div class="table-responsive mb-3">
+                <table class="table table-sm align-middle mb-0">
+                  <thead><tr>
+                    <th><?= $this->t('access.user.membership.org_label') ?></th>
+                    <th><?= $this->t('access.user.membership.role_label') ?></th>
+                    <th class="text-end"><span class="visually-hidden"><?= $this->t('access.label.actions') ?></span></th>
+                  </tr></thead>
+                  <tbody id="access-membership-rows"></tbody>
+                </table>
+              </div>
+              <div id="access-membership-add" class="row g-2 align-items-end">
+                <div class="col-sm-6 position-relative">
+                  <label class="form-label small text-body-secondary mb-1" for="access-membership-org"><?= $this->t('access.user.membership.org_label') ?></label>
+                  <input type="text" class="form-control form-control-sm" id="access-membership-org" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="access-membership-org-list">
+                  <ul class="dropdown-menu w-100" id="access-membership-org-list" role="listbox"></ul>
+                </div>
+                <div class="col-sm-4">
+                  <label class="form-label small text-body-secondary mb-1" for="access-membership-role"><?= $this->t('access.user.membership.role_label') ?></label>
+                  <select class="form-select form-select-sm" id="access-membership-role"></select>
+                </div>
+                <div class="col-sm-2 d-grid">
+                  <button type="button" class="btn btn-sm btn-outline-primary" id="access-membership-add-btn"><i class="fa-solid fa-plus me-1"></i><?= $this->t('access.user.membership.add') ?></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= $this->t('access.action.cancel') ?></button>
+        <button type="button" id="access-user-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-2"></i><?= $this->t('access.action.save') ?></button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <?php $this->pageScript('/_modules/access/js/access.user-index.js', ['defer' => true]); ?>

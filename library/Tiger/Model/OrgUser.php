@@ -149,4 +149,64 @@ class Tiger_Model_OrgUser extends Tiger_Model_Table
         }
         return $this->fetchAll($select)->toArray();
     }
+
+    /**
+     * A user's live memberships with each org's display name — what the Users admin modal lists.
+     *
+     * @param  string $userId
+     * @return array<int,array{org_id:string,org_name:string,org_slug:string,role:string,status:string}>
+     */
+    public function membershipsWithOrgs($userId)
+    {
+        $select = $this->select()
+            ->setIntegrityCheck(false)
+            ->from(['ou' => $this->_name], ['org_id', 'role', 'status'])
+            ->join(['o' => 'org'], 'o.org_id = ou.org_id', ['org_name' => 'name', 'org_slug' => 'slug'])
+            ->where('ou.user_id = ?', (string) $userId)
+            ->where('ou.deleted = 0')
+            ->where('o.deleted = 0')
+            ->order('o.name ASC');
+        return $this->fetchAll($select)->toArray();
+    }
+
+    /**
+     * Make $userId a member of $orgId with $role (active), creating or updating the membership.
+     *
+     * `org_user` carries a plain UNIQUE (org_id, user_id) that a soft-deleted row still occupies, so a
+     * membership that was removed is REACTIVATED rather than inserted twice. Returns the membership id.
+     *
+     * @param  string $orgId
+     * @param  string $userId
+     * @param  string $role
+     * @return string the org_user_id
+     */
+    public function assign($orgId, $userId, $role)
+    {
+        $row = $this->fetchRow($this->select()->where('org_id = ?', (string) $orgId)->where('user_id = ?', (string) $userId));
+        if ($row) {
+            $row->role    = (string) $role;
+            $row->status  = self::STATUS_ACTIVE;
+            $row->deleted = 0;
+            $row->save();
+            return (string) $row->org_user_id;
+        }
+        return (string) $this->insert(['org_id' => (string) $orgId, 'user_id' => (string) $userId,
+                                       'role' => (string) $role, 'status' => self::STATUS_ACTIVE]);
+    }
+
+    /**
+     * Remove $userId from $orgId (soft-delete the membership). A no-op when there is none.
+     *
+     * @param  string $orgId
+     * @param  string $userId
+     * @return void
+     */
+    public function revoke($orgId, $userId)
+    {
+        $row = $this->membership($orgId, $userId);
+        if ($row) {
+            $row->deleted = 1;
+            $row->save();
+        }
+    }
 }
