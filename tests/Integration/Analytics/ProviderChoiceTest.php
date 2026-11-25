@@ -225,6 +225,53 @@ final class ProviderChoiceTest extends IntegrationTestCase
         ], $r['series']);
         $this->assertSame([['label' => '/blog', 'hits' => 80], ['label' => 'index', 'hits' => 60]], $r['top_pages']);
         $this->assertSame([['label' => 'Search Engines', 'visits' => 70], ['label' => 'Direct Entry', 'visits' => 30]], $r['top_referrers']);
+        $this->assertSame('day', $r['granularity']);
+    }
+
+    #[Test]
+    public function a_one_day_window_asks_for_the_hourly_report_and_a_longer_one_does_not(): void
+    {
+        $this->matomo('org-a', self::TOKEN_A);
+        $hourly = function (): bool {
+            foreach ($this->calls[0][1] as $k => $v) {
+                if (str_starts_with((string) $k, 'urls[') && str_contains((string) $v, 'VisitTime.getVisitInformationPerServerTime')) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        $day = date('Y-m-d', strtotime('-1 day'));
+        Tiger_Analytics::report('org-a', ['start' => $day, 'end' => $day]);
+        $this->assertTrue($hourly(), 'one day → hourly');
+        $this->calls = [];
+        Tiger_Analytics::report('org-a', ['days' => 7]);
+        $this->assertFalse($hourly(), 'a week stays daily');
+    }
+
+    #[Test]
+    public function the_hourly_report_replaces_the_single_daily_point(): void
+    {
+        $base = json_decode($this->bulkFixture(), true);
+        $base[2] = ['2026-11-16' => ['nb_visits' => 60, 'nb_uniq_visitors' => 50]];
+        $base[3] = ['2026-11-16' => ['nb_pageviews' => 200]];
+        $base[6] = [];
+        $base[7] = [];
+        $base[8] = [
+            ['label' => '9', 'nb_visits' => 4, 'nb_uniq_visitors' => 3, 'nb_actions' => 11],
+            ['label' => '0', 'nb_visits' => 1, 'nb_actions' => 2],          // no uniques → visits
+            ['label' => 'junk', 'nb_visits' => 99],                         // not an hour → ignored
+        ];
+        $r = (new Tiger_Analytics_Adapter_Matomo())->fromBulk(1, $base, ['start' => '2026-11-16', 'end' => '2026-11-16']);
+        $this->assertSame('hour', $r['granularity']);
+        $this->assertSame([
+            ['date' => '2026-11-16 00:00', 'visitors' => 1, 'pageviews' => 2],
+            ['date' => '2026-11-16 09:00', 'visitors' => 3, 'pageviews' => 11],
+        ], $r['series'], 'sorted by hour; the second value is Matomo actions');
+
+        $base[8] = ['result' => 'error', 'message' => 'no VisitTime'];
+        $r = (new Tiger_Analytics_Adapter_Matomo())->fromBulk(1, $base, ['start' => '2026-11-16', 'end' => '2026-11-16']);
+        $this->assertSame('day', $r['granularity'], 'a failed hourly report keeps the daily point');
+        $this->assertSame([['date' => '2026-11-16', 'visitors' => 50, 'pageviews' => 200]], $r['series']);
     }
 
     #[Test]

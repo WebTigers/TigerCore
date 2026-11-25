@@ -13,6 +13,9 @@
  * page (its daily views + where its visitors came from), or a day on the chart (narrows the window to that
  * day; the chip undoes it). A campaign/channel drill can become a filter with "Show only this".
  *
+ * The chosen range and filters are remembered per browser (localStorage), so the dashboard opens the way it
+ * was left. A one-day window charts by hour when the provider can (`granularity: hour`).
+ *
  * Loaded with `defer`, after the admin layout's Chart.js. Strings arrive through the i18n carrier (Tiger.t).
  */
 (function () {
@@ -47,6 +50,29 @@
     var caps = { range: false, filters: [], drilldowns: [] };
     var state = { preset: '28', start: '', end: '', filters: {}, day: null };   // day = {prev: {...}} while drilled
     function can(drill) { return caps.drilldowns.indexOf(drill) !== -1; }
+
+    // The view (range + filters) survives a reload. A drilled day doesn't — it is a moment, not a setting.
+    var STORE = 'tiger.analytics.dashboard';
+    function saveView() {
+        try { localStorage.setItem(STORE, JSON.stringify({ preset: state.preset, start: state.start, end: state.end, filters: state.filters })); } catch (e) { /* storage off */ }
+    }
+    function restoreView() {
+        var v = null;
+        try { v = JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) { v = null; }
+        if (!v || typeof v !== 'object') { return; }
+        var isDate = function (d) { return typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d); };
+        if (typeof v.preset === 'string' && document.querySelector('#ga-range option[value="' + v.preset.replace(/[^a-z0-9_]/gi, '') + '"]')) {
+            state.preset = v.preset;
+        }
+        if (state.preset === 'custom') {
+            if (isDate(v.start) && isDate(v.end)) { state.start = v.start; state.end = v.end; } else { state.preset = '28'; }
+        }
+        if (v.filters && typeof v.filters === 'object') {
+            ['campaign', 'channel', 'device', 'country'].forEach(function (k) {
+                if (typeof v.filters[k] === 'string' && v.filters[k]) { state.filters[k] = v.filters[k]; }
+            });
+        }
+    }
 
     function ymd(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
     function daysAgo(n) { var d = new Date(); d.setDate(d.getDate() - n); return d; }
@@ -107,10 +133,15 @@
                      lineWidth: 2, fontColor: muted, hidden: false, datasetIndex: i };
         });
     }
-    function lineChart(canvas, series, datasets, onDay) {
+    /** An x-axis label: `HH:00` for an hourly point, `MM-DD` for a day. */
+    function pointLabel(p, hourly) { return hourly ? (p.date || '').slice(11, 16) : (p.date || '').slice(5); }
+
+    function lineChart(canvas, series, datasets, onDay, hourly) {
+        // A line needs two points; show the dots so one or two days still read as data, not an empty chart.
+        if (series.length <= 2) { datasets.forEach(function (ds) { ds.pointRadius = 4; ds.pointHoverRadius = 6; }); }
         return new Chart(canvas, {
             type: 'line',
-            data: { labels: series.map(function (p) { return (p.date || '').slice(5); }), datasets: datasets },
+            data: { labels: series.map(function (p) { return pointLabel(p, hourly); }), datasets: datasets },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
@@ -153,15 +184,16 @@
         }
 
         var series = r.series || [];
+        var hourly = r.granularity === 'hour';   // one day, by hour — the second line is actions (Matomo has no hourly page views)
         if (chart) { chart.destroy(); chart = null; }
         if (typeof Chart === 'undefined') { return; }   // Chart.js not loaded — tiles + tables still rendered
         chart = lineChart($('ga-chart'), series, [
             // `order` is the z-index: Chart.js draws lowest-order LAST, so order:0 = on top.
             { label: Tiger.t('visitors'), order: 0, data: series.map(function (p) { return p.visitors; }),
               borderColor: primary, backgroundColor: rgba(primary, 0.3), fill: true, tension: 0.3, pointRadius: 0, pointHitRadius: 8, borderWidth: 2 },
-            { label: Tiger.t('pageviews'), order: 1, data: series.map(function (p) { return p.pageviews; }),
+            { label: Tiger.t(hourly ? 'actions' : 'pageviews'), order: 1, data: series.map(function (p) { return p.pageviews; }),
               borderColor: muted, backgroundColor: rgba(muted, 0.15), fill: true, tension: 0.3, pointRadius: 0, pointHitRadius: 8, borderWidth: 1.5 }
-        ], can('day') && !state.day ? drillDay : null);
+        ], can('day') && !state.day && !hourly ? drillDay : null, hourly);
     }
 
     var box = $('ga-feedback');
@@ -201,13 +233,22 @@
             caps = Object.assign({ range: false, filters: [], drilldowns: [] }, d.capabilities || {});
             // Presets that need a real date range hide for a rolling-window-only provider.
             document.querySelectorAll('#ga-range option[data-needs-range]').forEach(function (o) { o.hidden = !caps.range; o.disabled = !caps.range; });
+            // A remembered choice this provider can't honour (a range preset, an unsupported filter) is dropped.
+            var stale = false;
+            if (rangeSel.selectedOptions[0] && rangeSel.selectedOptions[0].disabled) {
+                state.preset = '28'; rangeSel.value = '28'; showCustom(false); stale = true;
+            }
+            Object.keys(state.filters).forEach(function (k) {
+                if (state.filters[k] && caps.filters.indexOf(k) === -1) { delete state.filters[k]; stale = true; }
+            });
+            if (stale) { saveView(); setTimeout(load, 0); }
             ['campaign', 'channel', 'device', 'country'].forEach(function (f) {
                 var wrap = document.querySelector('[data-filter-wrap="' + f + '"]');
                 var on = caps.filters.indexOf(f) !== -1;
                 wrap.classList.toggle('d-none', !on);
                 var opts = (d.filters || {})[f];
                 if (!on || !opts) { return; }   // channel's choices are fixed in the markup
-                var sel = $('ga-f-' + f), keep = sel.value;
+                var sel = $('ga-f-' + f), keep = state.filters[f] || '';
                 sel.innerHTML = '<option value="">' + esc(Tiger.t('all')) + '</option>' + opts.map(function (o) {
                     return '<option value="' + esc(o.value) + '"' + (o.value === keep ? ' selected' : '') + '>' + esc(o.label) + '</option>';
                 }).join('');
@@ -297,6 +338,7 @@
         }
         if (sel) { sel.value = current.item; }
         state.filters[current.kind] = current.item;
+        saveView();
         bootstrap.Modal.getOrCreateInstance(modalEl).hide();
         load();
     });
@@ -306,6 +348,7 @@
     function showCustom(on) { document.querySelectorAll('[data-custom-range]').forEach(function (el) { el.classList.toggle('d-none', !on); }); }
     rangeSel.addEventListener('change', function () {
         state.preset = rangeSel.value; state.day = null;
+        saveView();
         if (state.preset === 'custom') {
             showCustom(true);
             if (!$('ga-start').value) { $('ga-start').value = ymd(daysAgo(27)); $('ga-end').value = ymd(new Date()); }
@@ -318,15 +361,30 @@
     $('ga-apply').addEventListener('click', function () {
         if (!$('ga-start').value || !$('ga-end').value) { return; }
         state.start = $('ga-start').value; state.end = $('ga-end').value; state.day = null;
+        saveView();
         optionsReady = loadOptions(); load();
     });
     document.querySelectorAll('[data-filter]').forEach(function (sel) {
-        sel.addEventListener('change', function () { state.filters[sel.getAttribute('data-filter')] = sel.value; load(); });
+        sel.addEventListener('change', function () { state.filters[sel.getAttribute('data-filter')] = sel.value; saveView(); load(); });
     });
     $('ga-clear').addEventListener('click', function () {
         state.filters = {}; state.day = null;
         document.querySelectorAll('[data-filter]').forEach(function (sel) { sel.value = ''; });
+        saveView();
         load();
+    });
+
+    // Put the toolbar back the way it was left, before the first request goes out.
+    restoreView();
+    rangeSel.value = state.preset;
+    if (state.preset === 'custom') { showCustom(true); $('ga-start').value = state.start; $('ga-end').value = state.end; }
+    Object.keys(state.filters).forEach(function (k) {
+        var sel = $('ga-f-' + k);
+        if (!sel) { delete state.filters[k]; return; }
+        if (!Array.prototype.some.call(sel.options, function (o) { return o.value === state.filters[k]; })) {
+            sel.insertAdjacentHTML('beforeend', '<option value="' + esc(state.filters[k]) + '">' + esc(state.filters[k]) + '</option>');
+        }
+        sel.value = state.filters[k];
     });
 
     // First paint: the options and the report go out together (a rolling preset needs no capabilities to ask for).
