@@ -125,6 +125,7 @@ return [
     'analytics.widget.visitors_28d'    => 'visiteurs · 28 j',
     'analytics.widget.series_visitors' => 'Visiteurs',
     'analytics.widget.series_pageviews'=> 'Pages vues',
+    'analytics.widget.series_actions'  => 'Actions',
     'analytics.metric.visitors'        => 'Visiteurs',
     'analytics.metric.visits'          => 'Visites',
     'analytics.card.top_referrers'     => 'Principaux référents',

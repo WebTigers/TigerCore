@@ -24,6 +24,8 @@
  *   Actions.get        (day)   → series[].pageviews
  *   Actions.getPageUrls (range, flat) → top_pages[] {label, hits}
  *   Referrers.getAll   (range) → top_referrers[] {label, visits}
+ *   VisitTime.getVisitInformationPerServerTime (one day only) → series[] by HOUR, `granularity: hour`
+ *     (visitors per hour; Matomo keeps no per-hour page views, so the second line is `actions`)
  *
  * Not cached: a self-hosted Matomo has no quota and archives server-side; the widget fetches async.
  *
@@ -183,7 +185,7 @@ class Tiger_Analytics_Adapter_Matomo extends Tiger_Analytics_Adapter_Abstract im
         [$start, $end, $days] = $this->_range($period);
         [$range, $daily] = $this->_windows($orgId, $start, $end, $period);
 
-        $res = $this->_bulk($orgId, [
+        $calls = [
             ['method' => 'VisitsSummary.get'] + $range,
             ['method' => 'Actions.get'] + $range,
             ['method' => 'VisitsSummary.get'] + $daily,
@@ -195,7 +197,15 @@ class Tiger_Analytics_Adapter_Matomo extends Tiger_Analytics_Adapter_Abstract im
             ['method' => 'Referrers.getReferrerType'] + $range,
             ['method' => 'Referrers.getCampaigns', 'filter_limit' => 10,
                 'filter_sort_column' => 'nb_visits', 'filter_sort_order' => 'desc'] + $range,
-        ]);
+        ];
+        // A one-day window is a single point by day, so it charts by hour instead (site timezone; today
+        // stops at the current hour).
+        if ($start === $end) {
+            // A single date, not `start,end` — the range form comes back as a map keyed by date.
+            $calls[] = ['method' => 'VisitTime.getVisitInformationPerServerTime', 'hideFutureHoursWhenToday' => 1,
+                        'date' => $start] + $daily;
+        }
+        $res = $this->_bulk($orgId, $calls);
         if (isset($res['error'])) {
             return $res;
         }
@@ -408,6 +418,28 @@ class Tiger_Analytics_Adapter_Matomo extends Tiger_Analytics_Adapter_Abstract im
             ];
         }
 
+        // A ninth result = the one-day hourly report: it replaces the single daily point.
+        $granularity = 'day';
+        if (is_array($results[8] ?? null) && $results[8] !== [] && !isset($results[8]['result'])) {
+            $day = (string) ($range['start'] ?? ($series[0]['date'] ?? date('Y-m-d')));
+            $byHour = [];
+            foreach ($results[8] as $r) {
+                if (!is_array($r) || !is_numeric($r['label'] ?? null)) { continue; }
+                $h = (int) $r['label'];
+                if ($h < 0 || $h > 23) { continue; }
+                $byHour[$h] = [
+                    'date'      => sprintf('%s %02d:00', $day, $h),
+                    'visitors'  => $r['nb_uniq_visitors'] ?? ($r['nb_visits'] ?? 0),
+                    'pageviews' => $r['nb_actions'] ?? 0,
+                ];
+            }
+            if ($byHour) {
+                ksort($byHour);
+                $series      = array_values($byHour);
+                $granularity = 'hour';
+            }
+        }
+
         $pages = [];
         foreach ((is_array($results[4] ?? null) ? $results[4] : []) as $r) {
             if (!is_array($r)) { continue; }
@@ -429,7 +461,8 @@ class Tiger_Analytics_Adapter_Matomo extends Tiger_Analytics_Adapter_Abstract im
             if (!is_array($r)) { continue; }
             $campaigns[] = ['label' => (string) ($r['label'] ?? ''), 'visits' => (int) ($r['nb_visits'] ?? 0)];
         }
-        return $this->_normalize($days, $totals, $series, $pages, $refs, $range, ['channels' => $channels, 'campaigns' => $campaigns]);
+        return $this->_normalize($days, $totals, $series, $pages, $refs, $range,
+            ['channels' => $channels, 'campaigns' => $campaigns, 'granularity' => $granularity]);
     }
 
     /**

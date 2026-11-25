@@ -130,6 +130,7 @@ return [
     'analytics.widget.visitors_28d'    => 'visitors · 28d',
     'analytics.widget.series_visitors' => 'Visitors',
     'analytics.widget.series_pageviews'=> 'Page views',
+    'analytics.widget.series_actions'  => 'Actions',
     'analytics.metric.visitors'        => 'Visitors',
     'analytics.metric.visits'          => 'Visits',
     'analytics.card.top_referrers'     => 'Top referrers',

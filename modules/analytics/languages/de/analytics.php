@@ -125,6 +125,7 @@ return [
     'analytics.widget.visitors_28d'    => 'Besucher · 28 T',
     'analytics.widget.series_visitors' => 'Besucher',
     'analytics.widget.series_pageviews'=> 'Seitenaufrufe',
+    'analytics.widget.series_actions'  => 'Aktionen',
     'analytics.metric.visitors'        => 'Besucher',
     'analytics.metric.visits'          => 'Besuche',
     'analytics.card.top_referrers'     => 'Top-Verweise',

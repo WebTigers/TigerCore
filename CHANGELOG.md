@@ -6,6 +6,17 @@ All notable changes to **Tiger Core** (`webtigers/tiger-core`). Format follows
 
 ## [Unreleased]
 
+## [1.73.0] — 2026-11-25
+
+### Added — analytics dashboard remembers its view; one day charts by hour
+- The range and filters are remembered per browser (localStorage), so the dashboard opens the way it was left.
+  A drilled day isn't remembered; a remembered choice the provider can't honour falls back quietly.
+- A one-day window (Today, Yesterday, a custom single day, or a day clicked on the chart) charts by hour with
+  Matomo (`VisitTime.getVisitInformationPerServerTime`, site timezone; today stops at the current hour). Matomo
+  keeps no per-hour page views, so the second line reads **Actions** in that view. The report carries
+  `granularity: day|hour`.
+- A chart with one or two points shows its dots instead of an empty line.
+
 ## [1.72.2] — 2026-11-24
 
 ### Fixed — analytics dashboard polish (found driving it on prod)

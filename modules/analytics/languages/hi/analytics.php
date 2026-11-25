@@ -125,6 +125,7 @@ return [
     'analytics.widget.visitors_28d'    => 'विज़िटर · 28 दिन',
     'analytics.widget.series_visitors' => 'विज़िटर',
     'analytics.widget.series_pageviews'=> 'पेज व्यू',
+    'analytics.widget.series_actions'  => 'क्रियाएँ',
     'analytics.metric.visitors'        => 'विज़िटर',
     'analytics.metric.visits'          => 'विज़िट',
     'analytics.card.top_referrers'     => 'शीर्ष रेफ़रर',
